@@ -12,11 +12,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:db": "bash scripts/test-db.sh"
+    "test:db": "bash scripts/test-db.sh",
+    "db:types": "bash scripts/gen-db-types.sh",
+    "beta:bootstrap": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/bootstrap-beta-users.ts"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.217.0",
