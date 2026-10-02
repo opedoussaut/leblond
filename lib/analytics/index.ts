@@ -8,3 +8,4 @@ export * from "./cross-gym";
 export * from "./wearables";
 export * from "./sessions";
 export * from "./targets";
+export * from "./snapshot";
