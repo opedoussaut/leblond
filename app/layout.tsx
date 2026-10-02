@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { I18nProvider } from "@/components/i18n-provider";
+import { getViewer } from "@/lib/auth/viewer";
+import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,10 +22,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const viewer = await getViewer().catch(() => null);
+  const { locale, t } = await getI18n(viewer?.profile.preferred_language);
   return (
-    <html lang="fr">
-      <body className="antialiased">{children}</body>
+    <html lang={locale}>
+      <body className="antialiased">
+        <I18nProvider locale={locale} t={t}>
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }
