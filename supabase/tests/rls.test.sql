@@ -39,7 +39,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000b', 'Thomas@Example.test');
 
 select pg_temp.expect((select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a') = 'Olivier', 'profile auto-created with beta display name');
-select pg_temp.expect((select count(*) from public.profiles) = 2, 'two profiles');
+select pg_temp.expect((select count(*) from public.profiles p join auth.users u on u.id = p.id where u.email ilike '%@example.test') = 2, 'two profiles');
 
 grant execute on function pg_temp.expect_error(text, text) to authenticated, anon;
 grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
@@ -90,8 +90,8 @@ select public.link_wearable_activity('40000000-0000-0000-0000-000000000001', '30
 insert into public.ai_usage (model, request_type) values ('test-model', 'chat');
 select pg_temp.expect_error($$delete from public.ai_usage$$, 'ai_usage is append-only');
 
-select pg_temp.expect((select count(*) from public.beta_users) = 3, 'admin sees the roster');
-select pg_temp.expect((select count(*) from public.admin_beta_overview()) = 3, 'admin overview works');
+select pg_temp.expect((select count(*) from public.beta_users where email like '%@example.test') = 3, 'admin sees the roster');
+select pg_temp.expect((select count(*) from public.admin_beta_overview() where email like '%@example.test') = 3, 'admin overview works');
 
 insert into storage.objects (bucket_id, name) values ('media', '00000000-0000-0000-0000-00000000000a/p/photo.jpg');
 
@@ -105,7 +105,7 @@ insert into public.wearable_connections (user_id, provider, status, access_token
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","email":"thomas@example.test","role":"authenticated"}', false);
 
-select pg_temp.expect((select count(*) from public.gyms) = 2, 'gym catalogue is shared');
+select pg_temp.expect((select count(*) from public.gyms where name like '% Test') = 2, 'gym catalogue is shared');
 select pg_temp.expect((select count(*) from public.problems) = 0, 'problems are private');
 select pg_temp.expect((select count(*) from public.sessions) = 0, 'sessions are private');
 select pg_temp.expect((select count(*) from public.attempts) = 0, 'attempts are private');

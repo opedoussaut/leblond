@@ -9,7 +9,7 @@ import type { ActionResult } from "@/lib/validation/common";
 
 export async function createProject(problemId: string): Promise<void> {
   const viewer = await requireViewer();
-  if (!z.uuid().safeParse(problemId).success) return;
+  if (!z.guid().safeParse(problemId).success) return;
   const { data: existing } = await viewer.supabase.from("projects").select("id").eq("problem_id", problemId).maybeSingle();
   if (existing) redirect(`/projects/${existing.id}`);
   const { data, error } = await viewer.supabase
@@ -33,7 +33,7 @@ export async function updateProject(projectId: string, _prev: ActionResult | nul
     status: formData.get("status"),
     notes: (formData.get("notes") as string | null)?.trim() || null,
   });
-  if (!z.uuid().safeParse(projectId).success || !parsed.success) return { ok: false, error: "invalid" };
+  if (!z.guid().safeParse(projectId).success || !parsed.success) return { ok: false, error: "invalid" };
   const { status, notes } = parsed.data;
   const { error } = await viewer.supabase
     .from("projects")

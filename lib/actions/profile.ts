@@ -24,7 +24,7 @@ const onboardingSchema = z
     level: z.string().max(10).nullable(),
     targetSystem: z.enum(GRADE_SYSTEMS),
     targetGrade: z.string().max(10),
-    favouriteGymIds: z.array(z.uuid()).max(30),
+    favouriteGymIds: z.array(z.guid()).max(30),
   })
   .refine(gradePair("level", "levelSystem"), { path: ["level"] })
   .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });

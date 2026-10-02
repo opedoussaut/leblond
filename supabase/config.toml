@@ -245,6 +245,16 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 # Uncomment to customize email template
+# LEBLOND: sign-in emails carry BOTH the 6-digit code ({{ .Token }}) and the link.
+# Copy the same templates into the hosted project (Authentication → Email Templates).
+[auth.email.template.magic_link]
+subject = "LEBLOND — code de connexion / sign-in code"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.confirmation]
+subject = "LEBLOND — code de connexion / sign-in code"
+content_path = "./supabase/templates/confirmation.html"
+
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"

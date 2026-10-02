@@ -35,15 +35,4 @@ export function findDuplicate<T extends DedupCandidate>(candidate: DedupCandidat
   return existing.find((e) => isLikelySameWorkout(candidate, e)) ?? null;
 }
 
-/** Sessions whose time window overlaps the workout (used to suggest a link). */
-export function overlapsSession(
-  w: DedupCandidate,
-  session: { startedAt: Date; endedAt: Date | null },
-  slackMinutes = 30,
-): boolean {
-  const ws = w.startedAt.getTime();
-  const we = ws + w.durationSeconds * 1000;
-  const ss = session.startedAt.getTime() - slackMinutes * 60_000;
-  const se = (session.endedAt ?? new Date(session.startedAt.getTime() + 4 * 3_600_000)).getTime() + slackMinutes * 60_000;
-  return ws < se && we > ss;
-}
+export { overlapsSession } from "./overlap";

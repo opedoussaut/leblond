@@ -92,7 +92,10 @@ export function PatrickChat({
   const autoSent = useRef(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages]);
+  useEffect(() => {
+    // scrollIntoView may return a Promise in recent browsers: never return it from an effect.
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
 
   async function send(text: string, extra: { quickAction?: QuickAction; sessionId?: string | null; projectId?: string | null } = {}) {
     if (!text.trim() || busy) return;

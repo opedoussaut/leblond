@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr">
+  <body style="margin:0;padding:24px;background:#f4f1ea;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16140f">
+    <table role="presentation" width="100%" style="max-width:480px;margin:0 auto;background:#fbf9f5;border:1px solid #d9d2c4;border-radius:16px">
+      <tr>
+        <td style="padding:28px">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.22em">LEBLOND</p>
+          <h1 style="margin:16px 0 8px;font-size:22px">Ton code de connexion · Your sign-in code</h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#4a453b">
+            Saisis ce code dans LEBLOND — ou touche le bouton depuis l’appareil où tu l’as demandé.<br />
+            Enter this code in LEBLOND — or tap the button on the device where you requested it.
+          </p>
+          <p style="margin:0 0 20px;font-size:34px;font-weight:800;letter-spacing:.35em;font-family:ui-monospace,Menlo,monospace">{{ .Token }}</p>
+          <p style="margin:0 0 24px">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#b4532a;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:12px">Se connecter · Sign in</a>
+          </p>
+          <p style="margin:0;font-size:12px;color:#6f685b">
+            Bêta fermée sur invitation. Si tu n’as rien demandé, ignore cet e-mail.<br />
+            Closed beta, invitation only. If you didn’t request this, ignore this email.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
