@@ -350,6 +350,11 @@ export const en: Dictionary = {
     emptyTitle: "Ready for your first session?",
     emptyBody: "Your stats appear here as soon as you log attempts. Nothing is invented: everything comes from what you log.",
     liveSession: "Live session",
+    suggestFocus:
+      "Lately your least successful style is “{style}” ({sent}/{problems} sent). Next session I'd fit in 3–4 problems of that style around your working level.",
+    suggestTags: "Add styles and wall angles to your problems so I can tell you where you lose the most.",
+    suggestFirst: "Start with a session: log every attempt, I'll take care of the rest.",
+    suggestNote: "Suggestion computed from your statistics.",
   },
   trend: {
     improving: "↑ improving",

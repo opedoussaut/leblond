@@ -355,6 +355,11 @@ export const fr = {
     emptyTitle: "Prêt pour ta première séance ?",
     emptyBody: "Tes statistiques apparaîtront ici dès tes premiers essais. Rien n’est inventé : tout vient de ce que tu notes.",
     liveSession: "Séance en cours",
+    suggestFocus:
+      "Récemment, ton style le moins réussi est « {style} » ({sent}/{problems} réussis). Pour la prochaine séance, je glisserais 3–4 blocs de ce style autour de ton niveau de travail.",
+    suggestTags: "Ajoute des styles et l’inclinaison à tes blocs : je pourrai te dire où tu perds le plus.",
+    suggestFirst: "Commence par une séance : note chaque essai, je m’occupe du reste.",
+    suggestNote: "Suggestion calculée à partir de tes statistiques.",
   },
   trend: {
     improving: "↑ en progression",
