@@ -9,5 +9,6 @@ export default defineConfig({
     environment: "node",
     include: ["tests/unit/**/*.test.ts"],
     clearMocks: true,
+    passWithNoTests: true,
   },
 });
