@@ -18,7 +18,18 @@ export async function latestOtp(email: string, after: number): Promise<string> {
   throw new Error(`no OTP email for ${email}`);
 }
 
+type Cookies = Awaited<ReturnType<ReturnType<Page["context"]>["cookies"]>>;
+const sessions = new Map<string, Cookies>();
+
+/** Sign in once per user per run (fewer auth emails), then reuse the session cookies. */
 export async function signIn(page: Page, email: string) {
+  const cached = sessions.get(email);
+  if (cached) {
+    await page.context().clearCookies();
+    await page.context().addCookies(cached);
+    await page.goto("/home");
+    if (!new URL(page.url()).pathname.startsWith("/login")) return;
+  }
   await page.goto("/login");
   const sentAt = Date.now();
   await page.getByLabel("Adresse e-mail").fill(email);
@@ -27,4 +38,5 @@ export async function signIn(page: Page, email: string) {
   await page.getByLabel("Code reçu par e-mail").fill(await latestOtp(email, sentAt));
   await page.getByRole("button", { name: "Valider" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+  sessions.set(email, await page.context().cookies());
 }
