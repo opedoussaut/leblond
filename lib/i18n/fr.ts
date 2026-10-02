@@ -531,6 +531,9 @@ export const fr = {
     oauthConnected: "{provider} est connecté.",
     disconnected: "{provider} est déconnecté.",
     medicalNote: "Les données de montre sont un contexte personnel, pas un diagnostic médical.",
+    syncViaWebhooks:
+      "Les activités {provider} arrivent par les notifications du fournisseur, activées avec l’accès partenaire. En attendant, utilise l’import FIT.",
+    syncResult: "{inserted} nouvelle(s) activité(s), {duplicates} déjà présente(s).",
   },
   admin: {
     title: "Bêta fermée",

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { I18nProvider } from "@/components/i18n-provider";
+import { PwaRegister } from "@/components/pwa-register";
 import { getViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <I18nProvider locale={locale} t={t}>
           {children}
         </I18nProvider>
+        <PwaRegister />
       </body>
     </html>
   );

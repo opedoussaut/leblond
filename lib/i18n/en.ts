@@ -525,6 +525,9 @@ export const en: Dictionary = {
     oauthConnected: "{provider} is connected.",
     disconnected: "{provider} is disconnected.",
     medicalNote: "Watch data is personal context, not a medical diagnosis.",
+    syncViaWebhooks:
+      "{provider} activities arrive through provider notifications, enabled with partner access. Meanwhile, use FIT import.",
+    syncResult: "{inserted} new activity(ies), {duplicates} already present.",
   },
   admin: {
     title: "Closed beta",

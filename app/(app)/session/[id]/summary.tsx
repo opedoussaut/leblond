@@ -14,6 +14,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { StyleTag } from "@/lib/climbing/types";
 import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
+import { overlapsSession } from "@/lib/integrations/wearables/overlap";
 
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
@@ -40,6 +41,24 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
     problems,
     view.attempts.map(toAttemptFact),
   );
+  // Unlinked imported activities overlapping this session (for one-tap linking).
+  const windowStart = new Date(new Date(view.session.started_at).getTime() - 6 * 3_600_000).toISOString();
+  const windowEnd = new Date(new Date(view.session.ended_at ?? view.session.started_at).getTime() + 6 * 3_600_000).toISOString();
+  const { data: nearby } = view.activity
+    ? { data: [] }
+    : await viewer.supabase
+        .from("wearable_activities")
+        .select("id, started_at, duration_seconds, device_name")
+        .is("session_id", null)
+        .gte("started_at", windowStart)
+        .lte("started_at", windowEnd);
+  const sessionWindow = {
+    startedAt: new Date(view.session.started_at),
+    endedAt: view.session.ended_at ? new Date(view.session.ended_at) : null,
+  };
+  const candidates = (nearby ?? [])
+    .filter((a) => overlapsSession({ startedAt: new Date(a.started_at), durationSeconds: a.duration_seconds }, sessionWindow))
+    .map((a) => ({ id: a.id, startedAt: a.started_at, durationSeconds: a.duration_seconds, device: a.device_name }));
   const sessionProblemIds = new Set(view.attempts.filter((a) => a.session_id === view.session.id).map((a) => a.problem_id));
   const rows: Array<[string, React.ReactNode]> = [];
   if (summary.highestSent.length) rows.push([t.session.highestSend, <HighestRow key="hs" t={t} items={summary.highestSent} />]);
@@ -83,7 +102,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
         </Card>
       ) : null}
 
-      <SessionWearable sessionId={view.session.id} activity={view.activity} />
+      <SessionWearable sessionId={view.session.id} activity={view.activity} candidates={candidates} />
 
       <LinkButton
         href={`/patrick?session=${view.session.id}&q=lastSession`}
