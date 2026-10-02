@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const uuid = z.uuid();
+export const uuid = z.guid();
 export const email = z.email().trim().toLowerCase().max(254);
 export const otpCode = z.string().trim().regex(/^\d{6,10}$/);
 

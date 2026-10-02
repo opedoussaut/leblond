@@ -49,7 +49,8 @@ export async function POST(request: Request) {
     .from("sessions")
     .select("id, started_at, ended_at")
     .gte("started_at", new Date(workout.startedAt.getTime() - 12 * 3_600_000).toISOString())
-    .lte("started_at", new Date(workout.startedAt.getTime() + 12 * 3_600_000).toISOString());
+    .lte("started_at", new Date(workout.startedAt.getTime() + 12 * 3_600_000).toISOString())
+    .order("started_at", { ascending: false });
   const match = (sessions ?? []).find((s) =>
     overlapsSession(workout, { startedAt: new Date(s.started_at), endedAt: s.ended_at ? new Date(s.ended_at) : null }),
   );

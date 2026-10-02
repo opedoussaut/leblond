@@ -37,7 +37,7 @@ export async function createGym(input: z.input<typeof createGymSchema>): Promise
 
 export async function setFavouriteGym(gymId: string, favourite: boolean): Promise<ActionResult> {
   const viewer = await requireViewer({ allowIncompleteOnboarding: true });
-  if (!z.uuid().safeParse(gymId).success) return { ok: false, error: "invalid" };
+  if (!z.guid().safeParse(gymId).success) return { ok: false, error: "invalid" };
   const q = favourite
     ? viewer.supabase.from("favourite_gyms").upsert({ user_id: viewer.userId, gym_id: gymId })
     : viewer.supabase.from("favourite_gyms").delete().eq("user_id", viewer.userId).eq("gym_id", gymId);

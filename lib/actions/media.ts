@@ -9,9 +9,9 @@ import type { ActionResult } from "@/lib/validation/common";
 
 const registerSchema = z.object({
   storagePath: z.string().max(300),
-  problemId: z.uuid(),
-  sessionId: z.uuid().nullable(),
-  attemptId: z.uuid().nullable(),
+  problemId: z.guid(),
+  sessionId: z.guid().nullable(),
+  attemptId: z.guid().nullable(),
   mediaType: z.enum(MEDIA_TYPES),
   mimeType: z.string().max(60),
   sizeBytes: z.number().int().positive(),
@@ -68,7 +68,7 @@ export async function registerMedia(input: z.input<typeof registerSchema>): Prom
 
 export async function deleteMedia(mediaId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
-  if (!z.uuid().safeParse(mediaId).success) return { ok: false, error: "invalid" };
+  if (!z.guid().safeParse(mediaId).success) return { ok: false, error: "invalid" };
   const { data: m } = await viewer.supabase.from("media").select("storage_path, problem_id").eq("id", mediaId).single();
   if (!m) return { ok: false, error: "notFound" };
   await viewer.supabase.storage.from(MEDIA_BUCKET).remove([m.storage_path]);

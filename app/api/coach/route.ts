@@ -10,11 +10,11 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const bodySchema = z.object({
-  conversationId: z.uuid().nullish(),
+  conversationId: z.guid().nullish(),
   message: z.string().trim().min(1).max(2000),
   quickAction: z.enum(QUICK_ACTIONS).nullish(),
-  sessionId: z.uuid().nullish(),
-  projectId: z.uuid().nullish(),
+  sessionId: z.guid().nullish(),
+  projectId: z.guid().nullish(),
 });
 
 const HISTORY_MESSAGES = 12;

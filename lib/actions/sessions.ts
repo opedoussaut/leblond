@@ -9,7 +9,7 @@ import { isValidGrade } from "@/lib/grading";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/common";
 
-const id = z.uuid();
+const id = z.guid();
 
 /* ───────────── Sessions ───────────── */
 

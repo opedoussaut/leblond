@@ -63,7 +63,7 @@ export async function syncProvider(provider: string): Promise<ActionResult<{ ins
 
 export async function linkActivityToSession(activityId: string, sessionId: string | null): Promise<ActionResult> {
   const viewer = await requireViewer();
-  if (!z.uuid().safeParse(activityId).success || (sessionId !== null && !z.uuid().safeParse(sessionId).success)) {
+  if (!z.guid().safeParse(activityId).success || (sessionId !== null && !z.guid().safeParse(sessionId).success)) {
     return { ok: false, error: "invalid" };
   }
   const { error } = sessionId
@@ -78,7 +78,7 @@ export async function linkActivityToSession(activityId: string, sessionId: strin
 
 export async function deleteActivity(activityId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
-  if (!z.uuid().safeParse(activityId).success) return { ok: false, error: "invalid" };
+  if (!z.guid().safeParse(activityId).success) return { ok: false, error: "invalid" };
   const { data: a } = await viewer.supabase
     .from("wearable_activities")
     .select("raw_file_reference, session_id")
