@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/*
+ * LEBLOND design tokens.
+ * Neutral "chalk / ink" base with one restrained accent family (warm terracotta,
+ * taken from the chalk bag in the LEBLOND artwork). Grade colours are NOT theme
+ * colours: they live in lib/grading and are always rendered with their name.
+ */
+:root {
+  --bg: #f4f1ea;
+  --surface: #fbf9f5;
+  --surface-2: #ece7dd;
+  --line: #d9d2c4;
+  --ink: #16140f;
+  --ink-2: #4a453b;
+  --ink-3: #6f685b;
+  --accent: #b4532a;
+  --accent-ink: #ffffff;
+  --accent-soft: #f3dfd2;
+  --ok: #2f6b3a;
+  --warn: #8a5a00;
+  --danger: #a3261b;
+  --focus: #1f5fbf;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12110e;
+    --surface: #1b1915;
+    --surface-2: #26231d;
+    --line: #3a362e;
+    --ink: #f3efe6;
+    --ink-2: #cdc6b8;
+    --ink-3: #a39b8b;
+    --accent: #e0774a;
+    --accent-ink: #160b05;
+    --accent-soft: #3a2418;
+    --ok: #7fc28a;
+    --warn: #e2b04f;
+    --danger: #f07a6c;
+    --focus: #7fb0ff;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  min-height: 100dvh;
+}
+
+/* Visible, consistent focus for keyboard users (accessibility §44). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Bottom navigation clears the iOS home indicator. */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
