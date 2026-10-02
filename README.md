@@ -103,8 +103,9 @@ The local seed creates a fictional admin `alex@leblond.local` and three demo gym
 2. Apply migrations: `npx supabase db push`.
 3. **Authentication → Providers → Email**: enable email, keep sign-ups enabled (the database trigger rejects anyone not on the whitelist), OTP length 6.
 4. **Authentication → Email Templates**: paste `supabase/templates/magic-link.html` into *Magic Link* and `supabase/templates/confirmation.html` into *Confirm signup* (they contain both `{{ .Token }}` and the link — the default template has no code).
-5. **Authentication → URL configuration**: Site URL = your deployment URL; add `https://<your-domain>/auth/callback` to redirect URLs.
-6. Seed the whitelist from your machine (emails stay out of git):
+5. **Authentication → SMTP**: configure a custom SMTP sender (e.g. Resend, Postmark, Brevo). Supabase's built-in mailer is for testing only — it is heavily rate-limited and only delivers to the project's team members, so beta testers would not receive their codes.
+6. **Authentication → URL configuration**: Site URL = your deployment URL; add `https://<your-domain>/auth/callback` to redirect URLs.
+7. Seed the whitelist from your machine (emails stay out of git):
    ```bash
    BETA_OLIVIER_EMAIL=… BETA_THOMAS_EMAIL=… BETA_MARC_EMAIL=… BETA_HOUSSEM_EMAIL=… BETA_DAVID_EMAIL=… \
    NEXT_PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run beta:bootstrap
