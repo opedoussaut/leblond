@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GradeChip } from "@/components/climbing/grade-chip";
+import { BoolderAttribution, CircuitBadge } from "@/components/climbing/outdoor";
 import { MediaUploader } from "@/components/climbing/media-uploader";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
@@ -9,12 +10,14 @@ import { computeProblemOutcomes } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import type { StyleTag } from "@/lib/climbing/types";
 import { PROBLEM_SELECT, toAttemptFact } from "@/lib/data/climbing";
+import { loadOutdoorProblem } from "@/lib/data/outdoor";
 import { tagSlugs, type ProblemWithTags } from "@/lib/data/session";
 import { formatDateTime } from "@/lib/format";
 import { gradeMeaning } from "@/lib/grading/labels";
 import { isMysteryGrade } from "@/lib/grading";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
+import { bleauInfoUrl, boolderProblemUrl } from "@/lib/integrations/outdoor/boolder";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { AttemptHistory } from "./attempt-history";
 import { MediaGallery } from "./media-gallery";
@@ -28,12 +31,14 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
   if (!data) notFound();
   const problem = data as unknown as ProblemWithTags;
 
-  const [{ data: gym }, { data: attempts }, { data: media }, { data: project }] = await Promise.all([
+  const [{ data: gym }, { data: attempts }, { data: media }, { data: project }, topo] = await Promise.all([
     viewer.supabase.from("gyms").select("name").eq("id", problem.gym_id).single(),
     viewer.supabase.from("attempts").select("*").eq("problem_id", id).order("attempt_number"),
     viewer.supabase.from("media").select("*").eq("problem_id", id).order("created_at", { ascending: false }),
     viewer.supabase.from("projects").select("id, status").eq("problem_id", id).maybeSingle(),
+    problem.outdoor_problem_id != null ? loadOutdoorProblem(viewer.supabase, problem.outdoor_problem_id) : null,
   ]);
+  const bleau = topo ? bleauInfoUrl(topo.bleau_info_id) : null;
   const signed = media?.length
     ? (await viewer.supabase.storage.from(MEDIA_BUCKET).createSignedUrls(media.map((m) => m.storage_path), 3600)).data
     : [];
@@ -65,6 +70,36 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
               : t.problem.notSent}
         </p>
       </header>
+
+      {topo ? (
+        <Card>
+          <SectionTitle>{t.outdoor.topoTitle}</SectionTitle>
+          <div className="mt-2 space-y-2 text-sm">
+            <p className="flex flex-wrap items-center gap-2">
+              <CircuitBadge color={topo.circuit_color} number={topo.circuit_number} />
+              <span>
+                {(t.outdoor.steepness as Record<string, string>)[topo.steepness] ?? topo.steepness}
+                {topo.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
+                {topo.parent_id ? ` · ${t.outdoor.variantOf}` : ""}
+              </span>
+            </p>
+            {topo.grade !== problem.native_grade ? (
+              <p className="text-ink-2">{fmt(t.outdoor.topoGradeChanged, { grade: topo.grade })}</p>
+            ) : null}
+            <p className="flex flex-wrap gap-4">
+              <a href={boolderProblemUrl(topo.id, locale)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
+                {t.outdoor.onBoolder} ↗
+              </a>
+              {bleau ? (
+                <a href={bleau} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
+                  {t.outdoor.onBleauInfo} ↗
+                </a>
+              ) : null}
+            </p>
+            <BoolderAttribution />
+          </div>
+        </Card>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {project ? (
