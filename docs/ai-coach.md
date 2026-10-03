@@ -29,6 +29,8 @@ sequenceDiagram
 | `openai` (default) | `OpenAIResponsesCoach` — Responses API | `OPENAI_API_KEY`, `OPENAI_MODEL` | Evidence as a developer message; `store: false`. |
 | `openai-compatible` | `ChatCompletionsCoach` — Chat Completions | `COACH_BASE_URL`, `COACH_MODEL` (`COACH_API_KEY` optional) | Ollama, LM Studio, llama.cpp, vLLM, hosted open-model APIs. Instructions + evidence in a single system message; `<think>…</think>` reasoning stripped from the answer. |
 
+Optional limits for free tiers: `COACH_MAX_OUTPUT_TOKENS`, `COACH_REASONING_EFFORT`, `COACH_HISTORY_CHAR_BUDGET` (history trimmed to the most recent turns that fit, always keeping the question). A provider quota error (HTTP 429/413) is shown to the climber as “Patrick is very busy”, distinct from their own daily limit. The **Patrick live check** GitHub Action runs one synthetic-data question through the configured provider.
+
 For self-hosted servers, make the model's context window at least ~8k tokens (Ollama: `OLLAMA_CONTEXT_LENGTH`); a real Patrick request in testing used about 1.8k prompt tokens with a small dataset and the context is capped at 14k characters. `tests/unit/coach-live-model.test.ts` runs Patrick against a real server when `COACH_LIVE_TEST_BASE_URL` and `COACH_LIVE_TEST_MODEL` are set.
 
 ## Guarantees

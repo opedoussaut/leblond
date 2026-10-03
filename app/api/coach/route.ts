@@ -3,6 +3,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { assembleCoachContext } from "@/lib/coach/assemble";
 import { QUICK_ACTIONS, serializeContext } from "@/lib/coach/context";
 import { loadPatrickPrompt } from "@/lib/coach/prompt";
+import { trimHistory } from "@/lib/coach/history";
 import { createCoachProvider, type CoachMessage } from "@/lib/coach/provider";
 import { coachConfig } from "@/lib/env";
 
@@ -81,7 +82,10 @@ export async function POST(request: Request) {
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(HISTORY_MESSAGES);
-  const messages: CoachMessage[] = (history ?? []).reverse().map((m) => ({ role: m.role, content: m.content }));
+  const messages: CoachMessage[] = trimHistory(
+    (history ?? []).reverse().map((m) => ({ role: m.role, content: m.content })),
+    config.historyCharBudget,
+  );
 
   // A conversation started from a session/project keeps that focus.
   const { data: conv } = await supabase
@@ -115,8 +119,11 @@ export async function POST(request: Request) {
   let stream;
   try {
     stream = await coach.chat({ instructions, context: serializeContext(context), messages, signal: request.signal });
-  } catch {
+  } catch (e) {
     await recordUsage({ inputTokens: null, outputTokens: null }, false);
+    // The model provider's own quota (e.g. a free tier's tokens per minute) — not the climber's daily limit.
+    const status = (e as { status?: number }).status;
+    if (status === 429 || status === 413) return json(503, { error: "provider_busy" });
     return json(502, { error: "coach_unavailable" });
   }
 

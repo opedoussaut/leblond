@@ -441,6 +441,7 @@ export const fr = {
       "Patrick n’est pas encore activé sur ce déploiement (aucun modèle configuré). Tes données restent disponibles dans Progrès.",
     rateLimited: "Tu as atteint la limite de {limit} questions par jour. Patrick revient demain.",
     error: "Patrick n’a pas pu répondre. Réessaie dans un instant.",
+    busy: "Patrick est très sollicité en ce moment. Réessaie dans une minute.",
     disclaimer: "Patrick n’est pas médecin. En cas de douleur ou de blessure, arrête et consulte un professionnel de santé.",
     quickActions: "Questions rapides",
     contextNote: "Contexte transmis : statistiques calculées par LEBLOND, pas de données brutes.",

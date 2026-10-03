@@ -123,7 +123,9 @@ export function PatrickChat({
         setError(
           err.error === "not_configured"
             ? t.patrick.notConfigured
-            : err.error === "rate_limited"
+            : err.error === "provider_busy"
+              ? t.patrick.busy
+              : err.error === "rate_limited"
               ? fmt(t.patrick.rateLimited, { limit: err.limit ?? dailyLimit })
               : t.patrick.error,
         );
