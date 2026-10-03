@@ -1,6 +1,6 @@
 # Data model
 
-All primary keys are UUIDs. Every table holding personal data has RLS scoped to `auth.uid()`. Migration: `supabase/migrations/20261002000000_leblond_v1.sql`.
+All primary keys are UUIDs. Every table holding personal data has RLS scoped to `auth.uid()`. Migrations: `supabase/migrations/20261002000000_leblond_v1.sql`, `20261003000000_fontainebleau_boolder.sql` (lettered Font scale, Boolder catalogue).
 
 ```mermaid
 erDiagram
@@ -40,5 +40,9 @@ erDiagram
 | `wearable_connections` | Status + encrypted tokens. Clients can read status columns only. |
 | `wearable_activities` | Normalised workouts; unique per (user, provider, provider id) + `dedup_key`. |
 | `wearable_activity_samples` | Downsampled HR series kept out of the main row. |
+| `outdoor_areas`, `outdoor_circuits`, `outdoor_problems` | Fontainebleau catalogue imported from Boolder (CC BY 4.0). Read: active beta users; write: service role only. Each area owns one `gyms` row (`external_provider = 'BOOLDER'`, unique on `(external_provider, external_id)`). |
+| `outdoor_data_imports` | One row per import (source commit, date, counts, skipped). |
+
+`problems.outdoor_problem_id` links a climber's problem to a catalogue problem: unique per climber, must belong to the gym of that area (trigger), set to null if the problem disappears upstream.
 
 Storage buckets: `media` (private, 50 MB, images/videos) and `wearable-files` (private, 4 MB, FIT). Objects live under `<user_id>/…`.

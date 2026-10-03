@@ -18,16 +18,19 @@ import { allowedSystemsForBrand } from "@/lib/climbing/types";
 
 describe("Font scale ordering", () => {
   it("contains the full required scale in order", () => {
-    expect(FONT_SCALE[0]).toBe("3");
+    expect(FONT_SCALE[0]).toBe("1a");
     expect(FONT_SCALE.at(-1)).toBe("9A");
-    expect(FONT_SCALE).toHaveLength(24);
+    // 1a…5c (15 lettered grades) + 6A…8C+ (18) + 9A
+    expect(FONT_SCALE).toHaveLength(34);
+    expect(FONT_SCALE.indexOf("6A")).toBe(FONT_SCALE.indexOf("5c") + 1);
   });
 
   it("orders grades with + correctly", () => {
     expect(compareGrades("FONT", "6C", "6C+")).toBeLessThan(0);
     expect(compareGrades("FONT", "6C+", "7A")).toBeLessThan(0);
     expect(compareGrades("FONT", "7A", "6C+")).toBeGreaterThan(0);
-    expect(compareGrades("FONT", "4+", "5")).toBeLessThan(0);
+    expect(compareGrades("FONT", "4c", "5a")).toBeLessThan(0);
+    expect(compareGrades("FONT", "5c", "6A")).toBeLessThan(0);
     expect(compareGrades("FONT", "7A", "7A")).toBe(0);
   });
 
@@ -39,12 +42,18 @@ describe("Font scale ordering", () => {
     expect(nextGrade("FONT", "6C+")).toBe("7A");
     expect(previousGrade("FONT", "7A")).toBe("6C+");
     expect(nextGrade("FONT", "9A")).toBeNull();
-    expect(previousGrade("FONT", "3")).toBeNull();
+    expect(previousGrade("FONT", "1a")).toBeNull();
+    expect(nextGrade("FONT", "5c")).toBe("6A");
   });
 
   it("rejects unknown values", () => {
     expect(gradeToScore("FONT", "6D")).toBeNull();
     expect(isValidGrade("FONT", "6d")).toBe(false);
+    // Case matters: lower-case letters below 6A, upper-case from 6A.
+    expect(isValidGrade("FONT", "6a")).toBe(false);
+    expect(isValidGrade("FONT", "5C")).toBe(false);
+    // The old indoor-style notation is no longer on the scale.
+    expect(isValidGrade("FONT", "4+")).toBe(false);
   });
 });
 

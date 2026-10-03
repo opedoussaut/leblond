@@ -1,0 +1,50 @@
+name: Import Boolder (Fontainebleau)
+
+# Loads Fontainebleau areas, circuits and problems from Boolder's open data
+# (https://github.com/boolder-org/boolder-data, © Boolder, CC BY 4.0) into the
+# hosted catalogue. Safe to re-run: rows are updated in place and climbers'
+# own problems and attempts are never touched.
+#
+# Run "Deploy database (Supabase)" first so the catalogue tables exist.
+# Repository secrets required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "boolder-data branch, tag or commit to import"
+        required: false
+        default: main
+      dry_run:
+        description: "Only print what would be imported"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: boolder-org/boolder-data
+          ref: ${{ inputs.ref }}
+          path: boolder-data
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Import
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          SHA=$(git -C boolder-data rev-parse HEAD)
+          DATE=$(git -C boolder-data log -1 --format=%cI)
+          npx tsx scripts/import-boolder.ts --db boolder-data/boolder.db --source-version "$SHA" --source-date "$DATE" $DRY_RUN

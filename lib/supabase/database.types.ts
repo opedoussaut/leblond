@@ -355,6 +355,218 @@ export type Database = {
           },
         ];
       };
+      outdoor_areas: {
+        Row: {
+          cluster_name: string | null;
+          description_en: string | null;
+          description_fr: string | null;
+          gym_id: string;
+          id: number;
+          name: string;
+          name_searchable: string;
+          north_east_lat: number | null;
+          north_east_lon: number | null;
+          priority: number;
+          problems_count: number;
+          south_west_lat: number | null;
+          south_west_lon: number | null;
+          tags: string[];
+          updated_at: string;
+          warning_en: string | null;
+          warning_fr: string | null;
+        };
+        Insert: {
+          cluster_name?: string | null;
+          description_en?: string | null;
+          description_fr?: string | null;
+          gym_id: string;
+          id: number;
+          name: string;
+          name_searchable?: string;
+          north_east_lat?: number | null;
+          north_east_lon?: number | null;
+          priority?: number;
+          problems_count?: number;
+          south_west_lat?: number | null;
+          south_west_lon?: number | null;
+          tags?: string[];
+          updated_at?: string;
+          warning_en?: string | null;
+          warning_fr?: string | null;
+        };
+        Update: {
+          cluster_name?: string | null;
+          description_en?: string | null;
+          description_fr?: string | null;
+          gym_id?: string;
+          id?: number;
+          name?: string;
+          name_searchable?: string;
+          north_east_lat?: number | null;
+          north_east_lon?: number | null;
+          priority?: number;
+          problems_count?: number;
+          south_west_lat?: number | null;
+          south_west_lon?: number | null;
+          tags?: string[];
+          updated_at?: string;
+          warning_en?: string | null;
+          warning_fr?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_areas_gym_id_fkey";
+            columns: ["gym_id"];
+            isOneToOne: true;
+            referencedRelation: "gyms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      outdoor_circuits: {
+        Row: {
+          average_grade: string | null;
+          beginner_friendly: boolean;
+          color: string;
+          dangerous: boolean;
+          id: number;
+          updated_at: string;
+        };
+        Insert: {
+          average_grade?: string | null;
+          beginner_friendly?: boolean;
+          color: string;
+          dangerous?: boolean;
+          id: number;
+          updated_at?: string;
+        };
+        Update: {
+          average_grade?: string | null;
+          beginner_friendly?: boolean;
+          color?: string;
+          dangerous?: boolean;
+          id?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      outdoor_data_imports: {
+        Row: {
+          areas: number;
+          circuits: number;
+          id: string;
+          imported_at: string;
+          problems: number;
+          skipped: number;
+          source: string;
+          source_date: string | null;
+          source_version: string | null;
+        };
+        Insert: {
+          areas: number;
+          circuits: number;
+          id?: string;
+          imported_at?: string;
+          problems: number;
+          skipped?: number;
+          source: string;
+          source_date?: string | null;
+          source_version?: string | null;
+        };
+        Update: {
+          areas?: number;
+          circuits?: number;
+          id?: string;
+          imported_at?: string;
+          problems?: number;
+          skipped?: number;
+          source?: string;
+          source_date?: string | null;
+          source_version?: string | null;
+        };
+        Relationships: [];
+      };
+      outdoor_problems: {
+        Row: {
+          area_id: number;
+          bleau_info_id: string | null;
+          circuit_color: string | null;
+          circuit_id: number | null;
+          circuit_number: string | null;
+          featured: boolean;
+          grade: string;
+          id: number;
+          latitude: number;
+          longitude: number;
+          name: string;
+          name_en: string | null;
+          name_searchable: string;
+          parent_id: number | null;
+          popularity: number | null;
+          sit_start: boolean;
+          steepness: string;
+          updated_at: string;
+          wall_angle: Database["public"]["Enums"]["wall_angle"];
+        };
+        Insert: {
+          area_id: number;
+          bleau_info_id?: string | null;
+          circuit_color?: string | null;
+          circuit_id?: number | null;
+          circuit_number?: string | null;
+          featured?: boolean;
+          grade: string;
+          id: number;
+          latitude: number;
+          longitude: number;
+          name: string;
+          name_en?: string | null;
+          name_searchable?: string;
+          parent_id?: number | null;
+          popularity?: number | null;
+          sit_start?: boolean;
+          steepness: string;
+          updated_at?: string;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+        };
+        Update: {
+          area_id?: number;
+          bleau_info_id?: string | null;
+          circuit_color?: string | null;
+          circuit_id?: number | null;
+          circuit_number?: string | null;
+          featured?: boolean;
+          grade?: string;
+          id?: number;
+          latitude?: number;
+          longitude?: number;
+          name?: string;
+          name_en?: string | null;
+          name_searchable?: string;
+          parent_id?: number | null;
+          popularity?: number | null;
+          sit_start?: boolean;
+          steepness?: string;
+          updated_at?: string;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_problems_area_id_fkey";
+            columns: ["area_id"];
+            isOneToOne: false;
+            referencedRelation: "outdoor_areas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "outdoor_problems_circuit_id_fkey";
+            columns: ["circuit_id"];
+            isOneToOne: false;
+            referencedRelation: "outdoor_circuits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       problem_tags: {
         Row: {
           problem_id: string;
@@ -401,6 +613,7 @@ export type Database = {
           normalized_grade_system: Database["public"]["Enums"]["grade_system"] | null;
           notes: string | null;
           opened_at: string | null;
+          outdoor_problem_id: number | null;
           photo_url: string | null;
           retired_at: string | null;
           setter: string | null;
@@ -423,6 +636,7 @@ export type Database = {
           normalized_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           notes?: string | null;
           opened_at?: string | null;
+          outdoor_problem_id?: number | null;
           photo_url?: string | null;
           retired_at?: string | null;
           setter?: string | null;
@@ -445,6 +659,7 @@ export type Database = {
           normalized_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           notes?: string | null;
           opened_at?: string | null;
+          outdoor_problem_id?: number | null;
           photo_url?: string | null;
           retired_at?: string | null;
           setter?: string | null;
@@ -458,6 +673,13 @@ export type Database = {
             columns: ["gym_id"];
             isOneToOne: false;
             referencedRelation: "gyms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "problems_outdoor_problem_id_fkey";
+            columns: ["outdoor_problem_id"];
+            isOneToOne: false;
+            referencedRelation: "outdoor_problems";
             referencedColumns: ["id"];
           },
         ];
