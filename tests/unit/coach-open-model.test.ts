@@ -6,14 +6,14 @@ const { ChatCompletionsCoach, createCoachProvider, createThinkFilter, OpenAIResp
 
 describe("coach provider configuration", () => {
   it("defaults to OpenAI and reports what is missing", () => {
-    expect(resolveCoachConfig({})).toEqual({ configured: false, provider: "openai", missing: ["OPENAI_API_KEY", "OPENAI_MODEL"] });
+    expect(resolveCoachConfig({})).toMatchObject({ configured: false, provider: "openai", missing: ["OPENAI_API_KEY", "OPENAI_MODEL"] });
     expect(resolveCoachConfig({ OPENAI_API_KEY: "sk", OPENAI_MODEL: "m" })).toMatchObject({ configured: true, provider: "openai" });
   });
 
   it("accepts an open-model server without any API key", () => {
     expect(
       resolveCoachConfig({ COACH_PROVIDER: "openai-compatible", COACH_BASE_URL: "http://localhost:11434/v1/", COACH_MODEL: "qwen3:8b" }),
-    ).toEqual({ configured: true, provider: "openai-compatible", baseURL: "http://localhost:11434/v1", model: "qwen3:8b", apiKey: null });
+    ).toMatchObject({ configured: true, provider: "openai-compatible", baseURL: "http://localhost:11434/v1", model: "qwen3:8b", apiKey: null });
   });
 
   it("rejects a missing or malformed base URL", () => {

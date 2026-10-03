@@ -102,6 +102,40 @@ Patrick works with two kinds of provider (`lib/coach/config.ts`):
   through a tunnel. Speed depends heavily on hardware: in this project's test, a
   1.7-billion-parameter model on 2 CPU cores took about 2 minutes per answer.
 
+### Recommended free setup: Groq
+
+Facts from Groq's documentation (checked 3 October 2026; re-check, limits change):
+- free plan, OpenAI-compatible API at `https://api.groq.com/openai/v1`;
+- `openai/gpt-oss-120b` is a **production** model (131,072-token context);
+- free limits for that model: **30 requests/min, 1,000 requests/day, 8,000 tokens/min, 200,000 tokens/day**, counted for the whole Groq organisation (all testers together);
+- by default Groq does not retain inference data; a Zero Data Retention option exists under Data Controls; data that is retained is stored in the United States.
+
+**Budget (estimate, method shown).** A Patrick request = instructions (3,886 characters) + context (up to 7,923 characters measured for a heavy 90-day history with 36 sessions and 432 problems) + conversation history (capped by `COACH_HISTORY_CHAR_BUDGET`) + the question. At the ratio measured on a real call (≈3.9 characters per token, on Qwen's tokenizer — gpt-oss's tokenizer differs, so treat this as an estimate):
+- input ≈ (3,886 + 7,923 + 4,000) / 3.9 ≈ **4,050 tokens**;
+- output capped at **1,500 tokens** with `COACH_MAX_OUTPUT_TOKENS`;
+- ⇒ ≈ **5,500 tokens per request** at most.
+
+So, on the free plan: about **one full request per minute** for the whole group (8,000 tokens/min), and about **36 requests per day** (200,000 / 5,500). With five testers, `MAX_COACH_REQUESTS_PER_USER_PER_DAY=7` keeps the group under the daily quota (5 × 7 = 35). If two testers ask Patrick in the same minute, the second sees “Patrick is very busy, try again in a minute”.
+
+**Steps (browser only)**
+1. console.groq.com → sign up → **API Keys** → *Create API Key* (starts with `gsk_`).
+2. Optional, recommended: **Data Controls** → enable Zero Data Retention.
+3. Vercel → Settings → Environment Variables:
+
+   | Variable | Value |
+   |---|---|
+   | `COACH_PROVIDER` | `openai-compatible` |
+   | `COACH_BASE_URL` | `https://api.groq.com/openai/v1` |
+   | `COACH_MODEL` | `openai/gpt-oss-120b` |
+   | `COACH_API_KEY` | your `gsk_…` key |
+   | `COACH_MAX_OUTPUT_TOKENS` | `1500` |
+   | `COACH_REASONING_EFFORT` | `low` |
+   | `COACH_HISTORY_CHAR_BUDGET` | `4000` |
+   | `MAX_COACH_REQUESTS_PER_USER_PER_DAY` | `7` |
+
+   Redeploy.
+4. To test before the testers do: add the same `COACH_*` values as GitHub repository secrets, then Actions → **Patrick live check** → Run workflow. It asks Patrick one question about synthetic data and prints the answer, the time taken and the tokens used. Check that it answers in French, quotes 3/6 sent (50 %), and invents nothing.
+
 Whichever you choose, model quality matters: Patrick's rules (answer in the
 climber's language, never invent figures, label estimates) are followed less
 reliably by very small models. Use

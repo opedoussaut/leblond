@@ -1,31 +1,14 @@
 import "server-only";
 import OpenAI from "openai";
-
 /**
  * Coach provider abstraction: the rest of the app never talks to a model SDK
  * directly, so the provider can be swapped without touching routes or UI.
  */
-export interface CoachMessage {
-  role: "user" | "assistant";
-  content: string;
-}
+import type { CoachConfig } from "./config";
+import type { CoachChatInput, CoachGenerationOptions, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
+export type { CoachMessage, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
 
-export interface CoachUsage {
-  inputTokens: number | null;
-  outputTokens: number | null;
-}
-
-export interface CoachStream {
-  /** Text deltas as they arrive. */
-  text: AsyncIterable<string>;
-  /** Resolves when the stream completes (usage may be null if not reported). */
-  done: Promise<CoachUsage>;
-}
-
-export interface CoachProvider {
-  readonly model: string;
-  chat(input: { instructions: string; context: string; messages: CoachMessage[]; signal?: AbortSignal }): Promise<CoachStream>;
-}
+const NO_LIMITS: CoachGenerationOptions = { maxOutputTokens: null, reasoningEffort: null };
 
 /** OpenAI Responses API implementation (server-side only, streaming). */
 export class OpenAIResponsesCoach implements CoachProvider {
@@ -33,12 +16,14 @@ export class OpenAIResponsesCoach implements CoachProvider {
   constructor(
     apiKey: string,
     readonly model: string,
-    options: { fetch?: typeof fetch; baseURL?: string } = {},
+    options: { fetch?: typeof fetch; baseURL?: string; generation?: CoachGenerationOptions } = {},
   ) {
     this.client = new OpenAI({ apiKey, fetch: options.fetch, baseURL: options.baseURL });
+    this.generation = options.generation ?? NO_LIMITS;
   }
+  private generation: CoachGenerationOptions;
 
-  async chat({ instructions, context, messages, signal }: Parameters<CoachProvider["chat"]>[0]): Promise<CoachStream> {
+  async chat({ instructions, context, messages, signal }: CoachChatInput): Promise<CoachStream> {
     const stream = await this.client.responses.create(
       {
         model: this.model,
@@ -51,6 +36,8 @@ export class OpenAIResponsesCoach implements CoachProvider {
         stream: true,
         // Do not keep conversations on the provider side; LEBLOND stores its own history.
         store: false,
+        ...(this.generation.maxOutputTokens ? { max_output_tokens: this.generation.maxOutputTokens } : {}),
+        ...(this.generation.reasoningEffort ? { reasoning: { effort: this.generation.reasoningEffort } } : {}),
       },
       { signal },
     );
@@ -142,13 +129,15 @@ export class ChatCompletionsCoach implements CoachProvider {
   private client: OpenAI;
   constructor(
     readonly model: string,
-    options: { baseURL: string; apiKey?: string | null; fetch?: typeof fetch },
+    options: { baseURL: string; apiKey?: string | null; fetch?: typeof fetch; generation?: CoachGenerationOptions },
   ) {
     // The SDK requires a non-empty key; self-hosted servers ignore it.
     this.client = new OpenAI({ apiKey: options.apiKey || "not-needed", baseURL: options.baseURL, fetch: options.fetch });
+    this.generation = options.generation ?? NO_LIMITS;
   }
+  private generation: CoachGenerationOptions;
 
-  async chat({ instructions, context, messages, signal }: Parameters<CoachProvider["chat"]>[0]): Promise<CoachStream> {
+  async chat({ instructions, context, messages, signal }: CoachChatInput): Promise<CoachStream> {
     const stream = await this.client.chat.completions.create(
       {
         model: this.model,
@@ -158,6 +147,8 @@ export class ChatCompletionsCoach implements CoachProvider {
         ],
         stream: true,
         stream_options: { include_usage: true },
+        ...(this.generation.maxOutputTokens ? { max_tokens: this.generation.maxOutputTokens } : {}),
+        ...(this.generation.reasoningEffort ? { reasoning_effort: this.generation.reasoningEffort } : {}),
       },
       { signal },
     );
@@ -199,10 +190,17 @@ export class ChatCompletionsCoach implements CoachProvider {
 
 /** Builds the configured provider (see lib/coach/config.ts). */
 export function createCoachProvider(
-  config: import("./config").CoachConfig,
+  config: CoachConfig,
   options: { fetch?: typeof fetch } = {},
 ): CoachProvider | null {
   if (!config.configured) return null;
-  if (config.provider === "openai") return new OpenAIResponsesCoach(config.apiKey, config.model, options);
-  return new ChatCompletionsCoach(config.model, { baseURL: config.baseURL, apiKey: config.apiKey, fetch: options.fetch });
+  if (config.provider === "openai") {
+    return new OpenAIResponsesCoach(config.apiKey, config.model, { ...options, generation: config.generation });
+  }
+  return new ChatCompletionsCoach(config.model, {
+    baseURL: config.baseURL,
+    apiKey: config.apiKey,
+    fetch: options.fetch,
+    generation: config.generation,
+  });
 }

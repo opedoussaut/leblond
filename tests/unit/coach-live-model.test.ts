@@ -5,14 +5,17 @@ import { buildCoachContext, serializeContext } from "@/lib/coach/context";
 import { attemptsFor, daysAgo, NOW, problem, session } from "./fixtures";
 
 vi.mock("server-only", () => ({}));
-const { ChatCompletionsCoach } = await import("@/lib/coach/provider");
+const { createCoachProvider } = await import("@/lib/coach/provider");
+const { resolveCoachConfig } = await import("@/lib/coach/config");
 
 /**
- * Opt-in smoke test against a REAL OpenAI-compatible server (e.g. Ollama):
- *   COACH_LIVE_TEST_BASE_URL=http://127.0.0.1:11434/v1 COACH_LIVE_TEST_MODEL=qwen3:8b npx vitest run tests/unit/coach-live-model.test.ts --silent=false
- * Prints the answer and the figures it should contain. Skipped otherwise.
+ * Opt-in smoke test against the REAL configured model provider, with synthetic
+ * climbing data only. Uses the same variables as the app (COACH_PROVIDER,
+ * COACH_BASE_URL, COACH_MODEL, COACH_API_KEY, OPENAI_*, COACH_MAX_OUTPUT_TOKENS,
+ * COACH_REASONING_EFFORT). Enabled by COACH_LIVE_TEST=1, e.g. from the
+ * "Patrick live check" GitHub Action. Prints the answer, timing and token use.
  */
-it.runIf(process.env.COACH_LIVE_TEST_BASE_URL && process.env.COACH_LIVE_TEST_MODEL)("Patrick answers through a real open model", { timeout: 600_000 }, async () => {
+it.runIf(process.env.COACH_LIVE_TEST === "1")("Patrick answers through the configured model", { timeout: 600_000 }, async () => {
   const ark = Array.from({ length: 6 }, (_, i) => ({ ...problem(i < 3 ? "RED" : "BLUE"), gymId: "ark", tags: ["slab" as const] }));
   const data: ClimbingDataset = {
     gyms: [{ id: "ark", name: "Arkose Démo", brand: "ARKOSE", gradingSystem: "ARKOSE_COLOR" }],
@@ -29,10 +32,9 @@ it.runIf(process.env.COACH_LIVE_TEST_BASE_URL && process.env.COACH_LIVE_TEST_MOD
     activeProjects: [],
     now: NOW,
   });
-  const coach = new ChatCompletionsCoach(process.env.COACH_LIVE_TEST_MODEL!, {
-    baseURL: process.env.COACH_LIVE_TEST_BASE_URL!,
-    apiKey: process.env.COACH_LIVE_TEST_API_KEY,
-  });
+  const config = resolveCoachConfig(process.env);
+  if (!config.configured) throw new Error(`Patrick is not configured: missing ${config.missing.join(", ")}`);
+  const coach = createCoachProvider(config)!;
   const started = Date.now();
   const stream = await coach.chat({
     instructions: readFileSync("prompts/patrick-v1.md", "utf8"),
@@ -44,6 +46,7 @@ it.runIf(process.env.COACH_LIVE_TEST_BASE_URL && process.env.COACH_LIVE_TEST_MOD
   const usage = await stream.done;
   console.log(`\n--- ${Date.now() - started} ms, usage ${JSON.stringify(usage)}, context ${serializeContext(ctx).length} chars ---\n${text}\n---`);
   console.log("expected from context:", JSON.stringify(ctx.last30Days.sendRate), "tops", ctx.last30Days.tops);
+  console.log("model:", coach.model, "| check: answer in French, figures 3/6 sent (50 %), no invented data");
   expect(text.length).toBeGreaterThan(20);
   expect(text).not.toContain("<think>");
 });
