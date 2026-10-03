@@ -1,0 +1,31 @@
+name: Deploy database (Supabase)
+
+# Applies supabase/migrations to the HOSTED Supabase project. Run it manually
+# from the Actions tab — no laptop needed. Never applies seed.sql (demo data).
+#
+# Repository secrets required (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  personal access token (supabase.com → Account → Access Tokens)
+#   SUPABASE_PROJECT_ID    project ref (the id in the project URL)
+#   SUPABASE_DB_PASSWORD   database password chosen when creating the project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase link --project-ref "$SUPABASE_PROJECT_ID" -p "$SUPABASE_DB_PASSWORD"
+      - run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"

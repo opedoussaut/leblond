@@ -1,0 +1,40 @@
+name: Patrick live check
+
+# Asks Patrick one question through the REAL model provider configured in the
+# repository secrets, using SYNTHETIC climbing data only, and prints the answer,
+# timing and token use in the log. Run it manually from the Actions tab to try
+# a provider/model before (or after) setting the same values in Vercel.
+#
+# Secrets (same names as the Vercel variables):
+#   COACH_PROVIDER, COACH_BASE_URL, COACH_MODEL, COACH_API_KEY
+#   optional: COACH_MAX_OUTPUT_TOKENS, COACH_REASONING_EFFORT
+#   or, for OpenAI: OPENAI_API_KEY, OPENAI_MODEL
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ask-patrick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/unit/coach-live-model.test.ts --silent=false
+        env:
+          COACH_LIVE_TEST: "1"
+          COACH_PROVIDER: ${{ secrets.COACH_PROVIDER }}
+          COACH_BASE_URL: ${{ secrets.COACH_BASE_URL }}
+          COACH_MODEL: ${{ secrets.COACH_MODEL }}
+          COACH_API_KEY: ${{ secrets.COACH_API_KEY }}
+          COACH_MAX_OUTPUT_TOKENS: ${{ secrets.COACH_MAX_OUTPUT_TOKENS }}
+          COACH_REASONING_EFFORT: ${{ secrets.COACH_REASONING_EFFORT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
