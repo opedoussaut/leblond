@@ -56,3 +56,13 @@ describe("Patrick context", () => {
     expect(serializeContext(ctx).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 50);
   });
 });
+
+describe("grade scales in Patrick's context", () => {
+  it("lists only the real grades of the systems in use, easiest first", async () => {
+    const { gradeScalesFor } = await import("@/lib/coach/context");
+    const scales = gradeScalesFor(["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "ARKOSE_COLOR"]);
+    expect(Object.keys(scales)).toEqual(["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR"]);
+    expect(scales.ARKOSE_COLOR.ordered).toEqual(["YELLOW", "GREEN", "BLUE", "RED", "BLACK", "PURPLE"]);
+    expect(scales.CLIMBING_DISTRICT_COLOR.unranked).toEqual(["PINK"]);
+  });
+});

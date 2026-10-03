@@ -6,7 +6,26 @@ import {
   type SessionSummary,
   type Snapshot,
 } from "@/lib/analytics";
-import { RELIABLE_CONFIDENCE } from "@/lib/grading";
+import type { GradeSystem } from "@/lib/climbing/types";
+import { listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
+
+/**
+ * The real grade scales for the systems this climber uses, easiest first, so
+ * the model never invents a colour or guesses the "next" grade. Mystery and
+ * unordered grades are listed separately.
+ */
+export function gradeScalesFor(systems: Iterable<GradeSystem>) {
+  const out: Record<string, { ordered: string[]; unranked: string[] }> = {};
+  for (const system of new Set(systems)) {
+    if (system === "UNKNOWN") continue;
+    const grades = listGrades(system);
+    out[system] = {
+      ordered: grades.filter((g) => g.ordinal !== null).map((g) => g.id),
+      unranked: grades.filter((g) => g.ordinal === null).map((g) => g.id),
+    };
+  }
+  return out;
+}
 
 /**
  * Builds the bounded, structured evidence Patrick receives.
@@ -138,11 +157,17 @@ export function buildCoachContext(input: CoachContextInput) {
       })),
       fontWorkingGrade: s90.workingGrade.level,
     },
+    gradeScales: gradeScalesFor([
+      input.climber.target.system as GradeSystem,
+      ...s90.workingLevels.map((w) => w.system as GradeSystem),
+      ...s90.crossGym.native.flatMap((n) => n.distributions.map((d) => d.system)),
+    ]),
     definitions: {
       workingLevel: `Highest grade with, over the last ${DEFAULT_WORKING_LEVEL_RULE.windowDays} days, ≥${DEFAULT_WORKING_LEVEL_RULE.minProblems} distinct problems tried, ≥${DEFAULT_WORKING_LEVEL_RULE.minSends} sent and send rate ≥${DEFAULT_WORKING_LEVEL_RULE.minSendRate * 100}%. Computed per native system; Font uses only estimates with confidence ≥${RELIABLE_CONFIDENCE}.`,
       trend: `Mean of the ${DEFAULT_TREND_RULE.topN} hardest sends (in grade steps) over the last ${DEFAULT_TREND_RULE.windowDays} days vs the previous ${DEFAULT_TREND_RULE.windowDays}; needs ≥${DEFAULT_TREND_RULE.minSendsPerWindow} sends per window and a change ≥${DEFAULT_TREND_RULE.threshold} grade step.`,
       sendRate: "sent problems ÷ problems tried (distinct problems)",
       tops: "distinct problems sent",
+      gradeScales: "Each system's grades, easiest first. The next grade up is the next item. Unranked grades (e.g. Climbing District PINK) have no position.",
     },
     last30Days: period(s30),
     last90Days: period(s90),
