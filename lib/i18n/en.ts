@@ -433,7 +433,7 @@ export const en: Dictionary = {
     newConversation: "New conversation",
     conversations: "Conversations",
     notConfigured:
-      "Patrick isn't enabled on this deployment yet (OpenAI key or model missing). Your data is still available in Progress.",
+      "Patrick isn't enabled on this deployment yet (no model configured). Your data is still available in Progress.",
     rateLimited: "You've reached the limit of {limit} questions per day. Patrick is back tomorrow.",
     error: "Patrick couldn't answer. Try again in a moment.",
     disclaimer: "Patrick is not a doctor. If you're in pain or injured, stop and see a healthcare professional.",

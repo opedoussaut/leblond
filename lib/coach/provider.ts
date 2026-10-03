@@ -87,3 +87,122 @@ export class OpenAIResponsesCoach implements CoachProvider {
     return { text: text(), done };
   }
 }
+
+/**
+ * Removes `<think>…</think>` blocks from a text stream. Some open reasoning
+ * models emit their chain of thought inline in the answer; the climber should
+ * only see the answer. Handles tags split across chunks.
+ */
+export function createThinkFilter() {
+  const OPEN = "<think>";
+  const CLOSE = "</think>";
+  let buffer = "";
+  let inside = false;
+  return {
+    push(chunk: string): string {
+      buffer += chunk;
+      let out = "";
+      for (;;) {
+        const tag = inside ? CLOSE : OPEN;
+        const idx = buffer.indexOf(tag);
+        if (idx !== -1) {
+          if (!inside) out += buffer.slice(0, idx);
+          buffer = buffer.slice(idx + tag.length);
+          inside = !inside;
+          continue;
+        }
+        // Keep a possible partial tag at the end for the next chunk.
+        let keep = 0;
+        for (let k = Math.min(tag.length - 1, buffer.length); k > 0; k--) {
+          if (tag.startsWith(buffer.slice(-k))) {
+            keep = k;
+            break;
+          }
+        }
+        if (!inside) out += buffer.slice(0, buffer.length - keep);
+        buffer = buffer.slice(buffer.length - keep);
+        return out;
+      }
+    },
+    flush(): string {
+      const rest = inside ? "" : buffer;
+      buffer = "";
+      return rest;
+    },
+  };
+}
+
+/**
+ * Open-weight models through any OpenAI-compatible Chat Completions server
+ * (Ollama, LM Studio, llama.cpp server, vLLM). Instructions and evidence go
+ * in ONE system message: several chat templates of open models reject or
+ * ignore a second system message.
+ */
+export class ChatCompletionsCoach implements CoachProvider {
+  private client: OpenAI;
+  constructor(
+    readonly model: string,
+    options: { baseURL: string; apiKey?: string | null; fetch?: typeof fetch },
+  ) {
+    // The SDK requires a non-empty key; self-hosted servers ignore it.
+    this.client = new OpenAI({ apiKey: options.apiKey || "not-needed", baseURL: options.baseURL, fetch: options.fetch });
+  }
+
+  async chat({ instructions, context, messages, signal }: Parameters<CoachProvider["chat"]>[0]): Promise<CoachStream> {
+    const stream = await this.client.chat.completions.create(
+      {
+        model: this.model,
+        messages: [
+          { role: "system", content: `${instructions}\n\n---\n\n${context}` },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+        stream: true,
+        stream_options: { include_usage: true },
+      },
+      { signal },
+    );
+
+    let resolveDone!: (u: CoachUsage) => void;
+    let rejectDone!: (e: unknown) => void;
+    const done = new Promise<CoachUsage>((res, rej) => {
+      resolveDone = res;
+      rejectDone = rej;
+    });
+
+    async function* text() {
+      const think = createThinkFilter();
+      let usage: CoachUsage = { inputTokens: null, outputTokens: null };
+      try {
+        for await (const chunk of stream) {
+          // Only the answer (`content`) is shown; separate reasoning fields are ignored.
+          const delta = chunk.choices?.[0]?.delta?.content;
+          if (delta) {
+            const visible = think.push(delta);
+            if (visible) yield visible;
+          }
+          if (chunk.usage) {
+            usage = { inputTokens: chunk.usage.prompt_tokens ?? null, outputTokens: chunk.usage.completion_tokens ?? null };
+          }
+        }
+        const rest = think.flush();
+        if (rest) yield rest;
+        resolveDone(usage);
+      } catch (e) {
+        rejectDone(e);
+        throw e;
+      }
+    }
+
+    return { text: text(), done };
+  }
+}
+
+/** Builds the configured provider (see lib/coach/config.ts). */
+export function createCoachProvider(
+  config: import("./config").CoachConfig,
+  options: { fetch?: typeof fetch } = {},
+): CoachProvider | null {
+  if (!config.configured) return null;
+  if (config.provider === "openai") return new OpenAIResponsesCoach(config.apiKey, config.model, options);
+  return new ChatCompletionsCoach(config.model, { baseURL: config.baseURL, apiKey: config.apiKey, fetch: options.fetch });
+}

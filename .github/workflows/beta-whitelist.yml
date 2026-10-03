@@ -1,0 +1,36 @@
+name: Update beta whitelist
+
+# Writes the five closed-beta identities into the hosted beta_users table.
+# Emails live ONLY in repository secrets — never in the code or the logs
+# (the script prints names and roles only; GitHub also masks secret values).
+#
+# Repository secrets required:
+#   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+#   BETA_OLIVIER_EMAIL, BETA_THOMAS_EMAIL, BETA_MARC_EMAIL, BETA_HOUSSEM_EMAIL, BETA_DAVID_EMAIL
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  whitelist:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --experimental-strip-types scripts/bootstrap-beta-users.ts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BETA_OLIVIER_EMAIL: ${{ secrets.BETA_OLIVIER_EMAIL }}
+          BETA_THOMAS_EMAIL: ${{ secrets.BETA_THOMAS_EMAIL }}
+          BETA_MARC_EMAIL: ${{ secrets.BETA_MARC_EMAIL }}
+          BETA_HOUSSEM_EMAIL: ${{ secrets.BETA_HOUSSEM_EMAIL }}
+          BETA_DAVID_EMAIL: ${{ secrets.BETA_DAVID_EMAIL }}

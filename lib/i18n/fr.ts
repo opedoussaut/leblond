@@ -438,7 +438,7 @@ export const fr = {
     newConversation: "Nouvelle conversation",
     conversations: "Conversations",
     notConfigured:
-      "Patrick n’est pas encore activé sur ce déploiement (clé OpenAI ou modèle manquant). Tes données restent disponibles dans Progrès.",
+      "Patrick n’est pas encore activé sur ce déploiement (aucun modèle configuré). Tes données restent disponibles dans Progrès.",
     rateLimited: "Tu as atteint la limite de {limit} questions par jour. Patrick revient demain.",
     error: "Patrick n’a pas pu répondre. Réessaie dans un instant.",
     disclaimer: "Patrick n’est pas médecin. En cas de douleur ou de blessure, arrête et consulte un professionnel de santé.",

@@ -3,11 +3,12 @@ import { getViewer } from "@/lib/auth/viewer";
 import { assembleCoachContext } from "@/lib/coach/assemble";
 import { QUICK_ACTIONS, serializeContext } from "@/lib/coach/context";
 import { loadPatrickPrompt } from "@/lib/coach/prompt";
-import { OpenAIResponsesCoach, type CoachMessage } from "@/lib/coach/provider";
+import { createCoachProvider, type CoachMessage } from "@/lib/coach/provider";
 import { coachConfig } from "@/lib/env";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Vercel Hobby allows up to 300 s; open models on modest hardware can be slow to answer.
+export const maxDuration = 300;
 
 const bodySchema = z.object({
   conversationId: z.guid().nullish(),
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
   if (!viewer.active) return json(403, { error: "forbidden" });
 
   const config = coachConfig();
-  if (!config.configured) return json(503, { error: "not_configured" });
+  const coach = createCoachProvider(config);
+  if (!coach) return json(503, { error: "not_configured" });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json(400, { error: "invalid_request" });
@@ -97,7 +99,6 @@ export async function POST(request: Request) {
     }),
   ]);
 
-  const coach = new OpenAIResponsesCoach(config.apiKey!, config.model!);
   const started = Date.now();
   const requestType = body.quickAction ?? "chat";
   const recordUsage = (usage: { inputTokens: number | null; outputTokens: number | null }, succeeded: boolean) =>
