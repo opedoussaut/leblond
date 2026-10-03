@@ -82,7 +82,7 @@ More in [docs/architecture.md](docs/architecture.md).
 
 ## Tech stack
 
-Next.js 16 (App Router, `proxy.ts`), React 19.2, TypeScript (strict), Tailwind CSS 4, Supabase (`@supabase/ssr`, Postgres, Auth, Storage, RLS), OpenAI Node SDK (Responses API), Zod 4, Garmin FIT JavaScript SDK, Vitest, Playwright, GitHub Actions.
+Next.js 16 (App Router, `proxy.ts`), React 19.2, TypeScript (strict), Tailwind CSS 4, Supabase (`@supabase/ssr`, Postgres, Auth, Storage, RLS), OpenAI Node SDK (Responses API, or Chat Completions for open-weight models), Zod 4, Garmin FIT JavaScript SDK, Vitest, Playwright, GitHub Actions.
 
 ## Local setup
 
@@ -112,9 +112,9 @@ The local seed creates a fictional admin `alex@leblond.local` and three demo gym
    ```
    The admin can later deactivate/reactivate testers in *Profile → Beta administration*.
 
-## OpenAI setup
+## Patrick's model
 
-Create a project key with access to the model you choose, then set `OPENAI_API_KEY`, `OPENAI_MODEL` (no model is hard-coded) and optionally `MAX_COACH_REQUESTS_PER_USER_PER_DAY` (default 30). Without them Patrick shows an honest “not configured” state; everything else works.
+Patrick runs on either the **OpenAI Responses API** (`COACH_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_MODEL`) or **any OpenAI-compatible server running an open-weight model** (`COACH_PROVIDER=openai-compatible`, `COACH_BASE_URL`, `COACH_MODEL`, optional `COACH_API_KEY`) — e.g. Ollama locally with no key (`COACH_BASE_URL=http://localhost:11434/v1`), or a hosted open-model API. No model is hard-coded. Without configuration Patrick shows an honest “not configured” state; everything else works. Trade-offs: [docs/hosting.md](docs/hosting.md#choosing-patricks-model).
 
 ## Environment variables
 
@@ -138,6 +138,10 @@ E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 The E2E suite resets only the `*@leblond.local` demo users and refuses to run against a non-local Supabase.
 
 ## Deployment
+
+**Browser-only setup (nothing installed on your laptop):** follow [docs/hosting.md](docs/hosting.md) — GitHub Actions create the tables and load the whitelist, Vercel runs the app.
+
+Summary:
 
 1. Import the GitHub repo into Vercel (framework: Next.js).
 2. Add the environment variables from `.env.example` (Production + Preview).

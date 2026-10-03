@@ -8,21 +8,32 @@ sequenceDiagram
   participant R as /api/coach
   participant DB as Supabase (RLS)
   participant A as lib/analytics
-  participant O as OpenAI Responses API
+  participant O as Model provider (OpenAI or open model)
   C->>R: message (+ quick action, session/project)
   R->>DB: auth, rate limit (ai_usage 24 h), store user message
   R->>DB: load climber dataset
   R->>A: computeSnapshot(30 d, 90 d), session summary
   R->>R: buildCoachContext (bounded ≤ 14k chars)
-  R->>O: instructions = prompts/patrick-v1.md, developer msg = LEBLOND_CONTEXT, last 12 messages, stream, store:false
+  R->>O: prompts/patrick-v1.md + LEBLOND_CONTEXT, last 12 messages, stream
   O-->>R: text deltas
   R-->>C: streamed text
   R->>DB: assistant message + ai_usage (tokens, latency)
 ```
 
+## Providers
+
+`CoachProvider` (`lib/coach/provider.ts`), selected by `lib/coach/config.ts`:
+
+| `COACH_PROVIDER` | Implementation | Required | Notes |
+|---|---|---|---|
+| `openai` (default) | `OpenAIResponsesCoach` — Responses API | `OPENAI_API_KEY`, `OPENAI_MODEL` | Evidence as a developer message; `store: false`. |
+| `openai-compatible` | `ChatCompletionsCoach` — Chat Completions | `COACH_BASE_URL`, `COACH_MODEL` (`COACH_API_KEY` optional) | Ollama, LM Studio, llama.cpp, vLLM, hosted open-model APIs. Instructions + evidence in a single system message; `<think>…</think>` reasoning stripped from the answer. |
+
+For self-hosted servers, make the model's context window at least ~8k tokens (Ollama: `OLLAMA_CONTEXT_LENGTH`); a real Patrick request in testing used about 1.8k prompt tokens with a small dataset and the context is capped at 14k characters. `tests/unit/coach-live-model.test.ts` runs Patrick against a real server when `COACH_LIVE_TEST_BASE_URL` and `COACH_LIVE_TEST_MODEL` are set.
+
 ## Guarantees
 
-- Server-side key only; model from `OPENAI_MODEL`; `CoachProvider` abstraction (`lib/coach/provider.ts`).
+- Server-side configuration only; no model name hard-coded.
 - Patrick receives computed figures with counts and explicit definitions — never raw rows. Missing data is `null`, and the prompt tells him not to fill gaps.
 - The prompt enforces: native grades first, estimates labelled, Observation / Calculation / Hypothesis structure, wearable data as personal context only, no diagnosis, stop-and-see-a-professional for pain or injury, sustainable volume.
 - `store: false` on the provider; LEBLOND keeps its own private history. Telemetry stores no prompt or answer text.

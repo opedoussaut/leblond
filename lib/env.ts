@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { resolveCoachConfig } from "@/lib/coach/config";
 
 /**
  * Server-side environment access.
@@ -43,9 +44,7 @@ export function coachConfig() {
   const env = serverEnv();
   const limit = Number.parseInt(env.MAX_COACH_REQUESTS_PER_USER_PER_DAY ?? "", 10);
   return {
-    apiKey: env.OPENAI_API_KEY,
-    model: env.OPENAI_MODEL,
-    configured: Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL),
+    ...resolveCoachConfig(process.env),
     dailyLimit: Number.isFinite(limit) && limit > 0 ? limit : 30,
   };
 }
