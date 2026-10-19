@@ -104,7 +104,7 @@ export const fr = {
     whoTitle: "Qui es-tu ?",
     displayName: "Prénom ou pseudo",
     languageTitle: "Choisis ta langue",
-    languageHelp: "Sélectionne Français ou English. Tu pourras changer cette préférence à tout moment.",
+    languageHelp: "Choisis la langue de ton expérience. Tu pourras la modifier à tout moment.",
     boulderLevel: "Bloc",
     routeLevel: "Voie",
     routeGrade: "Cotation française (voie)",
