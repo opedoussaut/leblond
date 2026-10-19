@@ -1,41 +1,8 @@
-import Image from "next/image";
 import { redirect } from "next/navigation";
-import { Wordmark } from "@/components/brand/wordmark";
-import { LinkButton } from "@/components/ui/button";
 import { getViewer } from "@/lib/auth/viewer";
-import { getI18n } from "@/lib/i18n/server";
-import { trainingDictionary } from "@/lib/i18n/training";
 
+/** LEBLOND is member-only: visitors go straight to the clean sign-in. */
 export default async function LandingPage() {
   const viewer = await getViewer().catch(() => null);
-  if (viewer) redirect("/home");
-  const { t, locale } = await getI18n();
-  const lab = trainingDictionary(locale);
-  return (
-    <main className="pt-safe mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
-      <div className="py-5">
-        <Wordmark />
-      </div>
-      <div className="relative overflow-hidden rounded-3xl">
-        <Image
-          src="/brand/leblond-hero.webp"
-          alt="LEBLOND"
-          width={900}
-          height={900}
-          priority
-          className="h-auto w-full"
-        />
-      </div>
-      <h1 className="mt-6 text-3xl font-black leading-tight tracking-tight">{t.landing.tagline}</h1>
-      <p className="mt-3 text-ink-2">{t.landing.pitch}</p>
-      <LinkButton href="/login" size="lg" className="mt-6 w-full">
-        {t.landing.signIn}
-      </LinkButton>
-      <LinkButton href="/training" variant="secondary" size="lg" className="mt-3 w-full">
-        Training Lab — {lab.browse}
-      </LinkButton>
-      <p className="mt-3 text-center text-sm text-ink-3">{t.landing.closedBeta}</p>
-      <p className="mt-auto pt-10 text-xs text-ink-3">{t.landing.disclaimer}</p>
-    </main>
-  );
+  redirect(viewer ? "/home" : "/login");
 }
