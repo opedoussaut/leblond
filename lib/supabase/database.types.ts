@@ -5,6 +5,54 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      calendar_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_date: string;
+          start_time: string | null;
+          title: string;
+          kind: "CLIMB" | "TRAIN" | "REST" | "ASSESS" | "OTHER";
+          discipline: "BOULDER" | "ROUTE" | "BOTH" | "NONE";
+          duration_minutes: number | null;
+          method_id: string | null;
+          notes: string;
+          status: "PLANNED" | "DONE" | "SKIPPED";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_date: string;
+          start_time?: string | null;
+          title: string;
+          kind: "CLIMB" | "TRAIN" | "REST" | "ASSESS" | "OTHER";
+          discipline: "BOULDER" | "ROUTE" | "BOTH" | "NONE";
+          duration_minutes?: number | null;
+          method_id?: string | null;
+          notes?: string;
+          status?: "PLANNED" | "DONE" | "SKIPPED";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          event_date?: string;
+          start_time?: string | null;
+          title?: string;
+          kind?: "CLIMB" | "TRAIN" | "REST" | "ASSESS" | "OTHER";
+          discipline?: "BOULDER" | "ROUTE" | "BOTH" | "NONE";
+          duration_minutes?: number | null;
+          method_id?: string | null;
+          notes?: string;
+          status?: "PLANNED" | "DONE" | "SKIPPED";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       training_plans: {
         Row: {
           id: string;
