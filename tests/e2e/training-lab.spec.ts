@@ -29,6 +29,7 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTrainingPassword123!");
   await page.getByRole("button", { name: "Créer mon compte" }).click();
   await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole("button", { name: "Continuer" }).click();
   await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
   await expect(page).toHaveURL(/\/home/);
   await page.goto("/training");
