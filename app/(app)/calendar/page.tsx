@@ -4,6 +4,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { monthBounds, type CalendarEvent, type LoggedSession } from "@/lib/calendar/schema";
 import { calendarDictionary } from "@/lib/i18n/calendar";
+import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 
 export const metadata = { title: "LEBLOND — Calendrier" };
 export default async function CalendarPage({ searchParams }: PageProps<"/calendar">) {
@@ -35,9 +36,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     startedAt:s.started_at, title:s.gyms?.name ?? "Climbing",
   }));
   const t=calendarDictionary(locale);
+  const presetMethod = typeof sp.method === "string" && METHODS_FOR_PLANS.some(m=>m.id===sp.method) ? sp.method : "";
   return <div className="space-y-5">
     <PageHeader title={t.title} subtitle={t.subtitle}/>
     {error ? <p role="alert" className="text-sm text-danger">{t.error}</p> : null}
-    <CalendarWorkspace month={month} locale={locale} events={transformed} sessions={recorded}/>
+    <CalendarWorkspace month={month} locale={locale} events={transformed} sessions={recorded} presetMethod={presetMethod}/>
   </div>;
 }
