@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
 
 test.skip(!process.env.E2E_BASE_URL, "E2E_BASE_URL not set — needs the local Supabase stack");
 
@@ -13,12 +12,17 @@ test("Training Lab and assessments require a signed-in profile", async ({ page }
 });
 
 test("signed-in climbers can compare methods and assess their own skills", async ({ page }) => {
-  await signIn(page, "alex@leblond.local");
-  // Local testing profile has not completed the onboarding yet.
-  await page.goto("/onboarding");
-  if (new URL(page.url()).pathname === "/onboarding") {
-    await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
-  }
+  // Isolate this test from the legacy serial flow's Alex/Sam accounts.
+  await page.goto("/login");
+  await page.getByRole("tab", { name: "Créer un compte" }).click();
+  await page.getByLabel("Prénom ou pseudo").fill("Training Test");
+  await page.getByLabel("Adresse e-mail").fill("training@leblond.local");
+  await page.getByLabel("Mot de passe", { exact: true }).fill("ReasonablyStrongTrainingPassword123!");
+  await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTrainingPassword123!");
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
+  await expect(page).toHaveURL(/\/home/);
   await page.goto("/training");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Mieux s'entraîner");
   await expect(page.getByRole("img", { name: "Comparer sur le radar" })).toBeVisible();
