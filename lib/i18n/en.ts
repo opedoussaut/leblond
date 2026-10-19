@@ -29,6 +29,11 @@ export const en: Dictionary = {
   },
   nav: {
     home: "Home",
+    climbing: "Climb",
+    training: "Train",
+    followUp: "Follow-up",
+    trainingPlans: "Plans",
+    assessment: "Assessments",
     calendar: "Calendar",
     atlas: "Atlas",
     session: "Session",
