@@ -68,6 +68,30 @@ select pg_temp.expect_error(
     where id = ''00000000-0000-0000-0000-00000000000a''',
   'Font boulder grade cannot be stored as sport route grade');
 
+-- Separate climbing goals: existing users remain boulder-only. A climber can
+-- choose sport routes or both with a distinct validated French target.
+select pg_temp.expect(
+  (select target_discipline = 'BOULDER' from public.profiles
+    where id = '00000000-0000-0000-0000-00000000000a'),
+  'legacy targets are kept as bouldering goals');
+update public.profiles set
+  target_discipline = 'BOTH',
+  target_route_grade = '7a+'
+where id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.expect(
+  (select target_discipline = 'BOTH' and target_route_grade = '7a+'
+    and target_grade is not null
+    from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
+  'bouldering and route goals coexist');
+select pg_temp.expect_error(
+  'update public.profiles set target_route_grade = ''7A+'' where id = ''00000000-0000-0000-0000-00000000000a''',
+  'Font style is not a valid French route goal');
+select pg_temp.expect_error(
+  'update public.profiles set target_discipline = ''ROUTE'', target_route_grade = null
+    where id = ''00000000-0000-0000-0000-00000000000a''',
+  'a route objective requires a route target');
+
+
 
 -- Official directory: seed all five networks, preserve the true disciplines
 -- and keep rows visible only to signed-in climbers.
