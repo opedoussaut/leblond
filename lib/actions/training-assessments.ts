@@ -37,10 +37,19 @@ export async function saveTrainingCheckin(input: unknown): Promise<Result> {
   if (week > assessment.horizon_weeks || week > elapsedWeeks(assessment.created_at, new Date())) {
     return { ok: false, error: "invalid" };
   }
-  const { data, error } = await viewer.supabase.from("training_checkins")
-    .upsert({ user_id: viewer.userId, assessment_id: assessmentId, week, ratings, notes },
-      { onConflict: "assessment_id,week" })
-    .select("id").single();
+  // Separate INSERT and UPDATE so the RLS table can deny identity-column
+  // changes while allowing climbers to correct only their own ratings/notes.
+  const { data: existing, error: lookupCheckinError } = await viewer.supabase
+    .from("training_checkins").select("id")
+    .eq("assessment_id", assessmentId).eq("week", week).maybeSingle();
+  if (lookupCheckinError) return { ok: false, error: "unknown" };
+  const { data, error } = existing
+    ? await viewer.supabase.from("training_checkins")
+        .update({ ratings, notes }).eq("id", existing.id).eq("user_id", viewer.userId)
+        .select("id").single()
+    : await viewer.supabase.from("training_checkins")
+        .insert({ user_id: viewer.userId, assessment_id: assessmentId, week, ratings, notes })
+        .select("id").single();
   if (error || !data) return { ok: false, error: "unknown" };
   revalidatePath("/training-assessment");
   return { ok: true, id: data.id };
