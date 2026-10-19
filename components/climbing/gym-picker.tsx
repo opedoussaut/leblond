@@ -225,7 +225,7 @@ function NewGymForm({
         <legend className="text-sm font-semibold">{t.gyms.discipline}</legend>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={hasBouldering}
-            disabled={!allowRouteOnly && !hasRoutes}
+            disabled={!allowRouteOnly}
             onChange={(e) => setHasBouldering(e.target.checked)} />
           {t.gyms.boulder}
         </label>
