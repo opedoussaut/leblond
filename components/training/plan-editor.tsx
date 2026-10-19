@@ -7,18 +7,30 @@ import { deleteTrainingPlan, saveTrainingPlan } from "@/lib/actions/training-pla
 import type { Locale } from "@/lib/i18n";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import { PlanSessionControls } from "./session-actions";
 import { DEFAULT_PLAN, type PlanSession, type SavedTrainingPlan, type TrainingPlanInput } from "@/lib/training/plans";
 
 function blankPlan(locale: Locale): TrainingPlanInput {
   return { ...DEFAULT_PLAN, name: locale === "fr" ? "Ma semaine escalade" : DEFAULT_PLAN.name, sessions: DEFAULT_PLAN.sessions.map((s) => ({ ...s })) };
 }
 
-export function PlanEditor({ initialPlans, locale }: { initialPlans: SavedTrainingPlan[]; locale: Locale }) {
+export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday }: {
+  initialPlans: SavedTrainingPlan[]; locale: Locale; addMethod?: string; today: string; monday: string;
+}) {
   const t = trainingDictionary(locale);
   const router = useRouter();
   const [plans, setPlans] = useState(initialPlans);
-  const [draft, setDraft] = useState<TrainingPlanInput>(initialPlans[0] ?? blankPlan(locale));
-  const [notice, setNotice] = useState("");
+  // Arriving from an Atlas sheet ("Add to a plan") appends that method to the current plan draft.
+  const [draft, setDraft] = useState<TrainingPlanInput>(() => {
+    const base = initialPlans[0] ? { ...initialPlans[0], sessions: initialPlans[0].sessions.map((s) => ({ ...s })) } : blankPlan(locale);
+    if (!addMethod || base.sessions.length >= 14) return base;
+    const used = new Set(base.sessions.map((s) => s.day));
+    const day = [0, 1, 2, 3, 4, 5, 6].find((d) => !used.has(d)) ?? 0;
+    return { ...base, sessions: [...base.sessions, { day, methodId: addMethod, minutes: 60, notes: "" }] };
+  });
+  const [notice, setNotice] = useState(addMethod
+    ? (locale === "fr" ? "Méthode ajoutée au programme ci-dessous — enregistre pour confirmer." : "Method added to the plan below — save to confirm.")
+    : "");
   const [pending, startTransition] = useTransition();
 
   function selectPlan(id: string) {
@@ -80,6 +92,10 @@ export function PlanEditor({ initialPlans, locale }: { initialPlans: SavedTraini
           >{plan.name}</button>
         ))}
       </div>
+      {draft.id && plans.some((p) => p.id === draft.id) ? (
+        <PlanSessionControls locale={locale} planId={draft.id} today={today} monday={monday}
+          sessions={(plans.find((p) => p.id === draft.id)?.sessions ?? []).map(({ day, methodId, minutes }) => ({ day, methodId, minutes }))} />
+      ) : null}
       <div className="space-y-4 rounded-2xl border border-line bg-surface p-4">
         <label className="block text-sm font-semibold">
           {t.planName}
