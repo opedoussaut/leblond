@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { PatrickAvatar } from "@/components/brand/wordmark";
 import { GradeSelect } from "@/components/climbing/grade-select";
+import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
 import { GymPicker } from "@/components/climbing/gym-picker";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export function OnboardingWizard({
   gyms,
   favouriteIds,
 }: {
-  profile: { displayName: string; language: Locale; targetGrade: string; targetSystem: GradeSystem };
+  profile: { displayName: string; language: Locale; targetGrade: string; targetSystem: GradeSystem; boulderLevel: string; boulderSystem: GradeSystem; routeGrade: string };
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
 }) {
@@ -28,8 +29,9 @@ export function OnboardingWizard({
   const [step, setStep] = useState(1);
   const [name, setName] = useState(profile.displayName);
   const [language, setLanguage] = useState<Locale>(profile.language);
-  const [levelSystem, setLevelSystem] = useState<GradeSystem>("FONT");
-  const [level, setLevel] = useState("");
+  const [levelSystem, setLevelSystem] = useState<GradeSystem>(profile.boulderSystem);
+  const [level, setLevel] = useState(profile.boulderLevel);
+  const [routeGrade, setRouteGrade] = useState(profile.routeGrade);
   const [targetSystem, setTargetSystem] = useState<GradeSystem>(profile.targetSystem);
   const [targetGrade, setTargetGrade] = useState(profile.targetGrade);
   const [selectedGyms, setSelectedGyms] = useState<string[]>(favouriteIds);
@@ -49,6 +51,7 @@ export function OnboardingWizard({
         language,
         levelSystem: level ? levelSystem : null,
         level: level || null,
+        routeGrade: routeGrade || null,
         targetSystem,
         targetGrade,
         favouriteGymIds: selectedGyms,
@@ -70,17 +73,8 @@ export function OnboardingWizard({
       <div className="mt-8 space-y-5">
         {step === 1 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.whoTitle}</h1>
-            <div>
-              <Label htmlFor="ob-name">{t.onboarding.displayName}</Label>
-              <Input id="ob-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
-            </div>
-          </>
-        ) : null}
-
-        {step === 2 ? (
-          <>
             <h1 className="text-2xl font-black">{t.onboarding.languageTitle}</h1>
+            <p className="text-sm text-ink-2">{t.onboarding.languageHelp}</p>
             <ChoiceChips<Locale>
               name="language"
               legend={t.onboarding.languageTitle}
@@ -94,21 +88,40 @@ export function OnboardingWizard({
           </>
         ) : null}
 
+        {step === 2 ? (
+          <>
+            <h1 className="text-2xl font-black">{t.onboarding.whoTitle}</h1>
+            <div>
+              <Label htmlFor="ob-name">{t.onboarding.displayName}</Label>
+              <Input id="ob-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
+            </div>
+          </>
+        ) : null}
+
         {step === 3 ? (
           <>
             <h1 className="text-2xl font-black">{t.onboarding.levelTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.levelHelp}</p>
-            <GradeSelect
-              idPrefix="ob-level"
-              system={levelSystem}
-              grade={level}
-              allowEmpty
-              emptyLabel={t.onboarding.levelUnknown}
-              onChange={(s, g) => {
-                setLevelSystem(s);
-                setLevel(g);
-              }}
-            />
+            <fieldset className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+              <legend className="px-2 font-bold">{t.onboarding.boulderLevel}</legend>
+              <GradeSelect
+                idPrefix="ob-level"
+                system={levelSystem}
+                grade={level}
+                allowEmpty
+                emptyLabel={t.onboarding.levelUnknown}
+                onChange={(s, g) => {
+                  setLevelSystem(s);
+                  setLevel(g);
+                }}
+              />
+            </fieldset>
+            <fieldset className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+              <legend className="px-2 font-bold">{t.onboarding.routeLevel}</legend>
+              <p className="text-xs text-ink-2">{t.onboarding.routeScaleHelp}</p>
+              <RouteGradeSelect id="ob-route" grade={routeGrade} onChange={setRouteGrade}
+                label={t.onboarding.routeGrade} emptyLabel={t.onboarding.levelUnknown} />
+            </fieldset>
           </>
         ) : null}
 
@@ -168,7 +181,7 @@ export function OnboardingWizard({
         ) : null}
       </div>
 
-      {step === 1 ? (
+      {step === 2 ? (
         <div className="mt-5 space-y-2">
           <Button variant="secondary" size="lg" className="w-full" disabled={pending || !name.trim()}
             onClick={() => finish("/home")}>
@@ -185,7 +198,7 @@ export function OnboardingWizard({
               {t.common.back}
             </Button>
           ) : null}
-          <Button className="flex-1" size="lg" onClick={next} disabled={step === 1 && name.trim().length === 0}>
+          <Button className="flex-1" size="lg" onClick={next} disabled={step === 2 && name.trim().length === 0}>
             {t.common.continue}
           </Button>
         </div>
