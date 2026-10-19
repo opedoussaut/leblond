@@ -95,6 +95,16 @@ insert into public.training_plans (id, user_id, name, goal, weeks, sessions)
           '[{"day":1,"methodId":"technique","minutes":60,"notes":""}]');
 select pg_temp.expect((select count(*) from public.training_plans) = 1, 'owner sees own training plan');
 
+insert into public.training_assessments
+  (id, user_id, method_id, goal, ratings, horizon_weeks, sessions_per_week)
+  values ('60000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a',
+    'technique', 'Practice movement', '{"technique":3,"fingers":3,"power":3,"endurance":3,"mental":3,"structure":3}', 12, 2);
+insert into public.training_checkins (id, user_id, assessment_id, week, ratings, notes)
+  values ('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a',
+    '60000000-0000-0000-0000-000000000001', 1, '{"technique":3,"fingers":3,"power":3,"endurance":3,"mental":3,"structure":3}', 'test');
+select pg_temp.expect((select count(*) from public.training_assessments) = 1, 'owner sees their training assessment');
+select pg_temp.expect((select count(*) from public.training_checkins) = 1, 'owner sees their training checkin');
+
 insert into public.ai_usage (model, request_type) values ('test-model', 'chat');
 select pg_temp.expect_error($$delete from public.ai_usage$$, 'ai_usage is append-only');
 
@@ -121,6 +131,13 @@ select pg_temp.expect((select count(*) from public.wearable_activities) = 0, 'we
 select pg_temp.expect((select count(*) from public.profiles) = 1, 'only own profile');
 select pg_temp.expect((select count(*) from public.ai_usage) = 0, 'ai usage is private');
 select pg_temp.expect((select count(*) from public.training_plans) = 0, 'training plans are private');
+select pg_temp.expect((select count(*) from public.training_assessments) = 0, 'assessments are private');
+select pg_temp.expect((select count(*) from public.training_checkins) = 0, 'checkins are private');
+select pg_temp.expect_error($$insert into public.training_checkins (user_id, assessment_id, week, ratings)
+  values ('00000000-0000-0000-0000-00000000000b', '60000000-0000-0000-0000-000000000001',
+    2, '{"technique":3,"fingers":3,"power":3,"endurance":3,"mental":3,"structure":3}')$$, 'cannot create checkin on another user assessment');
+select pg_temp.expect_error($$update public.training_checkins set assessment_id =
+  '60000000-0000-0000-0000-000000000001'$$, 'cannot change checkin identity');
 select pg_temp.expect_error($$insert into public.training_plans (user_id, name, sessions)
   values ('00000000-0000-0000-0000-00000000000a', 'Impersonation', '[{"day":1}]')$$, 'cannot create another user training plan');
 update public.training_plans set name = 'Hijacked plan'
@@ -144,11 +161,18 @@ select pg_temp.expect((select name from public.gyms where id = '10000000-0000-00
 select pg_temp.expect((select name from public.training_plans
   where id = '50000000-0000-0000-0000-000000000001') = 'Olivier private training', 'cannot update another user training plan');
 
+select pg_temp.expect((select count(*) from public.training_assessments
+  where id = '60000000-0000-0000-0000-000000000001') = 1, 'cannot delete another user assessment');
+select pg_temp.expect((select notes from public.training_checkins
+  where id = '70000000-0000-0000-0000-000000000001') = 'test', 'cannot change another user checkin');
+
 -- ── Anonymous ──────────────────────────────────────────────────────────────
 set role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', false);
 select pg_temp.expect_error($$select count(*) from public.gyms$$, 'anon cannot read gyms');
 select pg_temp.expect_error($$select count(*) from public.training_plans$$, 'anon cannot read training plans');
+select pg_temp.expect_error($$select count(*) from public.training_assessments$$, 'anon cannot read assessments');
+select pg_temp.expect_error($$select count(*) from public.training_checkins$$, 'anon cannot read checkins');
 select pg_temp.expect_error($$select count(*) from public.beta_users$$, 'anon cannot read whitelist');
 reset role;
 
