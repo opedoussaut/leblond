@@ -33,7 +33,7 @@ export const fr = {
   nav: {
     home: "Accueil",
     calendar: "Calendrier",
-    atlas: "Atlas",    home: "Accueil",
+    atlas: "Atlas",
     session: "Séance",
     progress: "Progrès",
     patrick: "Patrick",
