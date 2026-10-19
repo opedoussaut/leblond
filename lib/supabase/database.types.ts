@@ -349,6 +349,9 @@ export type Database = {
           external_id: string | null;
           external_provider: string | null;
           grading_system: Database["public"]["Enums"]["grade_system"];
+          has_bouldering: boolean;
+          has_routes: boolean;
+          source_url: string | null;
           id: string;
           latitude: number | null;
           longitude: number | null;
@@ -365,6 +368,9 @@ export type Database = {
           external_id?: string | null;
           external_provider?: string | null;
           grading_system: Database["public"]["Enums"]["grade_system"];
+          has_bouldering: boolean;
+          has_routes: boolean;
+          source_url: string | null;
           id?: string;
           latitude?: number | null;
           longitude?: number | null;
@@ -381,6 +387,9 @@ export type Database = {
           external_id?: string | null;
           external_provider?: string | null;
           grading_system?: Database["public"]["Enums"]["grade_system"];
+          has_bouldering?: boolean;
+          has_routes?: boolean;
+          source_url?: string | null;
           id?: string;
           latitude?: number | null;
           longitude?: number | null;
@@ -1194,7 +1203,7 @@ export type Database = {
       connection_status: "CONNECTED" | "DISCONNECTED" | "ERROR";
       discipline: "bouldering" | "sport";
       grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN";
-      gym_brand: "ARKOSE" | "CLIMBING_DISTRICT" | "BLOCKOUT" | "INDEPENDENT" | "OUTDOOR" | "OTHER";
+      gym_brand: "ARKOSE" | "CLIMBING_DISTRICT" | "BLOCKOUT" | "CLIMB_UP" | "VERTICAL_ART" | "INDEPENDENT" | "OUTDOOR" | "OTHER";
       media_type: "PROBLEM_PHOTO" | "ATTEMPT_VIDEO" | "SEND_VIDEO";
       normalization_source: "FONT_NATIVE" | "USER_ESTIMATE" | "GYM_PUBLISHED";
       project_status: "ACTIVE" | "SENT" | "ABANDONED" | "RETIRED";
