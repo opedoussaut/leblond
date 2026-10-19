@@ -87,6 +87,14 @@ select public.unlink_wearable_activity('40000000-0000-0000-0000-000000000001');
 select pg_temp.expect((select wearable_activity_id from public.sessions where id = '30000000-0000-0000-0000-000000000001') is null, 'activity unlinked both ways');
 select public.link_wearable_activity('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001');
 
+-- Private Training Lab plans: writes are owner-scoped and never public.
+insert into public.training_plans (id, user_id, name, goal, weeks, sessions)
+  values ('50000000-0000-0000-0000-000000000001',
+          '00000000-0000-0000-0000-00000000000a',
+          'Olivier private training', 'Technique', 4,
+          '[{"day":1,"methodId":"technique","minutes":60,"notes":""}]');
+select pg_temp.expect((select count(*) from public.training_plans) = 1, 'owner sees own training plan');
+
 insert into public.ai_usage (model, request_type) values ('test-model', 'chat');
 select pg_temp.expect_error($$delete from public.ai_usage$$, 'ai_usage is append-only');
 
@@ -112,6 +120,11 @@ select pg_temp.expect((select count(*) from public.attempts) = 0, 'attempts are 
 select pg_temp.expect((select count(*) from public.wearable_activities) = 0, 'wearable activities are private');
 select pg_temp.expect((select count(*) from public.profiles) = 1, 'only own profile');
 select pg_temp.expect((select count(*) from public.ai_usage) = 0, 'ai usage is private');
+select pg_temp.expect((select count(*) from public.training_plans) = 0, 'training plans are private');
+select pg_temp.expect_error($insert into public.training_plans (user_id, name, sessions)
+  values ('00000000-0000-0000-0000-00000000000a', 'Impersonation', '[{"day":1}]')$, 'cannot create another user training plan');
+update public.training_plans set name = 'Hijacked plan'
+  where id = '50000000-0000-0000-0000-000000000001';
 select pg_temp.expect((select count(*) from public.beta_users) = 1, 'tester only sees own whitelist row');
 select pg_temp.expect((select count(*) from public.wearable_connections) = 0, 'connections are private');
 select pg_temp.expect((select count(*) from storage.objects) = 0, 'storage objects are private');
@@ -128,10 +141,14 @@ update public.gyms set name = 'Hijacked' where id = '10000000-0000-0000-0000-000
 reset role;
 select pg_temp.expect((select name from public.gyms where id = '10000000-0000-0000-0000-000000000001') = 'Arkose Test', 'cannot edit a gym created by someone else');
 
+select pg_temp.expect((select name from public.training_plans
+  where id = '50000000-0000-0000-0000-000000000001') = 'Olivier private training', 'cannot update another user training plan');
+
 -- ── Anonymous ──────────────────────────────────────────────────────────────
 set role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', false);
-select pg_temp.expect_error($$select count(*) from public.gyms$$, 'anon cannot read gyms');
+select pg_temp.expect_error($select count(*) from public.gyms$, 'anon cannot read gyms');
+select pg_temp.expect_error($select count(*) from public.training_plans$, 'anon cannot read training plans');
 select pg_temp.expect_error($$select count(*) from public.beta_users$$, 'anon cannot read whitelist');
 reset role;
 
