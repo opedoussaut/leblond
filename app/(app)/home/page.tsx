@@ -1,233 +1,81 @@
 import Link from "next/link";
 import Image from "next/image";
-import { PatrickAvatar } from "@/components/brand/wordmark";
-import { WorkingLevelLine } from "@/components/climbing/working-level";
-import { LinkButton } from "@/components/ui/button";
-import { Card, EmptyState, SectionTitle } from "@/components/ui/card";
-import { Explain, Stat } from "@/components/ui/stat";
-import { computeSnapshot } from "@/lib/analytics";
+import { AreaCard } from "@/components/layout/area-card";
+import { AtlasIcon, ProgressIcon, SessionIcon } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
-import { loadClimbingDataset } from "@/lib/data/climbing";
-import { gradeLabel } from "@/lib/grading/labels";
-import { includesBoulder, includesRoute } from "@/lib/climbing/goals";
-import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
-import { trainingDictionary } from "@/lib/i18n/training";
-import { assessmentDictionary } from "@/lib/i18n/assessment";
+import { fmt } from "@/lib/i18n";
 
-export const metadata = { title: "Accueil" };
+export const metadata = { title: "LEBLOND — Accueil" };
 
+/** The home screen is a navigator, not a place to mix data collection,
+ * coaching simulation and retrospective statistics in one endless feed. */
 export default async function HomePage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
-  const lab = trainingDictionary(locale);
-  const assessment = assessmentDictionary(locale);
-  const now = new Date();
-  const data = await loadClimbingDataset(viewer.supabase);
-  const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
-  const snap = computeSnapshot(data, target, now, 30);
-  const live = data.sessions.find((s) => s.endedAt === null);
-  const gymName = (id: string) => data.gyms.find((g) => g.id === id)?.name ?? "";
-  const { data: projects } = await viewer.supabase
-    .from("projects")
-    .select("id, problems(name, native_grade, native_grade_system)")
-    .eq("status", "ACTIVE")
-    .limit(3);
+  const fr = locale === "fr";
+  const { data: live } = await viewer.supabase.from("sessions")
+    .select("id, gyms(name)").is("ended_at", null).limit(1).maybeSingle();
 
-  const targetLabel = [
-    includesBoulder(viewer.profile.target_discipline)
-      ? t.onboarding.goalBoulder + " " + gradeLabel(t, target.system, target.grade).toUpperCase() : null,
-    includesRoute(viewer.profile.target_discipline)
-      ? t.onboarding.goalRoute + " " + (viewer.profile.target_route_grade ?? "—") : null,
-  ].filter(Boolean).join(" · ");
-  const hasData = data.attempts.length > 0;
-  const weakest = snap.focus.styles.weakest;
-  const suggestion = !hasData
-    ? t.home.suggestFirst
-    : weakest
-      ? fmt(t.home.suggestFocus, { style: t.styles[weakest.key], sent: weakest.sent, problems: weakest.problems })
-      : t.home.suggestTags;
-  const trendScale = target.system === "FONT" ? "FONT_NORMALIZED" : target.system;
-  const trend = snap.trends.find((tr) => tr.scale === trendScale) ?? snap.trends.find((tr) => tr.direction !== "insufficient_data");
+  return <div className="space-y-7">
+    <header>
+      <p className="leblond-eyebrow text-accent">LEBLOND · CLIMBING INTELLIGENCE</p>
+      <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+        {fmt(t.home.hello, { name: viewer.profile.display_name })}
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-2 sm:text-base">
+        {fr
+          ? "Un espace pour chaque besoin : grimper, préparer tes entraînements ou analyser ta progression. Choisis où tu veux aller."
+          : "A dedicated space for each goal: log your climbing, plan training, or review progress. Choose where to begin."}
+      </p>
+    </header>
 
-  return (
-    <div className="space-y-5">
-      <div className="mb-1">
-        <p className="leblond-eyebrow text-accent">LEBLOND · PERSONAL CLIMBING INTELLIGENCE</p>
-        <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{fmt(t.home.hello, { name: viewer.profile.display_name })}</h1>
+    <section className="leblond-hero-panel grid gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center sm:p-7">
+      <div className="space-y-3">
+        <p className="leblond-eyebrow text-blue-200">
+          {fr ? "TON ESCALADE, À TON RYTHME" : "YOUR CLIMBING, YOUR PACE"}
+        </p>
+        <h2 className="max-w-lg text-2xl font-extrabold tracking-tight sm:text-3xl">
+          {fr ? "Libre de grimper. Libre de progresser." : "Climb freely. Progress on your terms."}
+        </h2>
+        <p className="max-w-lg text-sm leading-relaxed text-blue-100">
+          {fr
+            ? "Un carnet utile sans programme obligatoire. Un entraînement plus structuré si tu en as envie."
+            : "A useful training diary without a required plan. Structured guidance only if you choose it."}
+        </p>
       </div>
-      <section className="leblond-hero-panel grid gap-6 p-5 sm:grid-cols-[1fr_210px] sm:items-center sm:p-7">
-        <div className="space-y-4">
-          <p className="leblond-eyebrow text-blue-200">TRAINING LAB</p>
-          <h2 className="max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">{lab.title}</h2>
-          <p className="max-w-lg text-sm leading-relaxed text-blue-100 sm:text-base">{lab.subtitle}</p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Link href="/training" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#174776] transition-transform hover:-translate-y-0.5">
-              {lab.browse} ↗
-            </Link>
-            <Link href="/training-assessment" className="inline-flex min-h-11 items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/20">
-              {assessment.privateTracking}
-            </Link>
-          </div>
-        </div>
-        <Link href="/training" className="block max-w-[235px] justify-self-center sm:max-w-none" aria-label="Training Lab">
-          <Image src="/brand/leblond-approved-hero.svg" alt="LeBlond, climber hanging by one hand over a blue coastal landscape" width={640} height={640} unoptimized priority className="leblond-hero-art aspect-square h-auto w-full" />
-        </Link>
-      </section>
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/training-plans" className="leblond-premium-surface group flex min-h-28 flex-col justify-between p-4 transition-transform hover:-translate-y-0.5">
-          <span className="text-2xl" aria-hidden="true">↗</span>
-          <div>
-            <p className="text-sm font-extrabold">{lab.myPlans}</p>
-            <p className="mt-1 text-xs text-ink-3">Planning · Sessions</p>
-          </div>
-        </Link>
-        <Link href="/training-assessment" className="leblond-premium-surface group flex min-h-28 flex-col justify-between p-4 transition-transform hover:-translate-y-0.5">
-          <span className="text-2xl text-accent" aria-hidden="true">◎</span>
-          <div>
-            <p className="text-sm font-extrabold">{assessment.title}</p>
-            <p className="mt-1 text-xs text-ink-3">Profile · Progress</p>
-          </div>
-        </Link>
+      <Image src="/brand/leblond-approved-hero.svg"
+        alt={fr ? "LEBLOND : grimpeur suspendu par une main" : "LEBLOND: a climber hanging by one hand"}
+        width={480} height={480} unoptimized priority
+        className="leblond-hero-art mx-auto aspect-square h-auto w-full max-w-[220px]" />
+    </section>
+
+    <section aria-labelledby="home-areas" className="space-y-4">
+      <h2 id="home-areas" className="text-lg font-extrabold">
+        {fr ? "Mes espaces" : "My spaces"}
+      </h2>
+      <div className="grid gap-4 md:grid-cols-3">
+        <AreaCard href="/climbing" icon={<SessionIcon />}
+          title={t.nav.climbing}
+          description={fr
+            ? "Séances, essais et projets. Enregistre ce que tu grimpes, sans méthode imposée."
+            : "Sessions, attempts and projects. Log climbs, no method required."}
+          emphasis/>
+        <AreaCard href="/train" icon={<AtlasIcon />}
+          title={t.nav.training}
+          description={fr
+            ? "Training Atlas, calendrier, programmes et Patrick. Prépare tes prochaines séances."
+            : "Training Atlas, calendar, programs and Patrick. Plan your next sessions."}/>
+        <AreaCard href="/follow-up" icon={<ProgressIcon />}
+          title={t.nav.followUp}
+          description={fr
+            ? "Statistiques, évaluations et historique. Compare les résultats réels aux scénarios."
+            : "Statistics, assessments and history. Compare observations with scenarios."}/>
       </div>
-
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label={t.home.choicesTitle}>
-        <Link href="/session/new" className="leblond-premium-surface flex min-h-36 flex-col justify-between gap-3 p-5 transition-transform hover:-translate-y-0.5">
-          <span className="text-2xl text-accent" aria-hidden="true">◉</span>
-          <span>
-            <strong className="block text-base">{t.home.choiceTrack}</strong>
-            <span className="mt-1 block text-xs leading-relaxed text-ink-2">{t.home.choiceTrackHelp}</span>
-          </span>
-        </Link>
-        <Link href="/training-assessment" className="leblond-premium-surface flex min-h-36 flex-col justify-between gap-3 p-5 transition-transform hover:-translate-y-0.5">
-          <span className="text-2xl text-accent" aria-hidden="true">◎</span>
-          <span>
-            <strong className="block text-base">{t.home.choiceCoach}</strong>
-            <span className="mt-1 block text-xs leading-relaxed text-ink-2">{t.home.choiceCoachHelp}</span>
-          </span>
-        </Link>
-      </section>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/calendar" className="leblond-premium-surface flex flex-col gap-2 p-4 hover:border-accent">
-          <span className="text-2xl text-accent" aria-hidden="true">▦</span>
-          <strong className="text-sm">{t.nav.calendar}</strong>
-          <span className="text-xs text-ink-2">{locale==="fr"?"Mes dates, séances et entraînements":"My dates, sessions and training"}</span>
-        </Link>
-        <Link href="/atlas" className="leblond-premium-surface flex flex-col gap-2 p-4 hover:border-accent">
-          <span className="text-2xl text-accent" aria-hidden="true">◇</span>
-          <strong className="text-sm">Training Atlas</strong>
-          <span className="text-xs text-ink-2">{locale==="fr"?"Fiches, méthodes, vidéos et radar":"Guides, methods, videos and radar"}</span>
-        </Link>
-        <Link href="/progress" className="leblond-premium-surface rounded-2xl px-4 py-3 text-sm font-bold text-accent">{t.nav.progress} ↗</Link>
-        <Link href="/patrick" className="leblond-premium-surface rounded-2xl px-4 py-3 text-sm font-bold text-accent">{t.nav.patrick} ↗</Link>
-      </div>
-
-      {live ? (
-        <LinkButton href={`/session/${live.id}`} size="lg" className="w-full">
-          ● {t.home.liveSession} — {gymName(live.gymId)}
-        </LinkButton>
-      ) : null}
-
-      <Card>
-        <p className="text-sm font-black tracking-[0.18em] text-accent">{fmt(t.home.roadTo, { target: targetLabel })}</p>
-        {includesRoute(viewer.profile.target_discipline) ? (
-          <p className="mt-3 text-xs leading-relaxed text-ink-2">{t.onboarding.routeProgressPending}</p>
-        ) : null}
-        {includesBoulder(viewer.profile.target_discipline) ? (
-        <div className="mt-4 space-y-3">
-          <div>
-            <SectionTitle>{t.home.workingLevel}</SectionTitle>
-            {snap.workingLevels.length ? (
-              <ul className="mt-1 space-y-1">
-                {snap.workingLevels.map((w) => (
-                  <li key={w.system} className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm text-ink-2">{t.grades.systems[w.system as keyof typeof t.grades.systems]} :</span>
-                    <WorkingLevelLine t={t} result={w} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-ink-3">{t.home.notEnough}</p>
-            )}
-          </div>
-          <div>
-            <SectionTitle>{t.home.workingGradeFont}</SectionTitle>
-            <p className="mt-1 font-bold">
-              {snap.workingGrade.level ? `${snap.workingGrade.level} (${t.common.estimate})` : <span className="text-sm font-normal text-ink-3">{t.home.notEnough}</span>}
-            </p>
-          </div>
-          <div>
-            <SectionTitle>{t.home.trend}</SectionTitle>
-            <p className="mt-1 font-bold">{t.trend[trend?.direction ?? "insufficient_data"]}</p>
-          </div>
-          <dl className="divide-y divide-line border-t border-line pt-1 text-sm">
-            {snap.roadToTarget.dimensions.map((d) => (
-              <div key={d.key} className="flex justify-between gap-2 py-1.5">
-                <dt className="text-ink-2">{t.dimensions[d.key]}</dt>
-                <dd className="font-semibold">{t.dimensions.status[d.status]}</dd>
-              </div>
-            ))}
-          </dl>
-          <Explain summary={t.common.howCalculated}>
-            <p>{t.progress.workingRule}</p>
-            <p className="mt-2">{t.progress.trendExplain}</p>
-            <p className="mt-2">{t.dimensions.explain}</p>
-          </Explain>
-        </div>
-        ) : null}
-      </Card>
-
-      {hasData ? (
-        <Card>
-          <SectionTitle>{t.home.last30}</SectionTitle>
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            <Stat value={snap.counts.sessions} label={t.home.sessions} />
-            <Stat value={snap.counts.problems} label={t.home.problems} />
-            <Stat value={snap.counts.tops} label={t.home.tops} />
-            <Stat value={snap.counts.flashes} label={t.home.flashes} />
-          </div>
-          {weakest ? (
-            <p className="mt-4 text-sm">
-              <span className="font-semibold">{t.home.currentFocus} :</span> {t.styles[weakest.key]}
-            </p>
-          ) : null}
-        </Card>
-      ) : (
-        <EmptyState
-          title={t.home.emptyTitle}
-          body={t.home.emptyBody}
-          action={!live ? <LinkButton href="/session/new" size="lg">{t.session.start}</LinkButton> : undefined}
-        />
-      )}
-
-      {projects?.length ? (
-        <Card>
-          <SectionTitle>{t.home.activeProjects}</SectionTitle>
-          <ul className="mt-2 space-y-1">
-            {projects.map((p) => (
-              <li key={p.id}>
-                <Link href={`/projects/${p.id}`} className="text-sm text-accent underline-offset-2 hover:underline">
-                  ★ {p.problems?.name || t.problem.unnamed}
-                  {p.problems ? ` · ${gradeLabel(t, p.problems.native_grade_system, p.problems.native_grade)}` : ""}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      <Card className="flex gap-3">
-        <PatrickAvatar />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold">{t.home.patrickSays}</p>
-          <p className="mt-1 text-ink">“{suggestion}”</p>
-          <p className="mt-1 text-xs text-ink-3">{t.home.suggestNote}</p>
-          <LinkButton href="/patrick" variant="secondary" className="mt-3">
-            {t.home.askPatrick}
-          </LinkButton>
-        </div>
-      </Card>
-    </div>
-  );
+    </section>
+    {live ? <Link href={`/session/${live.id}`}
+      className="block rounded-2xl border border-accent/30 bg-accent-soft p-4 text-sm font-bold text-accent hover:border-accent">
+      ● {t.home.liveSession}{live.gyms?.name ? " · "+live.gyms.name : ""} ↗
+    </Link> : null}
+  </div>;
 }
