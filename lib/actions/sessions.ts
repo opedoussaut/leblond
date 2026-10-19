@@ -16,6 +16,10 @@ const id = z.guid();
 export async function startSession(gymId: string): Promise<ActionResult<{ sessionId: string }>> {
   const viewer = await requireViewer();
   if (!id.safeParse(gymId).success) return { ok: false, error: "invalid" };
+  // The current attempt logger supports bouldering only. Do not create
+  // misleading boulder sessions at venues offering routes exclusively.
+  const { data: gym } = await viewer.supabase.from("gyms").select("has_bouldering").eq("id", gymId).single();
+  if (!gym?.has_bouldering) return { ok: false, error: "invalid" };
   const { data, error } = await viewer.supabase
     .from("sessions")
     .insert({ gym_id: gymId, user_id: viewer.userId, source: "MANUAL" })
@@ -110,8 +114,9 @@ export async function createProblem(input: z.input<typeof createProblemSchema>):
   const viewer = await requireViewer();
   const parsed = createProblemSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { data: gym } = await viewer.supabase.from("gyms").select("grading_system").eq("id", parsed.data.gymId).single();
+  const { data: gym } = await viewer.supabase.from("gyms").select("grading_system, has_bouldering").eq("id", parsed.data.gymId).single();
   if (!gym) return { ok: false, error: "notFound" };
+  if (!gym.has_bouldering) return { ok: false, error: "invalid" };
   const system = gym.grading_system as GradeSystem;
   if (!isValidGrade(system, parsed.data.nativeGrade)) return { ok: false, error: "invalidGrade" };
 
