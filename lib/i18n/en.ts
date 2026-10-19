@@ -100,7 +100,7 @@ export const en: Dictionary = {
     whoTitle: "Who are you?",
     displayName: "First name or nickname",
     languageTitle: "Choose your language",
-    languageHelp: "Select English or Français first. You can change this later in your profile.",
+    languageHelp: "Choose the language for your experience. You can change it anytime.",
     boulderLevel: "Bouldering",
     routeLevel: "Sport / route climbing",
     routeGrade: "French route grade",
