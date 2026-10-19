@@ -368,9 +368,9 @@ export type Database = {
           external_id?: string | null;
           external_provider?: string | null;
           grading_system: Database["public"]["Enums"]["grade_system"];
-          has_bouldering: boolean;
-          has_routes: boolean;
-          source_url: string | null;
+          has_bouldering?: boolean;
+          has_routes?: boolean;
+          source_url?: string | null;
           id?: string;
           latitude?: number | null;
           longitude?: number | null;
