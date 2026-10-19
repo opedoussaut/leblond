@@ -384,6 +384,11 @@ export const en: Dictionary = {
     askPatrick: "Patrick's analysis",
   },
   home: {
+    choicesTitle: "Choose your path",
+    choiceTrack: "Track your climbing",
+    choiceTrackHelp: "Log sessions and progress without following any plan.",
+    choiceCoach: "Progress with Patrick",
+    choiceCoachHelp: "Assess your strengths, compare methods and follow a guided journey.",
     hello: "Hello {name}",
     roadTo: "ROAD TO {target}",
     workingLevel: "Working level",
