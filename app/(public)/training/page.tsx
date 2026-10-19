@@ -5,6 +5,7 @@ import { TrainingExplorer } from "@/components/training/training-explorer";
 import { getViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
+import { assessmentDictionary } from "@/lib/i18n/assessment";
 
 export const metadata: Metadata = {
   title: "Training Lab",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export default async function TrainingLabPage() {
   const { locale } = await getI18n();
   const t = trainingDictionary(locale);
+  const a = assessmentDictionary(locale);
   const viewer = await getViewer().catch(() => null);
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6">
@@ -27,6 +29,16 @@ export default async function TrainingLabPage() {
         <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-accent">{t.eyebrow}</p>
         <h1 className="max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{t.title}</h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">{t.subtitle}</p>
+      </section>
+      <section className="mb-8 grid gap-3 sm:grid-cols-2">
+        <Link href="/training/evaluate" className="rounded-2xl border border-accent bg-accent-soft p-5 text-ink hover:opacity-90">
+          <p className="text-lg font-black">{a.publicEvaluate} →</p>
+          <p className="mt-2 text-sm">{a.publicPrivacy}</p>
+        </Link>
+        <Link href={viewer?.active ? "/training-assessment" : "/login?next=%2Ftraining-assessment"} className="rounded-2xl border border-line bg-surface p-5 hover:bg-surface-2">
+          <p className="text-lg font-black">{a.privateTracking} →</p>
+          <p className="mt-2 text-sm text-ink-2">{a.subtitle}</p>
+        </Link>
       </section>
       <TrainingExplorer locale={locale} />
       <section className="mt-12 rounded-3xl border border-line bg-surface p-6 sm:p-9">
