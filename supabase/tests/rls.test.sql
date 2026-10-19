@@ -30,16 +30,20 @@ insert into public.beta_users (email, display_name, role) values
   ('inactive@example.test', 'Inactive', 'beta_tester');
 update public.beta_users set active = false where email = 'inactive@example.test';
 
--- Whitelist: uninvited and deactivated emails cannot create an account.
-select pg_temp.expect_error($$insert into auth.users (email) values ('stranger@example.test')$$, 'uninvited signup');
-select pg_temp.expect_error($$insert into auth.users (email) values ('inactive@example.test')$$, 'inactive signup');
+--- Public accounts: neither an invitation nor an active legacy beta record is required.
+insert into auth.users(id,email) values
+  ('00000000-0000-0000-0000-00000000000c', 'stranger@example.test'),
+  ('00000000-0000-0000-0000-00000000000d', 'inactive@example.test');
+select pg_temp.expect((select count(*) from public.profiles where id in
+ ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000d')) = 2,
+ 'newly registered accounts receive profiles');
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'olivier@example.test'),
   ('00000000-0000-0000-0000-00000000000b', 'Thomas@Example.test');
 
 select pg_temp.expect((select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a') = 'Olivier', 'profile auto-created with beta display name');
-select pg_temp.expect((select count(*) from public.profiles p join auth.users u on u.id = p.id where u.email ilike '%@example.test') = 2, 'two profiles');
+select pg_temp.expect((select count(*) from public.profiles p join auth.users u on u.id = p.id where u.email ilike '%@example.test') = 4, 'four profiles');
 
 grant execute on function pg_temp.expect_error(text, text) to authenticated, anon;
 grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;

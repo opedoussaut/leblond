@@ -16,7 +16,8 @@ export interface Viewer {
 
 /**
  * The signed-in climber for this request (deduplicated per request), or null.
- * Combines the validated auth user, their profile and their whitelist entry.
+ * Validates the authenticated user and their private profile. Admin role is
+ * still assigned explicitly, never inferred from open account registration.
  */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!publicSupabaseEnv()) return null;
@@ -37,18 +38,19 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: user.email,
     profile,
     role: beta?.role ?? "beta_tester",
-    active: beta?.active ?? false,
+    active: true,
   };
 });
 
 /**
- * Guard for private pages. Redirects to /login when signed out, to /revoked
- * when removed from the whitelist, and to /onboarding until onboarding is done.
+ * Guard for private pages. Redirects to /login when signed out,
+ * and to /onboarding until profile setup is done.
  */
 export async function requireViewer(options: { allowIncompleteOnboarding?: boolean } = {}): Promise<Viewer> {
   const viewer = await getViewer();
   if (!viewer) redirect("/login");
-  if (!viewer.active) redirect("/revoked");
+  // Every authenticated account can access its own data. Admin privileges
+  // remain separately gated by is_admin() and the legacy admin roster.
   if (!options.allowIncompleteOnboarding && !viewer.profile.onboarding_completed_at) redirect("/onboarding");
   return viewer;
 }

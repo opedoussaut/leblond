@@ -168,6 +168,16 @@ export function OnboardingWizard({
         ) : null}
       </div>
 
+      {step === 1 ? (
+        <div className="mt-5 space-y-2">
+          <Button variant="secondary" size="lg" className="w-full" disabled={pending || !name.trim()}
+            onClick={() => finish("/home")}>
+            {t.onboarding.quickStart}
+          </Button>
+          <p className="text-center text-xs text-ink-3">{t.onboarding.quickStartHelp}</p>
+        </div>
+      ) : null}
+
       {step < TOTAL ? (
         <div className="mt-10 flex gap-2">
           {step > 1 ? (

@@ -31,6 +31,7 @@ export async function signIn(page: Page, email: string) {
     if (!new URL(page.url()).pathname.startsWith("/login")) return;
   }
   await page.goto("/login");
+  await page.getByRole("button", { name: "Recevoir un code par e-mail à la place" }).click();
   const sentAt = Date.now();
   await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByRole("button", { name: "Recevoir mon code" }).click();

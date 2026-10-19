@@ -7,13 +7,13 @@ import { publicSupabaseEnv } from "@/lib/supabase/public-env";
 const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/auth/confirm", "/offline"];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname) || pathname === "/training" || pathname === "/training/evaluate";
+  return PUBLIC_PATHS.includes(pathname);
 }
 
 /**
  * Refreshes the Supabase session cookie on every request and redirects
  * unauthenticated visitors away from private routes. Fine-grained checks
- * (whitelist still active, onboarding done) happen server-side in the app
+ * (profile exists and onboarding done) happen server-side in the app
  * layout, close to the data.
  */
 export async function proxy(request: NextRequest) {
