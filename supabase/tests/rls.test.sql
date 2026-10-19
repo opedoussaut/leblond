@@ -69,6 +69,24 @@ select pg_temp.expect_error(
   'Font boulder grade cannot be stored as sport route grade');
 
 
+-- Official directory: seed all five networks, preserve the true disciplines
+-- and keep rows visible only to signed-in climbers.
+select pg_temp.expect((select count(*) from public.gyms where source_url is not null) = 29,
+  'all 29 verified Île-de-France venues are seeded');
+select pg_temp.expect((select has_bouldering and has_routes from public.gyms
+  where brand = 'CLIMB_UP' and name = 'Climb Up Aubervilliers'),
+  'Climb Up Aubervilliers offers both bouldering and routes');
+select pg_temp.expect((select not has_bouldering and has_routes from public.gyms
+  where name = 'Climbing District Sèvres-Lecourbe'),
+  'Sèvres-Lecourbe is a route-only gym');
+select pg_temp.expect((select has_bouldering and not has_routes from public.gyms
+  where brand = 'VERTICAL_ART' and name = 'Vertical''Art Rungis'),
+  'Vertical Art Rungis is a boulder-only gym');
+select pg_temp.expect_error(
+  'insert into public.gyms (name, brand, grading_system, has_bouldering, has_routes)
+    values (''Impossible Venue'', ''BLOCKOUT'', ''FONT'', false, false)',
+  'each gym must offer at least one discipline');
+
 insert into public.gyms (id, name, brand, city, country, grading_system)
   values ('10000000-0000-0000-0000-000000000001', 'Arkose Test', 'ARKOSE', 'Paris', 'FR', 'ARKOSE_COLOR');
 insert into public.gyms (id, name, brand, city, country, grading_system)

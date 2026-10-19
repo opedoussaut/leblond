@@ -26,6 +26,14 @@ async function logGrade(page: Page, grade: string, results: Array<"ESSAI" | "TOP
   }
 }
 
+async function chooseGym(page: Page, name: string) {
+  const picker = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
+  const option = picker.locator("option").filter({ hasText: name }).first();
+  const id = await option.getAttribute("value");
+  if (!id) throw new Error("Gym not in the directory: " + name);
+  await picker.selectOption(id);
+}
+
 test("any climber may register a private account with a basic profile", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login/);
@@ -68,8 +76,21 @@ test("beta login + onboarding", async ({ page }) => {
   await page.getByRole("button", { name: "Continuer" }).click(); // → target
   await expect(page.getByLabel("Niveau")).toHaveValue("7A");
   await page.getByRole("button", { name: "Continuer" }).click(); // → gyms
-  await page.getByRole("button", { name: /Demo Arkose/ }).click();
-  await page.getByRole("button", { name: /Demo Climbing District/ }).click();
+  const directory = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
+  await expect(directory.locator("option").filter({ hasText: "Climb Up Aubervilliers" })).toHaveCount(1);
+  await expect(directory.locator("option").filter({ hasText: "Vertical'Art Rungis" })).toHaveCount(1);
+  await page.getByLabel("Disciplines proposées").selectOption("routes");
+  await expect(directory.locator("option").filter({ hasText: "Climbing District Sèvres-Lecourbe" })).toHaveCount(1);
+  await expect(directory.locator("option").filter({ hasText: "Block'Out Paris" })).toHaveCount(0);
+  await page.getByLabel("Disciplines proposées").selectOption("all");
+  const search = page.getByRole("searchbox", { name: /Rechercher une salle/ });
+  await search.fill("Climb Up Aubervilliers");
+  await expect(page.getByRole("button", { name: /Ajouter cette salle/ })).toHaveCount(0);
+  await search.fill("Salle inconnue quartier inconnu");
+  await expect(page.getByRole("button", { name: /Ajouter cette salle/ })).toBeVisible();
+  await search.fill("");
+  await chooseGym(page, "Demo Arkose");
+  await chooseGym(page, "Demo Climbing District");
   await page.getByRole("button", { name: "Continuer" }).click(); // → wearable
   await page.getByRole("button", { name: "Continuer" }).click(); // → Patrick intro
   await expect(page.getByText(/Salut Alex, moi c’est Patrick/)).toBeVisible();
@@ -80,7 +101,7 @@ test("beta login + onboarding", async ({ page }) => {
 test("Arkose session: native colours, try/top/flash, summary", async ({ page }) => {
   await signIn(page, ALEX);
   await page.goto("/session/new");
-  await page.getByRole("button", { name: /Demo Arkose/ }).click();
+  await chooseGym(page, "Demo Arkose");
   await expect(page.getByRole("heading", { name: "Demo Arkose" })).toBeVisible();
   arkoseSessionUrl = page.url();
 
@@ -107,7 +128,7 @@ test("Arkose session: native colours, try/top/flash, summary", async ({ page }) 
 test("Climbing District session: mystery pink handled natively", async ({ page }) => {
   await signIn(page, ALEX);
   await page.goto("/session/new");
-  await page.getByRole("button", { name: /Demo Climbing District/ }).click();
+  await chooseGym(page, "Demo Climbing District");
   await expect(page.getByRole("button", { name: /^Rose/ })).toBeVisible();
   await expect(page.getByText("Mystère").first()).toBeVisible();
   await logGrade(page, "Rose", ["ESSAI", "TOP"]);

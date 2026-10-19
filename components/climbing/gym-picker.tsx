@@ -4,27 +4,22 @@ import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
-import { cn } from "@/components/ui/cn";
 import { Input, Label, Select } from "@/components/ui/field";
 import { createGym } from "@/lib/actions/gyms";
 import { allowedSystemsForBrand, GYM_BRANDS, type GradeSystem, type GymBrand } from "@/lib/climbing/types";
+import { fmt } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type Gym = Tables<"gyms">;
+type DisciplineFilter = "all" | "boulder" | "routes" | "both";
 
-/**
- * Gym list with search and inline creation.
- * - mode "pick": tapping a gym calls onPick (start a session there)
- * - mode "multi": tapping toggles membership in `selected` (favourites)
- */
+function normalize(value: string) {
+  return value.toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/['’\-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** The venue directory shows the disciplines the facility actually offers. */
 export function GymPicker({
-  gyms: initialGyms,
-  favouriteIds,
-  mode,
-  selected = [],
-  onPick,
-  onToggle,
-  pending,
+  gyms: initialGyms, favouriteIds, mode, selected = [], onPick, onToggle, pending,
 }: {
   gyms: Gym[];
   favouriteIds: string[];
@@ -37,159 +32,226 @@ export function GymPicker({
   const { t } = useI18n();
   const [gyms, setGyms] = useState(initialGyms);
   const [query, setQuery] = useState("");
+  const [discipline, setDiscipline] = useState<DisciplineFilter>(mode === "pick" ? "boulder" : "all");
+  const [brand, setBrand] = useState<"all" | GymBrand>("all");
   const [adding, setAdding] = useState(false);
-
+  const chosen = useMemo(() => gyms.filter((g) => selected.includes(g.id)), [gyms, selected]);
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = q ? gyms.filter((g) => `${g.name} ${g.city ?? ""}`.toLowerCase().includes(q)) : gyms;
-    const fav = new Set(favouriteIds);
-    return [...list].sort((a, b) => Number(fav.has(b.id)) - Number(fav.has(a.id)) || a.name.localeCompare(b.name));
-  }, [gyms, query, favouriteIds]);
+    const q = normalize(query);
+    return gyms.filter((g) =>
+      (mode !== "pick" || g.has_bouldering) &&
+      (brand === "all" || g.brand === brand) &&
+      (discipline === "all" ||
+        (discipline === "boulder" && g.has_bouldering) ||
+        (discipline === "routes" && g.has_routes) ||
+        (discipline === "both" && g.has_bouldering && g.has_routes)) &&
+      (!q || normalize(g.name + " " + (g.city ?? "") + " " + t.brands[g.brand]).includes(q))
+    ).sort((a, b) =>
+      Number(selected.includes(b.id)) - Number(selected.includes(a.id)) ||
+      Number(favouriteIds.includes(b.id)) - Number(favouriteIds.includes(a.id)) ||
+      a.name.localeCompare(b.name, "fr")
+    );
+  }, [gyms, query, discipline, brand, selected, favouriteIds, mode, t]);
+
+  const disciplineLabel = (g: Gym) =>
+    g.has_bouldering && g.has_routes ? t.gyms.both : g.has_bouldering ? t.gyms.boulder : t.gyms.routes;
+
+  // A missing venue is a genuinely unmatched name, not just hidden by a filter.
+  const absent = normalize(query).length >= 3 && !gyms.some((g) =>
+    normalize(g.name + " " + (g.city ?? "") + " " + t.brands[g.brand]).includes(normalize(query))
+  );
 
   const onCreated = (gym: Gym) => {
-    setGyms((g) => [...g, gym]);
+    setGyms((prev) => [...prev, gym]);
     setAdding(false);
-    if (mode === "pick") onPick?.(gym);
-    else onToggle?.(gym);
+    setQuery("");
+    setBrand("all");
+    setDiscipline("all");
+    if (mode === "pick" && gym.has_bouldering) onPick?.(gym);
+    else if (mode === "multi") onToggle?.(gym);
   };
 
   return (
-    <div className="space-y-3">
-      {gyms.length > 6 ? (
-        <Input
-          type="search"
-          aria-label={t.gyms.search}
-          placeholder={t.gyms.search}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+    <div className="space-y-4">
+      <div className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+        <div>
+          <p className="font-bold text-ink">{t.gyms.directory}</p>
+          <p className="mt-1 text-xs text-ink-2">{t.gyms.catalogueHelp}</p>
+        </div>
+        <div>
+          <Label htmlFor={"gym-query-" + mode}>{t.gyms.search}</Label>
+          <Input id={"gym-query-" + mode} type="search" placeholder={t.gyms.search}
+            value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor={"gym-filter-brand-" + mode}>{t.gyms.network}</Label>
+            <Select id={"gym-filter-brand-" + mode} value={brand}
+              onChange={(e) => setBrand(e.target.value as "all" | GymBrand)}>
+              <option value="all">{t.gyms.all}</option>
+              {GYM_BRANDS.filter((b) => gyms.some((g) => g.brand === b)).map((b) =>
+                <option key={b} value={b}>{t.brands[b]}</option>)}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor={"gym-filter-discipline-" + mode}>{t.gyms.discipline}</Label>
+            <Select id={"gym-filter-discipline-" + mode} value={discipline}
+              onChange={(e) => setDiscipline(e.target.value as DisciplineFilter)}>
+              <option value="all">{t.gyms.allDisciplines}</option>
+              <option value="boulder">{t.gyms.boulder}</option>
+              {mode === "multi" ? <option value="routes">{t.gyms.routes}</option> : null}
+              {mode === "multi" ? <option value="both">{t.gyms.both}</option> : null}
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor={"gym-directory-" + mode}>{t.gyms.choose}</Label>
+          <Select id={"gym-directory-" + mode} aria-label={t.gyms.choose}
+            value="" disabled={pending || filtered.length === 0}
+            onChange={(e) => {
+              const gym = gyms.find((g) => g.id === e.target.value);
+              if (!gym) return;
+              if (mode === "pick") onPick?.(gym);
+              else if (!selected.includes(gym.id)) onToggle?.(gym);
+            }}>
+            <option value="">{fmt(t.gyms.directoryCount, { count: filtered.length })}</option>
+            {filtered.map((g) => (
+              <option key={g.id} value={g.id}>
+                {(selected.includes(g.id) && mode === "multi" ? "✓ " : "") +
+                  g.name + " · " + (g.city ?? "IDF") + " · " + disciplineLabel(g)}
+              </option>
+            ))}
+          </Select>
+          {filtered.length === 0 ? <p className="mt-2 text-sm text-ink-2">{t.gyms.none}</p> : null}
+          {mode === "pick" ? <p className="mt-2 text-xs text-ink-3">{t.gyms.routeLoggingPending}</p> : null}
+        </div>
+      </div>
+
+      {mode === "multi" && chosen.length > 0 ? (
+        <section aria-label={t.gyms.selectedGyms} className="space-y-2">
+          <h3 className="text-sm font-bold">{t.gyms.selectedGyms} ({chosen.length})</h3>
+          <ul className="space-y-2">
+            {chosen.map((g) => (
+              <li key={g.id} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-accent bg-accent-soft px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{g.name}</p>
+                  <p className="text-xs text-ink-2">{g.city ? g.city + " · " : ""}{disciplineLabel(g)}</p>
+                </div>
+                <button type="button" disabled={pending} onClick={() => onToggle?.(g)}
+                  aria-label={t.gyms.remove + " " + g.name}
+                  className="min-h-10 shrink-0 rounded-lg px-3 text-xs font-bold text-accent hover:bg-surface">
+                  {t.gyms.remove}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
-      {filtered.length === 0 && !adding ? <p className="text-sm text-ink-2">{t.gyms.none}</p> : null}
-      <ul className="space-y-2">
-        {filtered.map((g) => {
-          const isSelected = mode === "multi" && selected.includes(g.id);
-          return (
-            <li key={g.id}>
-              <button
-                type="button"
-                disabled={pending}
-                aria-pressed={mode === "multi" ? isSelected : undefined}
-                onClick={() => (mode === "pick" ? onPick?.(g) : onToggle?.(g))}
-                className={cn(
-                  "flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border px-4 text-left",
-                  isSelected ? "border-accent bg-accent-soft" : "border-line bg-surface hover:bg-surface-2",
-                )}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{g.name}</span>
-                  <span className="block text-xs text-ink-3">
-                    {t.brands[g.brand]}
-                    {g.city ? ` · ${g.city}` : ""} · {t.grades.systems[g.grading_system]}
-                  </span>
-                </span>
-                {mode === "multi" ? (
-                  <span aria-hidden className={cn("text-xl", isSelected ? "text-accent" : "text-ink-3")}>
-                    {isSelected ? "✓" : "+"}
-                  </span>
-                ) : favouriteIds.includes(g.id) ? (
-                  <span aria-hidden className="text-accent">★</span>
-                ) : null}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+
       {adding ? (
-        <NewGymForm onCreated={onCreated} onCancel={() => setAdding(false)} />
+        <NewGymForm nameHint={query} allowRouteOnly={mode === "multi"}
+          onCreated={onCreated} onCancel={() => setAdding(false)} />
+      ) : absent ? (
+        <div className="rounded-2xl border border-dashed border-line bg-surface-2 p-4">
+          <p className="mb-2 text-sm text-ink-2">{t.gyms.missingGym}</p>
+          <Button type="button" variant="secondary" className="w-full" onClick={() => setAdding(true)}>
+            + {t.gyms.addMissing}
+          </Button>
+        </div>
       ) : (
-        <Button type="button" variant="secondary" className="w-full" onClick={() => setAdding(true)}>
-          + {t.gyms.add}
-        </Button>
+        <p className="text-center text-xs text-ink-3">{t.gyms.searchFirst}</p>
       )}
     </div>
   );
 }
 
-function NewGymForm({ onCreated, onCancel }: { onCreated: (g: Gym) => void; onCancel: () => void }) {
+function NewGymForm({
+  nameHint, allowRouteOnly, onCreated, onCancel,
+}: {
+  nameHint: string;
+  allowRouteOnly: boolean;
+  onCreated: (g: Gym) => void;
+  onCancel: () => void;
+}) {
   const { t } = useI18n();
-  const [brand, setBrand] = useState<GymBrand>("ARKOSE");
+  const [brand, setBrand] = useState<GymBrand>("OTHER");
+  const [system, setSystem] = useState<GradeSystem>("FONT");
+  const [hasBouldering, setHasBouldering] = useState(true);
+  const [hasRoutes, setHasRoutes] = useState(false);
   const systems = allowedSystemsForBrand(brand);
-  const [system, setSystem] = useState<GradeSystem>(systems[0]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-
   return (
-    <form
-      className="space-y-3 rounded-2xl border border-line bg-surface p-4"
+    <form className="space-y-3 rounded-2xl border border-line bg-surface p-4"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
+        if (!hasBouldering && !hasRoutes) { setError(t.common.unknownError); return; }
         setError(null);
         start(async () => {
-          const res = await createGym({
+          const result = await createGym({
             name: String(fd.get("name") ?? ""),
             brand,
             city: String(fd.get("city") ?? ""),
             gradingSystem: system,
+            hasBouldering,
+            hasRoutes,
           });
-          if (res.ok && res.data) onCreated(res.data);
-          else setError(res.ok ? null : res.error === "duplicate" ? t.gyms.duplicate : t.common.unknownError);
+          if (result.ok && result.data) onCreated(result.data);
+          else setError(result.ok ? null : result.error === "duplicate" ? t.gyms.duplicate : t.common.unknownError);
         });
-      }}
-    >
+      }}>
       <h3 className="font-bold">{t.gyms.addTitle}</h3>
       <div>
         <Label htmlFor="gym-brand">{t.gyms.network}</Label>
-        <Select
-          id="gym-brand"
-          value={brand}
-          onChange={(e) => {
-            const b = e.target.value as GymBrand;
-            setBrand(b);
-            setSystem(allowedSystemsForBrand(b)[0]);
-          }}
-        >
-          {GYM_BRANDS.map((b) => (
-            <option key={b} value={b}>
-              {t.brands[b]}
-            </option>
-          ))}
+        <Select id="gym-brand" value={brand} onChange={(e) => {
+          const b = e.target.value as GymBrand;
+          setBrand(b);
+          setSystem(allowedSystemsForBrand(b)[0]);
+        }}>
+          {GYM_BRANDS.map((b) => <option key={b} value={b}>{t.brands[b]}</option>)}
         </Select>
       </div>
       <div>
         <Label htmlFor="gym-name">{t.gyms.name}</Label>
-        <Input id="gym-name" name="name" required minLength={2} maxLength={120} placeholder={t.gyms.namePlaceholder} />
+        <Input id="gym-name" name="name" required minLength={2} maxLength={120}
+          defaultValue={nameHint} placeholder={t.gyms.namePlaceholder} />
       </div>
       <div>
-        <Label htmlFor="gym-city" hint={t.common.optional}>
-          {t.gyms.city}
-        </Label>
+        <Label htmlFor="gym-city" hint={t.common.optional}>{t.gyms.city}</Label>
         <Input id="gym-city" name="city" maxLength={120} />
       </div>
-      <div>
-        <Label htmlFor="gym-system">{t.gyms.grading}</Label>
-        {systems.length === 1 ? (
-          <p id="gym-system" className="text-sm text-ink-2">
-            {t.grades.systems[systems[0]]} — {t.gyms.gradingLocked}
-          </p>
-        ) : (
-          <Select id="gym-system" value={system} onChange={(e) => setSystem(e.target.value as GradeSystem)}>
-            {systems.map((s) => (
-              <option key={s} value={s}>
-                {t.grades.systems[s]}
-              </option>
-            ))}
-          </Select>
-        )}
-      </div>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold">{t.gyms.discipline}</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={hasBouldering}
+            disabled={!allowRouteOnly}
+            onChange={(e) => setHasBouldering(e.target.checked)} />
+          {t.gyms.boulder}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={hasRoutes} onChange={(e) => setHasRoutes(e.target.checked)}/>
+          {t.gyms.routes}
+        </label>
+      </fieldset>
+      {hasBouldering ? (
+        <div>
+          <Label htmlFor="gym-system">{t.gyms.grading}</Label>
+          {systems.length === 1 ? (
+            <p id="gym-system" className="text-sm text-ink-2">{t.grades.systems[systems[0]]} — {t.gyms.gradingLocked}</p>
+          ) : (
+            <Select id="gym-system" value={system} onChange={(e) => setSystem(e.target.value as GradeSystem)}>
+              {systems.map((s) => <option key={s} value={s}>{t.grades.systems[s]}</option>)}
+            </Select>
+          )}
+        </div>
+      ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending} className="flex-1">
+        <Button type="submit" disabled={pending || (!hasBouldering && !hasRoutes)} className="flex-1">
           {pending ? t.common.saving : t.common.save}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          {t.common.cancel}
-        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>
       </div>
     </form>
   );
