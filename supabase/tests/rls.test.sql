@@ -64,8 +64,8 @@ select pg_temp.expect(
    from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
   'route and bouldering self-reports persist separately');
 select pg_temp.expect_error(
-  $update public.profiles set self_reported_route_grade = '6B+'
-    where id = '00000000-0000-0000-0000-00000000000a'$,
+  'update public.profiles set self_reported_route_grade = ''6B+''
+    where id = ''00000000-0000-0000-0000-00000000000a''',
   'Font boulder grade cannot be stored as sport route grade');
 
 
