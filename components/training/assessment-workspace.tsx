@@ -23,7 +23,7 @@ function radarPolygon(ratings: SkillRatings, radius = 143) {
   }).join(" ");
 }
 
-function ProfileRadar({ locale, baseline, expected, actual }: {
+export function ProfileRadar({ locale, baseline, expected, actual }: {
   locale: Locale; baseline: SkillRatings; expected: SkillRatings; actual: SkillRatings | null;
 }) {
   const t = trainingDictionary(locale);
@@ -55,7 +55,7 @@ function ProfileRadar({ locale, baseline, expected, actual }: {
   );
 }
 
-function SkillSliders({ locale, ratings, onChange }: {
+export function SkillSliders({ locale, ratings, onChange }: {
   locale: Locale; ratings: SkillRatings; onChange: (ratings: SkillRatings) => void;
 }) {
   const t = trainingDictionary(locale);
@@ -79,7 +79,7 @@ function SkillSliders({ locale, ratings, onChange }: {
   </div>;
 }
 
-function TrendChart({ locale, axis, baseline, selected, checkins }: {
+export function TrendChart({ locale, axis, baseline, selected, checkins }: {
   locale: Locale; axis: TrainingAxis; baseline: SkillRatings; selected: SavedAssessment; checkins: SavedCheckin[];
 }) {
   const a = assessmentDictionary(locale);
@@ -157,7 +157,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     setSelectedId(record.id);setFormMode(false);setNotice("");
     const entries=checkins.filter(c=>c.assessmentId===record.id);
     const latestEntry=[...entries].sort((x,y)=>y.week-x.week)[0];
-    setWorking({...latestEntry?.ratings??record.ratings});
+    setWorking({ ...(latestEntry?.ratings ?? record.ratings) });
     setWeek(Math.max(1,Math.min(record.horizonWeeks,elapsedWeeks(record.createdAt,new Date()))));
     setNotes("");setAxis("technique");
   }
@@ -315,7 +315,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
             <select value={Math.max(1,Math.min(week,now))} onChange={e=>{
               const targetWeek=Number(e.target.value);
               setWeek(targetWeek);
-              setWorking({...related.find(c=>c.week===targetWeek)?.ratings??latest?.ratings??chosen.ratings});
+              setWorking({ ...(related.find(c=>c.week===targetWeek)?.ratings ?? latest?.ratings ?? chosen.ratings) });
               setNotes(related.find(c=>c.week===targetWeek)?.notes??"");
             }} className="mt-2 block w-full rounded-xl border border-line bg-surface p-3 sm:max-w-xs">
               {Array.from({length:now},(_,i)=>i+1).map(n=><option key={n} value={n}>{a.wk} {n}</option>)}
