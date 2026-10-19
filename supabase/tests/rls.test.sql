@@ -52,6 +52,23 @@ grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","email":"olivier@example.test","role":"authenticated"}', false);
 
+-- Both independent levels belong to the same private profile, but use their
+-- own grade vocabularies. No boulder-to-route conversion is performed.
+update public.profiles set
+  self_reported_level = '6B+',
+  self_reported_level_system = 'FONT',
+  self_reported_route_grade = '6b+'
+where id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.expect(
+  (select self_reported_level = '6B+' and self_reported_route_grade = '6b+'
+   from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
+  'route and bouldering self-reports persist separately');
+select pg_temp.expect_error(
+  $update public.profiles set self_reported_route_grade = '6B+'
+    where id = '00000000-0000-0000-0000-00000000000a'$,
+  'Font boulder grade cannot be stored as sport route grade');
+
+
 insert into public.gyms (id, name, brand, city, country, grading_system)
   values ('10000000-0000-0000-0000-000000000001', 'Arkose Test', 'ARKOSE', 'Paris', 'FR', 'ARKOSE_COLOR');
 insert into public.gyms (id, name, brand, city, country, grading_system)
