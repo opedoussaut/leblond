@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
-import { HomeIcon, PatrickIcon, ProfileIcon, ProgressIcon, SessionIcon } from "./nav-icons";
+import { AtlasIcon, CalendarIcon, HomeIcon, PatrickIcon, ProfileIcon, ProgressIcon, SessionIcon } from "./nav-icons";
 
 const ITEMS = [
   { href: "/home", key: "home", Icon: HomeIcon },
-  { href: "/progress", key: "progress", Icon: ProgressIcon },
+  { href: "/calendar", key: "calendar", Icon: CalendarIcon },
+  { href: "/progress", key: "progress", Icon: ProgressIcon, desktopOnly: true },
   { href: "/session", key: "session", Icon: SessionIcon, primary: true },
-  { href: "/patrick", key: "patrick", Icon: PatrickIcon },
+  { href: "/atlas", key: "atlas", Icon: AtlasIcon },
+  { href: "/patrick", key: "patrick", Icon: PatrickIcon, desktopOnly: true },
   { href: "/profile", key: "profile", Icon: ProfileIcon },
 ] as const;
 
@@ -33,8 +35,9 @@ export function AppNav({ hasLiveSession }: { hasLiveSession: boolean }) {
         {ITEMS.map(({ href, key, Icon, ...rest }) => {
           const active = isActive(pathname, href);
           const primary = "primary" in rest && rest.primary;
+          const desktopOnly = "desktopOnly" in rest && rest.desktopOnly;
           return (
-            <li key={href} className="md:w-full">
+            <li key={href} className={desktopOnly ? "hidden md:block md:w-full" : "md:w-full"}>
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}

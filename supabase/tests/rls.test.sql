@@ -93,6 +93,32 @@ select pg_temp.expect_error(
 
 
 
+-- Calendar events: user-owned planned dates coexist with actual sessions.
+insert into public.calendar_entries
+  (id, user_id, event_date, start_time, title, kind, discipline, method_id)
+values
+  ('70000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000000a',
+   '2026-11-05','18:30','Training at Climb Up','TRAIN','BOTH','technique');
+select pg_temp.expect(
+  (select event_date = '2026-11-05'::date and discipline = 'BOTH' and status = 'PLANNED'
+   from public.calendar_entries where id = '70000000-0000-0000-0000-000000000001'),
+  'personal calendar date and discipline persist correctly');
+update public.calendar_entries set status='DONE'
+  where id='70000000-0000-0000-0000-000000000001';
+select pg_temp.expect(
+  (select status = 'DONE' from public.calendar_entries where id = '70000000-0000-0000-0000-000000000001'),
+  'owner can mark event completed');
+select pg_temp.expect_error(
+  'insert into public.calendar_entries(user_id,event_date,title,kind,discipline)
+    values (''00000000-0000-0000-0000-00000000000a'',''2026-11-06'',
+      ''Impossible type'',''TRAIN'',''INVALID'')',
+  'calendar rejects invalid disciplines');
+select pg_temp.expect_error(
+  'update public.calendar_entries set user_id = ''00000000-0000-0000-0000-00000000000b''
+   where id = ''70000000-0000-0000-0000-000000000001''',
+  'authenticated clients cannot change event owner');
+
 -- Official directory: seed all five networks, preserve the true disciplines
 -- and keep rows visible only to signed-in climbers.
 select pg_temp.expect((select count(*) from public.gyms where source_url is not null) = 29,
@@ -185,6 +211,15 @@ insert into public.wearable_connections (user_id, provider, status, access_token
 -- ── Thomas: must not see any of Olivier's private data ─────────────────────
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","email":"thomas@example.test","role":"authenticated"}', false);
+select pg_temp.expect(
+  (select count(*)=0 from public.calendar_entries
+     where id='70000000-0000-0000-0000-000000000001'),
+  'second climber cannot see private calendar entries');
+update public.calendar_entries set status = 'SKIPPED'
+  where id = '70000000-0000-0000-0000-000000000001';
+select pg_temp.expect(
+  (select count(*)=0 from public.calendar_entries where id='70000000-0000-0000-0000-000000000001'),
+  'ownership prevents reading or editing another climber calendar');
 
 select pg_temp.expect((select count(*) from public.gyms where name like '% Test') = 2, 'gym catalogue is shared');
 select pg_temp.expect((select count(*) from public.problems) = 0, 'problems are private');

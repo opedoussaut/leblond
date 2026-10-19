@@ -108,6 +108,21 @@ export default async function HomePage() {
         </Link>
       </section>
 
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/calendar" className="leblond-premium-surface flex flex-col gap-2 p-4 hover:border-accent">
+          <span className="text-2xl text-accent" aria-hidden="true">▦</span>
+          <strong className="text-sm">{t.nav.calendar}</strong>
+          <span className="text-xs text-ink-2">{locale==="fr"?"Mes dates, séances et entraînements":"My dates, sessions and training"}</span>
+        </Link>
+        <Link href="/atlas" className="leblond-premium-surface flex flex-col gap-2 p-4 hover:border-accent">
+          <span className="text-2xl text-accent" aria-hidden="true">◇</span>
+          <strong className="text-sm">Training Atlas</strong>
+          <span className="text-xs text-ink-2">{locale==="fr"?"Fiches, méthodes, vidéos et radar":"Guides, methods, videos and radar"}</span>
+        </Link>
+        <Link href="/progress" className="leblond-premium-surface rounded-2xl px-4 py-3 text-sm font-bold text-accent">{t.nav.progress} ↗</Link>
+        <Link href="/patrick" className="leblond-premium-surface rounded-2xl px-4 py-3 text-sm font-bold text-accent">{t.nav.patrick} ↗</Link>
+      </div>
+
       {live ? (
         <LinkButton href={`/session/${live.id}`} size="lg" className="w-full">
           ● {t.home.liveSession} — {gymName(live.gymId)}
