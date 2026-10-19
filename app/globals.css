@@ -1,45 +1,44 @@
 @import "tailwindcss";
 
 /*
- * LEBLOND design tokens.
- * Neutral "chalk / ink" base with one restrained accent family (warm terracotta,
- * taken from the chalk bag in the LEBLOND artwork). Grade colours are NOT theme
- * colours: they live in lib/grading and are always rendered with their name.
+ * LEBLOND visual language: deep blue, satin steel, generous space and
+ * Apple-inspired restrained typography. Brand colors must never substitute
+ * for climbing grade colors, which remain in lib/grading.
  */
 :root {
-  --bg: #f4f1ea;
-  --surface: #fbf9f5;
-  --surface-2: #ece7dd;
-  --line: #d9d2c4;
-  --ink: #16140f;
-  --ink-2: #4a453b;
-  --ink-3: #6f685b;
-  --accent: #b4532a;
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #eaf0f6;
+  --line: #d7e0ea;
+  --ink: #132438;
+  --ink-2: #4e6379;
+  --ink-3: #71859a;
+  --accent: #1769b9;
   --accent-ink: #ffffff;
-  --accent-soft: #f3dfd2;
-  --ok: #2f6b3a;
-  --warn: #8a5a00;
-  --danger: #a3261b;
-  --focus: #1f5fbf;
+  --accent-soft: #e5f1ff;
+  --ok: #257451;
+  --warn: #936100;
+  --danger: #b22e38;
+  --focus: #2579d7;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12110e;
-    --surface: #1b1915;
-    --surface-2: #26231d;
-    --line: #3a362e;
-    --ink: #f3efe6;
-    --ink-2: #cdc6b8;
-    --ink-3: #a39b8b;
-    --accent: #e0774a;
-    --accent-ink: #160b05;
-    --accent-soft: #3a2418;
-    --ok: #7fc28a;
-    --warn: #e2b04f;
-    --danger: #f07a6c;
-    --focus: #7fb0ff;
+    --bg: #0b1522;
+    --surface: #142235;
+    --surface-2: #1b2f46;
+    --line: #2b4158;
+    --ink: #f1f6fc;
+    --ink-2: #bccde0;
+    --ink-3: #91a6bc;
+    --accent: #76b9fd;
+    --accent-ink: #0a2037;
+    --accent-soft: #183a5c;
+    --ok: #7ac7a3;
+    --warn: #ebc47b;
+    --danger: #fc91a1;
+    --focus: #9acafd;
     color-scheme: dark;
   }
 }
@@ -97,5 +96,48 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Soft light effects and polished product-like surfaces; no heavy shadows. */
+.leblond-premium-surface {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 1.65rem;
+  box-shadow: 0 18px 55px -42px rgba(20, 50, 87, 0.32);
+}
+
+.leblond-hero-panel {
+  background: linear-gradient(130deg, #0b2745 0%, #164878 53%, #477eab 100%);
+  color: #f6faff;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -37px rgba(12, 60, 112, 0.68);
+}
+
+.leblond-login-glow {
+  background:
+    radial-gradient(ellipse 52rem 31rem at 48% -8%, rgba(105, 169, 235, 0.17), transparent 70%),
+    var(--bg);
+}
+
+.leblond-hero-art {
+  object-fit: cover;
+  border-radius: 1.35rem;
+  box-shadow: 0 18px 42px -16px rgba(2, 14, 34, 0.46);
+}
+
+.leblond-eyebrow {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+@media (prefers-color-scheme: dark) {
+  .leblond-login-glow {
+    background:
+      radial-gradient(ellipse 52rem 31rem at 50% -8%, rgba(56, 116, 185, 0.24), transparent 72%),
+      var(--bg);
   }
 }
