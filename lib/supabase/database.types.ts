@@ -5,6 +5,113 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      training_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          goal: string;
+          weeks: number;
+          sessions: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          goal?: string;
+          weeks?: number;
+          sessions: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          goal?: string;
+          weeks?: number;
+          sessions?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      training_assessments: {
+        Row: {
+          id: string;
+          user_id: string;
+          method_id: string;
+          goal: string;
+          ratings: Json;
+          horizon_weeks: number;
+          sessions_per_week: number;
+          forecast_version: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          method_id: string;
+          goal?: string;
+          ratings: Json;
+          horizon_weeks: number;
+          sessions_per_week: number;
+          forecast_version?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          method_id?: string;
+          goal?: string;
+          ratings?: Json;
+          horizon_weeks?: number;
+          sessions_per_week?: number;
+          forecast_version?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      training_checkins: {
+        Row: {
+          id: string;
+          user_id: string;
+          assessment_id: string;
+          week: number;
+          ratings: Json;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          assessment_id: string;
+          week: number;
+          ratings: Json;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          assessment_id?: string;
+          week?: number;
+          ratings?: Json;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_checkins_user_id_assessment_id_fkey";
+            columns: ["user_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "training_assessments";
+            referencedColumns: ["user_id", "id"];
+          },
+        ];
+      };
       ai_usage: {
         Row: {
           id: string;
