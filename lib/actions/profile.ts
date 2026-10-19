@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { GRADE_SYSTEMS } from "@/lib/climbing/types";
 import { isValidGrade } from "@/lib/grading";
+import { isFrenchRouteGrade } from "@/lib/grading/route-grades";
 import { LOCALE_COOKIE, LOCALES } from "@/lib/i18n";
 import type { ActionResult } from "@/lib/validation/common";
 
@@ -22,11 +23,13 @@ const onboardingSchema = z
     language: z.enum(LOCALES),
     levelSystem: z.enum(GRADE_SYSTEMS).nullable(),
     level: z.string().max(10).nullable(),
+    routeGrade: z.string().max(10).nullable(),
     targetSystem: z.enum(GRADE_SYSTEMS),
     targetGrade: z.string().max(10),
     favouriteGymIds: z.array(z.guid()).max(30),
   })
   .refine(gradePair("level", "levelSystem"), { path: ["level"] })
+  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] })
   .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });
 
 export async function completeOnboarding(input: z.input<typeof onboardingSchema>): Promise<ActionResult> {
@@ -41,6 +44,7 @@ export async function completeOnboarding(input: z.input<typeof onboardingSchema>
       preferred_language: v.language,
       self_reported_level: v.level || null,
       self_reported_level_system: v.level ? v.levelSystem : null,
+      self_reported_route_grade: v.routeGrade || null,
       target_grade: v.targetGrade,
       target_grade_system: v.targetSystem,
       onboarding_completed_at: new Date().toISOString(),
@@ -64,12 +68,17 @@ const profileSchema = z
     language: z.enum(LOCALES),
     targetSystem: z.enum(GRADE_SYSTEMS),
     targetGrade: z.string().max(10),
+    boulderSystem: z.enum(GRADE_SYSTEMS),
+    boulderGrade: z.string().max(10).nullable(),
+    routeGrade: z.string().max(10).nullable(),
     heightCm: z.coerce.number().min(100).max(250).nullable(),
     weightKg: z.coerce.number().min(25).max(250).nullable(),
     climbingSince: z.iso.date().nullable(),
     bio: z.string().max(1000).nullable(),
   })
-  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });
+  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] })
+  .refine((v) => !v.boulderGrade || isValidGrade(v.boulderSystem, v.boulderGrade), { path: ["boulderGrade"] })
+  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] });
 
 function nullable(v: FormDataEntryValue | null): string | null {
   const s = typeof v === "string" ? v.trim() : "";
@@ -83,6 +92,9 @@ export async function updateProfile(_prev: ActionResult | null, formData: FormDa
     language: formData.get("language"),
     targetSystem: formData.get("targetSystem"),
     targetGrade: formData.get("targetGrade"),
+    boulderSystem: formData.get("boulderSystem"),
+    boulderGrade: nullable(formData.get("boulderGrade")),
+    routeGrade: nullable(formData.get("routeGrade")),
     heightCm: nullable(formData.get("heightCm")),
     weightKg: nullable(formData.get("weightKg")),
     climbingSince: nullable(formData.get("climbingSince")),
@@ -97,6 +109,9 @@ export async function updateProfile(_prev: ActionResult | null, formData: FormDa
       preferred_language: v.language,
       target_grade: v.targetGrade,
       target_grade_system: v.targetSystem,
+      self_reported_level: v.boulderGrade,
+      self_reported_level_system: v.boulderGrade ? v.boulderSystem : null,
+      self_reported_route_grade: v.routeGrade,
       height_cm: v.heightCm,
       weight_kg: v.weightKg,
       climbing_since: v.climbingSince,

@@ -17,6 +17,9 @@ export default async function OnboardingPage() {
           language: viewer.profile.preferred_language === "en" ? "en" : "fr",
           targetGrade: viewer.profile.target_grade,
           targetSystem: viewer.profile.target_grade_system,
+          boulderLevel: viewer.profile.self_reported_level ?? "",
+          boulderSystem: viewer.profile.self_reported_level_system ?? "FONT",
+          routeGrade: viewer.profile.self_reported_route_grade ?? "",
         }}
         gyms={gyms}
         favouriteIds={favouriteIds}

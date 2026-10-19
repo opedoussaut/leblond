@@ -36,6 +36,12 @@ test("any climber may register a private account with a basic profile", async ({
   await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTestingPassword123!");
   await page.getByRole("button", { name: "Créer mon compte" }).click();
   await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page.getByRole("heading", { name: "Choisis ta langue" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Français" })).toBeChecked();
+  await page.getByText("English", { exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Choose your language" })).toBeVisible();
+  await page.getByText("Français", { exact: true }).click();
+  await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByLabel("Prénom ou pseudo")).toHaveValue("New Climber");
   await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
   await expect(page).toHaveURL(/\/home/);
@@ -46,10 +52,14 @@ test("any climber may register a private account with a basic profile", async ({
 test("beta login + onboarding", async ({ page }) => {
   await signIn(page, ALEX);
   await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page.getByRole("heading", { name: "Choisis ta langue" })).toBeVisible();
+  await page.getByRole("button", { name: "Continuer" }).click(); // → profile
   await page.getByLabel("Prénom ou pseudo").fill("Alex");
-  await page.getByRole("button", { name: "Continuer" }).click(); // → language
-  await page.getByRole("button", { name: "Continuer" }).click(); // → level
+  await page.getByRole("button", { name: "Continuer" }).click(); // → levels
+  await expect(page.getByText("Bloc", { exact: true })).toBeVisible();
+  await expect(page.getByText("Voie", { exact: true })).toBeVisible();
   await page.getByLabel("Niveau").selectOption("6B+");
+  await page.getByLabel("Cotation française (voie)").selectOption("6b+");
   await page.getByRole("button", { name: "Continuer" }).click(); // → target
   await expect(page.getByLabel("Niveau")).toHaveValue("7A");
   await page.getByRole("button", { name: "Continuer" }).click(); // → gyms
@@ -194,8 +204,9 @@ test("history is preserved and private: another tester sees nothing", async ({ p
   await page.context().clearCookies();
   await signIn(page, SAM);
   await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole("button", { name: "Continuer" }).click(); // language → profile
   await page.getByLabel("Prénom ou pseudo").fill("Sam");
-  for (let i = 0; i < 6; i++) await page.getByRole("button", { name: "Continuer" }).click();
+  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Continuer" }).click();
   await page.getByRole("button", { name: "Aller à l’accueil" }).click();
   await expect(page.getByText("Prêt pour ta première séance ?")).toBeVisible();
   await page.goto("/session");
