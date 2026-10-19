@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 import { addCalendarEntry, changeCalendarStatus, removeCalendarEntry } from "@/lib/actions/calendar";
 import { calendarDictionary } from "@/lib/i18n/calendar";
 import type { Locale } from "@/lib/i18n";
@@ -43,6 +43,8 @@ export function CalendarWorkspace({
   const [date,setDate]=useState(safeSelected);
   const [feedback,setFeedback]=useState("");
   const [pending,start]=useTransition();
+  const detailsRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const {start:firstGap,size}=useMemo(()=>monthDays(month),[month]);
   const dates=Array.from({length:Math.ceil((size+firstGap)/7)*7},(_,i)=>{
     const d=i-firstGap+1;return d>0&&d<=size?month+"-"+pad(d):null;
@@ -54,7 +56,12 @@ export function CalendarWorkspace({
     if(next<"2020-01"||next>"2100-12")return;
     setSelected(next+"-01");setDate(next+"-01");router.push("/calendar?month="+next);
   }
-  function choose(day:string){setSelected(day);setDate(day);setFeedback("");}
+  function choose(day:string){
+    setSelected(day); setDate(day); setFeedback("");
+    // Selecting a day should make the corresponding details the user's focus,
+    // especially on mobile where the details live below the month grid.
+    requestAnimationFrame(() => detailsRef.current?.focus());
+  }
   function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setFeedback("");
     start(async()=>{
@@ -74,7 +81,7 @@ export function CalendarWorkspace({
   function remove(id:string){
     start(async()=>{const r=await removeCalendarEntry(id);if(!r.ok)setFeedback(t.error);else router.refresh();});
   }
-  return <div className="space-y-6">
+  return <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
     <section className="leblond-premium-surface p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
         <button type="button" aria-label={t.previous} onClick={()=>goMonth(-1)} className="min-h-11 rounded-full border border-line px-4 text-lg">‹</button>
@@ -99,9 +106,15 @@ export function CalendarWorkspace({
       </div>
       <p className="mt-4 text-xs text-ink-3">{t.private} {t.planNote}</p>
     </section>
-    <section className="space-y-3">
+    <div className="space-y-5">
+    <section ref={detailsRef} tabIndex={-1} aria-label={safeSelected}
+      className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-5 focus:outline-none">
       <h2 className="text-xl font-extrabold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
       {selectedEvents.length===0&&selectedSessions.length===0?<p className="text-sm text-ink-3">{t.empty}</p>:null}
+      <button type="button" onClick={() => titleRef.current?.focus()}
+        className="inline-flex min-h-10 items-center rounded-full border border-accent/30 bg-accent-soft px-4 text-xs font-bold text-accent hover:border-accent">
+        + {t.add}
+      </button>
       {selectedSessions.map(s=><Link key={s.id} href={"/session/"+s.id} className="flex justify-between gap-3 rounded-xl border border-line bg-surface p-4 hover:border-accent">
         <span><strong className="block">{s.title}</strong><span className="text-xs text-ink-2">{t.logged}</span></span>
         <span className="text-sm font-semibold text-accent">↗</span>
@@ -128,7 +141,7 @@ export function CalendarWorkspace({
           <label className="text-sm font-semibold">{t.day}<input className={field} type="date" required min="2020-01-01" max="2100-12-31" value={date} onChange={e=>setDate(e.target.value)}/></label>
           <label className="text-sm font-semibold">{t.time}<input className={field} type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
         </div>
-        <label className="block text-sm font-semibold">{t.titleField}<input className={field} type="text" required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)}/></label>
+        <label className="block text-sm font-semibold">{t.titleField}<input ref={titleRef} className={field} type="text" required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)}/></label>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm font-semibold">{t.kind}<select className={field} value={kind} onChange={e=>setKind(e.target.value as CalendarInput["kind"])}>{kinds.map(k=><option key={k} value={k}>{t[k]}</option>)}</select></label>
           <label className="text-sm font-semibold">{t.discipline}<select className={field} value={discipline} onChange={e=>setDiscipline(e.target.value as CalendarInput["discipline"])}>{disciplines.map(d=><option key={d} value={d}>{t[d]}</option>)}</select></label>
@@ -142,5 +155,6 @@ export function CalendarWorkspace({
         <button type="submit" disabled={pending} className="w-full rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{pending?t.saving:t.save}</button>
       </form>
     </section>
+    </div>
   </div>;
 }

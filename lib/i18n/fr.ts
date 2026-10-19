@@ -32,6 +32,11 @@ export const fr = {
   },
   nav: {
     home: "Accueil",
+    climbing: "Grimper",
+    training: "S’entraîner",
+    followUp: "Suivi",
+    trainingPlans: "Programmes",
+    assessment: "Évaluations",
     calendar: "Calendrier",
     atlas: "Atlas",
     session: "Séance",

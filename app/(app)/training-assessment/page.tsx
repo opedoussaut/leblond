@@ -67,8 +67,8 @@ export default async function TrainingAssessmentPage() {
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
-        <Link href="/training" className="text-sm font-bold text-accent underline underline-offset-4">← {a.back}</Link>
-        <Link href="/training-plans" className="text-sm font-bold text-accent underline underline-offset-4">{a.plans} →</Link>
+        <Link href="/follow-up" className="text-sm font-bold text-accent underline underline-offset-4">← {a.back}</Link>
+        <Link href="/progress" className="text-sm font-bold text-accent underline underline-offset-4">{locale==="fr"?"Mes résultats":"My results"} →</Link>
       </div>
       <h1 className="mt-6 text-3xl font-black tracking-tight">{a.title}</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink-2">{a.subtitle}</p>

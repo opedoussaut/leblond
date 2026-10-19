@@ -15,8 +15,8 @@ export default async function AtlasPage(){
       ?"Méthodes, outils et coachings : explorations détaillées, comparaisons et ressources vérifiables."
       :"Methods, tools and coaching systems: detailed guides, comparisons and verifiable sources."}/>
     <div className="flex flex-wrap gap-3 text-sm">
-      <Link href="/training-assessment" className="rounded-full border border-line bg-surface px-4 py-2.5 font-semibold text-accent">
-        {locale==="fr"?"Évaluer mon profil":"Assess my profile"} ↗
+      <Link href="/train" className="rounded-full border border-line bg-surface px-4 py-2.5 font-semibold text-accent">
+        ← {locale==="fr"?"S’entraîner":"Train"}
       </Link>
       <Link href="/calendar" className="rounded-full border border-line bg-surface px-4 py-2.5 font-semibold text-accent">
         {locale==="fr"?"Mon calendrier":"My calendar"} ↗
