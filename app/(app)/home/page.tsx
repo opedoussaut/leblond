@@ -53,7 +53,7 @@ export default async function HomePage() {
       <section className="leblond-hero-panel grid gap-6 p-5 sm:grid-cols-[1fr_210px] sm:items-center sm:p-7">
         <div className="space-y-4">
           <p className="leblond-eyebrow text-blue-200">TRAINING LAB</p>
-          <h2 className="max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">{lab.title === "Train smarter. Climb further." ? lab.title : "Mieux s'entraîner. Grimper plus loin."}</h2>
+          <h2 className="max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">{lab.title}</h2>
           <p className="max-w-lg text-sm leading-relaxed text-blue-100 sm:text-base">{lab.subtitle}</p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link href="/training" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#174776] transition-transform hover:-translate-y-0.5">
