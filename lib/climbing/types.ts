@@ -16,6 +16,8 @@ export const GYM_BRANDS = [
   "ARKOSE",
   "CLIMBING_DISTRICT",
   "BLOCKOUT",
+  "CLIMB_UP",
+  "VERTICAL_ART",
   "INDEPENDENT",
   "OUTDOOR",
   "OTHER",
