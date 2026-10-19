@@ -6,14 +6,14 @@ export function Wordmark({ className, size = 32 }: { className?: string; size?: 
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <Image
-        src="/brand/leblond-mark-96.png"
+        src="/brand/leblond-illustration-mark.svg"
         alt=""
         width={size}
         height={size}
-        className="rounded-[28%] ring-1 ring-black/10"
+        className="rounded-[28%] ring-1 ring-line shadow-sm" unoptimized
         priority
       />
-      <span className="text-lg font-black uppercase tracking-[0.22em]">Leblond</span>
+      <span className="text-lg font-extrabold uppercase tracking-[0.20em] text-ink">LeBlond</span>
     </span>
   );
 }

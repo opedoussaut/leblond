@@ -1,7 +1,7 @@
 import { cn } from "./cn";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  return <section {...props} className={cn("rounded-2xl border border-line bg-surface p-4", className)} />;
+  return <section {...props} className={cn("leblond-premium-surface p-5", className)} />;
 }
 
 export function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {

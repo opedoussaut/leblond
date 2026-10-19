@@ -5,7 +5,7 @@ import { TRAINING_AXES, TRAINING_CATALOGUE, type TrainingCategory, type Training
 import { trainingDictionary } from "@/lib/i18n/training";
 import type { Locale } from "@/lib/i18n";
 
-const COLORS = ["#b4532a", "#347ba1", "#69945b"] as const;
+const COLORS = ["#2677c8", "#708ca7", "#17436b"] as const;
 const DEFAULT_SELECTION: Record<TrainingCategory, string[]> = {
   methods: ["technique", "max-hangs"],
   programs: ["lattice", "power-company"],

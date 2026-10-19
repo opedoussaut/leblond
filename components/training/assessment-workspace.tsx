@@ -11,7 +11,7 @@ import { trainingDictionary } from "@/lib/i18n/training";
 import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRatingsAtWeek, methodMatches, type SavedAssessment, type SavedCheckin, type SkillRatings } from "@/lib/training/assessment";
 import { METHODS_FOR_PLANS, TRAINING_AXES, type TrainingAxis } from "@/lib/training/catalogue";
 
-const LINE_COLORS = { baseline: "#6f685b", expected: "#b4532a", actual: "#247ca0" } as const;
+const LINE_COLORS = { baseline: "#8093a8", expected: "#297cc8", actual: "#173e66" } as const;
 const OPTIONS = [4, 8, 12, 16, 24];
 
 function radarPoint(index: number, radius: number) {

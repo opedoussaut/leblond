@@ -2,6 +2,14 @@ import { expect, test } from "@playwright/test";
 
 test.skip(!process.env.E2E_BASE_URL, "E2E_BASE_URL not set — needs the local Supabase stack");
 
+test("clean login shows exactly one approved brand illustration", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("img")).toHaveCount(1);
+  await expect(page.getByRole("img", { name: /LeBlond.*one hand/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Créer un compte" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Se connecter", exact: true })).toBeVisible();
+});
+
 test("Training Lab and assessments require a signed-in profile", async ({ page }) => {
   await page.goto("/training");
   await expect(page).toHaveURL(/\/login\?next=%2Ftraining/);

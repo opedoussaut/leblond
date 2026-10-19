@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { PatrickAvatar } from "@/components/brand/wordmark";
 import { WorkingLevelLine } from "@/components/climbing/working-level";
 import { LinkButton } from "@/components/ui/button";
@@ -45,18 +46,44 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-black">{fmt(t.home.hello, { name: viewer.profile.display_name })}</h1>
-      <Card className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-black">LEBLOND Training Lab</p>
-          <p className="text-sm text-ink-2">{lab.subtitle}</p>
+      <div className="mb-1">
+        <p className="leblond-eyebrow text-accent">LEBLOND · PERSONAL CLIMBING INTELLIGENCE</p>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{fmt(t.home.hello, { name: viewer.profile.display_name })}</h1>
+      </div>
+      <section className="leblond-hero-panel grid gap-6 p-5 sm:grid-cols-[1fr_210px] sm:items-center sm:p-7">
+        <div className="space-y-4">
+          <p className="leblond-eyebrow text-blue-200">TRAINING LAB</p>
+          <h2 className="max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">{lab.title}</h2>
+          <p className="max-w-lg text-sm leading-relaxed text-blue-100 sm:text-base">{lab.subtitle}</p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Link href="/training" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#174776] transition-transform hover:-translate-y-0.5">
+              {lab.browse} ↗
+            </Link>
+            <Link href="/training-assessment" className="inline-flex min-h-11 items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/20">
+              {assessment.privateTracking}
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <LinkButton href="/training" size="md" variant="secondary">{lab.browse}</LinkButton>
-          <LinkButton href="/training-plans" size="md">{lab.myPlans}</LinkButton>
-          <LinkButton href="/training-assessment" size="md" variant="secondary">{assessment.privateTracking}</LinkButton>
-        </div>
-      </Card>
+        <Link href="/training" className="block max-w-[235px] justify-self-center sm:max-w-none" aria-label="Training Lab">
+          <Image src="/brand/leblond-approved-hero.svg" alt="LeBlond, climber hanging by one hand over a blue coastal landscape" width={640} height={640} unoptimized priority className="leblond-hero-art aspect-square h-auto w-full" />
+        </Link>
+      </section>
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/training-plans" className="leblond-premium-surface group flex min-h-28 flex-col justify-between p-4 transition-transform hover:-translate-y-0.5">
+          <span className="text-2xl" aria-hidden="true">↗</span>
+          <div>
+            <p className="text-sm font-extrabold">{lab.myPlans}</p>
+            <p className="mt-1 text-xs text-ink-3">Planning · Sessions</p>
+          </div>
+        </Link>
+        <Link href="/training-assessment" className="leblond-premium-surface group flex min-h-28 flex-col justify-between p-4 transition-transform hover:-translate-y-0.5">
+          <span className="text-2xl text-accent" aria-hidden="true">◎</span>
+          <div>
+            <p className="text-sm font-extrabold">{assessment.title}</p>
+            <p className="mt-1 text-xs text-ink-3">Profile · Progress</p>
+          </div>
+        </Link>
+      </div>
 
       {live ? (
         <LinkButton href={`/session/${live.id}`} size="lg" className="w-full">
