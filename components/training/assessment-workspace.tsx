@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WorkingGradeChart } from "./grade-progress";
 import type { ObservedWorkingGrade } from "@/lib/training/grade-history";
@@ -252,6 +253,10 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
             {METHODS_FOR_PLANS.map(m=><option key={m.id} value={m.id}>{m.title}</option>)}
           </select>
         </label>
+        <Link href={"/atlas/"+methodId}
+          className="self-end text-sm font-bold text-accent underline underline-offset-4 sm:col-span-2">
+          {locale==="fr"?"Ouvrir la fiche détaillée de la méthode":"View full method guide"} ↗
+        </Link>
         <label className="text-sm font-bold">{a.weeks}
           <select value={horizon} onChange={e=>setHorizon(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-line bg-bg p-3">
             {OPTIONS.map(n=><option key={n} value={n}>{n}</option>)}
