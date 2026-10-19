@@ -147,8 +147,8 @@ select pg_temp.expect((select name from public.training_plans
 -- ── Anonymous ──────────────────────────────────────────────────────────────
 set role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', false);
-select pg_temp.expect_error($select count(*) from public.gyms$, 'anon cannot read gyms');
-select pg_temp.expect_error($select count(*) from public.training_plans$, 'anon cannot read training plans');
+select pg_temp.expect_error($$select count(*) from public.gyms$$, 'anon cannot read gyms');
+select pg_temp.expect_error($$select count(*) from public.training_plans$$, 'anon cannot read training plans');
 select pg_temp.expect_error($$select count(*) from public.beta_users$$, 'anon cannot read whitelist');
 reset role;
 
