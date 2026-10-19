@@ -40,6 +40,17 @@ export const ProfileIcon = () => (
     <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
   </svg>
 );
+export const CalendarIcon = () => (
+  <svg {...common}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M7 3v5m10-5v5M3 11h18M8 15h3m3 0h3" />
+  </svg>
+);
+export const AtlasIcon = () => (
+  <svg {...common}>
+    <path d="M12 6C9 4 5 4 2 5v14c4-1 7-1 10 1 3-2 6-2 10-1V5c-3-1-7-1-10 1zm0 0v14" />
+  </svg>
+);
 export const PlusIcon = () => (
   <svg {...common} strokeWidth={2.6}>
     <path d="M12 5v14M5 12h14" />
