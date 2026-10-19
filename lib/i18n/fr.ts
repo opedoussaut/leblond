@@ -389,6 +389,11 @@ export const fr = {
     askPatrick: "Analyse de Patrick",
   },
   home: {
+    choicesTitle: "Choisis ton expérience",
+    choiceTrack: "Grimper librement",
+    choiceTrackHelp: "Enregistre tes séances et tes progrès, sans suivre de programme.",
+    choiceCoach: "Progresser avec Patrick",
+    choiceCoachHelp: "Évalue tes points forts, explore les méthodes et suis une progression guidée.",
     hello: "Bonjour {name}",
     roadTo: "ROAD TO {target}",
     workingLevel: "Niveau de travail",
