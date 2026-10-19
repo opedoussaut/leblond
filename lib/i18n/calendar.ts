@@ -1,0 +1,37 @@
+import type { Locale } from "./index";
+export const calendarDictionary = (locale: Locale) => ({
+  fr: {
+    title:"Mon calendrier", subtitle:"Tes dates, tes entraînements prévus et les séances réellement enregistrées, au même endroit.",
+    today:"Aujourd’hui", previous:"Mois précédent", next:"Mois suivant", add:"Ajouter une date",
+    day:"Date", time:"Heure (facultatif)", titleField:"Titre", kind:"Type d’activité",
+    discipline:"Discipline", minutes:"Durée en minutes (facultatif)", notes:"Notes (facultatif)",
+    method:"Méthode de l’Atlas (facultatif)", noMethod:"Aucune méthode",
+    CLIMB:"Séance de grimpe", TRAIN:"Entraînement", REST:"Repos", ASSESS:"Évaluation", OTHER:"Autre",
+    BOULDER:"Bloc", ROUTE:"Voie", BOTH:"Les deux", NONE:"Sans discipline",
+    PLANNED:"Prévu", DONE:"Effectué", SKIPPED:"Annulé",
+    logged:"Séance enregistrée", planned:"Dates planifiées", empty:"Aucune activité pour cette date.",
+    save:"Enregistrer la date", saving:"Enregistrement…", delete:"Supprimer",
+    markDone:"Marquer effectué", markPlanned:"Marquer prévu", markSkipped:"Marquer annulé",
+    seeSession:"Voir la séance", methodDetail:"Détail de la méthode", saved:"Date enregistrée.",
+    error:"Impossible d’enregistrer. Vérifie les champs.", private:"Ton calendrier est privé.",
+    weekdays:["L","M","M","J","V","S","D"], locale:"fr-FR",
+    planNote:"Les séances de programmes ne sont pas ajoutées automatiquement : choisis librement tes dates.",
+  },
+  en: {
+    title:"My calendar", subtitle:"Planned training dates and actual logged climbs in one personal calendar.",
+    today:"Today", previous:"Previous month", next:"Next month", add:"Add a date",
+    day:"Date", time:"Time (optional)", titleField:"Title", kind:"Activity",
+    discipline:"Discipline", minutes:"Duration in minutes (optional)", notes:"Notes (optional)",
+    method:"Atlas method (optional)", noMethod:"No method",
+    CLIMB:"Climbing session", TRAIN:"Training", REST:"Rest", ASSESS:"Assessment", OTHER:"Other",
+    BOULDER:"Bouldering", ROUTE:"Routes", BOTH:"Both", NONE:"No discipline",
+    PLANNED:"Planned", DONE:"Completed", SKIPPED:"Skipped",
+    logged:"Logged climb", planned:"Planned dates", empty:"No activity scheduled for this day.",
+    save:"Save date", saving:"Saving…", delete:"Delete",
+    markDone:"Mark complete", markPlanned:"Mark planned", markSkipped:"Mark skipped",
+    seeSession:"Open session", methodDetail:"Method details", saved:"Date saved.",
+    error:"Unable to save. Please check the fields.", private:"Your calendar is private.",
+    weekdays:["M","T","W","T","F","S","S"], locale:"en-GB",
+    planNote:"Plan templates are not scheduled automatically: choose the dates that work for you.",
+  }
+} as const)[locale];
