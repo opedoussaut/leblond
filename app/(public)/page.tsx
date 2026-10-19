@@ -29,6 +29,9 @@ export default async function LandingPage() {
       <LinkButton href="/login" size="lg" className="mt-6 w-full">
         {t.landing.signIn}
       </LinkButton>
+      <LinkButton href="/training" variant="secondary" size="lg" className="mt-3 w-full">
+        Training Lab — {t.landing.tagline}
+      </LinkButton>
       <p className="mt-3 text-center text-sm text-ink-3">{t.landing.closedBeta}</p>
       <p className="mt-auto pt-10 text-xs text-ink-3">{t.landing.disclaimer}</p>
     </main>
