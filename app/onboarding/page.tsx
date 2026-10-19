@@ -17,6 +17,8 @@ export default async function OnboardingPage() {
           language: viewer.profile.preferred_language === "en" ? "en" : "fr",
           targetGrade: viewer.profile.target_grade,
           targetSystem: viewer.profile.target_grade_system,
+          targetDiscipline: viewer.profile.target_discipline,
+          targetRouteGrade: viewer.profile.target_route_grade ?? "",
           boulderLevel: viewer.profile.self_reported_level ?? "",
           boulderSystem: viewer.profile.self_reported_level_system ?? "FONT",
           routeGrade: viewer.profile.self_reported_route_grade ?? "",

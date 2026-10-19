@@ -9,6 +9,7 @@ import { computeSnapshot } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { gradeLabel } from "@/lib/grading/labels";
+import { includesBoulder, includesRoute } from "@/lib/climbing/goals";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
@@ -33,7 +34,12 @@ export default async function HomePage() {
     .eq("status", "ACTIVE")
     .limit(3);
 
-  const targetLabel = gradeLabel(t, target.system, target.grade).toUpperCase();
+  const targetLabel = [
+    includesBoulder(viewer.profile.target_discipline)
+      ? t.onboarding.goalBoulder + " " + gradeLabel(t, target.system, target.grade).toUpperCase() : null,
+    includesRoute(viewer.profile.target_discipline)
+      ? t.onboarding.goalRoute + " " + (viewer.profile.target_route_grade ?? "—") : null,
+  ].filter(Boolean).join(" · ");
   const hasData = data.attempts.length > 0;
   const weakest = snap.focus.styles.weakest;
   const suggestion = !hasData
@@ -85,6 +91,23 @@ export default async function HomePage() {
         </Link>
       </div>
 
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label={t.home.choicesTitle}>
+        <Link href="/session/new" className="leblond-premium-surface flex min-h-36 flex-col justify-between gap-3 p-5 transition-transform hover:-translate-y-0.5">
+          <span className="text-2xl text-accent" aria-hidden="true">◉</span>
+          <span>
+            <strong className="block text-base">{t.home.choiceTrack}</strong>
+            <span className="mt-1 block text-xs leading-relaxed text-ink-2">{t.home.choiceTrackHelp}</span>
+          </span>
+        </Link>
+        <Link href="/training-assessment" className="leblond-premium-surface flex min-h-36 flex-col justify-between gap-3 p-5 transition-transform hover:-translate-y-0.5">
+          <span className="text-2xl text-accent" aria-hidden="true">◎</span>
+          <span>
+            <strong className="block text-base">{t.home.choiceCoach}</strong>
+            <span className="mt-1 block text-xs leading-relaxed text-ink-2">{t.home.choiceCoachHelp}</span>
+          </span>
+        </Link>
+      </section>
+
       {live ? (
         <LinkButton href={`/session/${live.id}`} size="lg" className="w-full">
           ● {t.home.liveSession} — {gymName(live.gymId)}
@@ -93,6 +116,10 @@ export default async function HomePage() {
 
       <Card>
         <p className="text-sm font-black tracking-[0.18em] text-accent">{fmt(t.home.roadTo, { target: targetLabel })}</p>
+        {includesRoute(viewer.profile.target_discipline) ? (
+          <p className="mt-3 text-xs leading-relaxed text-ink-2">{t.onboarding.routeProgressPending}</p>
+        ) : null}
+        {includesBoulder(viewer.profile.target_discipline) ? (
         <div className="mt-4 space-y-3">
           <div>
             <SectionTitle>{t.home.workingLevel}</SectionTitle>
@@ -133,6 +160,7 @@ export default async function HomePage() {
             <p className="mt-2">{t.dimensions.explain}</p>
           </Explain>
         </div>
+        ) : null}
       </Card>
 
       {hasData ? (

@@ -3,6 +3,8 @@ import type { Locale } from "./index";
 const assessment = {
   en: {
     title: "Your climbing development",
+    routeTargetNote: "Your route target is saved, but automatic level measurement currently covers bouldering. The six-skill assessment and illustrative method scenarios can still help you reflect and plan; they do not predict a future route grade.",
+    routeTargetNoteBoth: "Both route and bouldering goals are saved independently. Current grade analytics measure only bouldering; the six-skill method scenario is illustrative and is not a prediction for either target.",
     publicTry: "Try a future check-in (demo only)",
     publicTryHelp: "Change the ratings to see how a real follow-up could differ from the scenario. Nothing is saved here.",
     publicPrivacy: "Your draft self-assessment stays in this browser until you choose to save it. Your climbing information is private to your account.",
@@ -67,6 +69,8 @@ const assessment = {
   },
   fr: {
     title: "Ta progression en escalade",
+    routeTargetNote: "Ton objectif en voie est enregistré, mais la mesure automatique des cotations porte encore sur le bloc. L’évaluation des compétences et les scénarios illustratifs peuvent t’aider à préparer ton entraînement ; ils ne prédisent pas une cotation future en voie.",
+    routeTargetNoteBoth: "Tes objectifs bloc et voie sont enregistrés séparément. Les statistiques de cotation ne mesurent actuellement que le bloc ; le scénario de compétences est illustratif et ne prédit aucune cotation cible.",
     publicTry: "Simuler un bilan ultérieur (démo)",
     publicTryHelp: "Modifie tes notes pour voir comment un bilan réel peut s'écarter du scénario. Rien n'est enregistré ici.",
     publicPrivacy: "Ton bilan reste dans ce navigateur tant que tu ne choisis pas de l’enregistrer. Tes informations d’escalade sont privées.",

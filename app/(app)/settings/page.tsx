@@ -18,6 +18,8 @@ export default async function SettingsPage() {
           language: p.preferred_language === "en" ? "en" : "fr",
           targetSystem: p.target_grade_system,
           targetGrade: p.target_grade,
+          targetDiscipline: p.target_discipline,
+          targetRouteGrade: p.target_route_grade ?? "",
           boulderGrade: p.self_reported_level ?? "",
           boulderSystem: p.self_reported_level_system ?? "FONT",
           routeGrade: p.self_reported_route_grade ?? "",

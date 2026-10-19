@@ -74,7 +74,18 @@ test("beta login + onboarding", async ({ page }) => {
   await page.getByLabel("Niveau").selectOption("6B+");
   await page.getByLabel("Cotation française (voie)").selectOption("6b+");
   await page.getByRole("button", { name: "Continuer" }).click(); // → target
+  await expect(page.getByRole("radio", { name: "Bloc" })).toBeChecked();
   await expect(page.getByLabel("Niveau")).toHaveValue("7A");
+  // Route-only target must have its own French grade. Both keeps both goals.
+  await page.getByText("Voie", { exact: true }).last().click();
+  await expect(page.getByRole("radio", { name: "Voie" })).toBeChecked();
+  await expect(page.getByLabel("Niveau")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Continuer" })).toBeDisabled();
+  await page.getByLabel("Objectif en voie").selectOption("7a+");
+  await page.getByText("Les deux", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: "Les deux" })).toBeChecked();
+  await expect(page.getByLabel("Niveau")).toHaveValue("7A");
+  await expect(page.getByLabel("Objectif en voie")).toHaveValue("7a+");
   await page.getByRole("button", { name: "Continuer" }).click(); // → gyms
   const directory = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
   await expect(directory.locator("option").filter({ hasText: "Climb Up Aubervilliers" })).toHaveCount(1);

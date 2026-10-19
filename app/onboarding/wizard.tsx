@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { PatrickAvatar } from "@/components/brand/wordmark";
 import { GradeSelect } from "@/components/climbing/grade-select";
 import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
+import { GoalSelect } from "@/components/climbing/goal-select";
+import { includesRoute, type TargetDiscipline } from "@/lib/climbing/goals";
 import { GymPicker } from "@/components/climbing/gym-picker";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
@@ -22,7 +24,7 @@ export function OnboardingWizard({
   gyms,
   favouriteIds,
 }: {
-  profile: { displayName: string; language: Locale; targetGrade: string; targetSystem: GradeSystem; boulderLevel: string; boulderSystem: GradeSystem; routeGrade: string };
+  profile: { displayName: string; language: Locale; targetGrade: string; targetSystem: GradeSystem; targetDiscipline: TargetDiscipline; targetRouteGrade: string; boulderLevel: string; boulderSystem: GradeSystem; routeGrade: string };
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
 }) {
@@ -35,6 +37,8 @@ export function OnboardingWizard({
   const [routeGrade, setRouteGrade] = useState(profile.routeGrade);
   const [targetSystem, setTargetSystem] = useState<GradeSystem>(profile.targetSystem);
   const [targetGrade, setTargetGrade] = useState(profile.targetGrade);
+  const [targetDiscipline, setTargetDiscipline] = useState<TargetDiscipline>(profile.targetDiscipline);
+  const [targetRouteGrade, setTargetRouteGrade] = useState(profile.targetRouteGrade);
   const [selectedGyms, setSelectedGyms] = useState<string[]>(favouriteIds);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -55,6 +59,8 @@ export function OnboardingWizard({
         routeGrade: routeGrade || null,
         targetSystem,
         targetGrade,
+        targetDiscipline,
+        targetRouteGrade: targetRouteGrade || null,
         favouriteGymIds: selectedGyms,
       });
       if (res.ok) router.replace(destination);
@@ -125,15 +131,23 @@ export function OnboardingWizard({
           <>
             <h1 className="text-2xl font-black">{t.onboarding.targetTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.targetHelp}</p>
-            <GradeSelect
-              idPrefix="ob-target"
-              system={targetSystem}
-              grade={targetGrade}
-              onChange={(s, g) => {
-                setTargetSystem(s);
-                setTargetGrade(g);
-              }}
-            />
+            <GoalSelect idPrefix="ob-target"
+              discipline={targetDiscipline} onDisciplineChange={setTargetDiscipline}
+              boulderSystem={targetSystem} boulderGrade={targetGrade}
+              onBoulderChange={(s, g) => { setTargetSystem(s); setTargetGrade(g); }}
+              routeGrade={targetRouteGrade} onRouteChange={setTargetRouteGrade}
+              labels={{
+                discipline: t.onboarding.goalDiscipline,
+                boulder: t.onboarding.goalBoulder,
+                route: t.onboarding.goalRoute,
+                both: t.onboarding.goalBoth,
+                boulderTarget: t.onboarding.boulderTarget,
+                routeTarget: t.onboarding.routeTarget,
+                selectRouteGrade: t.onboarding.selectRouteTarget,
+              }} />
+            {includesRoute(targetDiscipline) ? (
+              <p className="rounded-xl border border-line bg-surface p-3 text-xs text-ink-2">{t.onboarding.routeProgressPending}</p>
+            ) : null}
           </>
         ) : null}
 
@@ -167,8 +181,9 @@ export function OnboardingWizard({
               <p className="whitespace-pre-line text-ink">{fmt(t.onboarding.patrickIntro, { name: name || "" })}</p>
             </div>
             {error ? <Notice tone="error">{error}</Notice> : null}
-            <Button size="lg" className="w-full" disabled={pending} onClick={() => finish("/session/new")}>
-              {pending ? t.common.saving : t.onboarding.startFirstSession}
+            <Button size="lg" className="w-full" disabled={pending}
+              onClick={() => finish(targetDiscipline === "ROUTE" ? "/home" : "/session/new")}>
+              {pending ? t.common.saving : targetDiscipline === "ROUTE" ? t.onboarding.goHome : t.onboarding.startFirstSession}
             </Button>
             <Button variant="ghost" className="w-full" disabled={pending} onClick={() => finish("/home")}>
               {t.onboarding.goHome}
@@ -194,7 +209,7 @@ export function OnboardingWizard({
               {t.common.back}
             </Button>
           ) : null}
-          <Button className="flex-1" size="lg" onClick={next} disabled={step === 2 && name.trim().length === 0}>
+          <Button className="flex-1" size="lg" onClick={next} disabled={(step === 2 && name.trim().length === 0) || (step === 4 && includesRoute(targetDiscipline) && !targetRouteGrade)}>
             {t.common.continue}
           </Button>
         </div>

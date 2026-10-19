@@ -4,6 +4,7 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui/card";
 import { signOut } from "@/app/(public)/login/actions";
 import { requireViewer } from "@/lib/auth/viewer";
 import { gradeLabel } from "@/lib/grading/labels";
+import { includesBoulder, includesRoute } from "@/lib/climbing/goals";
 import { getI18n } from "@/lib/i18n/server";
 
 export const metadata = { title: "Profil" };
@@ -26,12 +27,21 @@ export default async function ProfilePage() {
           <div className="flex justify-between py-2">
             <dt className="text-ink-2">{t.profile.target}</dt>
             <dd className="font-semibold">
-              {gradeLabel(t, p.target_grade_system, p.target_grade)} · {t.grades.systems[p.target_grade_system]}
+              {includesBoulder(p.target_discipline) ? (
+                <span>{t.onboarding.goalBoulder}: {gradeLabel(t, p.target_grade_system, p.target_grade)}</span>
+              ) : null}
+              {p.target_discipline === "BOTH" ? <span> · </span> : null}
+              {includesRoute(p.target_discipline) ? (
+                <span>{t.onboarding.goalRoute}: {p.target_route_grade}</span>
+              ) : null}
             </dd>
           </div>
           <div className="flex justify-between py-2">
             <dt className="text-ink-2">{t.profile.discipline}</dt>
-            <dd className="font-semibold">{t.profile.bouldering}</dd>
+            <dd className="font-semibold">
+              {p.target_discipline === "BOTH" ? t.onboarding.goalBoth :
+               p.target_discipline === "ROUTE" ? t.onboarding.goalRoute : t.onboarding.goalBoulder}
+            </dd>
           </div>
           <div className="flex justify-between py-2">
             <dt className="text-ink-2">{t.profile.language}</dt>

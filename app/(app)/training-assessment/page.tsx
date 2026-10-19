@@ -72,11 +72,19 @@ export default async function TrainingAssessmentPage() {
       </div>
       <h1 className="mt-6 text-3xl font-black tracking-tight">{a.title}</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink-2">{a.subtitle}</p>
+      {viewer.profile.target_discipline !== "BOULDER" ? (
+        <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink-2">
+          {viewer.profile.target_discipline === "BOTH"
+            ? a.routeTargetNoteBoth
+            : a.routeTargetNote}
+        </p>
+      ) : null}
       {assessmentError || checkinsError
         ? <p role="alert" className="mt-6 rounded-xl border border-warn p-4 text-sm">{a.savedAccess} — database migration may be missing.</p>
         : <AssessmentWorkspace locale={locale} initialAssessments={saved} initialCheckins={entries}
           gradeObservation={gradeObservation} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
-          gradeTarget={targetOrdinal === null ? null : { grade: viewer.profile.target_grade, ordinal: targetOrdinal }}/>}
+          gradeTarget={viewer.profile.target_discipline === "ROUTE" || targetOrdinal === null
+            ? null : { grade: viewer.profile.target_grade, ordinal: targetOrdinal }}/>}
     </div>
   );
 }
