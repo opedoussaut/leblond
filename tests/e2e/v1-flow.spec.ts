@@ -26,11 +26,21 @@ async function logGrade(page: Page, grade: string, results: Array<"ESSAI" | "TOP
   }
 }
 
-test("uninvited email is refused by the whitelist", async ({ page }) => {
-  await page.goto("/login");
+test("any climber may register a private account with a basic profile", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login/);
+  await page.getByRole("tab", { name: "Créer un compte" }).click();
+  await page.getByLabel("Prénom ou pseudo").fill("New Climber");
   await page.getByLabel("Adresse e-mail").fill("stranger@leblond.local");
-  await page.getByRole("button", { name: "Recevoir mon code" }).click();
-  await expect(page.getByText("Cette adresse ne fait pas partie de la bêta fermée.")).toBeVisible();
+  await page.getByLabel("Mot de passe", { exact: true }).fill("ReasonablyStrongTestingPassword123!");
+  await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTestingPassword123!");
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page.getByLabel("Prénom ou pseudo")).toHaveValue("New Climber");
+  await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
+  await expect(page).toHaveURL(/\/home/);
+  await page.goto("/training");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
 test("beta login + onboarding", async ({ page }) => {
