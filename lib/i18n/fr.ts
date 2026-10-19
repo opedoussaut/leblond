@@ -110,7 +110,7 @@ export const fr = {
     routeGrade: "Cotation française (voie)",
     routeScaleHelp: "Évalue ton niveau en voie indépendamment du bloc. Par exemple 6a, 6a+ ou 7b.",
     levelTitle: "Ton niveau actuel",
-    levelHelp: "Indique tes niveaux actuels, séparément pour le bloc et la voie. Ces estimations ne sont pas des cotations converties et pourront évoluer indépendamment.
+    levelHelp: "Indique tes niveaux actuels séparément pour le bloc et la voie. Ils pourront évoluer indépendamment.",
     levelSystem: "Système de cotation",
     levelGrade: "Niveau",
     levelUnknown: "Je ne sais pas",
