@@ -89,10 +89,15 @@ export function expectedRatingsAtWeek(
  */
 export function methodMatches(ratings: SkillRatings, limit = 3) {
   return METHODS_FOR_PLANS.map((method) => {
-    const fit = TRAINING_AXES.reduce((acc, axis, index) => acc + (5 - ratings[axis]) * (method.scores[index] / 5), 0);
+    // Normalize by the method's active focus so a generic "does everything"
+    // program cannot dominate every recommendation just for covering more axes.
+    const focus = method.scores.map(score => (score - 1) / 4);
+    const weight = focus.reduce((sum, n) => sum + n, 0);
+    const fit = weight === 0 ? 0 : TRAINING_AXES.reduce((acc, axis, index) =>
+      acc + (5 - ratings[axis]) * focus[index], 0) / weight;
     const priority = [...TRAINING_AXES].sort((a, b) =>
-      (5 - ratings[b]) * (method.scores[TRAINING_AXES.indexOf(b)] / 5) -
-      (5 - ratings[a]) * (method.scores[TRAINING_AXES.indexOf(a)] / 5))[0];
+      (5 - ratings[b]) * focus[TRAINING_AXES.indexOf(b)] -
+      (5 - ratings[a]) * focus[TRAINING_AXES.indexOf(a)])[0];
     return { method, fit, priority };
   }).sort((a, b) => b.fit - a.fit || a.method.title.localeCompare(b.method.title)).slice(0, limit);
 }
