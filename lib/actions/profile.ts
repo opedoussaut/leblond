@@ -76,7 +76,9 @@ const profileSchema = z
     climbingSince: z.iso.date().nullable(),
     bio: z.string().max(1000).nullable(),
   })
-  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });
+  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] })
+  .refine((v) => !v.boulderGrade || isValidGrade(v.boulderSystem, v.boulderGrade), { path: ["boulderGrade"] })
+  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] });
 
 function nullable(v: FormDataEntryValue | null): string | null {
   const s = typeof v === "string" ? v.trim() : "";
