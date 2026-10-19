@@ -142,9 +142,17 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   const [horizon,setHorizon]=useState(12);
   const [frequency,setFrequency]=useState(2);
   const [goal,setGoal]=useState("");
-  const [working,setWorking]=useState<SkillRatings>({...DEFAULT_SKILLS});
+  const [working,setWorking]=useState<SkillRatings>(() => {
+    const first = initialAssessments[0];
+    if (!first) return { ...DEFAULT_SKILLS };
+    const last = initialCheckins.filter(c => c.assessmentId === first.id).sort((a,b) => b.week - a.week)[0];
+    return { ...(last?.ratings ?? first.ratings) };
+  });
   const [notes,setNotes]=useState("");
-  const [week,setWeek]=useState(1);
+  const [week,setWeek]=useState(() => {
+    const first = initialAssessments[0];
+    return first ? Math.max(1,Math.min(first.horizonWeeks,elapsedWeeks(first.createdAt,new Date()))) : 1;
+  });
   const [axis,setAxis]=useState<TrainingAxis>("technique");
   const [notice,setNotice]=useState("");
   const [pending,startTransition]=useTransition();
@@ -206,7 +214,9 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       setAssessments(curr=>curr.filter(record=>record.id!==chosen.id));
       setCheckins(curr=>curr.filter(c=>c.assessmentId!==chosen.id));
       const next=assessments.find(record=>record.id!==chosen.id);
-      setSelectedId(next?.id??"");setFormMode(!next);setNotice("");router.refresh();
+      if (next) openAssessment(next);
+      else startNew();
+      setNotice("");router.refresh();
     });
   }
 
