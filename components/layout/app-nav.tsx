@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
-import { sectionForPath, type SectionId } from "@/lib/navigation/sections";
+import { sectionForPath } from "@/lib/navigation/sections";
 import { AtlasIcon, CalendarIcon, HomeIcon, PatrickIcon, ProfileIcon, ProgressIcon, SessionIcon } from "./nav-icons";
 
 const AREAS = [
