@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRAINING_AXES, METHODS_FOR_PLANS, type TrainingAxis, type TrainingEntry } from "./catalogue";
+import { assessmentContextSchema, measurementSchema } from "./assessment-protocol";
 
 /**
  * These are self-reported, anchored 1–5 SKILL ratings, not grade-equivalents.
@@ -47,6 +48,10 @@ export const assessmentInputSchema = z.object({
   horizonWeeks: z.number().int().min(4).max(24),
   sessionsPerWeek: z.number().int().min(1).max(5),
   goal: z.string().trim().max(300),
+  // Structured protocol (v2). Absent on legacy self-assessments.
+  kind: z.enum(["BASIC", "STRUCTURED"]).optional(),
+  measurements: z.array(measurementSchema).max(8).optional(),
+  context: assessmentContextSchema.optional(),
 }).strict();
 export type AssessmentInput = z.infer<typeof assessmentInputSchema>;
 export type SavedAssessment = AssessmentInput & { id: string; createdAt: string };

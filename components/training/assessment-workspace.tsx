@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WorkingGradeChart } from "./grade-progress";
 import type { ObservedWorkingGrade } from "@/lib/training/grade-history";
-import { createTrainingAssessment, deleteTrainingAssessment, saveTrainingCheckin } from "@/lib/actions/training-assessments";
+import { deleteTrainingAssessment, saveTrainingCheckin } from "@/lib/actions/training-assessments";
 import type { Locale } from "@/lib/i18n";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { trainingDictionary } from "@/lib/i18n/training";
-import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRatingsAtWeek, methodMatches, type SavedAssessment, type SavedCheckin, type SkillRatings } from "@/lib/training/assessment";
+import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRatingsAtWeek, type SavedAssessment, type SavedCheckin, type SkillRatings } from "@/lib/training/assessment";
 import { METHODS_FOR_PLANS, TRAINING_AXES, type TrainingAxis } from "@/lib/training/catalogue";
+import { EVIDENCE_LABELS, OBSERVED_LABELS, PROTOCOL_TESTS, compareMeasurements, parseContext, parseMeasurements, type ObservedEvidence } from "@/lib/training/assessment-protocol";
+import { EvidenceBadge, StructuredAssessment } from "./structured-assessment";
 
 const LINE_COLORS = { baseline: "#8093a8", expected: "#297cc8", actual: "#173e66" } as const;
-const OPTIONS = [4, 8, 12, 16, 24];
 
 function radarPoint(index: number, radius: number) {
   const rad = -Math.PI / 2 + index * Math.PI / 3;
@@ -122,8 +122,12 @@ export function TrendChart({ locale, axis, baseline, selected, checkins }: {
   </div>;
 }
 
-export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, gradeObservation, gradeHistory, gradeSystem, gradeTarget }: {
+export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, gradeObservation, gradeHistory, gradeSystem, gradeTarget, today, observedEvidence, defaults, startInForm = false }: {
   locale: Locale;
+  today: string;
+  observedEvidence: ObservedEvidence[];
+  defaults: { discipline: "BOULDER" | "ROUTE" | "BOTH"; sessionsPerWeekNow: number };
+  startInForm?: boolean;
   initialAssessments: SavedAssessment[];
   initialCheckins: SavedCheckin[];
   gradeObservation: {label:string; level:string; sampleSize:number} | null;
@@ -137,12 +141,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   const [assessments,setAssessments]=useState(initialAssessments);
   const [checkins,setCheckins]=useState(initialCheckins);
   const [selectedId,setSelectedId]=useState(initialAssessments[0]?.id || "");
-  const [formMode,setFormMode]=useState(initialAssessments.length===0);
-  const [methodId,setMethodId]=useState("technique");
-  const [initial,setInitial]=useState<SkillRatings>({...DEFAULT_SKILLS});
-  const [horizon,setHorizon]=useState(12);
-  const [frequency,setFrequency]=useState(2);
-  const [goal,setGoal]=useState("");
+  const [formMode,setFormMode]=useState(startInForm || initialAssessments.length===0);
   const [working,setWorking]=useState<SkillRatings>(() => {
     const first = initialAssessments[0];
     if (!first) return { ...DEFAULT_SKILLS };
@@ -150,7 +149,6 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     return { ...(last?.ratings ?? first.ratings) };
   });
   const [notes,setNotes]=useState("");
-  const [protocolConfirmed,setProtocolConfirmed]=useState(false);
   const [checkinProtocolConfirmed,setCheckinProtocolConfirmed]=useState(false);
   const [week,setWeek]=useState(() => {
     const first = initialAssessments[0];
@@ -160,7 +158,6 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   const [notice,setNotice]=useState("");
   const [pending,startTransition]=useTransition();
   const chosen=assessments.find(e=>e.id===selectedId);
-  const method=METHODS_FOR_PLANS.find(m=>m.id===methodId) || METHODS_FOR_PLANS[0];
   const related=chosen?checkins.filter(c=>c.assessmentId===chosen.id).sort((x,y)=>x.week-y.week):[];
   const latest=related[related.length-1];
   const now=chosen?Math.min(chosen.horizonWeeks,elapsedWeeks(chosen.createdAt,new Date())):0;
@@ -179,22 +176,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   }
 
   function startNew() {
-    setFormMode(true);setNotice("");setInitial({...DEFAULT_SKILLS});setMethodId("technique");
-    setGoal("");setHorizon(12);setFrequency(2);setProtocolConfirmed(false);
-  }
-
-  function saveBaseline() {
-    if (!protocolConfirmed) return;
-    setNotice("");
-    startTransition(async()=>{
-      const result=await createTrainingAssessment({
-        methodId,ratings:initial,horizonWeeks:horizon,sessionsPerWeek:frequency,goal,
-      });
-      if(!result.ok){setNotice(a.problem);return;}
-      const record:SavedAssessment={id:result.id, methodId, ratings:{...initial},horizonWeeks:horizon,sessionsPerWeek:frequency,goal,createdAt:new Date().toISOString()};
-      setAssessments(curr=>[record,...curr]);setSelectedId(record.id);setFormMode(false);
-      setWorking({...initial});setWeek(1);setNotes("");setNotice(a.saved);router.refresh();
-    });
+    setFormMode(true);setNotice("");
   }
 
   function saveWeek() {
@@ -227,92 +209,21 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   return <div className="mt-7 space-y-6">
     <nav className="flex flex-wrap items-center gap-2" aria-label={a.history}>
       <button type="button" onClick={startNew}
-        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink">{a.add} +</button>
+        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink">{assessments.length ? (locale==="fr"?"Nouveau bilan (réévaluation)":"New assessment (reassess)") : a.add} +</button>
       {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
         aria-pressed={!formMode && selectedId===item.id}
         className={"rounded-xl border px-3 py-2 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
         {METHODS_FOR_PLANS.find(m=>m.id===item.methodId)?.title??a.noMethod} · {new Date(item.createdAt).toLocaleDateString(locale==="fr"?"fr-FR":"en-GB")}
       </button>)}
     </nav>
-    {formMode ? <>
-      <section aria-labelledby="assessment-protocol-title" className="rounded-[1.5rem] border border-accent/25 bg-accent-soft p-5 sm:p-6">
-        <p className="leblond-eyebrow text-accent">{locale==="fr"?"AVANT DE COMMENCER":"BEFORE YOU BEGIN"}</p>
-        <h2 id="assessment-protocol-title" className="mt-2 text-xl font-extrabold">
-          {locale==="fr"?"Protocole de bilan initial · 4 étapes":"Baseline assessment · four-step protocol"}
-        </h2>
-        <ol className="mt-4 space-y-3 text-sm leading-relaxed text-ink">
-          <li><strong>01 · {locale==="fr"?"Définir la période de référence":"Define your reference period"}.</strong> {locale==="fr"
-            ?"Appuie-toi sur les 4 dernières semaines de grimpe. Précise mentalement ta discipline, tes salles et les types de blocs concernés."
-            :"Review the last four weeks of climbing. Use the same discipline, gyms and comparable types of climbs as your reference."}</li>
-          <li><strong>02 · {locale==="fr"?"Réunir des observations":"Gather observations"}.</strong> {locale==="fr"
-            ?"Idéalement, consulte au moins 3 séances comparables, leurs essais et réussites. Si tu n’as pas ce recul, ce bilan est exploratoire."
-            :"Ideally review at least three comparable sessions and their attempts and sends. With less evidence, treat this as exploratory."}</li>
-          <li><strong>03 · {locale==="fr"?"Noter six compétences":"Rate six skills"}.</strong> {locale==="fr"
-            ?"Lis chaque question, puis note de 1 (rarement) à 5 (régulièrement) ce que tu observes. Les notes décrivent ton ressenti, pas une force mesurée."
-            :"Read each question, then rate the observed frequency from 1 (rarely) to 5 (reliably). These are self-reports, not force measurements."}</li>
-          <li><strong>04 · {locale==="fr"?"Conserver des conditions comparables":"Keep conditions comparable"}.</strong> {locale==="fr"
-            ?"Au prochain bilan (idéalement dans 4 semaines), réutilise la même grille, la même période de référence et une pratique similaire. En cas de douleur, n’effectue aucun test de charge maximale."
-            :"At the next check-in (ideally in four weeks), reuse the same scale, reference period and similar climbing. Do not perform maximal loading tests if in pain."}</li>
-        </ol>
-        <p className="mt-4 border-t border-accent/20 pt-3 text-xs leading-relaxed text-ink-2">
-          {locale==="fr"
-            ?"Limite méthodologique : cette échelle à six dimensions est une auto-évaluation structurée, et non un instrument psychométrique validé ou un test de performance standardisé. Le scénario affiché ensuite est illustratif et ne prédit pas une cotation."
-            :"Methodological limit: this six-dimension scale is a structured self-assessment, not a validated psychometric instrument or standardized performance test. Later scenarios are illustrative, not grade predictions."}
-        </p>
-      </section>
-      <header>
-        <h2 className="text-2xl font-black">{a.new}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-2">{a.rateHint}</p>
-      </header>
-      <SkillSliders locale={locale} ratings={initial} onChange={setInitial}/>
-      <section className="rounded-2xl border border-line bg-surface p-4">
-        <h3 className="font-black">{a.suggested}</h3>
-        <p className="mt-1 text-xs text-ink-3">{a.suggestedWhy}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {methodMatches(initial).map(({method:item,priority})=><button key={item.id} type="button" onClick={()=>setMethodId(item.id)}
-            className={"rounded-xl border px-3 py-2 text-sm font-semibold " +(methodId===item.id?"border-accent bg-accent-soft":"border-line")}>
-            {item.title} · {t.axis[priority]}
-          </button>)}
-        </div>
-      </section>
-      <div className="grid gap-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2">
-        <label className="block text-sm font-bold sm:col-span-2">{a.method}
-          <select value={methodId} onChange={e=>setMethodId(e.target.value)} className="mt-2 w-full rounded-xl border border-line bg-bg p-3 text-sm">
-            {METHODS_FOR_PLANS.map(m=><option key={m.id} value={m.id}>{m.title}</option>)}
-          </select>
-        </label>
-        <Link href={"/atlas/"+methodId}
-          className="self-end text-sm font-bold text-accent underline underline-offset-4 sm:col-span-2">
-          {locale==="fr"?"Ouvrir la fiche détaillée de la méthode":"View full method guide"} ↗
-        </Link>
-        <label className="text-sm font-bold">{a.weeks}
-          <select value={horizon} onChange={e=>setHorizon(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-line bg-bg p-3">
-            {OPTIONS.map(n=><option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-        <label className="text-sm font-bold">{a.sessions}
-          <select value={frequency} onChange={e=>setFrequency(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-line bg-bg p-3">
-            {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm font-bold sm:col-span-2">{a.goal}
-          <input maxLength={300} value={goal} onChange={e=>setGoal(e.target.value)}
-            placeholder={a.goalPlaceholder} className="mt-2 w-full rounded-xl border border-line bg-bg p-3"/>
-        </label>
-      </div>
-      <ProfileRadar locale={locale} baseline={initial}
-        expected={expectedRatingsAtWeek(initial,method,horizon,horizon,frequency)} actual={null}/>
-      <p className="text-xs leading-relaxed text-ink-3">{a.formula}</p>
-      <label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed">
-        <input type="checkbox" checked={protocolConfirmed} onChange={e=>setProtocolConfirmed(e.target.checked)}
-          className="mt-1 h-4 w-4 accent-accent"/>
-        <span>{locale==="fr"
-          ?"J’ai suivi les quatre étapes et évalué les six dimensions selon les mêmes critères. Je comprends que les valeurs sont déclaratives."
-          :"I followed the four steps and reviewed all six dimensions using the same criteria. I understand these are self-reported values."}</span>
-      </label>
-      <button type="button" disabled={pending || !protocolConfirmed} onClick={saveBaseline}
-        className="rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{a.create}</button>
-    </> : chosen && scenario ? <>
+    {formMode ? <StructuredAssessment locale={locale} today={today} observed={observedEvidence} defaults={defaults}
+      onCancel={assessments.length ? () => setFormMode(false) : undefined}
+      onSaved={(record) => {
+        setAssessments(curr=>[record,...curr]);setSelectedId(record.id);setFormMode(false);
+        setWorking({...record.ratings});setWeek(1);setNotes("");setNotice(a.saved);router.refresh();
+      }}/>
+    : chosen && scenario ? <>
+      <EvidencePanel locale={locale} record={chosen} baseline={assessments[assessments.length-1]}/>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-surface-2 p-4"><p className="text-xs font-semibold text-ink-3">{a.selected}</p>
           <p className="mt-1 font-black">{chosenMethod?.title??a.noMethod}</p></div>
@@ -409,4 +320,51 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       <p className="mt-2 text-xs leading-relaxed text-ink-3">{a.gradeHelp}</p>
     </section>
   </div>;
+}
+
+/** Evidence-separated profile of one assessment, compared with the first (baseline) one. */
+function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: SavedAssessment; baseline?: SavedAssessment }) {
+  const t = trainingDictionary(locale);
+  const fr = locale === "fr";
+  const measurements = parseMeasurements(record.measurements);
+  const context = parseContext(record.context);
+  const isBaseline = !baseline || baseline.id === record.id;
+  const changes = !isBaseline ? compareMeasurements(parseMeasurements(baseline!.measurements), measurements) : [];
+  const ratingDelta = (axis: TrainingAxis) => isBaseline ? null : record.ratings[axis] - baseline!.ratings[axis];
+  return <section aria-labelledby="evidence-heading" className="space-y-4 rounded-2xl border border-line bg-surface p-4 sm:p-5">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="evidence-heading" className="text-lg font-black">{fr ? "Profil par niveau de preuve" : "Profile by evidence level"}</h2>
+      <span className="text-xs font-semibold text-ink-3">
+        {record.kind === "STRUCTURED" ? (fr ? "Bilan structuré" : "Structured assessment") : record.kind === "BASIC" ? (fr ? "Bilan de base" : "Basic assessment") : (fr ? "Auto-évaluation (v1)" : "Self-assessment (v1)")}
+        {!isBaseline ? (fr ? " · comparé au bilan initial du " : " · compared with baseline of ") + new Date(baseline!.createdAt).toLocaleDateString(fr ? "fr-FR" : "en-GB") : ""}
+      </span>
+    </div>
+    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+      {(["measured","observed","self","insufficient"] as const).map(l=><span key={l} className="flex items-center gap-1.5"><EvidenceBadge level={l} locale={locale}/><span className="text-ink-3">{EVIDENCE_LABELS[l].hint[locale]}</span></span>)}
+    </div>
+    {measurements.length ? <ul className="grid gap-2 sm:grid-cols-2">
+      {measurements.map(m=>{ const def=PROTOCOL_TESTS.find(d=>d.id===m.id)!; const c=changes.find(x=>x.id===m.id);
+        return <li key={m.id} className="rounded-xl border border-line p-3 text-sm">
+          <div className="flex items-center justify-between gap-2"><strong>{def.name[locale]}</strong><EvidenceBadge level="measured" locale={locale}/></div>
+          <p className="mt-1 text-xl font-black tabular-nums">{m.value} {m.unit}
+            {c ? <span className={"ml-2 text-sm font-bold "+(c.direction==="better"?"text-accent":c.direction==="worse"?"text-danger":"text-ink-3")}>
+              {c.delta>0?"+":""}{c.delta} {fr?"vs initial":"vs baseline"}</span> : null}</p>
+          <p className="text-xs text-ink-3">{m.date} · {fr?"protocole":"protocol"} v{m.protocolVersion} · {m.quality==="complete"?(fr?"conditions complètes":"complete conditions"):(fr?"conditions partielles":"partial conditions")}{m.conditions?" · "+m.conditions:""}</p>
+          {c && !c.comparable ? <p className="mt-1 text-xs font-semibold text-ink-2">{fr?"Comparaison indicative : conditions ou version différentes.":"Indicative comparison: conditions or version differ."}</p> : null}
+        </li>;})}
+    </ul> : <p className="flex items-center gap-2 text-sm text-ink-2"><EvidenceBadge level="insufficient" locale={locale}/> {fr ? "Aucun test mesuré dans ce bilan." : "No measured test in this assessment."}</p>}
+    {context?.observed.length ? <ul className="grid gap-2 sm:grid-cols-2">
+      {context.observed.map(o=><li key={o.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm">
+        <span>{OBSERVED_LABELS[o.id]?.[locale] ?? o.id}<span className="block text-xs text-ink-3">n = {o.sample}</span></span>
+        <span className="flex items-center gap-2"><strong className="tabular-nums">{o.value}</strong><EvidenceBadge level={o.evidence} locale={locale}/></span>
+      </li>)}
+    </ul> : null}
+    <ul className="grid gap-2 sm:grid-cols-3">
+      {TRAINING_AXES.map(axis=>{ const d=ratingDelta(axis); return <li key={axis} className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
+        <span className="flex items-center gap-1.5">{t.axis[axis]}</span>
+        <span className="tabular-nums font-bold">{record.ratings[axis].toFixed(1)}{d!==null && d!==0 ? <span className="ml-1 text-xs text-ink-3">({d>0?"+":""}{d.toFixed(1)})</span> : null}</span>
+      </li>;})}
+    </ul>
+    <p className="text-xs text-ink-3">{fr ? "Notes 1–5 : déclaratives. Les écarts entre bilans reflètent aussi un changement de perception." : "1–5 ratings: self-reported. Differences between assessments also reflect changes in perception."}</p>
+  </section>;
 }
