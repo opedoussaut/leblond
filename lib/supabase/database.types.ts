@@ -843,6 +843,7 @@ export type Database = {
           preferred_language?: string;
           self_reported_level?: string | null;
           self_reported_level_system?: Database["public"]["Enums"]["grade_system"] | null;
+          self_reported_route_grade?: string | null;
           target_grade?: string;
           target_grade_system?: Database["public"]["Enums"]["grade_system"];
           updated_at?: string;
