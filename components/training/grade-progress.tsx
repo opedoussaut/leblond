@@ -44,12 +44,12 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
         </text>)}
       {target ? <g>
         <line x1={left} x2={width-right} y1={py(target.ordinal)} y2={py(target.ordinal)}
-          stroke="#b4532a" strokeWidth="2" strokeDasharray="7 6"/>
+          stroke="#297cc8" strokeWidth="2" strokeDasharray="7 6"/>
         <text x={left} y={Math.max(12,py(target.ordinal)-9)} fontSize="12" fill="#b4532a">
           {fr?"Objectif":"Goal"} {target.grade}
         </text>
       </g>:null}
-      {groups.map((group,i)=>group.length>1?<polyline key={i} fill="none" stroke="#247ca0" strokeWidth="3"
+      {groups.map((group,i)=>group.length>1?<polyline key={i} fill="none" stroke="#173e66" strokeWidth="3"
         points={group.map(p=>px(p.week)+","+py(p.ordinal)).join(" ")}/>:null)}
       {points.map(p=><g key={p.week}>
         <circle cx={px(p.week)} cy={py(p.ordinal)} r="5" fill="#247ca0">
