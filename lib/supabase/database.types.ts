@@ -817,6 +817,8 @@ export type Database = {
           self_reported_route_grade: string | null;
           target_grade: string;
           target_grade_system: Database["public"]["Enums"]["grade_system"];
+          target_discipline: "BOULDER" | "ROUTE" | "BOTH";
+          target_route_grade: string | null;
           updated_at: string;
           weight_kg: number | null;
         };
@@ -836,6 +838,8 @@ export type Database = {
           self_reported_route_grade?: string | null;
           target_grade?: string;
           target_grade_system?: Database["public"]["Enums"]["grade_system"];
+          target_discipline?: "BOULDER" | "ROUTE" | "BOTH";
+          target_route_grade?: string | null;
           updated_at?: string;
           weight_kg?: number | null;
         };
@@ -855,6 +859,8 @@ export type Database = {
           self_reported_route_grade?: string | null;
           target_grade?: string;
           target_grade_system?: Database["public"]["Enums"]["grade_system"];
+          target_discipline?: "BOULDER" | "ROUTE" | "BOTH";
+          target_route_grade?: string | null;
           updated_at?: string;
           weight_kg?: number | null;
         };
