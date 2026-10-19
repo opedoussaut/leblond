@@ -32,6 +32,8 @@ export const fr = {
   },
   nav: {
     home: "Accueil",
+    calendar: "Calendrier",
+    atlas: "Atlas",    home: "Accueil",
     session: "Séance",
     progress: "Progrès",
     patrick: "Patrick",
