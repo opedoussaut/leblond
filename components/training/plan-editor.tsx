@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteTrainingPlan, saveTrainingPlan } from "@/lib/actions/training-plans";
 import type { Locale } from "@/lib/i18n";
@@ -123,6 +124,10 @@ export function PlanEditor({ initialPlans, locale }: { initialPlans: SavedTraini
                 {METHODS_FOR_PLANS.map((method) => <option key={method.id} value={method.id}>{method.title}</option>)}
               </select>
             </label>
+            <Link className="mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4"
+              href={"/atlas/" + session.methodId}>
+              {locale === "fr" ? "Voir la fiche complète de cette méthode" : "Open full method guide"} ↗
+            </Link>
             <label className="mt-3 block text-xs font-bold text-ink-2">
               {t.planNotes}
               <textarea value={session.notes} maxLength={500} rows={2} onChange={(e) => updateSession(index, { notes: e.target.value })}
