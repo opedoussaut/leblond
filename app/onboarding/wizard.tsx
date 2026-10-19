@@ -145,6 +145,9 @@ export function OnboardingWizard({
                 routeTarget: t.onboarding.routeTarget,
                 selectRouteGrade: t.onboarding.selectRouteTarget,
               }} />
+            {includesRoute(targetDiscipline) ? (
+              <p className="rounded-xl border border-line bg-surface p-3 text-xs text-ink-2">{t.onboarding.routeProgressPending}</p>
+            ) : null}
           </>
         ) : null}
 
@@ -178,8 +181,9 @@ export function OnboardingWizard({
               <p className="whitespace-pre-line text-ink">{fmt(t.onboarding.patrickIntro, { name: name || "" })}</p>
             </div>
             {error ? <Notice tone="error">{error}</Notice> : null}
-            <Button size="lg" className="w-full" disabled={pending} onClick={() => finish("/session/new")}>
-              {pending ? t.common.saving : t.onboarding.startFirstSession}
+            <Button size="lg" className="w-full" disabled={pending}
+              onClick={() => finish(targetDiscipline === "ROUTE" ? "/home" : "/session/new")}>
+              {pending ? t.common.saving : targetDiscipline === "ROUTE" ? t.onboarding.goHome : t.onboarding.startFirstSession}
             </Button>
             <Button variant="ghost" className="w-full" disabled={pending} onClick={() => finish("/home")}>
               {t.onboarding.goHome}
