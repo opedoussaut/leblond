@@ -22,6 +22,7 @@ begin
       nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
       nullif(btrim(new.raw_user_meta_data ->> 'full_name'), ''),
       nullif(btrim(new.raw_user_meta_data ->> 'name'), ''),
+      (select b.display_name from public.beta_users b where b.email = lower(new.email) and b.active),
       nullif(split_part(coalesce(new.email,''), '@', 1), ''),
       'Climber'
     ), 60
