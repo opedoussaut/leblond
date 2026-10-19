@@ -33,7 +33,7 @@ values
   ('Climbing District Batignolles','CLIMBING_DISTRICT'::public.gym_brand,'Paris 17e','FR','CLIMBING_DISTRICT_COLOR'::public.grade_system,true,false,'https://climbingdistrict.com/nos-salles/'),
   ('Climbing District Sèvres-Lecourbe','CLIMBING_DISTRICT'::public.gym_brand,'Paris 15e','FR','CLIMBING_DISTRICT_COLOR'::public.grade_system,false,true,'https://climbingdistrict.com/nos-salles/'),
   ('Climbing District Annette K.','CLIMBING_DISTRICT'::public.gym_brand,'Paris 6e','FR','CLIMBING_DISTRICT_COLOR'::public.grade_system,false,true,'https://climbingdistrict.com/salle-escalade/annette-k/')
-on conflict (brand, lower(name)) do update set
+on conflict (brand, lower(name)) where external_provider is null do update set
   city = excluded.city,
   has_bouldering = excluded.has_bouldering,
   has_routes = excluded.has_routes,
