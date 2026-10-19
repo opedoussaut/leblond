@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { addCalendarEntry, changeCalendarStatus, removeCalendarEntry } from "@/lib/actions/calendar";
 import { calendarDictionary } from "@/lib/i18n/calendar";
 import type { Locale } from "@/lib/i18n";
@@ -25,11 +25,12 @@ const kinds=["CLIMB","TRAIN","REST","ASSESS","OTHER"] as const;
 const disciplines=["BOULDER","ROUTE","BOTH","NONE"] as const;
 
 export function CalendarWorkspace({
-  month, locale, events, sessions,
-}: { month:string; locale:Locale; events:CalendarEvent[]; sessions:LoggedSession[] }) {
+  month, locale, events, sessions, presetMethod = "",
+}: { month:string; locale:Locale; events:CalendarEvent[]; sessions:LoggedSession[]; presetMethod?:string }) {
   const t=calendarDictionary(locale);
   const router=useRouter();
-  const today=new Date().toLocaleDateString("en-CA"); // day selection is a local calendar date
+  const now=new Date();
+  const today=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate());
   const [selected,setSelected]=useState(month===today.slice(0,7)?today:month+"-01");
   const safeSelected=selected.startsWith(month)?selected:month+"-01";
   const [kind,setKind]=useState<CalendarInput["kind"]>("CLIMB");
@@ -37,7 +38,7 @@ export function CalendarWorkspace({
   const [title,setTitle]=useState("");
   const [time,setTime]=useState("");
   const [minutes,setMinutes]=useState("");
-  const [method,setMethod]=useState("");
+  const [method,setMethod]=useState(presetMethod);
   const [notes,setNotes]=useState("");
   const [date,setDate]=useState(safeSelected);
   const [feedback,setFeedback]=useState("");
@@ -54,14 +55,16 @@ export function CalendarWorkspace({
     setSelected(next+"-01");setDate(next+"-01");router.push("/calendar?month="+next);
   }
   function choose(day:string){setSelected(day);setDate(day);setFeedback("");}
-  function submit(e:React.FormEvent<HTMLFormElement>){
+  function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setFeedback("");
     start(async()=>{
       const result=await addCalendarEntry({
         eventDate:date,startTime:time,title,kind,discipline,
         minutes:minutes?Number(minutes):null,methodId:method||null,notes,
       });
-      if(result.ok){setTitle("");setNotes("");setMethod("");setMinutes("");setFeedback(t.saved);router.refresh();}
+      if(result.ok){setTitle("");setNotes("");setMethod("");setMinutes("");setFeedback(t.saved);
+        setSelected(date);
+        if (date.slice(0,7)!==month) router.push("/calendar?month="+date.slice(0,7)); else router.refresh();}
       else setFeedback(t.error);
     });
   }
