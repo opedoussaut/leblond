@@ -29,7 +29,7 @@ export default async function TrainingPlansPage() {
 
   return (
     <div>
-      <Link href="/training" className="text-sm font-bold text-accent underline underline-offset-4">← {t.back}</Link>
+      <Link href="/train" className="text-sm font-bold text-accent underline underline-offset-4">← {t.back}</Link>
       <h1 className="mt-5 text-3xl font-black">{t.planTitle}</h1>
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{t.plansSubtitle}</p>
       {error ? (
