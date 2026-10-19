@@ -150,6 +150,8 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     return { ...(last?.ratings ?? first.ratings) };
   });
   const [notes,setNotes]=useState("");
+  const [protocolConfirmed,setProtocolConfirmed]=useState(false);
+  const [checkinProtocolConfirmed,setCheckinProtocolConfirmed]=useState(false);
   const [week,setWeek]=useState(() => {
     const first = initialAssessments[0];
     return first ? Math.max(1,Math.min(first.horizonWeeks,elapsedWeeks(first.createdAt,new Date()))) : 1;
@@ -173,15 +175,16 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     const latestEntry=[...entries].sort((x,y)=>y.week-x.week)[0];
     setWorking({ ...(latestEntry?.ratings ?? record.ratings) });
     setWeek(Math.max(1,Math.min(record.horizonWeeks,elapsedWeeks(record.createdAt,new Date()))));
-    setNotes("");setAxis("technique");
+    setNotes("");setAxis("technique");setCheckinProtocolConfirmed(false);
   }
 
   function startNew() {
     setFormMode(true);setNotice("");setInitial({...DEFAULT_SKILLS});setMethodId("technique");
-    setGoal("");setHorizon(12);setFrequency(2);
+    setGoal("");setHorizon(12);setFrequency(2);setProtocolConfirmed(false);
   }
 
   function saveBaseline() {
+    if (!protocolConfirmed) return;
     setNotice("");
     startTransition(async()=>{
       const result=await createTrainingAssessment({
@@ -195,7 +198,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   }
 
   function saveWeek() {
-    if(!chosen || now<1) return;
+    if(!chosen || now<1 || !checkinProtocolConfirmed) return;
     setNotice("");
     startTransition(async()=>{
       const result=await saveTrainingCheckin({assessmentId:chosen.id,week,ratings:working,notes});
@@ -232,6 +235,31 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       </button>)}
     </nav>
     {formMode ? <>
+      <section aria-labelledby="assessment-protocol-title" className="rounded-[1.5rem] border border-accent/25 bg-accent-soft p-5 sm:p-6">
+        <p className="leblond-eyebrow text-accent">{locale==="fr"?"AVANT DE COMMENCER":"BEFORE YOU BEGIN"}</p>
+        <h2 id="assessment-protocol-title" className="mt-2 text-xl font-extrabold">
+          {locale==="fr"?"Protocole de bilan initial · 4 étapes":"Baseline assessment · four-step protocol"}
+        </h2>
+        <ol className="mt-4 space-y-3 text-sm leading-relaxed text-ink">
+          <li><strong>01 · {locale==="fr"?"Définir la période de référence":"Define your reference period"}.</strong> {locale==="fr"
+            ?"Appuie-toi sur les 4 dernières semaines de grimpe. Précise mentalement ta discipline, tes salles et les types de blocs concernés."
+            :"Review the last four weeks of climbing. Use the same discipline, gyms and comparable types of climbs as your reference."}</li>
+          <li><strong>02 · {locale==="fr"?"Réunir des observations":"Gather observations"}.</strong> {locale==="fr"
+            ?"Idéalement, consulte au moins 3 séances comparables, leurs essais et réussites. Si tu n’as pas ce recul, ce bilan est exploratoire."
+            :"Ideally review at least three comparable sessions and their attempts and sends. With less evidence, treat this as exploratory."}</li>
+          <li><strong>03 · {locale==="fr"?"Noter six compétences":"Rate six skills"}.</strong> {locale==="fr"
+            ?"Lis chaque question, puis note de 1 (rarement) à 5 (régulièrement) ce que tu observes. Les notes décrivent ton ressenti, pas une force mesurée."
+            :"Read each question, then rate the observed frequency from 1 (rarely) to 5 (reliably). These are self-reports, not force measurements."}</li>
+          <li><strong>04 · {locale==="fr"?"Conserver des conditions comparables":"Keep conditions comparable"}.</strong> {locale==="fr"
+            ?"Au prochain bilan (idéalement dans 4 semaines), réutilise la même grille, la même période de référence et une pratique similaire. En cas de douleur, n’effectue aucun test de charge maximale."
+            :"At the next check-in (ideally in four weeks), reuse the same scale, reference period and similar climbing. Do not perform maximal loading tests if in pain."}</li>
+        </ol>
+        <p className="mt-4 border-t border-accent/20 pt-3 text-xs leading-relaxed text-ink-2">
+          {locale==="fr"
+            ?"Limite méthodologique : cette échelle à six dimensions est une auto-évaluation structurée, et non un instrument psychométrique validé ou un test de performance standardisé. Le scénario affiché ensuite est illustratif et ne prédit pas une cotation."
+            :"Methodological limit: this six-dimension scale is a structured self-assessment, not a validated psychometric instrument or standardized performance test. Later scenarios are illustrative, not grade predictions."}
+        </p>
+      </section>
       <header>
         <h2 className="text-2xl font-black">{a.new}</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-2">{a.rateHint}</p>
@@ -275,7 +303,14 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       <ProfileRadar locale={locale} baseline={initial}
         expected={expectedRatingsAtWeek(initial,method,horizon,horizon,frequency)} actual={null}/>
       <p className="text-xs leading-relaxed text-ink-3">{a.formula}</p>
-      <button type="button" disabled={pending} onClick={saveBaseline}
+      <label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed">
+        <input type="checkbox" checked={protocolConfirmed} onChange={e=>setProtocolConfirmed(e.target.checked)}
+          className="mt-1 h-4 w-4 accent-accent"/>
+        <span>{locale==="fr"
+          ?"J’ai suivi les quatre étapes et évalué les six dimensions selon les mêmes critères. Je comprends que les valeurs sont déclaratives."
+          :"I followed the four steps and reviewed all six dimensions using the same criteria. I understand these are self-reported values."}</span>
+      </label>
+      <button type="button" disabled={pending || !protocolConfirmed} onClick={saveBaseline}
         className="rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{a.create}</button>
     </> : chosen && scenario ? <>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -332,13 +367,16 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       <section className="rounded-2xl border border-line bg-surface-2 p-5">
         <h2 className="text-lg font-black">{a.checkin}</h2>
         <p className="mt-2 text-xs leading-relaxed text-ink-2">{a.checkinHint}</p>
+        <p className="mt-2 text-xs leading-relaxed text-ink-2">{locale==="fr"
+          ?"Protocole de répétition : compare les 4 dernières semaines avec ton bilan précédent, dans des conditions aussi similaires que possible. Pour chaque dimension, garde la même échelle de 1 à 5 ; distingue les faits enregistrés de ton ressenti."
+          :"Repeat the protocol: compare the last four weeks against your previous baseline using as similar conditions as possible. Apply the same 1–5 scale for every dimension; distinguish logged evidence from your perception."}</p>
         {now<1 ? <p className="mt-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-2">{a.notYet}</p> : <>
           <label className="mt-4 block text-sm font-bold">{a.chooseWeek}
             <select value={Math.max(1,Math.min(week,now))} onChange={e=>{
               const targetWeek=Number(e.target.value);
               setWeek(targetWeek);
               setWorking({ ...(related.find(c=>c.week===targetWeek)?.ratings ?? latest?.ratings ?? chosen.ratings) });
-              setNotes(related.find(c=>c.week===targetWeek)?.notes??"");
+              setNotes(related.find(c=>c.week===targetWeek)?.notes??"");setCheckinProtocolConfirmed(false);
             }} className="mt-2 block w-full rounded-xl border border-line bg-surface p-3 sm:max-w-xs">
               {Array.from({length:now},(_,i)=>i+1).map(n=><option key={n} value={n}>{a.wk} {n}</option>)}
             </select>
@@ -348,7 +386,15 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
             <textarea rows={3} maxLength={800} value={notes} onChange={e=>setNotes(e.target.value)}
               className="mt-2 block w-full rounded-xl border border-line bg-surface p-3"/>
           </label>
-          <button type="button" onClick={saveWeek} disabled={pending}
+          <label className="mt-4 flex items-start gap-3 rounded-xl border border-line bg-surface p-3 text-sm leading-relaxed">
+            <input type="checkbox" checked={checkinProtocolConfirmed}
+              onChange={e=>setCheckinProtocolConfirmed(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-accent"/>
+            <span>{locale==="fr"
+              ?"J’ai repris le même protocole et signalé les changements ou limites dans mes notes."
+              :"I repeated the same protocol and noted any changes or limitations."}</span>
+          </label>
+          <button type="button" onClick={saveWeek} disabled={pending || !checkinProtocolConfirmed}
             className="mt-4 rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{a.save}</button>
         </>}
       </section>
