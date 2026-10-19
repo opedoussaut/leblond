@@ -3,14 +3,16 @@ import type { Metadata } from "next";
 import { PublicAssessment } from "@/components/training/public-assessment";
 import { Wordmark } from "@/components/brand/wordmark";
 import { getI18n } from "@/lib/i18n/server";
+import { requireViewer } from "@/lib/auth/viewer";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 
 export const metadata: Metadata = {
   title: "Free Climbing Self-Assessment",
-  description: "Compare a climbing skill self-assessment with an illustrative training-method scenario. No account needed.",
+  description: "Compare your climbing skills with an illustrative training-method scenario. Sign-in required.",
 };
 
 export default async function PublicEvaluationPage() {
+  await requireViewer();
   const { locale } = await getI18n();
   const t = assessmentDictionary(locale);
   return <main className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6">
