@@ -8,7 +8,8 @@ import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
 import { GymPicker } from "@/components/climbing/gym-picker";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
-import { ChoiceChips, Input, Label } from "@/components/ui/field";
+import { Input, Label } from "@/components/ui/field";
+import { LanguagePicker } from "@/components/onboarding/language-picker";
 import { completeOnboarding } from "@/lib/actions/profile";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { fmt, getDictionary, type Locale } from "@/lib/i18n";
@@ -75,15 +76,10 @@ export function OnboardingWizard({
           <>
             <h1 className="text-2xl font-black">{t.onboarding.languageTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.languageHelp}</p>
-            <ChoiceChips<Locale>
-              name="language"
+            <LanguagePicker
               legend={t.onboarding.languageTitle}
               value={language}
               onChange={setLanguage}
-              options={[
-                { value: "fr", label: t.settings.languageFr },
-                { value: "en", label: t.settings.languageEn },
-              ]}
             />
           </>
         ) : null}
