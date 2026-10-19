@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { GRADE_SYSTEMS } from "@/lib/climbing/types";
+import { TARGET_DISCIPLINES, includesRoute } from "@/lib/climbing/goals";
 import { isValidGrade } from "@/lib/grading";
 import { isFrenchRouteGrade } from "@/lib/grading/route-grades";
 import { LOCALE_COOKIE, LOCALES } from "@/lib/i18n";
@@ -26,11 +27,15 @@ const onboardingSchema = z
     routeGrade: z.string().max(10).nullable(),
     targetSystem: z.enum(GRADE_SYSTEMS),
     targetGrade: z.string().max(10),
+    targetDiscipline: z.enum(TARGET_DISCIPLINES),
+    targetRouteGrade: z.string().max(10).nullable(),
     favouriteGymIds: z.array(z.guid()).max(30),
   })
   .refine(gradePair("level", "levelSystem"), { path: ["level"] })
   .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] })
-  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });
+  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] })
+  .refine((v) => !v.targetRouteGrade || isFrenchRouteGrade(v.targetRouteGrade), { path: ["targetRouteGrade"] })
+  .refine((v) => !includesRoute(v.targetDiscipline) || !!v.targetRouteGrade, { path: ["targetRouteGrade"] });
 
 export async function completeOnboarding(input: z.input<typeof onboardingSchema>): Promise<ActionResult> {
   const viewer = await requireViewer({ allowIncompleteOnboarding: true });
@@ -47,6 +52,8 @@ export async function completeOnboarding(input: z.input<typeof onboardingSchema>
       self_reported_route_grade: v.routeGrade || null,
       target_grade: v.targetGrade,
       target_grade_system: v.targetSystem,
+      target_discipline: v.targetDiscipline,
+      target_route_grade: v.targetRouteGrade,
       onboarding_completed_at: new Date().toISOString(),
     })
     .eq("id", viewer.userId);
@@ -68,6 +75,8 @@ const profileSchema = z
     language: z.enum(LOCALES),
     targetSystem: z.enum(GRADE_SYSTEMS),
     targetGrade: z.string().max(10),
+    targetDiscipline: z.enum(TARGET_DISCIPLINES),
+    targetRouteGrade: z.string().max(10).nullable(),
     boulderSystem: z.enum(GRADE_SYSTEMS),
     boulderGrade: z.string().max(10).nullable(),
     routeGrade: z.string().max(10).nullable(),
@@ -78,7 +87,9 @@ const profileSchema = z
   })
   .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] })
   .refine((v) => !v.boulderGrade || isValidGrade(v.boulderSystem, v.boulderGrade), { path: ["boulderGrade"] })
-  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] });
+  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] })
+  .refine((v) => !v.targetRouteGrade || isFrenchRouteGrade(v.targetRouteGrade), { path: ["targetRouteGrade"] })
+  .refine((v) => !includesRoute(v.targetDiscipline) || !!v.targetRouteGrade, { path: ["targetRouteGrade"] });
 
 function nullable(v: FormDataEntryValue | null): string | null {
   const s = typeof v === "string" ? v.trim() : "";
@@ -92,6 +103,8 @@ export async function updateProfile(_prev: ActionResult | null, formData: FormDa
     language: formData.get("language"),
     targetSystem: formData.get("targetSystem"),
     targetGrade: formData.get("targetGrade"),
+    targetDiscipline: formData.get("targetDiscipline"),
+    targetRouteGrade: nullable(formData.get("targetRouteGrade")),
     boulderSystem: formData.get("boulderSystem"),
     boulderGrade: nullable(formData.get("boulderGrade")),
     routeGrade: nullable(formData.get("routeGrade")),
@@ -109,6 +122,8 @@ export async function updateProfile(_prev: ActionResult | null, formData: FormDa
       preferred_language: v.language,
       target_grade: v.targetGrade,
       target_grade_system: v.targetSystem,
+      target_discipline: v.targetDiscipline,
+      target_route_grade: v.targetRouteGrade,
       self_reported_level: v.boulderGrade,
       self_reported_level_system: v.boulderGrade ? v.boulderSystem : null,
       self_reported_route_grade: v.routeGrade,
