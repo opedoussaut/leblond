@@ -46,4 +46,25 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await expect(slide).toHaveValue("1");
   await page.getByRole("checkbox", { name: /Simuler un bilan ultérieur/ }).check();
   await expect(page.getByText(/Rien n'est enregistré ici/)).toBeVisible();
+
+  // Dedicated atlas: twelve descriptive axes, complete method sheet and
+  // a way to schedule the selected method without buying or saving a plan.
+  await page.goto("/atlas");
+  await expect(page.getByRole("img", { name: "Comparer sur le radar" })).toBeVisible();
+  await expect(page.getByText("Mobilité", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /Max hangs/ }).first().click();
+  await expect(page).toHaveURL(/\/atlas\/max-hangs/);
+  await expect(page.getByRole("heading", { name: "Max hangs", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Comment pratiquer" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Schéma de prise et de suspension/ })).toBeVisible();
+  await page.getByRole("link", { name: /Planifier cette méthode/ }).click();
+  await expect(page).toHaveURL(/\/calendar\?method=max-hangs/);
+  await expect(page.getByLabel("Méthode de l’Atlas (facultatif)")).toHaveValue("max-hangs");
+  await page.getByLabel("Date", { exact: true }).fill("2026-11-15");
+  await page.getByLabel("Titre", { exact: true }).fill("Poutre avec mes amis");
+  await page.getByRole("button", { name: "Enregistrer la date" }).click();
+  await expect(page).toHaveURL(/\/calendar\?month=2026-11/);
+  await expect(page.getByText("Poutre avec mes amis")).toBeVisible();
+  await page.getByRole("button", { name: "Marquer effectué" }).click();
+  await expect(page.getByText("Effectué")).toBeVisible();
 });
