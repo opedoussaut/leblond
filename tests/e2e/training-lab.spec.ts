@@ -36,13 +36,14 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await page.goto("/calendar");
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
   await expect(nav.getByRole("link", { name: "Calendrier", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(nav.getByRole("link", { name: "Séance", exact: true })).not.toHaveAttribute("aria-current", "page");
+  // Progressive disclosure: only the selected area's pages are listed.
+  await expect(nav.getByRole("link", { name: "Séance", exact: true })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "S’entraîner", exact: true })).toHaveAttribute("data-active-area", "true");
   await nav.getByRole("link", { name: "Suivi", exact: true }).click();
   await expect(page).toHaveURL(/\/follow-up/);
   await expect(page.locator("#app-main h1")).toBeFocused();
   await expect(nav.getByRole("link", { name: "Suivi", exact: true })).toHaveAttribute("data-active-area", "true");
-  await expect(nav.getByRole("link", { name: "Calendrier", exact: true })).not.toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Calendrier", exact: true })).toHaveCount(0);
   await nav.getByRole("link", { name: "S’entraîner", exact: true }).click();
   await expect(page).toHaveURL(/\/train/);
   await expect(page.getByRole("link", { name: /Training Atlas/ })).toBeVisible();
@@ -71,7 +72,7 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await expect(page.getByRole("heading", { name: "Max hangs", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Comment pratiquer" })).toBeVisible();
   await expect(page.getByRole("img", { name: /Schéma de prise et de suspension/ })).toBeVisible();
-  await page.getByRole("link", { name: /Planifier cette méthode/ }).click();
+  await page.getByRole("link", { name: /Planifier dans mon calendrier/ }).click();
   await expect(page).toHaveURL(/\/calendar\?method=max-hangs/);
   await expect(page.getByLabel("Méthode de l’Atlas (facultatif)")).toHaveValue("max-hangs");
   await page.getByLabel("Date", { exact: true }).fill("2026-11-15");

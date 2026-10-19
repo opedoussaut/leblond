@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { AreaCard } from "@/components/layout/area-card";
-import { CalendarIcon, ProgressIcon, SessionIcon } from "@/components/layout/nav-icons";
+import { ProgressIcon, SessionIcon } from "@/components/layout/nav-icons";
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
@@ -15,6 +16,10 @@ export default async function ClimbingHome() {
       subtitle={fr
         ? "Ton carnet de grimpe. Séances, essais et projets, sans programme obligatoire."
         : "Your climbing log. Sessions, attempts and projects, with no training plan required."}/>
+    <Link href="/session/new"
+      className="flex min-h-14 items-center justify-center rounded-2xl bg-accent px-6 text-base font-extrabold text-accent-ink hover:opacity-90 sm:inline-flex">
+      {fr ? "Commencer une séance de grimpe" : "Start a climbing session"} →
+    </Link>
     <div className="grid gap-4 sm:grid-cols-2">
       <AreaCard href="/session" icon={<SessionIcon />}
         title={fr ? "Mes séances" : "My climbing sessions"}

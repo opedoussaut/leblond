@@ -1,0 +1,347 @@
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * Acceptance journeys for the two LEBLOND experiences on a real local stack:
+ *  A — free climbing tracking (no plan, no assessment)
+ *  B — guided training: assessment → Atlas → plan → calendar → player → follow-up → reassessment
+ *  C — navigation, focus and history (desktop + mobile)
+ *  D — authentication guard and cross-account isolation
+ *  E — approved light visual identity, responsive layout, screenshots
+ * Synthetic *@leblond.local identities only (reset by global-setup).
+ */
+test.skip(!process.env.E2E_BASE_URL, "E2E_BASE_URL not set — needs the local Supabase stack");
+test.describe.configure({ mode: "serial" });
+
+const PASSWORD = "ReasonablyStrongJourneyPassword123!";
+const DESKTOP = { width: 1440, height: 900 };
+let guidedSessionUrl = "";
+
+function parisDate(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+function mondayOf(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7));
+  return dt.toISOString().slice(0, 10);
+}
+
+async function register(page: Page, name: string, email: string) {
+  await page.goto("/login");
+  await page.getByRole("tab", { name: "Créer un compte" }).click();
+  await page.getByLabel("Prénom ou pseudo").fill(name);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
+  await expect(page).toHaveURL(/\/home/);
+}
+
+async function signInWithPassword(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+}
+
+async function chooseGym(page: Page, name: string) {
+  const picker = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
+  const id = await picker.locator("option").filter({ hasText: name }).first().getAttribute("value");
+  if (!id) throw new Error("Gym not in the directory: " + name);
+  await picker.selectOption(id);
+}
+
+async function logGrade(page: Page, grade: string, results: Array<"Essai" | "Top" | "Flash">) {
+  const addButton = page.getByRole("button", { name: /AJOUTER UN BLOC/ });
+  if (await addButton.isVisible()) await addButton.click();
+  await page.getByRole("button", { name: new RegExp(`^${grade}`, "i") }).first().click();
+  const current = page.getByRole("region", { name: "Bloc en cours" });
+  for (const r of results) {
+    await current.getByRole("button", { name: r, exact: true }).click();
+    await expect(page.getByText(/noté\./)).toBeVisible();
+  }
+}
+
+/** Runs the 9-step structured protocol with two measured tests. */
+async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
+  const next = () => page.getByRole("button", { name: /^Suivant/ }).click();
+  await expect(page.getByRole("heading", { name: "Préparation et sécurité" })).toBeVisible();
+  await page.getByLabel("Depuis combien de mois grimpes-tu régulièrement ?").fill("36");
+  await page.getByRole("group", { name: /échauffement complet/ }).getByText("Oui").click();
+  await next();
+  await expect(page.getByRole("heading", { name: "Objectif et temps disponible" })).toBeFocused();
+  await page.getByLabel(/Objectif \(ex\./).fill("Réussir un 7A en bloc");
+  await next();
+  await page.getByLabel("Lieu").fill("Salle de test");
+  await next();
+  const hang = page.locator("article").filter({ hasText: "Suspension 20 mm" });
+  await hang.getByLabel(/Résultat/).fill(String(hangSeconds));
+  await hang.getByLabel("Conditions du test").fill("Poutre 20 mm, 18 h");
+  const pull = page.locator("article").filter({ hasText: "Tractions strictes" });
+  await pull.getByLabel(/Résultat/).fill(String(pullUps));
+  await pull.getByLabel("Conditions du test").fill("Barre fixe");
+  await next();
+  await expect(page.getByRole("slider", { name: "Technique" })).toBeVisible();
+  await next();
+  const results = page.getByRole("table", { name: "Résultats et qualité des données" });
+  await expect(results.getByText("Mesuré").first()).toBeVisible();
+  await expect(results.getByText("Déclaratif").first()).toBeVisible();
+  await expect(results.getByText(`${hangSeconds} s`)).toBeVisible();
+  await next();
+  await next();
+  await next();
+  await page.getByRole("checkbox", { name: /J’ai suivi le protocole/ }).check();
+  await page.getByRole("button", { name: "Enregistrer mon bilan" }).click();
+  await expect(page.getByRole("heading", { name: "Profil par niveau de preuve" })).toBeVisible();
+}
+
+test("A — free climber logs a session and sees it in Follow-up without any plan", async ({ page }) => {
+  await register(page, "Free Climber", "free@leblond.local");
+  await page.getByRole("link", { name: /Commencer une séance de grimpe/ }).click();
+  await expect(page).toHaveURL(/\/session\/new/);
+  await chooseGym(page, "Demo Arkose");
+  await expect(page.getByRole("heading", { name: "Demo Arkose" })).toBeVisible();
+  await logGrade(page, "Rouge", ["Essai", "Top"]);
+  await logGrade(page, "Bleu", ["Flash"]);
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  const sessionUrl = page.url();
+
+  await page.reload();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+
+  await page.goto("/follow-up");
+  const climbing = page.getByRole("region", { name: "Grimpe · 30 derniers jours" });
+  await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
+  await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
+  await expect(climbing.getByText("Blocs réussis", { exact: true }).locator("..")).toContainText("2");
+  await expect(page.getByText("Observé · carnet de grimpe")).toBeVisible();
+  // No plan or assessment was ever needed; training simply shows an empty, optional state.
+  await expect(page.getByText(/Pas encore de séance d’entraînement/)).toBeVisible();
+  await page.goto("/session");
+  await expect(page.locator(`a[href="${new URL(sessionUrl).pathname}"]`).first()).toBeVisible();
+});
+
+test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize(DESKTOP);
+  await register(page, "Guided Climber", "guided@leblond.local");
+
+  await page.getByRole("link", { name: /Commencer mon parcours d’entraînement/ }).click();
+  await expect(page).toHaveURL(/\/train$/);
+  await page.getByRole("link", { name: /Faire mon bilan de départ/ }).click();
+  await expect(page).toHaveURL(/\/train\/assess/);
+  await runProtocol(page, 25, 8);
+  await expect(page.getByText("25 s")).toBeVisible();
+
+  // Recommended Atlas method → add to a plan → schedule this week.
+  await page.goto("/atlas/max-hangs");
+  await expect(page.getByRole("heading", { name: "Séance type et charge de départ" })).toBeVisible();
+  await page.getByRole("link", { name: /Ajouter à un programme/ }).click();
+  await expect(page).toHaveURL(/\/training-plans\?add=max-hangs/);
+  await expect(page.getByText(/Méthode ajoutée au programme/)).toBeVisible();
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Enregistré en privé")).toBeVisible();
+  const monday = mondayOf(parisDate());
+  await page.getByLabel("Semaine du").fill(monday);
+  await page.getByRole("button", { name: "Planifier cette semaine" }).click();
+  await expect(page.getByText(/séance\(s\) ajoutée\(s\) au calendrier/)).toBeVisible();
+
+  // Open the scheduled session from the calendar.
+  await page.goto("/calendar?month=" + monday.slice(0, 7));
+  await page.getByRole("button", { name: monday, exact: true }).click();
+  await page.getByRole("region", { name: monday }).getByRole("link", { name: /Max hangs/ }).click();
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}$/);
+  guidedSessionUrl = page.url();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Max hangs");
+  await expect(page.getByRole("heading", { name: "Suspensions lourdes" })).toBeVisible();
+
+  // Start → record sets across exercises → pause/resume → refresh → finish.
+  await page.getByRole("button", { name: /Démarrer la séance/ }).click();
+  await expect(page.getByRole("timer")).toBeVisible();
+  await page.getByRole("button", { name: /Valider la série/ }).click(); // warm-up, 10 min
+  await expect(page.getByText("Enregistré")).toBeVisible();
+  await page.getByRole("button", { name: /Exercice suivant/ }).click();
+  await expect(page.getByRole("heading", { name: "Échauffement des doigts" })).toBeVisible();
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: /Valider la série/ }).click();
+    await expect(page.getByRole("listitem").filter({ hasText: `Série ${i + 1}` })).toBeVisible();
+  }
+  await page.getByRole("button", { name: /Exercice suivant/ }).click();
+  await expect(page.getByRole("heading", { name: "Suspensions lourdes" })).toBeVisible();
+  await page.getByLabel(/Charge/).fill("5");
+  await page.getByRole("button", { name: /Valider la série/ }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Série 1" })).toContainText("+5 kg");
+  await page.getByRole("button", { name: /Valider la série/ }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Série 2" })).toBeVisible();
+  await page.getByRole("button", { name: /Pause/ }).click();
+  await expect(page.getByText("En pause")).toBeVisible();
+  await page.getByRole("button", { name: /Reprendre/ }).click();
+  await expect(page.getByText("Temps actif")).toBeVisible();
+  await page.waitForTimeout(500);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Suspensions lourdes" })).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Série 2" })).toContainText("+5 kg");
+
+  await page.getByRole("button", { name: "Terminer la séance", exact: true }).last().click();
+  const finish = page.getByRole("form", { name: "Terminer la séance" });
+  await finish.getByRole("button", { name: "7", exact: true }).click();
+  await finish.getByLabel(/Notes et difficultés/).fill("Bonne séance, doigts frais.");
+  await finish.getByRole("button", { name: "Enregistrer et terminer" }).click();
+  await expect(page.getByRole("heading", { name: "Bilan de la séance" })).toBeVisible();
+
+  await page.reload();
+  const table = page.getByRole("table", { name: "Prévu / réalisé" });
+  await expect(table.getByRole("row").filter({ hasText: "Suspensions lourdes" })).toContainText("+5 kg");
+  await expect(table.getByRole("row").filter({ hasText: "Suspensions lourdes" })).toContainText("Adapté");
+  await expect(table.getByRole("row").filter({ hasText: "Retour au calme" })).toContainText("Passé");
+  await expect(page.getByText("7 / 10")).toBeVisible();
+
+  // Follow-up shows the executed training.
+  await page.goto("/follow-up/training");
+  await expect(page.getByRole("link", { name: /Max hangs/ }).filter({ hasText: "Terminée" })).toBeVisible();
+  await page.goto("/follow-up");
+  await expect(page.getByRole("region", { name: "Entraînement · 8 dernières semaines" })).toContainText("min");
+
+  // Controlled reassessment: improved hang → compared with the baseline.
+  await page.goto("/training-assessment");
+  await page.getByRole("button", { name: /Nouveau bilan \(réévaluation\)/ }).click();
+  await runProtocol(page, 31, 9);
+  await expect(page.getByText(/\+6 vs initial/)).toBeVisible();
+  await expect(page.getByText(/\+1 vs initial/)).toBeVisible();
+});
+
+test("C — navigation moves section, selection and focus together (desktop)", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signInWithPassword(page, "guided@leblond.local");
+  await page.goto("/home");
+  const nav = page.getByRole("navigation", { name: "Navigation principale" });
+  const area = (name: string) => nav.getByRole("link", { name, exact: true });
+
+  const steps: Array<{ click: () => Promise<void>; url: RegExp; h1: RegExp; active: string; visible: string[]; hidden: string[] }> = [
+    { click: () => area("Grimper").click(), url: /\/climbing$/, h1: /Grimper/, active: "Grimper", visible: ["Projets"], hidden: ["Atlas", "Progrès"] },
+    { click: () => area("S’entraîner").click(), url: /\/train$/, h1: /S’entraîner/, active: "S’entraîner", visible: ["Atlas", "Séances d’entraînement"], hidden: ["Projets"] },
+    { click: () => nav.getByRole("link", { name: "Atlas", exact: true }).click(), url: /\/atlas$/, h1: /Training Atlas/, active: "S’entraîner", visible: ["Atlas"], hidden: ["Projets"] },
+    { click: () => nav.getByRole("link", { name: "Séances d’entraînement", exact: true }).click(), url: /\/train\/sessions$/, h1: /Séances d’entraînement/, active: "S’entraîner", visible: ["Calendrier"], hidden: ["Progrès"] },
+    { click: () => area("Suivi").click(), url: /\/follow-up$/, h1: /^Suivi$/, active: "Suivi", visible: ["Historique d’entraînement", "Progrès"], hidden: ["Atlas", "Séances d’entraînement"] },
+    { click: () => area("Profil").click(), url: /\/profile$/, h1: /.+/, active: "Profil", visible: ["Connexions"], hidden: ["Atlas", "Progrès"] },
+  ];
+  for (const s of steps) {
+    await s.click();
+    await expect(page).toHaveURL(s.url);
+    const h1 = page.locator("#app-main h1");
+    await expect(h1).toHaveText(s.h1);
+    await expect(h1).toBeFocused();
+    await expect(area(s.active)).toHaveAttribute("data-active-area", "true");
+    await expect(nav.locator("[data-active-area=true]")).toHaveCount(1);
+    for (const v of s.visible) await expect(nav.getByRole("link", { name: v, exact: true })).toBeVisible();
+    for (const h of s.hidden) await expect(nav.getByRole("link", { name: h, exact: true })).toHaveCount(0);
+    await expect(nav.locator("[aria-current=page]")).toHaveCount(1);
+  }
+
+  // Browser history and deep links keep the state consistent.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/follow-up$/);
+  await expect(area("Suivi")).toHaveAttribute("data-active-area", "true");
+  await page.goto("/atlas/repeaters");
+  await expect(nav.getByRole("link", { name: "Atlas", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(area("S’entraîner")).toHaveAttribute("data-active-area", "true");
+
+  // Keyboard: activate an area with Enter; focus lands on the new heading.
+  await area("Grimper").focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/climbing$/);
+  await expect(page.locator("#app-main h1")).toBeFocused();
+});
+
+test("C — mobile: bottom bar + one sub-navigation per area", async ({ page }) => {
+  await signInWithPassword(page, "guided@leblond.local");
+  await page.goto("/home");
+  const bottom = page.getByRole("navigation", { name: "Navigation principale" });
+  const sub = page.getByRole("navigation", { name: "Pages de cette section" });
+  await expect(sub).toHaveCount(0);
+  await bottom.getByRole("link", { name: "S’entraîner" }).click();
+  await expect(page).toHaveURL(/\/train$/);
+  await expect(page.locator("#app-main h1")).toBeFocused();
+  await expect(sub.getByRole("link", { name: "Atlas" })).toBeVisible();
+  await expect(sub.getByRole("link", { name: "Projets" })).toHaveCount(0);
+  await sub.getByRole("link", { name: "Calendrier" }).click();
+  await expect(page).toHaveURL(/\/calendar$/);
+  await expect(page.locator("#app-main h1")).toBeFocused();
+  await expect(sub.getByRole("link", { name: "Calendrier" })).toHaveAttribute("aria-current", "page");
+  await bottom.getByRole("link", { name: "Suivi" }).click();
+  await expect(page).toHaveURL(/\/follow-up$/);
+  await expect(sub.getByRole("link", { name: "Calendrier" })).toHaveCount(0);
+  await expect(sub.getByRole("link", { name: "Historique d’entraînement" })).toBeVisible();
+  await expect(bottom.locator("[data-active-area=true]")).toHaveText(/Suivi/);
+});
+
+test("D — private data: signed-out visitors are redirected, other climbers get 404", async ({ page, request }) => {
+  expect(guidedSessionUrl).not.toBe("");
+  const path = new URL(guidedSessionUrl).pathname;
+  await page.context().clearCookies();
+  for (const p of ["/train/sessions", path, "/follow-up/training", "/home"]) {
+    await page.goto(p);
+    await expect(page).toHaveURL(/\/login/);
+  }
+  const anon = await request.get(path, { maxRedirects: 0 });
+  expect([302, 303, 307, 308]).toContain(anon.status());
+
+  await signInWithPassword(page, "free@leblond.local");
+  const res = await page.goto(path);
+  expect(res?.status()).toBe(404);
+  await page.goto("/follow-up/training");
+  await expect(page.getByRole("link", { name: /Max hangs/ })).toHaveCount(0);
+
+  // Session survives a reload for the signed-in user.
+  await page.reload();
+  await expect(page).toHaveURL(/\/follow-up\/training/);
+});
+
+test("E — approved light identity, intact artwork and no overflow (desktop + mobile)", async ({ page }) => {
+  await signInWithPassword(page, "guided@leblond.local");
+  for (const size of [DESKTOP, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    for (const p of ["/home", "/train", "/train/sessions", "/follow-up", "/atlas/max-hangs", "/training-assessment", guidedSessionUrl]) {
+      await page.goto(p);
+      await expect(page.locator("#app-main h1")).toBeVisible();
+      const look = await page.evaluate(() => ({
+        bg: getComputedStyle(document.body).backgroundColor,
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        clipped: [...document.querySelectorAll("#app-main h1, #app-main h2")].filter((el) => el.scrollWidth > el.clientWidth + 1).length,
+      }));
+      expect(look.bg, p).toBe("rgb(244, 247, 251)");
+      expect(look.overflow, p + " horizontal overflow").toBeLessThanOrEqual(0);
+      expect(look.clipped, p + " clipped headings").toBe(0);
+      await page.screenshot({ path: `test-results/visual/${size.width}${p.replace(/[^a-z0-9]+/gi, "_")}.png`, fullPage: true });
+    }
+    await page.goto("/home");
+    const art = page.getByRole("img", { name: /LeBlond climber|LeBlond, grimpeur/ });
+    await expect(art).toBeVisible();
+    const ratio = await art.evaluate((img: HTMLImageElement) => ({ natural: img.naturalWidth / img.naturalHeight, shown: img.clientWidth / img.clientHeight, src: img.getAttribute("src") }));
+    expect(ratio.src).toBe("/brand/leblond-approved-hero.svg");
+    expect(Math.abs(ratio.natural - ratio.shown)).toBeLessThan(0.02);
+  }
+  // Mobile training controls are large enough for chalky fingers.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/train/sessions");
+  await page.getByRole("button", { name: /Commencer maintenant/ }).click();
+  await expect(page.getByRole("timer")).toBeVisible();
+  for (const name of [/Valider la série/, /Exercice suivant/, /Pause/]) {
+    const box = await page.getByRole("button", { name }).boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(48);
+  }
+  await page.screenshot({ path: "test-results/visual/390_player.png", fullPage: true });
+  // Data integrity: logging the same set twice quickly yields two distinct sets, never a lost one.
+  await page.getByRole("button", { name: /Valider la série/ }).click();
+  await page.getByRole("button", { name: /Valider la série/ }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: /^Série 2/ })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("listitem").filter({ hasText: /Série \d/ })).toHaveCount(2);
+});
