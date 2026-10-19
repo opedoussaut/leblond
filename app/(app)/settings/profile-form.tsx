@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { GradeSelect } from "@/components/climbing/grade-select";
+import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card, Notice } from "@/components/ui/card";
@@ -17,6 +18,9 @@ export function ProfileForm({
     language: "fr" | "en";
     targetSystem: GradeSystem;
     targetGrade: string;
+    boulderGrade: string;
+    boulderSystem: GradeSystem;
+    routeGrade: string;
     heightCm: string;
     weightKg: string;
     climbingSince: string;
@@ -26,6 +30,8 @@ export function ProfileForm({
   const { t } = useI18n();
   const [state, action, pending] = useActionState(updateProfile, null);
   const [target, setTarget] = useState({ system: initial.targetSystem, grade: initial.targetGrade });
+  const [boulder, setBoulder] = useState({ system: initial.boulderSystem, grade: initial.boulderGrade });
+  const [routeGrade, setRouteGrade] = useState(initial.routeGrade);
   return (
     <Card>
       <form action={action} className="space-y-4">
@@ -40,6 +46,19 @@ export function ProfileForm({
             <option value="en">{t.settings.languageEn}</option>
           </Select>
         </div>
+        <fieldset className="rounded-2xl border border-line p-4">
+          <legend className="px-2 font-bold">{t.onboarding.boulderLevel}</legend>
+          <GradeSelect idPrefix="pf-boulder" system={boulder.system} grade={boulder.grade}
+            systemName="boulderSystem" gradeName="boulderGrade"
+            allowEmpty emptyLabel={t.onboarding.levelUnknown}
+            onChange={(system, grade) => setBoulder({ system, grade })}/>
+        </fieldset>
+        <fieldset className="rounded-2xl border border-line p-4">
+          <legend className="px-2 font-bold">{t.onboarding.routeLevel}</legend>
+          <p className="mb-3 text-xs text-ink-2">{t.onboarding.routeScaleHelp}</p>
+          <RouteGradeSelect id="pf-route" grade={routeGrade} onChange={setRouteGrade}
+            name="routeGrade" label={t.onboarding.routeGrade} emptyLabel={t.onboarding.levelUnknown}/>
+        </fieldset>
         <fieldset>
           <legend className="mb-2 font-semibold">{t.profile.target}</legend>
           <GradeSelect
