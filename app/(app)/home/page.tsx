@@ -11,6 +11,7 @@ import { gradeLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
+import { assessmentDictionary } from "@/lib/i18n/assessment";
 
 export const metadata = { title: "Accueil" };
 
@@ -18,6 +19,7 @@ export default async function HomePage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const lab = trainingDictionary(locale);
+  const assessment = assessmentDictionary(locale);
   const now = new Date();
   const data = await loadClimbingDataset(viewer.supabase);
   const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
@@ -52,6 +54,7 @@ export default async function HomePage() {
         <div className="flex flex-wrap gap-2">
           <LinkButton href="/training" size="md" variant="secondary">{lab.browse}</LinkButton>
           <LinkButton href="/training-plans" size="md">{lab.myPlans}</LinkButton>
+          <LinkButton href="/training-assessment" size="md" variant="secondary">{assessment.privateTracking}</LinkButton>
         </div>
       </Card>
 
