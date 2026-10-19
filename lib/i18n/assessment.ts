@@ -3,6 +3,11 @@ import type { Locale } from "./index";
 const assessment = {
   en: {
     title: "Your climbing development",
+    publicTry: "Simulate a future check-in (demo only)",
+    publicTryHelp: "Change the ratings to see how a real follow-up could differ from the scenario. Nothing is saved here.",
+    publicPrivacy: "Public demo: no account and no data sent to a training database. Saving your progress requires a private LEBLOND beta account.",
+    privateTracking: "Save and track my progress", 
+    publicEvaluate: "Try the free self-assessment",
     subtitle: "Start with a six-skill self-assessment. Select a coaching method and compare an illustrative trajectory with the follow-up ratings you actually record.",
     new: "New assessment",
     history: "Your assessments",
@@ -62,6 +67,11 @@ const assessment = {
   },
   fr: {
     title: "Ta progression en escalade",
+    publicTry: "Simuler un bilan ultérieur (démo)",
+    publicTryHelp: "Modifie tes notes pour voir comment un bilan réel peut s'écarter du scénario. Rien n'est enregistré ici.",
+    publicPrivacy: "Démo publique : sans compte, aucune donnée envoyée à la base. Pour enregistrer ta progression, il faut un compte bêta privé LEBLOND.",
+    privateTracking: "Enregistrer et suivre ma progression",
+    publicEvaluate: "Essayer le bilan gratuit",
     subtitle: "Commence par un bilan sur six compétences. Choisis une méthode et compare une trajectoire indicative aux évaluations que tu enregistreras réellement.",
     new: "Nouveau bilan",
     history: "Mes bilans",
