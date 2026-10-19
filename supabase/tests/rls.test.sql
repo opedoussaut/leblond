@@ -121,8 +121,8 @@ select pg_temp.expect((select count(*) from public.wearable_activities) = 0, 'we
 select pg_temp.expect((select count(*) from public.profiles) = 1, 'only own profile');
 select pg_temp.expect((select count(*) from public.ai_usage) = 0, 'ai usage is private');
 select pg_temp.expect((select count(*) from public.training_plans) = 0, 'training plans are private');
-select pg_temp.expect_error($insert into public.training_plans (user_id, name, sessions)
-  values ('00000000-0000-0000-0000-00000000000a', 'Impersonation', '[{"day":1}]')$, 'cannot create another user training plan');
+select pg_temp.expect_error($$insert into public.training_plans (user_id, name, sessions)
+  values ('00000000-0000-0000-0000-00000000000a', 'Impersonation', '[{"day":1}]')$$, 'cannot create another user training plan');
 update public.training_plans set name = 'Hijacked plan'
   where id = '50000000-0000-0000-0000-000000000001';
 select pg_temp.expect((select count(*) from public.beta_users) = 1, 'tester only sees own whitelist row');
