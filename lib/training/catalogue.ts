@@ -69,7 +69,7 @@ export const TRAINING_CATALOGUE: readonly TrainingEntry[] = [
     description: { en: "Intermittent hangs emphasizing finger endurance and sustained force.", fr: "Suspensions intermittentes axées sur l'endurance des doigts et la force répétée." },
     goals: ["sport", "strength"], evidence: "controlled",
     scores: [1, 3, 1, 5, 1, 2],
-    source: { label: "Comparative fingerboard trial — PubMed", url: "https://pubmed.ncbi.nlm.nih.gov/30988852/" },
+    source: { label: "Devise et al. 2022 — randomized hangboard training intensity study", url: "https://pubmed.ncbi.nlm.nih.gov/35498522/" },
     caution: { en: "Adjust edge size, support and load to your experience and recovery.", fr: "Adapter la prise, l'assistance et la charge à son expérience et à sa récupération." },
   },
   {
