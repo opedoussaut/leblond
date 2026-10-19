@@ -38,9 +38,9 @@ test("any climber may register a private account with a basic profile", async ({
   await expect(page).toHaveURL(/\/onboarding/);
   await expect(page.getByRole("heading", { name: "Choisis ta langue" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "Français" })).toBeChecked();
-  await page.getByRole("radio", { name: "English" }).check();
+  await page.getByText("English", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Choose your language" })).toBeVisible();
-  await page.getByRole("radio", { name: "Français" }).check();
+  await page.getByText("Français", { exact: true }).click();
   await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByLabel("Prénom ou pseudo")).toHaveValue("New Climber");
   await page.getByRole("button", { name: "Commencer avec mon profil" }).click();
