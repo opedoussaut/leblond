@@ -92,6 +92,10 @@ jobs:
             echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
             echo "TOKEN_ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")"
           } > .env.local
+      - name: Load the Boolder sample (real rows, © Boolder, CC BY 4.0) into the local catalogue
+        run: |
+          set -a; . ./.env.local; set +a
+          npx tsx scripts/import-boolder.ts --json tests/fixtures/boolder-sample.json
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Run app + mock OpenAI, then the E2E suite

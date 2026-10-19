@@ -10,12 +10,16 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { gradeLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
+import { trainingDictionary } from "@/lib/i18n/training";
+import { assessmentDictionary } from "@/lib/i18n/assessment";
 
 export const metadata = { title: "Accueil" };
 
 export default async function HomePage() {
   const viewer = await requireViewer();
-  const { t } = await getI18n(viewer.profile.preferred_language);
+  const { t, locale } = await getI18n(viewer.profile.preferred_language);
+  const lab = trainingDictionary(locale);
+  const assessment = assessmentDictionary(locale);
   const now = new Date();
   const data = await loadClimbingDataset(viewer.supabase);
   const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
@@ -42,6 +46,17 @@ export default async function HomePage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-black">{fmt(t.home.hello, { name: viewer.profile.display_name })}</h1>
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-black">LEBLOND Training Lab</p>
+          <p className="text-sm text-ink-2">{lab.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href="/training" size="md" variant="secondary">{lab.browse}</LinkButton>
+          <LinkButton href="/training-plans" size="md">{lab.myPlans}</LinkButton>
+          <LinkButton href="/training-assessment" size="md" variant="secondary">{assessment.privateTracking}</LinkButton>
+        </div>
+      </Card>
 
       {live ? (
         <LinkButton href={`/session/${live.id}`} size="lg" className="w-full">

@@ -29,6 +29,7 @@ Five people: Olivier (admin), Thomas, Marc, Houssem, David. There is no open sig
 - Passwordless sign-in (6-digit code or magic link), five-person whitelist enforced in the app **and** in the database
 - Two-minute onboarding (name, language, level, target, gyms, Patrick intro)
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
+- Fontainebleau outdoor sessions: 90 areas and ~19,000 problems from Boolder's open data (© Boolder, CC BY 4.0), picked by name or circuit number, closure warnings shown; bleau.info is linked, never copied
 - Live session for chalky fingers: native-grade grid, one-tap **TRY · TOP · FLASH**, undo, flash suggestion, optional wall angle and style tags
 - Session summary, problem pages, Font estimate kept separate from the native grade, private photos/videos, projects
 - Progress: send/flash rate with counts, attempts per send, weekly activity, working level per native system, Font working grade (only when reliable), trend, road-to-target dimensions, cross-gym native and normalised views, style / wall-angle / gym breakdowns
@@ -66,6 +67,8 @@ LEBLOND never shows “Connected” without a stored, successful authorisation. 
 | Suunto | Supported path | Official Cloud API when authorised + FIT fallback |
 | Garmin | Supported path | Official Developer Program when authorised + FIT fallback |
 | Strava | Planned next | Official OAuth/API |
+| Boolder (Fontainebleau) | Supported | Open data import (CC BY 4.0) — [docs/integrations.md](docs/integrations.md) |
+| bleau.info | Link only | No reuse licence: links only |
 
 ## Architecture
 

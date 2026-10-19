@@ -12,7 +12,7 @@
 |---|---|---|
 | `ARKOSE_COLOR` | YELLOW, GREEN, BLUE, RED, BLACK, PURPLE | Initiation, beginner, intermediate, advanced, very good, expert. Source: Arkose “niveau escalade bloc couleur”. |
 | `CLIMBING_DISTRICT_COLOR` | WHITE, YELLOW, ORANGE, GREEN, BLUE, RED, BLACK, PURPLE + **PINK** | PINK = mystery: kind `MYSTERY`, ordinal `null`. Colours overlap (≈4a–8a+ overall). Source: Climbing District FAQ. |
-| `FONT` | 3, 4, 4+, 5, 5+, 6A … 8C+, 9A | Native Font problems are their own normalised grade (confidence 1). |
+| `FONT` | 1a, 1b, 1c … 5a, 5b, 5c, 6A, 6A+ … 8C+, 9A (34 steps) | Native Font problems are their own normalised grade (confidence 1). Lettered below 6A, as on the Fontainebleau circuits and in Boolder. |
 | `CUSTOM_COLOR` | Generic colours | Unordered: LEBLOND does not know an independent gym's ranking. |
 | `UNKNOWN` | UNKNOWN | Unordered. |
 
@@ -27,3 +27,9 @@ Climbers can add a Font estimate on any colour problem with a confidence preset:
 ## UI
 
 A grade is always rendered with its **name**; the swatch is decorative (WCAG: never colour alone).
+
+## Font notation below 6A
+
+Since 3 October 2026 the Font scale uses Fontainebleau's lettered grades below 6A (`1a … 5c`), the notation Boolder publishes for every Fontainebleau problem, so outdoor problems are stored exactly as graded. From 6A the usual upper-case notation (`6A`, `6A+` …) is kept. Each entry is one grade step, so trends and "next grade" work across the whole scale.
+
+Indoor tickets that only say "4" or "5+" are logged with the nearest letter. Rows saved before this change were moved by migration `20261003000000_fontainebleau_boolder.sql` to the lowest matching letter: `3 → 3a`, `4 → 4a`, `4+ → 4c`, `5 → 5a`, `5+ → 5c` (a convention, chosen because the old notation does not say which letter was meant).

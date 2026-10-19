@@ -4,11 +4,13 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { LinkButton } from "@/components/ui/button";
 import { getViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
+import { trainingDictionary } from "@/lib/i18n/training";
 
 export default async function LandingPage() {
   const viewer = await getViewer().catch(() => null);
   if (viewer) redirect("/home");
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
+  const lab = trainingDictionary(locale);
   return (
     <main className="pt-safe mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
       <div className="py-5">
@@ -28,6 +30,9 @@ export default async function LandingPage() {
       <p className="mt-3 text-ink-2">{t.landing.pitch}</p>
       <LinkButton href="/login" size="lg" className="mt-6 w-full">
         {t.landing.signIn}
+      </LinkButton>
+      <LinkButton href="/training" variant="secondary" size="lg" className="mt-3 w-full">
+        Training Lab — {lab.browse}
       </LinkButton>
       <p className="mt-3 text-center text-sm text-ink-3">{t.landing.closedBeta}</p>
       <p className="mt-auto pt-10 text-xs text-ink-3">{t.landing.disclaimer}</p>

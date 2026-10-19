@@ -125,7 +125,8 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
                   <li key={p.id}>
                     <Link href={`/problem/${p.id}`} className="flex min-h-12 items-center gap-3 px-4 hover:bg-surface-2">
                       <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" />
-                      <span className="text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
+                      {p.name ? <span className="min-w-0 truncate text-sm font-semibold">{p.name}</span> : null}
+                      <span className="shrink-0 text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
                       <span className="ml-auto text-xs font-bold uppercase">{best ? t.results[best] : ""}</span>
                     </Link>
                   </li>

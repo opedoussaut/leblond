@@ -42,11 +42,14 @@ Repository → Settings → Secrets and variables → Actions → *New repositor
 Secrets are never shown in the public repo or in workflow logs.
 
 ### 3. Create the tables
-Actions → **Deploy database (Supabase)** → Run workflow.
-(Alternative: Supabase → SQL editor → paste `supabase/migrations/20261002000000_leblond_v1.sql` → Run.)
+Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever a release adds a migration.
+(Alternative: Supabase → SQL editor → paste each file of `supabase/migrations/` in name order → Run.)
 
 ### 4. Load the whitelist
 Actions → **Update beta whitelist** → Run workflow. The log shows names and roles only.
+
+### 4b. Load the Fontainebleau topo (optional)
+Actions → **Import Boolder (Fontainebleau)** → Run workflow. It downloads Boolder's open data (© Boolder, CC BY 4.0) and loads the Fontainebleau areas, circuits and problems; the log shows the counts. Re-run it from time to time to pick up Boolder's updates (new problems, closures). Settings → Connections shows the date of the last import.
 
 ### 5. Configure Supabase Auth (dashboard)
 - Authentication → **SMTP**: enter your SMTP provider's settings.
@@ -110,12 +113,17 @@ Facts from Groq's documentation (checked 3 October 2026; re-check, limits change
 - free limits for that model: **30 requests/min, 1,000 requests/day, 8,000 tokens/min, 200,000 tokens/day**, counted for the whole Groq organisation (all testers together);
 - by default Groq does not retain inference data; a Zero Data Retention option exists under Data Controls; data that is retained is stored in the United States.
 
-**Budget (estimate, method shown).** A Patrick request = instructions (3,886 characters) + context (up to 7,923 characters measured for a heavy 90-day history with 36 sessions and 432 problems) + conversation history (capped by `COACH_HISTORY_CHAR_BUDGET`) + the question. At the ratio measured on a real call (≈3.9 characters per token, on Qwen's tokenizer — gpt-oss's tokenizer differs, so treat this as an estimate):
-- input ≈ (3,886 + 7,923 + 4,000) / 3.9 ≈ **4,050 tokens**;
-- output capped at **1,500 tokens** with `COACH_MAX_OUTPUT_TOKENS`;
-- ⇒ ≈ **5,500 tokens per request** at most.
+**Budget (estimate, method shown).** A Patrick request = instructions + context + conversation history (capped by `COACH_HISTORY_CHAR_BUDGET`) + the question. Sizes measured on 3 October 2026, after the Fontainebleau update:
+- instructions (`prompts/patrick-v1.md`): **4,865 characters**;
+- context, worst case measured: **11,365 characters** — a synthetic 90-day history with 36 sessions and 432 problems across Arkose, Climbing District and Fontainebleau, 8 recent sessions with watch data, and a session under review with 40 problems (the context is hard-capped at 14,000 characters by `lib/coach/context.ts`);
+- history: 4,000 characters; question: ≈ 200 characters.
 
-So, on the free plan: about **one full request per minute** for the whole group (8,000 tokens/min), and about **36 requests per day** (200,000 / 5,500). With five testers, `MAX_COACH_REQUESTS_PER_USER_PER_DAY=7` keeps the group under the daily quota (5 × 7 = 35). If two testers ask Patrick in the same minute, the second sees “Patrick is very busy, try again in a minute”.
+At the ratio measured on a real call (≈3.9 characters per token, on Qwen's tokenizer — gpt-oss's tokenizer differs, so treat this as an estimate):
+- input ≈ (4,865 + 11,365 + 4,000 + 200) / 3.9 ≈ **5,240 tokens**;
+- output capped at **1,500 tokens** with `COACH_MAX_OUTPUT_TOKENS`;
+- ⇒ ≈ **6,700 tokens per request** in the worst case (most requests are smaller).
+
+So, on the free plan: about **one full request per minute** for the whole group (8,000 tokens/min), and at least **29 requests per day** (200,000 / 6,740). With five testers, `MAX_COACH_REQUESTS_PER_USER_PER_DAY=5` keeps the group under the daily quota even in the worst case (5 × 5 = 25). If two testers ask Patrick in the same minute, the second sees “Patrick is very busy, try again in a minute”.
 
 **Steps (browser only)**
 1. console.groq.com → sign up → **API Keys** → *Create API Key* (starts with `gsk_`).
@@ -131,7 +139,7 @@ So, on the free plan: about **one full request per minute** for the whole group 
    | `COACH_MAX_OUTPUT_TOKENS` | `1500` |
    | `COACH_REASONING_EFFORT` | `low` |
    | `COACH_HISTORY_CHAR_BUDGET` | `4000` |
-   | `MAX_COACH_REQUESTS_PER_USER_PER_DAY` | `7` |
+   | `MAX_COACH_REQUESTS_PER_USER_PER_DAY` | `5` |
 
    Redeploy.
 4. To test before the testers do: add the same `COACH_*` values as GitHub repository secrets, then Actions → **Patrick live check** → Run workflow. It asks Patrick one question about synthetic data and prints the answer, the time taken and the tokens used. Check that it answers in French, quotes 3/6 sent (50 %), and invents nothing.

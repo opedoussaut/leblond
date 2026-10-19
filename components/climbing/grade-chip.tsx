@@ -27,7 +27,15 @@ export function GradeChip({
   const dims = { sm: "h-3.5 w-3.5", md: "h-4 w-4", lg: "h-5 w-5" }[size];
   const text = { sm: "text-xs", md: "text-sm", lg: "text-base" }[size];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 font-bold uppercase tracking-wide", text, className)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold tracking-wide",
+        // Font grades are case-sensitive (4b ≠ 4B-style notation): never upper-case them.
+        system !== "FONT" && "uppercase",
+        text,
+        className,
+      )}
+    >
       {def?.swatch ? (
         <span
           aria-hidden

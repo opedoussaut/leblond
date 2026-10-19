@@ -200,3 +200,72 @@ test("PWA manifest is installable", async ({ request }) => {
   expect(m.icons.some((i: { sizes: string }) => i.sizes === "512x512")).toBe(true);
   expect((await request.get("/sw.js")).ok()).toBe(true);
 });
+
+// Runs last: the new-session page then opens on the Fontainebleau tab for Alex.
+// Catalogue = tests/fixtures/boolder-sample.json (real Boolder rows, © Boolder, CC BY 4.0), loaded by CI.
+test("Fontainebleau session: Boolder topo, closures, lettered Font grades", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/session/new");
+  await page.getByRole("tab", { name: "Fontainebleau" }).click();
+  await expect(page.getByText("Topo : © Boolder").first()).toBeVisible();
+
+  // A closed area asks for confirmation and shows Boolder's warning.
+  await page.getByRole("button", { name: /Cul de Chien/ }).click();
+  await expect(page.getByText(/fermé suite aux incendies/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Démarrer quand même" })).toBeVisible();
+  await page.getByRole("button", { name: "Annuler" }).click();
+
+  await page.getByRole("button", { name: /Rocher Canon/ }).click();
+  await expect(page.getByRole("heading", { name: "Rocher Canon" })).toBeVisible();
+  const picker = page.getByRole("region", { name: "Quel bloc ?" });
+  await expect(picker).toBeVisible();
+
+  // Red circuit n°3 = "Le Talon d'Achille", 5c.
+  await picker.getByRole("button", { name: "rouge", exact: true }).click();
+  await picker.getByLabel("Nom ou numéro de circuit").fill("3");
+  await picker.getByRole("button", { name: /Le Talon d'Achille/ }).first().click();
+  const current = page.getByRole("region", { name: "Bloc en cours" });
+  await expect(current.getByText("Le Talon d'Achille")).toBeVisible();
+  await expect(current.getByText("5c", { exact: true })).toBeVisible();
+  for (const name of ["Essai", "Top"]) {
+    await current.getByRole("button", { name, exact: true }).click();
+    await expect(page.getByText(/noté\./)).toBeVisible();
+  }
+
+  // Off-circuit problem found by name, flashed.
+  await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
+  await picker.getByLabel("Nom ou numéro de circuit").fill("free hug");
+  await picker.getByRole("button", { name: /Free Hug/ }).click();
+  await current.getByRole("button", { name: "Flash", exact: true }).click();
+  await expect(page.getByText(/Flash noté\./)).toBeVisible();
+
+  // Picking the same boulder again reuses it: its two attempts are still there.
+  await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
+  await picker.getByLabel("Nom ou numéro de circuit").fill("talon");
+  await picker.getByRole("button", { name: /Le Talon d'Achille/ }).click();
+  await expect(current.getByRole("img", { name: "Essai, Top" })).toBeVisible();
+  await expect(current.getByRole("button", { name: "Flash", exact: true })).toBeDisabled();
+
+  // Boulder missing from the topo: lettered Font grade grid.
+  await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
+  await page.getByRole("button", { name: "Bloc absent du topo ? Choisir une cotation" }).click();
+  await page.getByRole("button", { name: "4b", exact: true }).click();
+  await current.getByRole("button", { name: "Essai", exact: true }).click();
+  await expect(page.getByText(/Essai noté\./)).toBeVisible();
+
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  for (const [value, label] of [["3", "blocs"], ["2", "tops"], ["1", "flashs"], ["4", "essais"]]) {
+    await expect(page.locator("div", { hasText: new RegExp(`^${value}${label}$`, "i") }).first()).toBeVisible();
+  }
+
+  // Problem page: topo details, links and attribution.
+  await page.getByRole("link", { name: /Le Talon d'Achille/ }).click();
+  await expect(page.getByRole("heading", { name: "Le Talon d'Achille" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Voir sur Boolder/ })).toHaveAttribute("href", /boolder\.com\/fr\/p\/115$/);
+  await expect(page.getByText("Topo : © Boolder")).toBeVisible();
+
+  await page.goto("/settings/connections");
+  await expect(page.getByText("Topo chargé")).toBeVisible();
+});

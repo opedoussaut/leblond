@@ -1,6 +1,9 @@
 import { GradeChip } from "@/components/climbing/grade-chip";
+import { BoolderAttribution } from "@/components/climbing/outdoor";
 import { Card, Notice, PageHeader, SectionTitle } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
+import { latestOutdoorImport } from "@/lib/data/outdoor";
+import { formatDateTime } from "@/lib/format";
 import { ARKOSE_GRADES, CLIMBING_DISTRICT_GRADES } from "@/lib/grading";
 import { PROVIDER_LABELS, V1_PROVIDERS, providerStatus } from "@/lib/integrations/wearables/registry";
 import type { WearableProviderId } from "@/lib/integrations/wearables/types";
@@ -20,7 +23,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/sett
   const sp = await searchParams;
   const platformReady = hasEncryptionKey() && createAdminClient() !== null;
 
-  const [{ data: connections }, { data: activities }, { data: sessions }] = await Promise.all([
+  const [{ data: connections }, { data: activities }, { data: sessions }, boolderImport] = await Promise.all([
     viewer.supabase.from("wearable_connections").select("provider, status, last_sync_at, last_error"),
     viewer.supabase
       .from("wearable_activities")
@@ -32,6 +35,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/sett
       .select("id, started_at, ended_at, gyms(name)")
       .order("started_at", { ascending: false })
       .limit(40),
+    latestOutdoorImport(viewer.supabase),
   ]);
   const conn = (p: WearableProviderId) => connections?.find((c) => c.provider === p) ?? null;
   const flashProvider = typeof sp.provider === "string" ? sp.provider : "";
@@ -67,6 +71,28 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/sett
               <p className="mt-1 text-xs text-ink-3">{t.connections.liveSyncUnavailable}</p>
             </li>
           ))}
+          <li className="py-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">{t.outdoor.sourceTitle}</span>
+              <span className={boolderImport ? "text-sm font-semibold text-ok" : "text-sm text-ink-3"}>
+                {boolderImport ? t.outdoor.imported : t.outdoor.neverImported}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-ink-3">{t.outdoor.sourceHelp}</p>
+            {boolderImport ? (
+              <p className="mt-1 text-xs text-ink-2">
+                {fmt(t.outdoor.lastImport, {
+                  date: formatDateTime(boolderImport.imported_at, locale),
+                  areas: boolderImport.areas,
+                  problems: boolderImport.problems,
+                })}
+                {boolderImport.source_version
+                  ? ` · ${fmt(t.outdoor.sourceVersion, { version: boolderImport.source_version.slice(0, 7) })}`
+                  : ""}
+              </p>
+            ) : null}
+            <BoolderAttribution className="mt-1" />
+          </li>
         </ul>
       </Card>
 

@@ -80,31 +80,24 @@ export const CLIMBING_DISTRICT_GRADES: GradeDefinition[] = [
   },
 ];
 
-/** Fontainebleau bouldering scale (as required by the brief, 3 → 9A). */
+/**
+ * Fontainebleau bouldering scale, 1a → 9A.
+ *
+ * Below 6A the Font scale uses a lower-case letter per sub-level (1a, 1b, 1c …
+ * 5c), as Boolder publishes it for the Fontainebleau circuits; from 6A it is
+ * upper-case with an optional "+". Each entry is one grade step.
+ * Indoor tickets that only say "4" or "5+" can be logged with the nearest
+ * letter (see docs/grading.md).
+ */
 export const FONT_SCALE = [
-  "3",
-  "4",
-  "4+",
-  "5",
-  "5+",
-  "6A",
-  "6A+",
-  "6B",
-  "6B+",
-  "6C",
-  "6C+",
-  "7A",
-  "7A+",
-  "7B",
-  "7B+",
-  "7C",
-  "7C+",
-  "8A",
-  "8A+",
-  "8B",
-  "8B+",
-  "8C",
-  "8C+",
+  "1a", "1b", "1c",
+  "2a", "2b", "2c",
+  "3a", "3b", "3c",
+  "4a", "4b", "4c",
+  "5a", "5b", "5c",
+  "6A", "6A+", "6B", "6B+", "6C", "6C+",
+  "7A", "7A+", "7B", "7B+", "7C", "7C+",
+  "8A", "8A+", "8B", "8B+", "8C", "8C+",
   "9A",
 ] as const;
 export type FontGrade = (typeof FONT_SCALE)[number];

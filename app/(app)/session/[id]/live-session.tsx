@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
+import {
+  BoolderProblemPicker,
+  CircuitBadge,
+  areaWarning,
+  type AreaItem,
+  type CatalogueItem,
+} from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/card";
@@ -17,6 +24,7 @@ import {
   logAttempt,
   updateProblem,
 } from "@/lib/actions/sessions";
+import { pickOutdoorProblem } from "@/lib/actions/outdoor";
 import { countActivity, type AttemptFact } from "@/lib/analytics";
 import {
   STYLE_TAGS,
@@ -39,6 +47,7 @@ export type LiveProblemItem = {
   tags: StyleTag[];
   created_at: string;
   name: string | null;
+  outdoor_problem_id: number | null;
 };
 
 function elapsed(startedAt: string, now: number) {
@@ -56,6 +65,7 @@ export function LiveSession({
   initialProblems,
   initialAttempts,
   projectProblemIds,
+  outdoor = null,
 }: {
   sessionId: string;
   userId: string;
@@ -64,8 +74,10 @@ export function LiveSession({
   initialProblems: LiveProblemItem[];
   initialAttempts: Attempt[];
   projectProblemIds: string[];
+  /** Set when the session is in a Fontainebleau area from the Boolder catalogue. */
+  outdoor?: { area: AreaItem; problems: CatalogueItem[] } | null;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [problems, setProblems] = useState(initialProblems);
   const [attempts, setAttempts] = useState(initialAttempts);
@@ -74,6 +86,9 @@ export function LiveSession({
     return last?.problem_id ?? null;
   });
   const [adding, setAdding] = useState(initialProblems.length === 0);
+  // Outdoor: pick from the topo by default; the grade grid is the fallback.
+  const [gradeFallback, setGradeFallback] = useState(false);
+  const catalogue = useMemo(() => new Map((outdoor?.problems ?? []).map((p) => [p.id, p])), [outdoor]);
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [flashPrompt, setFlashPrompt] = useState<Attempt | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -119,8 +134,50 @@ export function LiveSession({
       const p = res.data;
       setProblems((list) => [
         ...list,
-        { id: p.id, native_grade: p.native_grade, wall_angle: p.wall_angle, tags: [], created_at: p.created_at, name: p.name },
+        {
+          id: p.id,
+          native_grade: p.native_grade,
+          wall_angle: p.wall_angle,
+          tags: [],
+          created_at: p.created_at,
+          name: p.name,
+          outdoor_problem_id: p.outdoor_problem_id,
+        },
       ]);
+      setCurrentId(p.id);
+      setAdding(false);
+      setFlashPrompt(null);
+    });
+  }
+
+  function pickFromTopo(item: CatalogueItem) {
+    const known = problems.find((p) => p.outdoor_problem_id === item.id);
+    if (known) {
+      setCurrentId(known.id);
+      setAdding(false);
+      setFlashPrompt(null);
+      return;
+    }
+    start(async () => {
+      const res = await pickOutdoorProblem({ gymId: gym.id, outdoorProblemId: item.id });
+      if (!res.ok || !res.data) return say("error", t.common.unknownError);
+      const p = res.data;
+      setProblems((list) =>
+        list.some((x) => x.id === p.id)
+          ? list
+          : [
+              ...list,
+              {
+                id: p.id,
+                native_grade: p.native_grade,
+                wall_angle: p.wall_angle,
+                tags: p.tags as StyleTag[],
+                created_at: p.created_at,
+                name: p.name,
+                outdoor_problem_id: p.outdoor_problem_id,
+              },
+            ],
+      );
       setCurrentId(p.id);
       setAdding(false);
       setFlashPrompt(null);
@@ -216,6 +273,11 @@ export function LiveSession({
       <header>
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-ok">● {t.session.active}</p>
         <h1 className="mt-1 text-xl font-black leading-tight">{gym.name}</h1>
+        {outdoor && areaWarning(outdoor.area, locale) ? (
+          <p className="mt-1 text-sm font-semibold text-danger">
+            ⚠ {t.outdoor.warning} : {areaWarning(outdoor.area, locale)}
+          </p>
+        ) : null}
         <p className="font-mono text-3xl font-bold tabular-nums" aria-label={t.session.elapsed}>
           {elapsed(startedAt, now)}
         </p>
@@ -249,6 +311,11 @@ export function LiveSession({
             <GradeChip t={t} system={gym.system} grade={current.native_grade} size="lg" />
             <AttemptDots attempts={currentSessionAttempts} />
           </div>
+          {current.outdoor_problem_id != null ? (
+            <TopoLine item={catalogue.get(current.outdoor_problem_id)} fallbackName={current.name} />
+          ) : current.name ? (
+            <p className="mt-1 truncate text-sm font-semibold">{current.name}</p>
+          ) : null}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <Button size="xl" variant="secondary" onClick={() => log("ATTEMPT")} aria-label={t.results.ATTEMPT}>
               {t.results.try}
@@ -317,8 +384,23 @@ export function LiveSession({
         </section>
       ) : null}
 
-      {adding ? (
-        <GradeGrid system={gym.system} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
+      {adding && outdoor && outdoor.problems.length > 0 && !gradeFallback ? (
+        <BoolderProblemPicker
+          problems={outdoor.problems}
+          pending={pending}
+          onPick={pickFromTopo}
+          onCancel={problems.length ? () => setAdding(false) : undefined}
+          onNotInTopo={() => setGradeFallback(true)}
+        />
+      ) : adding ? (
+        <div className="space-y-2">
+          <GradeGrid system={gym.system} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
+          {outdoor && outdoor.problems.length > 0 ? (
+            <button type="button" onClick={() => setGradeFallback(false)} className="text-sm text-accent underline-offset-2 hover:underline">
+              ← {t.outdoor.backToTopo}
+            </button>
+          ) : null}
+        </div>
       ) : (
         <Button size="xl" variant="secondary" className="w-full border-2 border-dashed border-line" onClick={() => setAdding(true)}>
           + {t.session.addProblem}
@@ -346,9 +428,20 @@ export function LiveSession({
                       p.id === currentId && "bg-surface-2",
                     )}
                   >
-                    <span className="w-32 shrink-0">
+                    <span className={cn("shrink-0", outdoor ? "w-12" : "w-32")}>
                       <GradeChip t={t} system={gym.system} grade={p.native_grade} size="sm" />
                     </span>
+                    {outdoor ? (
+                      <span className="flex min-w-0 items-center gap-2">
+                        {p.outdoor_problem_id != null ? (
+                          <CircuitBadge
+                            color={catalogue.get(p.outdoor_problem_id)?.circuit_color ?? null}
+                            number={catalogue.get(p.outdoor_problem_id)?.circuit_number ?? null}
+                          />
+                        ) : null}
+                        <span className="truncate text-sm">{p.name}</span>
+                      </span>
+                    ) : null}
                     <AttemptDots attempts={pa} />
                     <span className="ml-auto text-xs font-bold uppercase tracking-wider">
                       {sent ? t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"] : ""}
@@ -384,6 +477,21 @@ export function LiveSession({
         )}
       </div>
     </div>
+  );
+}
+
+function TopoLine({ item, fallbackName }: { item: CatalogueItem | undefined; fallbackName: string | null }) {
+  const { t } = useI18n();
+  if (!item) return fallbackName ? <p className="mt-1 truncate text-sm font-semibold">{fallbackName}</p> : null;
+  return (
+    <p className="mt-2 flex min-w-0 items-center gap-2 text-sm">
+      <CircuitBadge color={item.circuit_color} number={item.circuit_number} />
+      <span className="truncate font-semibold">{item.name}</span>
+      <span className="shrink-0 text-xs text-ink-3">
+        {(t.outdoor.steepness as Record<string, string>)[item.steepness] ?? item.steepness}
+        {item.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
+      </span>
+    </p>
   );
 }
 
@@ -429,17 +537,20 @@ function GradeGrid({
           </Button>
         ) : null}
       </div>
-      <div className={cn("grid gap-2", system === "FONT" ? "grid-cols-4" : "grid-cols-3")}>
+      <div className={cn("grid gap-2", system === "FONT" ? "grid-cols-6" : "grid-cols-3")}>
         {grades.map((g) => (
           <button
             key={g.id}
             type="button"
             disabled={pending}
             onClick={() => onPick(g.id)}
-            className="flex min-h-16 flex-col items-center justify-center rounded-2xl border border-line px-1 text-center font-bold disabled:opacity-50"
+            className={cn(
+              "flex flex-col items-center justify-center rounded-2xl border border-line px-1 text-center font-bold disabled:opacity-50",
+              system === "FONT" ? "min-h-12" : "min-h-16",
+            )}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
-            <span className="text-sm uppercase tracking-wide">
+            <span className={cn("text-sm tracking-wide", system !== "FONT" && "uppercase")}>
               {system === "FONT" ? g.id : (t.grades.colors as Record<string, string>)[g.id]}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-[11px] font-medium">{t.grades.mystery}</span> : null}

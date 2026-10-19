@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { StyleTag, WallAngle } from "@/lib/climbing/types";
 import { requireViewer } from "@/lib/auth/viewer";
+import { loadOutdoorAreaForGym } from "@/lib/data/outdoor";
 import { loadSessionView, tagSlugs } from "@/lib/data/session";
 import { LiveSession } from "./live-session";
 import { SessionSummaryView } from "./summary";
@@ -12,6 +13,7 @@ export default async function SessionPage({ params }: PageProps<"/session/[id]">
   if (!view) notFound();
 
   if (!view.session.ended_at) {
+    const outdoor = view.gym.external_provider === "BOOLDER" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;
     return (
       <LiveSession
         sessionId={view.session.id}
@@ -25,7 +27,9 @@ export default async function SessionPage({ params }: PageProps<"/session/[id]">
           tags: tagSlugs(p) as StyleTag[],
           created_at: p.created_at,
           name: p.name,
+          outdoor_problem_id: p.outdoor_problem_id,
         }))}
+        outdoor={outdoor}
         initialAttempts={view.attempts}
         projectProblemIds={view.activeProjectProblemIds}
       />
