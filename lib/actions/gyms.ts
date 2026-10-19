@@ -12,7 +12,9 @@ const createGymSchema = z.object({
   brand: z.enum(GYM_BRANDS),
   city: z.string().trim().max(120).optional().transform((v) => v || null),
   gradingSystem: z.enum(GRADE_SYSTEMS).optional(),
-});
+  hasBouldering: z.boolean().default(true),
+  hasRoutes: z.boolean().default(false),
+}).refine((v) => v.hasBouldering || v.hasRoutes, { path: ["hasBouldering"] });
 
 export async function createGym(input: z.input<typeof createGymSchema>): Promise<ActionResult<Tables<"gyms">>> {
   const viewer = await requireViewer({ allowIncompleteOnboarding: true });
@@ -25,7 +27,7 @@ export async function createGym(input: z.input<typeof createGymSchema>): Promise
 
   const { data, error } = await viewer.supabase
     .from("gyms")
-    .insert({ name, brand, city, country: "FR", grading_system: gradingSystem, created_by: viewer.userId })
+    .insert({ name, brand, city, country: "FR", grading_system: gradingSystem, has_bouldering: parsed.data.hasBouldering, has_routes: parsed.data.hasRoutes, created_by: viewer.userId })
     .select()
     .single();
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "unknownError" };
