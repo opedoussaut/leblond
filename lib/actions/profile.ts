@@ -30,9 +30,7 @@ const onboardingSchema = z
   })
   .refine(gradePair("level", "levelSystem"), { path: ["level"] })
   .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] })
-  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] })
-  .refine((v) => !v.boulderGrade || isValidGrade(v.boulderSystem, v.boulderGrade), { path: ["boulderGrade"] })
-  .refine((v) => !v.routeGrade || isFrenchRouteGrade(v.routeGrade), { path: ["routeGrade"] });
+  .refine((v) => isValidGrade(v.targetSystem, v.targetGrade), { path: ["targetGrade"] });
 
 export async function completeOnboarding(input: z.input<typeof onboardingSchema>): Promise<ActionResult> {
   const viewer = await requireViewer({ allowIncompleteOnboarding: true });
