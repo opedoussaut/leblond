@@ -17,7 +17,9 @@ test("public self-assessment and illustrative method scenarios need no login", a
   await expect(page.getByRole("heading", { name: "Ta progression en escalade" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Profil initial, scénario et évolution observée" })).toBeVisible();
   const slide = page.getByRole("slider", { name: "Technique" });
-  await slide.fill("1");
+  await slide.focus();
+  await slide.press("Home");
+  await expect(slide).toHaveValue("1");
   await expect(page.getByText("1.0 / 5", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: /Simuler un bilan ultérieur/ }).check();
   await expect(page.getByText(/Rien n'est enregistré ici/)).toBeVisible();
