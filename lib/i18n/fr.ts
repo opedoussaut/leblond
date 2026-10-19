@@ -31,6 +31,12 @@ export const fr = {
     no: "Non",
   },
   nav: {
+    overview: "Vue d’ensemble",
+    myProfile: "Mon profil",
+    trainingSessions: "Séances d’entraînement",
+    trainingHistory: "Historique d’entraînement",
+    baseline: "Bilan",
+    subNav: "Pages de cette section",
     home: "Accueil",
     climbing: "Grimper",
     training: "S’entraîner",
