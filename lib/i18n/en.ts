@@ -30,7 +30,7 @@ export const en: Dictionary = {
   nav: {
     home: "Home",
     calendar: "Calendar",
-    atlas: "Atlas",    home: "Home",
+    atlas: "Atlas",
     session: "Session",
     progress: "Progress",
     patrick: "Patrick",
