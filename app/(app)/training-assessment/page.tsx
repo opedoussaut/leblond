@@ -6,6 +6,8 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { getI18n } from "@/lib/i18n/server";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { skillRatingsSchema, type SavedAssessment, type SavedCheckin } from "@/lib/training/assessment";
+import { workingGradeHistory } from "@/lib/training/grade-history";
+import { gradeToScore } from "@/lib/grading";
 
 export const metadata = { title: "Climbing assessment & tracking" };
 
@@ -57,6 +59,11 @@ export default async function TrainingAssessmentPage() {
       ? { label: "FONT (reliable estimates)", level: snapshot.workingGrade.level, sampleSize: snapshot.workingGrade.sampleSize }
       : null;
 
+  const history = Object.fromEntries(saved.map(item => [item.id,
+    workingGradeHistory(dataset, viewer.profile.target_grade_system, item.createdAt, item.horizonWeeks, new Date()),
+  ]));
+  const targetOrdinal = gradeToScore(viewer.profile.target_grade_system, viewer.profile.target_grade);
+
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
@@ -67,7 +74,9 @@ export default async function TrainingAssessmentPage() {
       <p className="mt-3 text-sm leading-relaxed text-ink-2">{a.subtitle}</p>
       {assessmentError || checkinsError
         ? <p role="alert" className="mt-6 rounded-xl border border-warn p-4 text-sm">{a.savedAccess} — database migration may be missing.</p>
-        : <AssessmentWorkspace locale={locale} initialAssessments={saved} initialCheckins={entries} gradeObservation={gradeObservation}/>}
+        : <AssessmentWorkspace locale={locale} initialAssessments={saved} initialCheckins={entries}
+          gradeObservation={gradeObservation} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
+          gradeTarget={targetOrdinal === null ? null : { grade: viewer.profile.target_grade, ordinal: targetOrdinal }}/>}
     </div>
   );
 }
