@@ -26,6 +26,28 @@ The plan table's `training_plans_*` RLS policies enforce ownership with `auth.ui
 4. Sign in as a beta user; create a plan, reload and verify persistence. Sign in as a different user and verify the first user's plan is not visible or editable.
 5. Run the repository's existing `lint`, `typecheck`, `test`, `build` and database checks.
 
+## Public assessment and private progress tracking
+
+- **Public `/training/evaluate`**: friends can rate six climbing capacities on a self-assessment scale of 1–5, select a method, examine a tentative scenario and simulate a later check-in. No login, no database storage.
+- **Private `/training-assessment`**: invited beta users can save an initial six-skill rating, a chosen coaching method, sessions/week (1–5), horizon (4–24 weeks), personal goal and dated follow-ups. A radar and a weekly chart compare recorded observations against the illustrative method scenario. A session can be corrected later.
+- **Objective climbing context**: the existing LEBLOND 60-day working grade is shown when the user's logged climbs meet the established data quality rules. It is kept separate from the self-rating chart and is **never projected into a future climbing grade**.
+- **Data isolation**: RLS-protected tables `training_assessments` and `training_checkins`, plus a composite ownership foreign key prevent viewing or attaching check-ins across accounts. The assessment's original baseline and method are immutable. A versioned scenario definition supports auditability.
+
+### Important: illustrative scenario is NOT a validated predictor
+
+At 12 weeks with two declared sessions/week, the most emphasized axis is assigned up to **+0.8 self-rating points** as an editorial scenario, with proportional changes for other axes and additional limits for longer durations or greater declared frequency. This is a transparent linear assumption, not a scientifically supported treatment effect or forecast. Self ratings are not climbing grades or objective measures. A trajectory above or below this line is **not proof** of failure or success.
+
+Supporting measurement science for future versions:
+- 74-study review of sport climbing determinants: https://pmc.ncbi.nlm.nih.gov/articles/PMC11904605/
+- Physical performance test validity/reliability: https://pmc.ncbi.nlm.nih.gov/articles/PMC10203485/
+- Finger strength test reliability review: https://pmc.ncbi.nlm.nih.gov/articles/PMC12521219/
+
+Building a validated predictive model would require consented longitudinal data, standardized tests, held-out validation and quantified uncertainty before publishing actual expected-grade predictions.
+
+### Deployment of the tracking component
+
+The public routes need no backend credentials. The private tracker requires migration `20261019000001_training_assessments.sql` **after** the earlier plan migration; confirm local PostgreSQL RLS tests and two distinct tester accounts before enabling private saving. Public visitor ratings are not persisted.
+
 ## MongoDB decision
 
 **The existing repository does not use MongoDB**. Identity, security policies and climbing data already live in Supabase/PostgreSQL. This milestone deliberately stores private plans there instead of introducing a second source of identity, secret configuration, database driver, migration path and user-access-control implementation. This keeps the change deployable without additional secrets.
