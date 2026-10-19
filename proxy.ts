@@ -7,7 +7,7 @@ import { publicSupabaseEnv } from "@/lib/supabase/public-env";
 const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/auth/confirm", "/offline"];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname);
+  return PUBLIC_PATHS.includes(pathname) || pathname === "/training";
 }
 
 /**
