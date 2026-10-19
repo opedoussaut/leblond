@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { GradeSelect } from "@/components/climbing/grade-select";
 import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
+import { GoalSelect } from "@/components/climbing/goal-select";
+import type { TargetDiscipline } from "@/lib/climbing/goals";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card, Notice } from "@/components/ui/card";
@@ -18,6 +20,8 @@ export function ProfileForm({
     language: "fr" | "en";
     targetSystem: GradeSystem;
     targetGrade: string;
+    targetDiscipline: TargetDiscipline;
+    targetRouteGrade: string;
     boulderGrade: string;
     boulderSystem: GradeSystem;
     routeGrade: string;
@@ -30,6 +34,8 @@ export function ProfileForm({
   const { t } = useI18n();
   const [state, action, pending] = useActionState(updateProfile, null);
   const [target, setTarget] = useState({ system: initial.targetSystem, grade: initial.targetGrade });
+  const [targetDiscipline, setTargetDiscipline] = useState(initial.targetDiscipline);
+  const [targetRouteGrade, setTargetRouteGrade] = useState(initial.targetRouteGrade);
   const [boulder, setBoulder] = useState({ system: initial.boulderSystem, grade: initial.boulderGrade });
   const [routeGrade, setRouteGrade] = useState(initial.routeGrade);
   return (
@@ -61,15 +67,22 @@ export function ProfileForm({
         </fieldset>
         <fieldset>
           <legend className="mb-2 font-semibold">{t.profile.target}</legend>
-          <GradeSelect
-            idPrefix="pf-target"
-            system={target.system}
-            grade={target.grade}
-            systemName="targetSystem"
-            gradeName="targetGrade"
-            onChange={(system, grade) => setTarget({ system, grade })}
-          />
+          <GoalSelect idPrefix="pf-target" named
+            discipline={targetDiscipline} onDisciplineChange={setTargetDiscipline}
+            boulderSystem={target.system} boulderGrade={target.grade}
+            onBoulderChange={(system, grade) => setTarget({ system, grade })}
+            routeGrade={targetRouteGrade} onRouteChange={setTargetRouteGrade}
+            labels={{
+              discipline: t.onboarding.goalDiscipline,
+              boulder: t.onboarding.goalBoulder,
+              route: t.onboarding.goalRoute,
+              both: t.onboarding.goalBoth,
+              boulderTarget: t.onboarding.boulderTarget,
+              routeTarget: t.onboarding.routeTarget,
+              selectRouteGrade: t.onboarding.selectRouteTarget,
+            }}/>
         </fieldset>
+        {targetDiscipline !== "BOULDER" ? <p className="text-xs text-ink-2">{t.onboarding.routeProgressPending}</p> : null}
         <p className="text-xs text-ink-3">{t.profile.privacyNote}</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
