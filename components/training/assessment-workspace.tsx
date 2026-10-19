@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { WorkingGradeChart } from "./grade-progress";
+import type { ObservedWorkingGrade } from "@/lib/training/grade-history";
 import { createTrainingAssessment, deleteTrainingAssessment, saveTrainingCheckin } from "@/lib/actions/training-assessments";
 import type { Locale } from "@/lib/i18n";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
@@ -119,11 +121,14 @@ export function TrendChart({ locale, axis, baseline, selected, checkins }: {
   </div>;
 }
 
-export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, gradeObservation }: {
+export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, gradeObservation, gradeHistory, gradeSystem, gradeTarget }: {
   locale: Locale;
   initialAssessments: SavedAssessment[];
   initialCheckins: SavedCheckin[];
   gradeObservation: {label:string; level:string; sampleSize:number} | null;
+  gradeHistory: Record<string, ObservedWorkingGrade[]>;
+  gradeSystem: string;
+  gradeTarget: {grade:string; ordinal:number} | null;
 }) {
   const t = trainingDictionary(locale);
   const a = assessmentDictionary(locale);
@@ -306,6 +311,8 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         <div className="mt-3"><TrendChart locale={locale} axis={axis} baseline={chosen.ratings}
           selected={chosen} checkins={related}/></div>
       </div>
+      <WorkingGradeChart locale={locale} points={gradeHistory[chosen.id] ?? []}
+        target={gradeTarget} horizonWeeks={chosen.horizonWeeks} system={gradeSystem}/>
       <p className="rounded-xl border border-line bg-surface-2 p-4 text-xs leading-relaxed text-ink-2">{a.formula} {a.limits}</p>
       <section className="rounded-2xl border border-line bg-surface-2 p-5">
         <h2 className="text-lg font-black">{a.checkin}</h2>
