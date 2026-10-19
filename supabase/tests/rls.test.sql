@@ -215,10 +215,11 @@ select pg_temp.expect(
   (select count(*)=0 from public.calendar_entries
      where id='70000000-0000-0000-0000-000000000001'),
   'second climber cannot see private calendar entries');
-select pg_temp.expect_error(
-  'update public.calendar_entries set status = ''SKIPPED''
-    where id = ''70000000-0000-0000-0000-000000000001''',
-  'ownership prevents modification');
+update public.calendar_entries set status = 'SKIPPED'
+  where id = '70000000-0000-0000-0000-000000000001';
+select pg_temp.expect(
+  (select count(*)=0 from public.calendar_entries where id='70000000-0000-0000-0000-000000000001'),
+  'ownership prevents reading or editing another climber calendar');
 
 select pg_temp.expect((select count(*) from public.gyms where name like '% Test') = 2, 'gym catalogue is shared');
 select pg_temp.expect((select count(*) from public.problems) = 0, 'problems are private');
