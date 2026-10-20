@@ -19,7 +19,13 @@ http
       const dev = body.input.find((m) => m.role === "developer")?.content ?? "";
       const ctx = JSON.parse(dev.replace(/^LEBLOND_CONTEXT = /, ""));
       const fs = ctx.focusSession;
-      const text = fs
+      const rp = ctx.focusRouteProject;
+      const rs = ctx.focusRouteSession;
+      const text = rp
+        ? `MOCK PATRICK — ${ctx.climber.name}: route project ${rp.name} (${rp.grade}, ${rp.status}) at ${rp.gymName} — goes=${rp.goes.length}, falls=${rp.goes.map((g) => g.falls ?? 0).join("/")}, sessions=${rp.sessionsCount}. Lead working grade: ${ctx.routeClimbing?.leadWorkingGrade.grade ?? "none"}.`
+        : rs
+        ? `MOCK PATRICK — ${ctx.climber.name}: route session at ${rs.gymName} — routes=${rs.summary.routes}, clean=${rs.summary.clean}, hardestLead=${rs.summary.hardestCleanLead ?? "none"}.`
+        : fs
         ? `MOCK PATRICK — ${ctx.climber.name}: session at ${fs.gymName} — problems=${fs.summary.problems}, tops=${fs.summary.tops}, flashes=${fs.summary.flashes}, attempts=${fs.summary.attempts}, avgHR=${fs.summary.wearable?.avgHeartRate ?? "none"}. Networks: ${ctx.gyms.native.map((n) => n.network).join("+")}.`
         : `MOCK PATRICK — ${ctx.climber.name}: no focus session. Sessions(30d)=${ctx.last30Days.sessions}.`;
       res.writeHead(200, { "content-type": "text/event-stream" });

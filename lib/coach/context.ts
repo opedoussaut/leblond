@@ -6,7 +6,9 @@ import {
   type SessionSummary,
   type Snapshot,
 } from "@/lib/analytics";
+import type { RouteSummary } from "@/lib/analytics/routes";
 import type { GradeSystem } from "@/lib/climbing/types";
+import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
 
 /**
@@ -49,6 +51,9 @@ export type QuickAction = (typeof QUICK_ACTIONS)[number];
 
 export interface RecentSessionInput {
   id: string;
+  /** BOULDER sessions carry problems/tops/flashes/attempts; ROUTE sessions carry `routes`. */
+  discipline?: "BOULDER" | "ROUTE";
+  routes?: { climbed: number; clean: number; onsights: number; hardestClean: string | null } | null;
   startedAt: string;
   gymName: string;
   gymBrand: string;
@@ -98,6 +103,42 @@ export interface FocusProjectInput {
   videos: number;
 }
 
+export interface RouteAscentInput {
+  grade: string;
+  style: "LEAD" | "TOPROPE" | "AUTOBELAY";
+  result: "ONSIGHT" | "FLASH" | "REDPOINT" | "TOP_WITH_REST" | "ATTEMPT";
+  falls: number | null;
+  project: string | null;
+}
+
+export interface RouteClimbingInput {
+  last30: RouteSummary;
+  last90: RouteSummary;
+  leadWorkingGrade: { grade: string | null; sampleSize: number };
+}
+
+export interface FocusRouteSessionInput {
+  gymName: string;
+  startedAt: string;
+  ended: boolean;
+  notes: string | null;
+  summary: RouteSummary;
+  ascents: RouteAscentInput[];
+}
+
+export interface FocusRouteProjectInput {
+  name: string;
+  grade: string;
+  goalStyle: string;
+  status: string;
+  gymName: string;
+  startedAt: string;
+  sentAt: string | null;
+  notes: string;
+  goes: Array<{ n: number; date: string; style: string; result: string; falls: number | null }>;
+  sessionsCount: number;
+}
+
 export interface CoachContextInput {
   climber: { name: string; language: "fr" | "en"; target: { grade: string; system: string } };
   snapshot30: Snapshot;
@@ -106,6 +147,10 @@ export interface CoachContextInput {
   focusSession?: FocusSessionInput | null;
   focusProject?: FocusProjectInput | null;
   activeProjects: Array<{ grade: string; system: string; attempts: number; gymName: string }>;
+  routeClimbing?: RouteClimbingInput | null;
+  focusRouteSession?: FocusRouteSessionInput | null;
+  focusRouteProject?: FocusRouteProjectInput | null;
+  activeRouteProjects?: Array<{ name: string; grade: string; goalStyle: string; gymName: string; goes: number }>;
   quickAction?: QuickAction | null;
   now: Date;
 }
@@ -125,6 +170,24 @@ const highest = (hs: HighestGrade[]) =>
   }));
 const distribution = (ds: NativeDistribution[]) =>
   ds.map((d) => ({ system: d.system, grades: d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, tried: b.attempted, flashed: b.flashed })) }));
+
+function routePeriod(s: RouteSummary, days: number) {
+  return {
+    days,
+    routes: s.ascents,
+    topped: s.topped,
+    clean: s.clean,
+    onsights: s.onsights,
+    flashes: s.flashes,
+    redpoints: s.redpoints,
+    byStyle: { lead: s.lead, toprope: s.toprope, autobelay: s.autobelay },
+    cleanRate: rate(s.cleanRate),
+    hardestCleanLead: s.highestLeadClean,
+    hardestClean: s.highestClean,
+    hardestOnsight: s.highestOnsight,
+    cleanPyramid: s.pyramid.slice(0, 8).map((p) => ({ grade: p.grade, clean: p.clean, onLead: p.lead })),
+  };
+}
 
 function period(s: Snapshot) {
   return {
@@ -157,17 +220,24 @@ export function buildCoachContext(input: CoachContextInput) {
       })),
       fontWorkingGrade: s90.workingGrade.level,
     },
-    gradeScales: gradeScalesFor([
+    gradeScales: {
+      ...gradeScalesFor([
       input.climber.target.system as GradeSystem,
       ...s90.workingLevels.map((w) => w.system as GradeSystem),
       ...s90.crossGym.native.flatMap((n) => n.distributions.map((d) => d.system)),
-    ]),
+      ]),
+      ...(input.routeClimbing || input.focusRouteSession || input.focusRouteProject
+        ? { FRENCH_SPORT_ROUTES: { ordered: [...FRENCH_ROUTE_GRADES], unranked: [] as string[] } } : {}),
+    },
     definitions: {
       workingLevel: `Highest grade with, over the last ${DEFAULT_WORKING_LEVEL_RULE.windowDays} days, ≥${DEFAULT_WORKING_LEVEL_RULE.minProblems} distinct problems tried, ≥${DEFAULT_WORKING_LEVEL_RULE.minSends} sent and send rate ≥${DEFAULT_WORKING_LEVEL_RULE.minSendRate * 100}%. Computed per native system; Font uses only estimates with confidence ≥${RELIABLE_CONFIDENCE}.`,
       trend: `Mean of the ${DEFAULT_TREND_RULE.topN} hardest sends (in grade steps) over the last ${DEFAULT_TREND_RULE.windowDays} days vs the previous ${DEFAULT_TREND_RULE.windowDays}; needs ≥${DEFAULT_TREND_RULE.minSendsPerWindow} sends per window and a change ≥${DEFAULT_TREND_RULE.threshold} grade step.`,
       sendRate: "sent problems ÷ problems tried (distinct problems)",
       tops: "distinct problems sent",
       gradeScales: "Each system's grades, easiest first. The next grade up is the next item. Unranked grades (e.g. Climbing District PINK) have no position.",
+      routeResults: "Route (sport/roped) ascents: ONSIGHT = first go without beta, FLASH = first go with beta, REDPOINT = no fall after working it (these three are 'clean'); TOP_WITH_REST = reached the top with falls/rests on the rope; ATTEMPT = did not reach the anchor. Styles: LEAD, TOPROPE, AUTOBELAY.",
+      routeLeadWorkingGrade: "Hardest French route grade climbed clean on LEAD at least twice in the last 60 days; null unless ≥6 routes were logged in that window. Top-rope and auto-belay never count toward it.",
+      routeVsBoulder: "Route grades (French sport scale, lower-case, e.g. 6b+) and boulder grades (Font, colours) are separate scales. Never convert one into the other.",
     },
     last30Days: period(s30),
     last90Days: period(s90),
@@ -217,6 +287,27 @@ export function buildCoachContext(input: CoachContextInput) {
       sessionsWithWearableData: s90.wearable.sessions.length,
     },
     activeProjects: input.activeProjects.slice(0, 6),
+    routeClimbing: input.routeClimbing && input.routeClimbing.last90.ascents > 0
+      ? {
+          last30Days: routePeriod(input.routeClimbing.last30, 30),
+          last90Days: routePeriod(input.routeClimbing.last90, 90),
+          leadWorkingGrade: input.routeClimbing.leadWorkingGrade,
+        }
+      : null,
+    activeRouteProjects: (input.activeRouteProjects ?? []).slice(0, 6),
+    focusRouteSession: input.focusRouteSession
+      ? {
+          gymName: input.focusRouteSession.gymName,
+          startedAt: input.focusRouteSession.startedAt,
+          ended: input.focusRouteSession.ended,
+          notes: input.focusRouteSession.notes,
+          summary: routePeriod(input.focusRouteSession.summary, 0),
+          ascents: input.focusRouteSession.ascents.slice(0, 40),
+        }
+      : null,
+    focusRouteProject: input.focusRouteProject
+      ? { ...input.focusRouteProject, goes: input.focusRouteProject.goes.slice(-40) }
+      : null,
     focusSession: input.focusSession
       ? {
           ...input.focusSession,
@@ -260,6 +351,9 @@ function enforceBudget<T extends Record<string, unknown>>(ctx: T): T {
   }
   const fs = ctx.focusSession as { problems?: unknown[] } | null;
   if (json.length > CONTEXT_CHAR_BUDGET && fs?.problems) fs.problems = fs.problems.slice(0, 15);
+  json = JSON.stringify(ctx);
+  const frs = ctx.focusRouteSession as { ascents?: unknown[] } | null;
+  if (json.length > CONTEXT_CHAR_BUDGET && frs?.ascents) frs.ascents = frs.ascents.slice(0, 15);
   return ctx;
 }
 

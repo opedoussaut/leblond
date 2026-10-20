@@ -78,7 +78,7 @@ export function PatrickChat({
   conversationId: string | null;
   initialMessages: Msg[];
   projects: Array<{ id: string; label: string }>;
-  focus: { sessionId: string | null; projectId: string | null; initialAction: QuickAction | null };
+  focus: { sessionId: string | null; projectId: string | null; routeProjectId: string | null; initialAction: QuickAction | null };
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -97,7 +97,7 @@ export function PatrickChat({
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  async function send(text: string, extra: { quickAction?: QuickAction; sessionId?: string | null; projectId?: string | null } = {}) {
+  async function send(text: string, extra: { quickAction?: QuickAction; sessionId?: string | null; projectId?: string | null; routeProjectId?: string | null } = {}) {
     if (!text.trim() || busy) return;
     setBusy(true);
     setError(null);
@@ -115,6 +115,7 @@ export function PatrickChat({
           quickAction: extra.quickAction ?? null,
           sessionId: extra.sessionId ?? null,
           projectId: extra.projectId ?? null,
+          routeProjectId: extra.routeProjectId ?? null,
         }),
       });
       if (!res.ok || !res.body) {
@@ -168,6 +169,7 @@ export function PatrickChat({
       quickAction: focus.initialAction,
       sessionId: focus.sessionId,
       projectId: focus.projectId,
+      routeProjectId: focus.routeProjectId,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -225,7 +227,10 @@ export function PatrickChat({
                 <Button
                   onClick={() => {
                     setPickProject(false);
-                    void send(t.patrick.quick.project, { quickAction: "project", projectId });
+                    // Route projects are listed with a "route:" prefix; boulder projects use their plain id.
+                    const route = projectId.startsWith("route:");
+                    void send(t.patrick.quick.project, { quickAction: "project",
+                      projectId: route ? null : projectId, routeProjectId: route ? projectId.slice(6) : null });
                   }}
                 >
                   {t.patrick.send}

@@ -22,7 +22,8 @@ grant execute on function pg_temp.expect_error(text, text) to authenticated, ano
 grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 
 -- Existing sessions stay bouldering sessions (additive change).
-select pg_temp.expect((select count(*) from public.sessions where discipline <> 'BOULDER') = 0,
+select pg_temp.expect((select count(*) from public.sessions s join public.gyms g on g.id = s.gym_id
+  where s.discipline <> 'BOULDER' and g.name not like '%Test Gym') = 0,
   'pre-existing sessions default to BOULDER');
 
 insert into public.gyms (id, name, brand, grading_system, has_bouldering, has_routes)

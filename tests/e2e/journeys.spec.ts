@@ -179,6 +179,52 @@ test("A2 — route climber logs lead / top-rope routes, kept separate from bould
   await expect(page.getByRole("region", { name: "Bloc · 30 derniers jours" })).toContainText("Aucune séance de grimpe");
 });
 
+test("A3 — route project: create, log goes, auto-sent, and Patrick reads routes", async ({ page }) => {
+  await signInWithPassword(page, "routes@leblond.local");
+  await page.goto("/projects");
+  await page.getByText("+ Nouveau projet de voie").click();
+  const form = page.getByRole("form", { name: "Nouveau projet de voie" });
+  const gymSelect = form.getByLabel("Salle");
+  await gymSelect.selectOption(await gymSelect.locator("option").filter({ hasText: "Climb Up Aubervilliers" }).first().getAttribute("value") ?? "");
+  await form.getByLabel("Nom ou repère de la voie").fill("Toit bleu");
+  await form.getByLabel("Cotation").selectOption("7a");
+  await form.getByRole("button", { name: "Créer le projet" }).click();
+  await expect(page).toHaveURL(/\/projects\/routes\/[0-9a-f-]{36}$/);
+  const projectUrl = page.url();
+  await expect(page.getByRole("heading", { level: 1, name: "Toit bleu" })).toBeVisible();
+
+  await page.goto("/session/new");
+  await chooseGym(page, "Climb Up Aubervilliers");
+  await page.getByRole("region", { name: /Que grimpes-tu/ }).getByRole("button", { name: /^Voie/ }).click();
+  const log = page.getByRole("region", { name: /Choisis la cotation/ });
+  await log.getByRole("button", { name: /Toit bleu · 7a/ }).click();
+  await expect(log.getByRole("button", { name: "7a", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(log.getByLabel(/Nom ou repère/)).toHaveValue("Toit bleu");
+  await log.getByRole("button", { name: "Ajouter une chute" }).click();
+  await log.getByRole("button", { name: "Ajouter une chute" }).click();
+  await log.getByRole("button", { name: /^Sortie avec repos/ }).click();
+  await expect(log.getByRole("status")).toHaveText("7a · Sortie avec repos noté.");
+  await log.getByRole("button", { name: /^Enchaînée/ }).click();
+  await expect(log.getByRole("status")).toHaveText("Projet enchaîné : Toit bleu !");
+  await expect(log.getByRole("button", { name: /Toit bleu · 7a/ })).toHaveCount(0);
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await expect(page.getByText("SÉANCE DE VOIE TERMINÉE")).toBeVisible();
+
+  await page.goto(projectUrl);
+  await expect(page.getByText(/Projets de voie · Enchaîné/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Historique" }).getByRole("listitem")).toHaveCount(2);
+  await page.getByRole("link", { name: "DEMANDER À PATRICK POUR CE PROJET" }).click();
+  await expect(page.getByText(/MOCK PATRICK — Route Climber: route project Toit bleu \(7a, SENT\) at Climb Up Aubervilliers — goes=2, falls=2\/0, sessions=1/))
+    .toBeVisible({ timeout: 20_000 });
+
+  await page.goto("/patrick?q=lastSession");
+  await expect(page.getByText(/MOCK PATRICK — Route Climber: route session at Climb Up Aubervilliers — routes=2, clean=1, hardestLead=7a/))
+    .toBeVisible({ timeout: 20_000 });
+  await page.goto("/projects");
+  await expect(page.getByRole("link", { name: /Toit bleu/ })).toContainText("Enchaîné");
+});
+
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);

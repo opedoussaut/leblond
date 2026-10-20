@@ -30,6 +30,19 @@ const fr = {
   insufficient: "données insuffisantes", noRoutes: "Aucune voie notée sur cette période.",
   separateScales: "Cotations de voie (françaises) et de bloc restent séparées : aucune conversion.",
   topropeNote: "Les voies en moulinette et sur enrouleur sont comptées à part du niveau en tête.",
+  projectsHere: "Mes projets ici", project: "Projet", clearProject: "Retirer le projet",
+  followAsProject: "★ Suivre comme projet", projectCreated: "Projet créé : {name}.",
+  projectSent: "Projet enchaîné : {name} !", inProject: "★ Projet",
+  projectsTitle: "Projets de voie", newProject: "Nouveau projet de voie", gym: "Salle",
+  goalStyle: "Style visé", notes: "Notes", create: "Créer le projet", noProjects: "Aucun projet de voie pour l’instant.",
+  projectStatus: { ACTIVE: "En cours", SENT: "Enchaîné", ABANDONED: "Abandonné" },
+  ascents: "Passages", sessions: "Séances", best: "Meilleur résultat", fallsTrend: "Chutes (1er → dernier)",
+  history: "Historique", markSent: "Marquer enchaîné", abandon: "Abandonner", reactivate: "Réactiver",
+  save: "Enregistrer", saved: "Enregistré.", deleteProject: "Supprimer le projet",
+  deleteConfirm: "Supprimer ce projet ? Les passages restent dans ton carnet.", askPatrick: "DEMANDER À PATRICK POUR CE PROJET",
+  autoSentRule: "Un passage propre (à vue, flash ou enchaîné) dans le style visé marque le projet comme enchaîné ; une ascension en tête vaut pour tous les styles.",
+  noRouteGyms: "Aucune salle de voie dans tes salles. Ajoute-la depuis l’annuaire.", boulderProjects: "Projets de bloc",
+  logHereHint: "Pour noter un passage, démarre une séance de voie dans cette salle et choisis le projet.",
 };
 type Dict = typeof fr;
 
@@ -63,6 +76,19 @@ const en: Dict = {
   insufficient: "insufficient data", noRoutes: "No routes logged in this period.",
   separateScales: "Route (French) and boulder grades stay separate: no conversion.",
   topropeNote: "Top-rope and auto-belay ascents are counted separately from lead level.",
+  projectsHere: "My projects here", project: "Project", clearProject: "Clear project",
+  followAsProject: "★ Track as project", projectCreated: "Project created: {name}.",
+  projectSent: "Project sent: {name}!", inProject: "★ Project",
+  projectsTitle: "Route projects", newProject: "New route project", gym: "Gym",
+  goalStyle: "Goal style", notes: "Notes", create: "Create project", noProjects: "No route projects yet.",
+  projectStatus: { ACTIVE: "Active", SENT: "Sent", ABANDONED: "Abandoned" },
+  ascents: "Goes", sessions: "Sessions", best: "Best result", fallsTrend: "Falls (first → latest)",
+  history: "History", markSent: "Mark as sent", abandon: "Abandon", reactivate: "Reactivate",
+  save: "Save", saved: "Saved.", deleteProject: "Delete project",
+  deleteConfirm: "Delete this project? Its ascents stay in your log.", askPatrick: "ASK PATRICK ABOUT THIS PROJECT",
+  autoSentRule: "A clean ascent (onsight, flash or redpoint) in the goal style marks the project as sent; a lead ascent counts for every style.",
+  noRouteGyms: "None of your gyms has routes. Add one from the directory.", boulderProjects: "Boulder projects",
+  logHereHint: "To log a go, start a route session at this gym and pick the project.",
 };
 
 export const routeDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);

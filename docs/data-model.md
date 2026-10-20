@@ -84,3 +84,13 @@ training_exercise_sets       one row per set, unique (exercise_id, set_index) â†
 - Analytics (`lib/analytics/routes.ts`) are separate from bouldering: the bouldering dataset only loads `BOULDER`
   sessions, and no conversion between Font and French sport grades is ever made. The observed lead working grade
   is the hardest grade sent clean on lead at least twice in 60 days, and only when â‰¥ 6 routes were logged.
+
+## Route projects and Patrick (migration `20261022000000_route_projects.sql`)
+
+- `route_projects`: one per (climber, venue, route key) with French grade, goal style and status
+  (`ACTIVE` / `SENT` / `ABANDONED`). `route_ascents.route_project_id` links goes to a project; creating a project
+  attaches earlier goes of the same named route at that venue. A clean ascent in the goal style (lead counts for every
+  style) marks it sent. Deleting a project keeps its ascents.
+- Patrick's context adds `routeClimbing` (30/90-day route summaries, lead working grade), route sessions in
+  `recentSessions`, `activeRouteProjects`, and a `focusRouteSession` / `focusRouteProject` when asked. Route and
+  boulder scales are listed separately and the prompt forbids converting between them.
