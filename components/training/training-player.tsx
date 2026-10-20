@@ -11,7 +11,7 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import {
   activeSeconds, formatClock, pick, restRemaining,
-  type TrainingExercise, type TrainingSession, type TrainingSet,
+  type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
 } from "@/lib/training/sessions";
 
 type ClimbOption = { id: string; label: string };
@@ -28,6 +28,26 @@ function writeRest(sessionId: string, endsAt: number | null) {
     else window.localStorage.removeItem(restKey(sessionId));
   } catch { /* storage unavailable: the timer still works in memory */ }
 }
+
+/*
+ * Sets not yet confirmed by the server are kept in a local queue, so a refresh,
+ * a lost connection or a closed tab never loses recorded work. Saves are keyed
+ * by (exercise, set number) on the server, so re-sending a queued set is safe.
+ */
+function pendingKey(sessionId: string) { return "lb-pending-sets-" + sessionId; }
+function readPending(sessionId: string): SaveSetInput[] {
+  try { const v = JSON.parse(window.localStorage.getItem(pendingKey(sessionId)) ?? "[]"); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+function updatePending(sessionId: string, fn: (list: SaveSetInput[]) => SaveSetInput[]) {
+  try {
+    const next = fn(readPending(sessionId));
+    if (next.length) window.localStorage.setItem(pendingKey(sessionId), JSON.stringify(next));
+    else window.localStorage.removeItem(pendingKey(sessionId));
+  } catch { /* storage unavailable: saves still go straight to the server */ }
+}
+const sameSet = (a: Pick<SaveSetInput, "exerciseId" | "setIndex">, b: Pick<SaveSetInput, "exerciseId" | "setIndex">) =>
+  a.exerciseId === b.exerciseId && a.setIndex === b.setIndex;
 
 export function TrainingPlayer({ locale, session, exercises: initial, climbs }: {
   locale: Locale; session: TrainingSession; exercises: TrainingExercise[]; climbs: ClimbOption[];
@@ -59,6 +79,35 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       document.removeEventListener("visibilitychange", tick);
     };
   }, [session.id]);
+
+  async function flushPending() {
+    for (const q of readPending(session.id)) {
+      const r = await saveTrainingSet(q);
+      if (!r.ok) { if (r.error !== "not_found") { setNotice(t.offline); return; } }
+      updatePending(session.id, (list) => list.filter((x) => !sameSet(x, q)));
+      if (r.ok) patchExercise(q.exerciseId, (e) => ({ ...e, sets: e.sets.map((x) => x.setIndex === q.setIndex ? { ...x, id: r.data.id } : x) }));
+    }
+    setNotice(t.saved);
+  }
+
+  // Recover sets that were logged but not confirmed before a refresh, then re-send them.
+  useEffect(() => {
+    const queued = readPending(session.id);
+    if (!queued.length) return;
+    const timer = window.setTimeout(() => {
+      setExercises((list) => list.map((e) => {
+        const missing = queued.filter((q) => q.exerciseId === e.id && !e.sets.some((x) => x.setIndex === q.setIndex));
+        if (!missing.length) return e;
+        return { ...e, sets: [...e.sets, ...missing.map((q) => ({ id: "pending-" + q.setIndex, setIndex: q.setIndex,
+          reps: q.reps, seconds: q.seconds, loadKg: q.loadKg, completed: q.completed, notes: q.notes }))]
+          .sort((a, b) => a.setIndex - b.setIndex) };
+      }));
+      void flushPending();
+    }, 0);
+    const retry = () => { void flushPending(); };
+    window.addEventListener("online", retry);
+    return () => { window.clearTimeout(timer); window.removeEventListener("online", retry); };
+  }, [session.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const elapsed = activeSeconds({ startedAt: session.startedAt, pausedAt, pausedSeconds, completedAt: null }, new Date(now));
   const rest = restRemaining(restEndsAt, now);
@@ -96,17 +145,17 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       const ends = Date.now() + current.restSeconds * 1000;
       setRestEndsAt(ends); writeRest(session.id, ends);
     }
-    setNotice("");
+    const input: SaveSetInput = {
+      exerciseId: current.id, setIndex: set.setIndex, reps: set.reps, seconds: set.seconds,
+      loadKg: set.loadKg, completed: true, notes: "",
+    };
+    // Queue first (synchronously) so a refresh during the request cannot lose the set.
+    updatePending(session.id, (list) => [...list.filter((x) => !sameSet(x, input)), input]);
+    setNotice(t.saving);
     start(async () => {
-      const r = await saveTrainingSet({
-        exerciseId: current.id, setIndex: set.setIndex, reps: set.reps, seconds: set.seconds,
-        loadKg: set.loadKg, completed: true, notes: "",
-      });
-      if (!r.ok) {
-        patchExercise(current.id, (e) => ({ ...e, sets: e.sets.filter((s) => s.setIndex !== set.setIndex) }));
-        fail();
-        return;
-      }
+      const r = await saveTrainingSet(input);
+      if (!r.ok) { fail(); return; } // stays queued; retried on reload or reconnect
+      updatePending(session.id, (list) => list.filter((x) => !sameSet(x, input)));
       patchExercise(current.id, (e) => ({ ...e, sets: e.sets.map((s) => s.setIndex === set.setIndex ? { ...s, id: r.data.id } : s) }));
       setNotice(t.saved);
     });
@@ -117,6 +166,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
     const exerciseId = current.id;
     const before = current.sets;
     patchExercise(exerciseId, (e) => ({ ...e, sets: e.sets.filter((s) => s.setIndex !== setIndex) }));
+    updatePending(session.id, (list) => list.filter((x) => !sameSet(x, { exerciseId, setIndex })));
     start(async () => {
       const r = await deleteTrainingSet(exerciseId, setIndex);
       if (!r.ok) { patchExercise(exerciseId, (e) => ({ ...e, sets: before })); fail(); }
