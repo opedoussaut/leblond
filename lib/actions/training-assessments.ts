@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { assessmentInputSchema, checkinInputSchema, elapsedWeeks } from "@/lib/training/assessment";
+import { PROTOCOL_VERSION } from "@/lib/training/assessment-protocol";
 
 type Result = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "not_found" | "unknown" };
 
@@ -16,12 +17,21 @@ export async function createTrainingAssessment(input: unknown): Promise<Result> 
   if (countError) return { ok: false, error: "unknown" };
   if ((count ?? 0) >= 12) return { ok: false, error: "limit" };
 
-  const { methodId, ratings, horizonWeeks, sessionsPerWeek, goal } = parsed.data;
+  const { methodId, ratings, horizonWeeks, sessionsPerWeek, goal, kind, measurements, context } = parsed.data;
+  const structured = kind !== undefined;
   const { data, error } = await viewer.supabase.from("training_assessments")
-    .insert({ user_id: viewer.userId, method_id: methodId, ratings, horizon_weeks: horizonWeeks, sessions_per_week: sessionsPerWeek, goal })
+    .insert({
+      user_id: viewer.userId, method_id: methodId, ratings, horizon_weeks: horizonWeeks, sessions_per_week: sessionsPerWeek, goal,
+      ...(structured ? {
+        kind: (measurements?.length ?? 0) > 0 ? "STRUCTURED" as const : "BASIC" as const,
+        protocol_version: PROTOCOL_VERSION, measurements: measurements ?? [], context: context ?? {},
+      } : {}),
+    })
     .select("id").single();
   if (error || !data) return { ok: false, error: "unknown" };
   revalidatePath("/training-assessment");
+  revalidatePath("/train/assess");
+  revalidatePath("/follow-up");
   return { ok: true, id: data.id };
 }
 

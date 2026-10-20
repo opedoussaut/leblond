@@ -7,9 +7,32 @@ name: Deploy database (Supabase)
 #   SUPABASE_ACCESS_TOKEN  personal access token (supabase.com → Account → Access Tokens)
 #   SUPABASE_PROJECT_ID    project ref (the id in the project URL)
 #   SUPABASE_DB_PASSWORD   database password chosen when creating the project
+#
+# Modes:
+#   push     apply pending migrations (default)
+#   inspect  READ-ONLY: list migration history and print the schema diff
+#            between the hosted database and supabase/migrations
+#   repair   align the migration HISTORY table only (no schema change), then push.
+#            Use when migrations were applied by another tool under different
+#            version numbers and `inspect` showed the schemas already match.
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "push | inspect | repair"
+        required: true
+        default: push
+        type: choice
+        options: [push, inspect, repair]
+      revert_versions:
+        description: "repair only: remote-only versions to mark reverted (space-separated)"
+        required: false
+        default: ""
+      applied_versions:
+        description: "repair only: local versions already present in the schema (space-separated)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -22,10 +45,29 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      MODE: ${{ inputs.mode }}
+      REVERT_VERSIONS: ${{ inputs.revert_versions }}
+      APPLIED_VERSIONS: ${{ inputs.applied_versions }}
     steps:
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
           version: latest
       - run: supabase link --project-ref "$SUPABASE_PROJECT_ID" -p "$SUPABASE_DB_PASSWORD"
-      - run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"
+      - name: Inspect (read-only)
+        if: ${{ inputs.mode == 'inspect' }}
+        run: |
+          supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" || true
+          echo "── Schema diff: hosted public schema → repo migrations (DDL only, no data) ──"
+          supabase db diff --linked --schema public
+      - name: Repair migration history
+        if: ${{ inputs.mode == 'repair' }}
+        run: |
+          set -euo pipefail
+          [[ "$REVERT_VERSIONS" =~ ^[0-9\ ]+$ && "$APPLIED_VERSIONS" =~ ^[0-9\ ]+$ ]] || { echo "version lists required"; exit 1; }
+          supabase migration repair --linked -p "$SUPABASE_DB_PASSWORD" --status reverted $REVERT_VERSIONS
+          supabase migration repair --linked -p "$SUPABASE_DB_PASSWORD" --status applied $APPLIED_VERSIONS
+          supabase migration list --linked -p "$SUPABASE_DB_PASSWORD"
+      - name: Push migrations
+        if: ${{ inputs.mode != 'inspect' }}
+        run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"

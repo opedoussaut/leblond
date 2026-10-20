@@ -46,3 +46,28 @@ erDiagram
 `problems.outdoor_problem_id` links a climber's problem to a catalogue problem: unique per climber, must belong to the gym of that area (trigger), set to null if the problem disappears upstream.
 
 Storage buckets: `media` (private, 50 MB, images/videos) and `wearable-files` (private, 4 MB, FIT). Objects live under `<user_id>/…`.
+
+## Training sessions (migration `20261020000000_training_sessions.sql`)
+
+Executable training is separate from the climbing journal:
+
+```
+training_plans ─(plan_id, plan_session_index)─┐
+calendar_entries ─(calendar_entry_id, unique)─┤
+                                              ▼
+training_sessions   PLANNED → IN_PROGRESS → COMPLETED  (or SKIPPED / CANCELED / INTERRUPTED)
+      │  timers: started_at, paused_at, paused_seconds, completed_at — elapsed time is always derived
+      ▼
+training_session_exercises   immutable instruction snapshot (jsonb) + targets (sets/reps/seconds/rest)
+      ▼
+training_exercise_sets       one row per set, unique (exercise_id, set_index) → retries never duplicate
+```
+
+- One `IN_PROGRESS` session per climber (partial unique index); one session per calendar entry.
+- A climbing session done during training is linked through `climbing_session_id`; attempts stay
+  counted once, in the journal.
+- Clients can only update the columns listed in the migration's column grants; owner and lineage
+  columns and the instruction snapshot are immutable. All three tables have owner-only RLS.
+- `training_assessments` gains `kind` (SELF / BASIC / STRUCTURED), `protocol_version`,
+  `measurements` (evidence-labelled test results) and `context` (screening, conditions and the
+  journal evidence observed at assessment time). Legacy rows default to `SELF`.

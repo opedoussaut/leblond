@@ -28,6 +28,12 @@ export const en: Dictionary = {
     no: "No",
   },
   nav: {
+    overview: "Overview",
+    myProfile: "My profile",
+    trainingSessions: "Training sessions",
+    trainingHistory: "Training history",
+    baseline: "Assessment",
+    subNav: "Pages in this section",
     home: "Home",
     climbing: "Climb",
     training: "Train",

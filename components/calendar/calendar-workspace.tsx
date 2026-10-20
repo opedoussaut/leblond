@@ -7,6 +7,14 @@ import { calendarDictionary } from "@/lib/i18n/calendar";
 import type { Locale } from "@/lib/i18n";
 import type { CalendarEvent, CalendarInput, LoggedSession } from "@/lib/calendar/schema";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import { CalendarEntrySessionButton } from "@/components/training/session-actions";
+import { trainingSessionDictionary } from "@/lib/i18n/training-session";
+import type { TrainingStatus } from "@/lib/training/sessions";
+
+export type CalendarTraining = {
+  id: string; title: string; status: TrainingStatus; eventDate: string; startTime: string;
+  minutes: number | null; calendarEntryId: string | null;
+};
 
 const pad=(n:number)=>String(n).padStart(2,"0");
 function shiftMonth(month:string, delta:number) {
@@ -25,9 +33,10 @@ const kinds=["CLIMB","TRAIN","REST","ASSESS","OTHER"] as const;
 const disciplines=["BOULDER","ROUTE","BOTH","NONE"] as const;
 
 export function CalendarWorkspace({
-  month, locale, events, sessions, presetMethod = "",
-}: { month:string; locale:Locale; events:CalendarEvent[]; sessions:LoggedSession[]; presetMethod?:string }) {
+  month, locale, events, sessions, trainings = [], presetMethod = "",
+}: { month:string; locale:Locale; events:CalendarEvent[]; sessions:LoggedSession[]; trainings?:CalendarTraining[]; presetMethod?:string }) {
   const t=calendarDictionary(locale);
+  const ts=trainingSessionDictionary(locale);
   const router=useRouter();
   const now=new Date();
   const today=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate());
@@ -51,6 +60,8 @@ export function CalendarWorkspace({
   });
   const selectedEvents=events.filter(e=>e.eventDate===safeSelected);
   const selectedSessions=sessions.filter(s=>s.eventDate===safeSelected);
+  const linkedByEntry=new Map(trainings.filter(x=>x.calendarEntryId).map(x=>[x.calendarEntryId!,x]));
+  const selectedTrainings=trainings.filter(x=>x.eventDate===safeSelected&&!(x.calendarEntryId&&events.some(e=>e.id===x.calendarEntryId)));
   function goMonth(delta:number) {
     const next=shiftMonth(month,delta);
     if(next<"2020-01"||next>"2100-12")return;
@@ -99,7 +110,7 @@ export function CalendarWorkspace({
               (safeSelected===day?"border-accent bg-accent text-accent-ink":
                day===today?"border-accent text-accent":"border-transparent hover:border-line hover:bg-surface-2")}>
             {Number(day.slice(-2))}
-            {events.some(e=>e.eventDate===day)||sessions.some(e=>e.eventDate===day)
+            {events.some(e=>e.eventDate===day)||sessions.some(e=>e.eventDate===day)||trainings.some(e=>e.eventDate===day)
               ? <span aria-hidden="true" className={"mt-1 h-1.5 w-1.5 rounded-full "+(safeSelected===day?"bg-white":"bg-accent")}/> : null}
           </button>
         ):<div key={"gap"+i}/>)}
@@ -110,7 +121,7 @@ export function CalendarWorkspace({
     <section ref={detailsRef} tabIndex={-1} aria-label={safeSelected}
       className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-5 focus:outline-none">
       <h2 className="text-xl font-extrabold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
-      {selectedEvents.length===0&&selectedSessions.length===0?<p className="text-sm text-ink-3">{t.empty}</p>:null}
+      {selectedEvents.length===0&&selectedSessions.length===0&&selectedTrainings.length===0?<p className="text-sm text-ink-3">{t.empty}</p>:null}
       <button type="button" onClick={() => titleRef.current?.focus()}
         className="inline-flex min-h-10 items-center rounded-full border border-accent/30 bg-accent-soft px-4 text-xs font-bold text-accent hover:border-accent">
         + {t.add}
@@ -119,6 +130,10 @@ export function CalendarWorkspace({
         <span><strong className="block">{s.title}</strong><span className="text-xs text-ink-2">{t.logged}</span></span>
         <span className="text-sm font-semibold text-accent">↗</span>
       </Link>)}
+      {selectedTrainings.map(x=><Link key={x.id} href={"/train/sessions/"+x.id} className="flex justify-between gap-3 rounded-xl border border-accent/30 bg-accent-soft p-4 hover:border-accent">
+        <span><strong className="block">{x.title}</strong><span className="text-xs text-ink-2">{t.TRAIN} · {ts.status[x.status]}{x.startTime?" · "+x.startTime:""}{x.minutes?" · "+x.minutes+" min":""}</span></span>
+        <span className="text-sm font-semibold text-accent">{x.status==="PLANNED"?ts.open:x.status==="IN_PROGRESS"?ts.resume:ts.review} →</span>
+      </Link>)}
       {selectedEvents.map(e=><div key={e.id} className="rounded-xl border border-line bg-surface p-4">
         <div className="flex items-start justify-between gap-2">
           <div><strong className="block">{e.title}</strong><p className="mt-1 text-xs text-ink-2">{t[e.kind]} · {t[e.discipline]}{e.startTime?" · "+e.startTime:""}{e.minutes?" · "+e.minutes+" min":""}</p></div>
@@ -126,8 +141,12 @@ export function CalendarWorkspace({
         </div>
         {e.notes?<p className="mt-3 text-sm text-ink-2">{e.notes}</p>:null}
         {e.methodId?<Link className="mt-2 inline-block text-sm font-semibold text-accent underline" href={"/atlas/"+e.methodId}>{t.methodDetail} ↗</Link>:null}
+        {e.kind==="TRAIN"?<div className="mt-3 flex flex-wrap items-center gap-2">
+          {linkedByEntry.get(e.id)?<span className="text-xs font-semibold text-ink-2">{ts.status[linkedByEntry.get(e.id)!.status]}</span>:null}
+          <CalendarEntrySessionButton locale={locale} entryId={e.id} sessionId={linkedByEntry.get(e.id)?.id ?? null}/>
+        </div>:null}
         <div className="mt-4 flex flex-wrap gap-2">
-          {e.status!=="DONE"?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markDone}</button>:null}
+          {e.status!=="DONE"&&!(e.kind==="TRAIN")?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markDone}</button>:null}
           {e.status!=="PLANNED"?<button disabled={pending} onClick={()=>change(e.id,"PLANNED")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markPlanned}</button>:null}
           {e.status!=="SKIPPED"?<button disabled={pending} onClick={()=>change(e.id,"SKIPPED")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markSkipped}</button>:null}
           <button disabled={pending} onClick={()=>remove(e.id)} className="min-h-9 rounded-lg border border-line px-3 text-xs text-danger">{t.delete}</button>

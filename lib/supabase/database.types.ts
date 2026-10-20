@@ -86,6 +86,239 @@ export type Database = {
         };
         Relationships: [];
       };
+      training_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          objective: string;
+          method_id: string | null;
+          plan_id: string | null;
+          plan_session_index: number | null;
+          calendar_entry_id: string | null;
+          climbing_session_id: string | null;
+          venue: string;
+          status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED" | "CANCELED" | "INTERRUPTED";
+          scheduled_date: string | null;
+          scheduled_time: string | null;
+          planned_minutes: number | null;
+          started_at: string | null;
+          paused_at: string | null;
+          paused_seconds: number;
+          completed_at: string | null;
+          actual_minutes: number | null;
+          current_index: number;
+          rpe: number | null;
+          pain: number | null;
+          pain_notes: string;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          title: string;
+          objective?: string;
+          method_id?: string | null;
+          plan_id?: string | null;
+          plan_session_index?: number | null;
+          calendar_entry_id?: string | null;
+          climbing_session_id?: string | null;
+          venue?: string;
+          status?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED" | "CANCELED" | "INTERRUPTED";
+          scheduled_date?: string | null;
+          scheduled_time?: string | null;
+          planned_minutes?: number | null;
+          started_at?: string | null;
+          paused_at?: string | null;
+          paused_seconds?: number;
+          completed_at?: string | null;
+          actual_minutes?: number | null;
+          current_index?: number;
+          rpe?: number | null;
+          pain?: number | null;
+          pain_notes?: string;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          objective?: string;
+          method_id?: string | null;
+          plan_id?: string | null;
+          plan_session_index?: number | null;
+          calendar_entry_id?: string | null;
+          climbing_session_id?: string | null;
+          venue?: string;
+          status?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED" | "CANCELED" | "INTERRUPTED";
+          scheduled_date?: string | null;
+          scheduled_time?: string | null;
+          planned_minutes?: number | null;
+          started_at?: string | null;
+          paused_at?: string | null;
+          paused_seconds?: number;
+          completed_at?: string | null;
+          actual_minutes?: number | null;
+          current_index?: number;
+          rpe?: number | null;
+          pain?: number | null;
+          pain_notes?: string;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_sessions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "training_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "training_sessions_calendar_entry_id_fkey";
+            columns: ["calendar_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "calendar_entries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "training_sessions_climbing_session_id_fkey";
+            columns: ["climbing_session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      training_session_exercises: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string;
+          position: number;
+          block: "WARMUP" | "MAIN" | "COOLDOWN";
+          method_id: string | null;
+          name: string;
+          instructions: Json;
+          modality: "REPS" | "HOLD" | "TIME" | "ROUTES" | "INTERVALS" | "FREE";
+          target_sets: number | null;
+          target_reps: number | null;
+          target_seconds: number | null;
+          rest_seconds: number | null;
+          intensity: string;
+          status: "PENDING" | "DONE" | "MODIFIED" | "SKIPPED";
+          rpe: number | null;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          session_id: string;
+          position: number;
+          block: "WARMUP" | "MAIN" | "COOLDOWN";
+          method_id?: string | null;
+          name: string;
+          instructions?: Json;
+          modality: "REPS" | "HOLD" | "TIME" | "ROUTES" | "INTERVALS" | "FREE";
+          target_sets?: number | null;
+          target_reps?: number | null;
+          target_seconds?: number | null;
+          rest_seconds?: number | null;
+          intensity?: string;
+          status?: "PENDING" | "DONE" | "MODIFIED" | "SKIPPED";
+          rpe?: number | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_id?: string;
+          position?: number;
+          block?: "WARMUP" | "MAIN" | "COOLDOWN";
+          method_id?: string | null;
+          name?: string;
+          instructions?: Json;
+          modality?: "REPS" | "HOLD" | "TIME" | "ROUTES" | "INTERVALS" | "FREE";
+          target_sets?: number | null;
+          target_reps?: number | null;
+          target_seconds?: number | null;
+          rest_seconds?: number | null;
+          intensity?: string;
+          status?: "PENDING" | "DONE" | "MODIFIED" | "SKIPPED";
+          rpe?: number | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_session_exercises_user_id_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "training_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      training_exercise_sets: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_id: string;
+          set_index: number;
+          reps: number | null;
+          seconds: number | null;
+          load_kg: number | null;
+          completed: boolean;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          exercise_id: string;
+          set_index: number;
+          reps?: number | null;
+          seconds?: number | null;
+          load_kg?: number | null;
+          completed?: boolean;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          set_index?: number;
+          reps?: number | null;
+          seconds?: number | null;
+          load_kg?: number | null;
+          completed?: boolean;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_exercise_sets_user_id_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "training_session_exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       training_assessments: {
         Row: {
           id: string;
@@ -96,6 +329,10 @@ export type Database = {
           horizon_weeks: number;
           sessions_per_week: number;
           forecast_version: number;
+          kind: "SELF" | "BASIC" | "STRUCTURED";
+          protocol_version: number;
+          measurements: Json;
+          context: Json;
           created_at: string;
         };
         Insert: {
@@ -107,6 +344,10 @@ export type Database = {
           horizon_weeks: number;
           sessions_per_week: number;
           forecast_version?: number;
+          kind?: "SELF" | "BASIC" | "STRUCTURED";
+          protocol_version?: number;
+          measurements?: Json;
+          context?: Json;
           created_at?: string;
         };
         Update: {
@@ -118,6 +359,10 @@ export type Database = {
           horizon_weeks?: number;
           sessions_per_week?: number;
           forecast_version?: number;
+          kind?: "SELF" | "BASIC" | "STRUCTURED";
+          protocol_version?: number;
+          measurements?: Json;
+          context?: Json;
           created_at?: string;
         };
         Relationships: [];
