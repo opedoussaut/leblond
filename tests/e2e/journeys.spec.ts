@@ -116,7 +116,7 @@ test("A — free climber logs a session and sees it in Follow-up without any pla
   await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
 
   await page.goto("/follow-up");
-  const climbing = page.getByRole("region", { name: "Grimpe · 30 derniers jours" });
+  const climbing = page.getByRole("region", { name: "Bloc · 30 derniers jours" });
   await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
   await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
   await expect(climbing.getByText("Blocs réussis", { exact: true }).locator("..")).toContainText("2");
@@ -125,6 +125,58 @@ test("A — free climber logs a session and sees it in Follow-up without any pla
   await expect(page.getByText(/Pas encore de séance d’entraînement/)).toBeVisible();
   await page.goto("/session");
   await expect(page.locator(`a[href="${new URL(sessionUrl).pathname}"]`).first()).toBeVisible();
+});
+
+test("A2 — route climber logs lead / top-rope routes, kept separate from bouldering", async ({ page }) => {
+  await register(page, "Route Climber", "routes@leblond.local");
+  await page.goto("/session/new");
+  await chooseGym(page, "Climb Up Aubervilliers");
+  const choice = page.getByRole("region", { name: /Climb Up Aubervilliers · Que grimpes-tu/ });
+  await choice.getByRole("button", { name: /^Voie/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Climb Up Aubervilliers" })).toBeVisible();
+  await expect(page.getByText("Séance de voie")).toBeVisible();
+
+  const log = page.getByRole("region", { name: /Choisis la cotation/ });
+  await log.getByRole("button", { name: "6b", exact: true }).click();
+  await log.getByLabel(/Nom ou repère/).fill("Le dièdre");
+  await log.getByRole("button", { name: /^À vue/ }).click();
+  await expect(log.getByRole("status")).toHaveText("6b · À vue noté.");
+  await log.getByLabel(/Nom ou repère/).fill("");
+  await log.getByRole("button", { name: "6a", exact: true }).click();
+  await log.getByRole("button", { name: /^Enchaînée/ }).click();
+  await expect(log.getByRole("status")).toHaveText("6a · Enchaînée noté.");
+  await log.getByRole("button", { name: "6c", exact: true }).click();
+  await log.getByRole("button", { name: "Moulinette" }).click();
+  await log.getByRole("button", { name: "Ajouter une chute" }).click();
+  await log.getByRole("button", { name: "Ajouter une chute" }).click();
+  await log.getByRole("button", { name: /^Sortie avec repos/ }).click();
+  await expect(log.getByRole("status")).toHaveText("6c · Sortie avec repos noté.");
+
+  await page.reload();
+  const list = page.getByRole("region", { name: /Voies de la séance/ });
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+  await page.screenshot({ path: "test-results/visual/390_route_logger.png", fullPage: true });
+  await expect(list.getByRole("listitem").filter({ hasText: "6c" })).toContainText("Moulinette · 2");
+
+  // Onsight is impossible on a route already climbed here (accents/case ignored).
+  await log.getByRole("button", { name: "6b", exact: true }).click();
+  await log.getByLabel(/Nom ou repère/).fill("le diedre");
+  await log.getByRole("button", { name: /^À vue/ }).click();
+  await expect(log.getByRole("alert")).toContainText("déjà été grimpée");
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await expect(page.getByText("SÉANCE DE VOIE TERMINÉE")).toBeVisible();
+  await expect(page.locator("dl div").filter({ hasText: "Plus haute enchaînée en tête" })).toContainText("6b");
+  await expect(page.locator("dl div").filter({ hasText: "Plus haute à vue" })).toContainText("6b");
+
+  await page.goto("/session");
+  await expect(page.getByRole("link", { name: /Climb Up Aubervilliers/ })).toContainText("3 voies · 2 enchaînées");
+  await page.goto("/follow-up");
+  await expect(page.getByRole("region", { name: "Voie · 30 derniers jours" })).toContainText("6b");
+  // Bouldering statistics are untouched by the route session.
+  await expect(page.getByRole("region", { name: "Bloc · 30 derniers jours" })).toContainText("Aucune séance de grimpe");
 });
 
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {

@@ -32,14 +32,13 @@ export function GymPicker({
   const { t } = useI18n();
   const [gyms, setGyms] = useState(initialGyms);
   const [query, setQuery] = useState("");
-  const [discipline, setDiscipline] = useState<DisciplineFilter>(mode === "pick" ? "boulder" : "all");
+  const [discipline, setDiscipline] = useState<DisciplineFilter>("all");
   const [brand, setBrand] = useState<"all" | GymBrand>("all");
   const [adding, setAdding] = useState(false);
   const chosen = useMemo(() => gyms.filter((g) => selected.includes(g.id)), [gyms, selected]);
   const filtered = useMemo(() => {
     const q = normalize(query);
     return gyms.filter((g) =>
-      (mode !== "pick" || g.has_bouldering) &&
       (brand === "all" || g.brand === brand) &&
       (discipline === "all" ||
         (discipline === "boulder" && g.has_bouldering) ||
@@ -51,7 +50,7 @@ export function GymPicker({
       Number(favouriteIds.includes(b.id)) - Number(favouriteIds.includes(a.id)) ||
       a.name.localeCompare(b.name, "fr")
     );
-  }, [gyms, query, discipline, brand, selected, favouriteIds, mode, t]);
+  }, [gyms, query, discipline, brand, selected, favouriteIds, t]);
 
   const disciplineLabel = (g: Gym) =>
     g.has_bouldering && g.has_routes ? t.gyms.both : g.has_bouldering ? t.gyms.boulder : t.gyms.routes;
@@ -67,7 +66,7 @@ export function GymPicker({
     setQuery("");
     setBrand("all");
     setDiscipline("all");
-    if (mode === "pick" && gym.has_bouldering) onPick?.(gym);
+    if (mode === "pick") onPick?.(gym);
     else if (mode === "multi") onToggle?.(gym);
   };
 
@@ -99,8 +98,8 @@ export function GymPicker({
               onChange={(e) => setDiscipline(e.target.value as DisciplineFilter)}>
               <option value="all">{t.gyms.allDisciplines}</option>
               <option value="boulder">{t.gyms.boulder}</option>
-              {mode === "multi" ? <option value="routes">{t.gyms.routes}</option> : null}
-              {mode === "multi" ? <option value="both">{t.gyms.both}</option> : null}
+              <option value="routes">{t.gyms.routes}</option>
+              <option value="both">{t.gyms.both}</option>
             </Select>
           </div>
         </div>
@@ -123,7 +122,6 @@ export function GymPicker({
             ))}
           </Select>
           {filtered.length === 0 ? <p className="mt-2 text-sm text-ink-2">{t.gyms.none}</p> : null}
-          {mode === "pick" ? <p className="mt-2 text-xs text-ink-3">{t.gyms.routeLoggingPending}</p> : null}
         </div>
       </div>
 

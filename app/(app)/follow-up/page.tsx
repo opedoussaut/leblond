@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { RouteStats } from "@/components/climbing/route-stats";
 import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
+import { loadRouteAscents } from "@/lib/data/routes";
 import { formatDate, formatRatio } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
@@ -31,8 +33,9 @@ export default async function FollowUpHome() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   const now = new Date();
-  const [dataset, training, { data: assessments }] = await Promise.all([
+  const [dataset, routes, training, { data: assessments }] = await Promise.all([
     loadClimbingDataset(viewer.supabase),
+    loadRouteAscents(viewer.supabase),
     listTrainingSessions(viewer.supabase, 400),
     viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(12),
   ]);
@@ -51,7 +54,7 @@ export default async function FollowUpHome() {
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="climb-heading" className="text-xl font-extrabold">{fr ? "Grimpe · 30 derniers jours" : "Climbing · last 30 days"}</h2>
+        <h2 id="climb-heading" className="text-xl font-extrabold">{fr ? "Bloc · 30 derniers jours" : "Bouldering · last 30 days"}</h2>
         <Evidence kind="observed" fr={fr} />
       </div>
       {snap.counts.sessions === 0 ? <p className="text-sm text-ink-2">
@@ -69,6 +72,8 @@ export default async function FollowUpHome() {
       </p>
       <Link href="/progress" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} →</Link>
     </section>
+
+    {routes ? <RouteStats locale={locale} ascents={routes} now={now} /> : null}
 
     <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">

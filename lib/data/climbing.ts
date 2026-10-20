@@ -94,7 +94,8 @@ export async function loadClimbingDataset(supabase: ServerSupabase): Promise<Cli
       supabase.from("attempts").select("*").order("created_at").range(from, to),
     ),
     fetchAll<SessionRow>((from, to) =>
-      supabase.from("sessions").select(SESSION_SELECT).order("started_at").range(from, to) as never,
+      // Bouldering dataset: route sessions are analysed separately (lib/analytics/routes).
+      supabase.from("sessions").select(SESSION_SELECT).eq("discipline", "BOULDER").order("started_at").range(from, to) as never,
     ),
     fetchAll<Tables<"gyms">>((from, to) => supabase.from("gyms").select("*").order("name").range(from, to)),
   ]);
