@@ -1,4 +1,4 @@
-import { isClean, isTopped, routeGradeIndex, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
+import { ROUTE_RESULTS, isClean, isTopped, routeGradeIndex, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { DAY_MS, ratio, type Ratio } from "./types";
 
 /**
@@ -90,4 +90,32 @@ export function routeWorkingGrade(ascents: RouteAscentFact[], now: Date): { grad
 
 export function routeAscentsInLastDays(ascents: RouteAscentFact[], days: number, now: Date): RouteAscentFact[] {
   return ascents.filter((a) => a.createdAt.getTime() >= now.getTime() - days * DAY_MS);
+}
+
+export interface RouteProjectProgress {
+  ascents: number;
+  sessions: number;
+  bestResult: RouteResult | null;
+  /** Falls on the first and the latest ascent that recorded them (null when unknown). */
+  firstFalls: number | null;
+  latestFalls: number | null;
+  firstDate: string | null;
+  latestDate: string | null;
+}
+
+/** Progress on one route project, from its linked ascents only. */
+export function routeProjectProgress(ascents: RouteAscentFact[]): RouteProjectProgress {
+  const sorted = [...ascents].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const withFalls = sorted.filter((a) => a.falls !== null && !isClean(a.result));
+  const best = sorted.reduce<RouteResult | null>((acc, a) =>
+    acc === null || ROUTE_RESULTS.indexOf(a.result) < ROUTE_RESULTS.indexOf(acc) ? a.result : acc, null);
+  return {
+    ascents: sorted.length,
+    sessions: new Set(sorted.map((a) => a.sessionId)).size,
+    bestResult: best,
+    firstFalls: withFalls[0]?.falls ?? null,
+    latestFalls: withFalls.at(-1)?.falls ?? null,
+    firstDate: sorted[0]?.createdAt.toISOString().slice(0, 10) ?? null,
+    latestDate: sorted.at(-1)?.createdAt.toISOString().slice(0, 10) ?? null,
+  };
 }

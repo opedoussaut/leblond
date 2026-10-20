@@ -17,6 +17,7 @@ const bodySchema = z.object({
   quickAction: z.enum(QUICK_ACTIONS).nullish(),
   sessionId: z.guid().nullish(),
   projectId: z.guid().nullish(),
+  routeProjectId: z.guid().nullish(),
 });
 
 const HISTORY_MESSAGES = 12;
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
         title: body.message.slice(0, 80),
         session_id: body.sessionId ?? null,
         project_id: body.projectId ?? null,
+        route_project_id: body.routeProjectId ?? null,
       })
       .select("id")
       .single();
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
   // A conversation started from a session/project keeps that focus.
   const { data: conv } = await supabase
     .from("coach_conversations")
-    .select("session_id, project_id")
+    .select("session_id, project_id, route_project_id")
     .eq("id", conversationId)
     .single();
 
@@ -99,6 +101,7 @@ export async function POST(request: Request) {
     assembleCoachContext(viewer, {
       sessionId: body.sessionId ?? conv?.session_id ?? null,
       projectId: body.projectId ?? conv?.project_id ?? null,
+      routeProjectId: body.routeProjectId ?? conv?.route_project_id ?? null,
       quickAction: body.quickAction ?? null,
     }),
   ]);

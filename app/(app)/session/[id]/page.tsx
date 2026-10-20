@@ -20,14 +20,17 @@ export default async function SessionPage({ params }: PageProps<"/session/[id]">
   if (view.session.discipline === "ROUTE") {
     const { locale } = await getI18n(viewer.profile.preferred_language);
     const { data } = await viewer.supabase.from("route_ascents")
-      .select("id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at")
+      .select("id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id")
       .eq("session_id", view.session.id).order("created_at", { ascending: false });
     const ascents = (data ?? []) as RouteAscentRow[];
     if (!view.session.ended_at) {
       const level = viewer.profile.self_reported_route_grade;
       const defaultGrade = (ascents[0]?.grade ?? (level && isFrenchRouteGrade(level) ? level : "6a")) as "6a";
-      return <RouteSession sessionId={view.session.id} gymName={view.gym.name} startedAt={view.session.started_at}
-        initialAscents={ascents} defaultGrade={defaultGrade} />;
+      const { data: projects } = await viewer.supabase.from("route_projects").select("id, route_name, grade, goal_style")
+        .eq("gym_id", view.gym.id).eq("status", "ACTIVE").order("started_at", { ascending: false });
+      return <RouteSession sessionId={view.session.id} gymId={view.gym.id}
+        gymName={view.gym.name} startedAt={view.session.started_at}
+        initialAscents={ascents} defaultGrade={defaultGrade} initialProjects={projects ?? []} />;
     }
     return <RouteSessionSummary locale={locale} session={view.session} gymName={view.gym.name} ascents={ascents} />;
   }

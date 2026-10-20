@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { routeWorkingGrade, summarizeRoutes, type RouteAscentFact } from "@/lib/analytics/routes";
-import { logRouteAscentSchema, routeKey } from "@/lib/climbing/routes";
+import { routeProjectProgress, routeWorkingGrade, summarizeRoutes, type RouteAscentFact } from "@/lib/analytics/routes";
+import { completesProject, logRouteAscentSchema, routeKey } from "@/lib/climbing/routes";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
 let n = 0;
@@ -53,5 +53,24 @@ describe("route input validation", () => {
   });
   it("recognises the same route name regardless of case and accents", () => {
     expect(routeKey("  Le Dièdre  Jaune ")).toBe(routeKey("le diedre jaune"));
+  });
+});
+
+describe("route projects", () => {
+  it("is sent only by a clean ascent in the goal style (lead counts for every style)", () => {
+    expect(completesProject("REDPOINT", "LEAD", "LEAD")).toBe(true);
+    expect(completesProject("REDPOINT", "TOPROPE", "LEAD")).toBe(false);
+    expect(completesProject("FLASH", "LEAD", "TOPROPE")).toBe(true);
+    expect(completesProject("TOP_WITH_REST", "LEAD", "LEAD")).toBe(false);
+    expect(completesProject("REDPOINT", "AUTOBELAY", "AUTOBELAY")).toBe(true);
+  });
+  it("summarizes progress from linked goes", () => {
+    const goes = [
+      { ...a("7a", "ATTEMPT", "LEAD", 20), sessionId: "s1", falls: 4 },
+      { ...a("7a", "TOP_WITH_REST", "LEAD", 12), sessionId: "s2", falls: 2 },
+      { ...a("7a", "TOP_WITH_REST", "LEAD", 5), sessionId: "s2", falls: 1 },
+    ];
+    expect(routeProjectProgress(goes)).toMatchObject({ ascents: 3, sessions: 2, bestResult: "TOP_WITH_REST", firstFalls: 4, latestFalls: 1 });
+    expect(routeProjectProgress([])).toMatchObject({ ascents: 0, bestResult: null, firstFalls: null });
   });
 });

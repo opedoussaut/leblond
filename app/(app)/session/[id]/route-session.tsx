@@ -6,7 +6,8 @@ import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { endSession } from "@/lib/actions/sessions";
 import { deleteRouteAscent, logRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
-import { ROUTE_RESULTS, ROUTE_STYLES, isClean, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
+import { createRouteProject } from "@/lib/actions/route-projects";
+import { ROUTE_RESULTS, ROUTE_STYLES, completesProject, isClean, routeKey, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { fmt } from "@/lib/i18n";
 import { routeDictionary } from "@/lib/i18n/routes";
@@ -15,8 +16,11 @@ import { formatClock } from "@/lib/training/sessions";
 type Grade = (typeof FRENCH_ROUTE_GRADES)[number];
 
 /** Live logger for a ROUTE session: grade + style, then one tap on the result. */
-export function RouteSession({ sessionId, gymName, startedAt, initialAscents, defaultGrade }: {
-  sessionId: string; gymName: string; startedAt: string; initialAscents: RouteAscentRow[]; defaultGrade: Grade;
+export type ActiveRouteProject = { id: string; route_name: string; grade: string; goal_style: RouteStyle };
+
+export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAscents, defaultGrade, initialProjects }: {
+  sessionId: string; gymId: string; gymName: string; startedAt: string; initialAscents: RouteAscentRow[];
+  defaultGrade: Grade; initialProjects: ActiveRouteProject[];
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -26,6 +30,8 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
   const [style, setStyle] = useState<RouteStyle>("LEAD");
   const [name, setName] = useState("");
   const [falls, setFalls] = useState(0);
+  const [projects, setProjects] = useState(initialProjects);
+  const [project, setProject] = useState<ActiveRouteProject | null>(null);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [pending, start] = useTransition();
@@ -45,7 +51,7 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
     const clientId = crypto.randomUUID();
     const input = {
       sessionId, clientId, grade, style, result, falls: isClean(result) ? 0 : falls,
-      routeName: name, wallAngle: "UNKNOWN" as const,
+      routeName: name, wallAngle: "UNKNOWN" as const, routeProjectId: project?.id ?? null,
     };
     setNotice(null);
     start(async () => {
@@ -55,7 +61,14 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
         return;
       }
       setAscents((list) => [res.data!, ...list.filter((a) => a.id !== res.data!.id)]);
-      setNotice({ tone: "ok", text: fmt(r.logged, { grade, result: r.results[result] }) });
+      if (res.data!.projectSent && res.data!.route_project_id) {
+        const sent = projects.find((p) => p.id === res.data!.route_project_id);
+        setProjects((list) => list.filter((p) => p.id !== res.data!.route_project_id));
+        setProject(null);
+        setNotice({ tone: "ok", text: fmt(r.projectSent, { name: sent?.route_name ?? res.data!.route_name ?? "" }) });
+      } else {
+        setNotice({ tone: "ok", text: fmt(r.logged, { grade, result: r.results[result] }) });
+      }
       setFalls(0);
     });
   }
@@ -66,6 +79,31 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
     start(async () => {
       const res = await deleteRouteAscent(id);
       if (!res.ok) { setAscents(before); setNotice({ tone: "error", text: t.common.unknownError }); }
+    });
+  }
+
+  function chooseProject(p: ActiveRouteProject | null) {
+    setProject(p);
+    if (p) {
+      setName(p.route_name);
+      if ((FRENCH_ROUTE_GRADES as readonly string[]).includes(p.grade)) setGrade(p.grade as Grade);
+      setStyle(p.goal_style);
+    } else setName("");
+  }
+
+  function trackAsProject(a: RouteAscentRow) {
+    if (!a.route_name) return;
+    start(async () => {
+      const res = await createRouteProject({ gymId, routeName: a.route_name, grade: a.grade, goalStyle: "LEAD", notes: "" });
+      if (!res.ok || !res.data) { setNotice({ tone: "error", text: t.common.unknownError }); return; }
+      const projectId = res.data.id;
+      // The server attached earlier goes of this named route; mirror that locally.
+      const key = routeKey(a.route_name!);
+      setAscents((list) => list.map((x) => x.route_name && routeKey(x.route_name) === key ? { ...x, route_project_id: projectId } : x));
+      const alreadySent = ascents.some((x) => x.route_name && routeKey(x.route_name) === key && completesProject(x.result, x.style, "LEAD"));
+      if (!alreadySent) setProjects((list) => list.some((p) => p.id === projectId) ? list
+        : [{ id: projectId, route_name: a.route_name!, grade: a.grade, goal_style: "LEAD" }, ...list]);
+      setNotice({ tone: "ok", text: fmt(r.projectCreated, { name: a.route_name! }) });
     });
   }
 
@@ -93,6 +131,17 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
     <section aria-labelledby="route-log" className="leblond-premium-surface space-y-5 p-4 sm:p-6">
       <h2 id="route-log" className="sr-only">{r.logHint}</h2>
       <p className="text-sm text-ink-2">{r.logHint}</p>
+      {projects.length ? <fieldset>
+        <legend className="text-sm font-bold">{r.projectsHere}</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {projects.map((p) => <button key={p.id} type="button" aria-pressed={project?.id === p.id}
+            onClick={() => chooseProject(project?.id === p.id ? null : p)}
+            className={cn("min-h-11 rounded-full border px-4 text-sm font-bold",
+              project?.id === p.id ? "border-accent bg-accent text-accent-ink" : "border-accent/30 bg-accent-soft text-accent")}>
+            ★ {p.route_name} · {p.grade}
+          </button>)}
+        </div>
+      </fieldset> : null}
       <fieldset>
         <legend className="text-sm font-bold">{r.grade}</legend>
         <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-9">
@@ -116,7 +165,7 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
         </div>
       </fieldset>
       <label className="block text-sm font-bold">{r.routeName}
-        <input value={name} maxLength={120} onChange={(e) => setName(e.target.value)}
+        <input value={name} maxLength={120} disabled={!!project} onChange={(e) => setName(e.target.value)}
           className="mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 font-normal" />
         <span className="mt-1 block text-xs font-normal text-ink-3">{r.routeNameHint}</span>
       </label>
@@ -150,7 +199,9 @@ export function RouteSession({ sessionId, gymName, startedAt, initialAscents, de
             <span className="min-w-0">
               <strong className="text-lg tabular-nums">{a.grade}</strong>
               <span className="ml-2 text-sm font-semibold">{r.results[a.result]}</span>
-              <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
+              <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}{a.route_project_id ? ` · ${r.inProject}` : ""}</span>
+              {a.route_name && !a.route_project_id ? <button type="button" disabled={pending} onClick={() => trackAsProject(a)}
+                className="mt-1 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
             </span>
             <button type="button" onClick={() => remove(a.id)} className="min-h-10 rounded-lg px-3 text-xs font-bold text-danger">{r.remove}</button>
           </li>)}

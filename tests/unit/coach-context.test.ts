@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSnapshot, type ClimbingDataset } from "@/lib/analytics";
+import { computeSnapshot, summarizeRoutes, type ClimbingDataset } from "@/lib/analytics";
 import { buildCoachContext, CONTEXT_CHAR_BUDGET, serializeContext } from "@/lib/coach/context";
 import { attemptsFor, daysAgo, NOW, problem, session } from "./fixtures";
 
@@ -64,5 +64,46 @@ describe("grade scales in Patrick's context", () => {
     expect(Object.keys(scales)).toEqual(["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR"]);
     expect(scales.ARKOSE_COLOR.ordered).toEqual(["YELLOW", "GREEN", "BLUE", "RED", "BLACK", "PURPLE"]);
     expect(scales.CLIMBING_DISTRICT_COLOR.unranked).toEqual(["PINK"]);
+  });
+});
+
+describe("Patrick route context", () => {
+  const data = dataset();
+  const target = { grade: "7A", system: "FONT" as const };
+  const route = (grade: string, result: "ONSIGHT" | "REDPOINT" | "TOP_WITH_REST", style: "LEAD" | "TOPROPE" = "LEAD") =>
+    ({ id: grade + result + style, sessionId: "r1", grade, style, result, falls: result === "TOP_WITH_REST" ? 2 : 0, createdAt: daysAgo(3) });
+  const ascents = [route("6b", "ONSIGHT"), route("6c", "REDPOINT"), route("7a", "TOP_WITH_REST"), route("7a+", "REDPOINT", "TOPROPE")];
+  const summary = summarizeRoutes(ascents);
+  const ctx = buildCoachContext({
+    climber: { name: "Alex", language: "fr", target },
+    snapshot30: computeSnapshot(data, target, NOW, 30),
+    snapshot90: computeSnapshot(data, target, NOW, 90),
+    recentSessions: [], activeProjects: [], now: NOW,
+    routeClimbing: { last30: summary, last90: summary, leadWorkingGrade: { grade: null, sampleSize: 4 } },
+    focusRouteProject: { name: "Le dièdre", grade: "7a", goalStyle: "LEAD", status: "ACTIVE", gymName: "Climb Up", startedAt: "2026-10-01",
+      sentAt: null, notes: "", goes: [{ n: 1, date: "2026-10-10", style: "LEAD", result: "TOP_WITH_REST", falls: 2 }], sessionsCount: 1 },
+    activeRouteProjects: [{ name: "Le dièdre", grade: "7a", goalStyle: "LEAD", gymName: "Climb Up", goes: 1 }],
+  });
+
+  it("gives route figures with counts, lead kept apart from top-rope", () => {
+    expect(ctx.routeClimbing?.last30Days).toMatchObject({ routes: 4, clean: 3, hardestCleanLead: "6c", hardestOnsight: "6b",
+      cleanRate: { count: "3/4" }, byStyle: { lead: 3, toprope: 1 } });
+    expect(ctx.routeClimbing?.leadWorkingGrade.grade).toBeNull();
+  });
+  it("lists the French sport scale separately and defines route terms", () => {
+    expect(ctx.gradeScales.FRENCH_SPORT_ROUTES?.ordered).toContain("6b+");
+    expect(ctx.definitions.routeVsBoulder).toMatch(/Never convert/);
+    expect(ctx.focusRouteProject?.goes).toHaveLength(1);
+    expect(ctx.activeRouteProjects[0]).toMatchObject({ name: "Le dièdre", goes: 1 });
+  });
+  it("omits route data entirely for climbers who never logged routes", () => {
+    const plain = buildCoachContext({
+      climber: { name: "Alex", language: "fr", target },
+      snapshot30: computeSnapshot(data, target, NOW, 30), snapshot90: computeSnapshot(data, target, NOW, 90),
+      recentSessions: [], activeProjects: [], now: NOW,
+    });
+    expect(plain.routeClimbing).toBeNull();
+    expect(plain.gradeScales).not.toHaveProperty("FRENCH_SPORT_ROUTES");
+    expect(serializeContext(plain).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 200);
   });
 });

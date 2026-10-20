@@ -32,10 +32,39 @@ export const logRouteAscentSchema = z.object({
   falls: z.number().int().min(0).max(50).nullable(),
   routeName: z.string().trim().max(120),
   wallAngle: z.enum(WALL_ANGLES),
+  routeProjectId: z.guid().nullable().optional(),
 }).strict().refine((v) => !isClean(v.result) || !v.falls, "A clean ascent has no falls");
 export type LogRouteAscentInput = z.infer<typeof logRouteAscentSchema>;
 
 /** Case- and accent-insensitive key used to recognise the same named route. */
 export function routeKey(name: string): string {
   return name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/* ── Route projects ─────────────────────────────────────────────────────── */
+export const ROUTE_PROJECT_STATUSES = ["ACTIVE", "SENT", "ABANDONED"] as const;
+export type RouteProjectStatus = (typeof ROUTE_PROJECT_STATUSES)[number];
+
+export const createRouteProjectSchema = z.object({
+  gymId: z.guid(),
+  routeName: z.string().trim().min(1).max(120),
+  grade: z.enum(FRENCH_ROUTE_GRADES),
+  goalStyle: z.enum(ROUTE_STYLES),
+  notes: z.string().trim().max(2000),
+}).strict();
+
+export const updateRouteProjectSchema = z.object({
+  id: z.guid(),
+  grade: z.enum(FRENCH_ROUTE_GRADES),
+  goalStyle: z.enum(ROUTE_STYLES),
+  status: z.enum(ROUTE_PROJECT_STATUSES),
+  notes: z.string().trim().max(2000),
+}).strict();
+
+/**
+ * Does this ascent complete a project? It must be clean, and in the project's
+ * goal style — a lead ascent also satisfies a top-rope or auto-belay goal.
+ */
+export function completesProject(result: RouteResult, style: RouteStyle, goal: RouteStyle): boolean {
+  return isClean(result) && (style === goal || style === "LEAD");
 }

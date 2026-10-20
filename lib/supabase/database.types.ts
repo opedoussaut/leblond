@@ -86,6 +86,62 @@ export type Database = {
         };
         Relationships: [];
       };
+      route_projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          gym_id: string;
+          route_name: string;
+          route_key: string;
+          grade: string;
+          goal_style: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          status: "ACTIVE" | "SENT" | "ABANDONED";
+          notes: string;
+          started_at: string;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          gym_id: string;
+          route_name: string;
+          route_key: string;
+          grade: string;
+          goal_style?: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          status?: "ACTIVE" | "SENT" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          gym_id?: string;
+          route_name?: string;
+          route_key?: string;
+          grade?: string;
+          goal_style?: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          status?: "ACTIVE" | "SENT" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "route_projects_gym_id_fkey";
+            columns: ["gym_id"];
+            isOneToOne: false;
+            referencedRelation: "gyms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       route_ascents: {
         Row: {
           id: string;
@@ -99,6 +155,7 @@ export type Database = {
           falls: number | null;
           wall_angle: Database["public"]["Enums"]["wall_angle"];
           notes: string;
+          route_project_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -114,6 +171,7 @@ export type Database = {
           falls?: number | null;
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
           notes?: string;
+          route_project_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -129,10 +187,18 @@ export type Database = {
           falls?: number | null;
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
           notes?: string;
+          route_project_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "route_ascents_route_project_id_fkey";
+            columns: ["route_project_id"];
+            isOneToOne: false;
+            referencedRelation: "route_projects";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "route_ascents_session_id_fkey";
             columns: ["session_id"];
@@ -583,6 +649,7 @@ export type Database = {
       };
       coach_conversations: {
         Row: {
+          route_project_id: string | null;
           created_at: string;
           id: string;
           project_id: string | null;
@@ -592,6 +659,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          route_project_id?: string | null;
           created_at?: string;
           id?: string;
           project_id?: string | null;
@@ -601,6 +669,7 @@ export type Database = {
           user_id?: string;
         };
         Update: {
+          route_project_id?: string | null;
           created_at?: string;
           id?: string;
           project_id?: string | null;
