@@ -71,3 +71,16 @@ training_exercise_sets       one row per set, unique (exercise_id, set_index) �
 - `training_assessments` gains `kind` (SELF / BASIC / STRUCTURED), `protocol_version`,
   `measurements` (evidence-labelled test results) and `context` (screening, conditions and the
   journal evidence observed at assessment time). Legacy rows default to `SELF`.
+
+## Route logging (migration `20261021000000_route_logging.sql`)
+
+- `sessions.discipline` is `BOULDER` (default — every pre-existing session) or `ROUTE`. The two loggers never mix:
+  boulder sessions record `attempts` on `problems`; route sessions record `route_ascents`.
+- `route_ascents`: French sport grade (validated list), style `LEAD` / `TOPROPE` / `AUTOBELAY`, result
+  `ONSIGHT` / `FLASH` / `REDPOINT` (clean, no falls) / `TOP_WITH_REST` / `ATTEMPT`, optional falls, route name and
+  wall angle. `unique (user_id, client_id)` makes retried taps idempotent. Insert is only allowed into the owner's
+  own `ROUTE` session; identity columns are not updatable.
+- Onsight/flash are refused for a named route already climbed at the same venue (accent/case-insensitive).
+- Analytics (`lib/analytics/routes.ts`) are separate from bouldering: the bouldering dataset only loads `BOULDER`
+  sessions, and no conversion between Font and French sport grades is ever made. The observed lead working grade
+  is the hardest grade sent clean on lead at least twice in 60 days, and only when ≥ 6 routes were logged.

@@ -9,6 +9,8 @@ import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analyti
 import { requireViewer } from "@/lib/auth/viewer";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
+import { loadRouteAscents } from "@/lib/data/routes";
+import { RouteStats } from "@/components/climbing/route-stats";
 import { formatDate, formatNumber, formatRatio } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
@@ -22,7 +24,8 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const sp = await searchParams;
   const periodKey = (typeof sp.period === "string" && sp.period in PERIODS ? sp.period : "90") as keyof typeof PERIODS;
-  const data = await loadClimbingDataset(viewer.supabase);
+  const [data, routes] = await Promise.all([loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase)]);
+  const now = new Date();
   const snap = computeSnapshot(
     data,
     { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system },
@@ -261,6 +264,8 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
           ) : null}
         </>
       )}
+      {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
+        title={(locale === "fr" ? "Voie" : "Routes") + " · " + (periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all)} /> : null}
     </div>
   );
 }

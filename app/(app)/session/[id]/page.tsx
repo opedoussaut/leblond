@@ -5,12 +5,32 @@ import { loadOutdoorAreaForGym } from "@/lib/data/outdoor";
 import { loadSessionView, tagSlugs } from "@/lib/data/session";
 import { LiveSession } from "./live-session";
 import { SessionSummaryView } from "./summary";
+import { RouteSession } from "./route-session";
+import { RouteSessionSummary } from "./route-summary";
+import type { RouteAscentRow } from "@/lib/actions/routes";
+import { isFrenchRouteGrade } from "@/lib/grading/route-grades";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function SessionPage({ params }: PageProps<"/session/[id]">) {
   const { id } = await params;
   const viewer = await requireViewer();
   const view = await loadSessionView(viewer.supabase, id);
   if (!view) notFound();
+
+  if (view.session.discipline === "ROUTE") {
+    const { locale } = await getI18n(viewer.profile.preferred_language);
+    const { data } = await viewer.supabase.from("route_ascents")
+      .select("id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at")
+      .eq("session_id", view.session.id).order("created_at", { ascending: false });
+    const ascents = (data ?? []) as RouteAscentRow[];
+    if (!view.session.ended_at) {
+      const level = viewer.profile.self_reported_route_grade;
+      const defaultGrade = (ascents[0]?.grade ?? (level && isFrenchRouteGrade(level) ? level : "6a")) as "6a";
+      return <RouteSession sessionId={view.session.id} gymName={view.gym.name} startedAt={view.session.started_at}
+        initialAscents={ascents} defaultGrade={defaultGrade} />;
+    }
+    return <RouteSessionSummary locale={locale} session={view.session} gymName={view.gym.name} ascents={ascents} />;
+  }
 
   if (!view.session.ended_at) {
     const outdoor = view.gym.external_provider === "BOOLDER" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;

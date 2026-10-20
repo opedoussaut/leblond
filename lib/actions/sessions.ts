@@ -13,16 +13,19 @@ const id = z.guid();
 
 /* ───────────── Sessions ───────────── */
 
-export async function startSession(gymId: string): Promise<ActionResult<{ sessionId: string }>> {
+export async function startSession(
+  gymId: string,
+  discipline: "BOULDER" | "ROUTE" = "BOULDER",
+): Promise<ActionResult<{ sessionId: string }>> {
   const viewer = await requireViewer();
-  if (!id.safeParse(gymId).success) return { ok: false, error: "invalid" };
-  // The current attempt logger supports bouldering only. Do not create
-  // misleading boulder sessions at venues offering routes exclusively.
-  const { data: gym } = await viewer.supabase.from("gyms").select("has_bouldering").eq("id", gymId).single();
-  if (!gym?.has_bouldering) return { ok: false, error: "invalid" };
+  if (!id.safeParse(gymId).success || (discipline !== "BOULDER" && discipline !== "ROUTE")) return { ok: false, error: "invalid" };
+  // Only start a discipline the venue actually offers: boulder problems and
+  // routes are logged by different loggers and never mixed.
+  const { data: gym } = await viewer.supabase.from("gyms").select("has_bouldering, has_routes").eq("id", gymId).single();
+  if (!gym || (discipline === "BOULDER" ? !gym.has_bouldering : !gym.has_routes)) return { ok: false, error: "invalid" };
   const { data, error } = await viewer.supabase
     .from("sessions")
-    .insert({ gym_id: gymId, user_id: viewer.userId, source: "MANUAL" })
+    .insert({ gym_id: gymId, user_id: viewer.userId, source: "MANUAL", discipline })
     .select("id")
     .single();
   if (error) {

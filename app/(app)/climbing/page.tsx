@@ -14,8 +14,8 @@ export default async function ClimbingHome() {
     <PageHeader
       title={fr ? "Grimper" : "Climb"}
       subtitle={fr
-        ? "Ton carnet de grimpe. Séances, essais et projets, sans programme obligatoire."
-        : "Your climbing log. Sessions, attempts and projects, with no training plan required."}/>
+        ? "Ton carnet de grimpe, bloc et voie. Séances, essais et projets, sans programme obligatoire."
+        : "Your climbing log, bouldering and routes. Sessions, attempts and projects, with no training plan required."}/>
     <Link href="/session/new"
       className="flex min-h-14 items-center justify-center rounded-2xl bg-accent px-6 text-base font-extrabold text-accent-ink hover:opacity-90 sm:inline-flex">
       {fr ? "Commencer une séance de grimpe" : "Start a climbing session"} →
@@ -31,8 +31,8 @@ export default async function ClimbingHome() {
     </div>
     <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-ink-2">
       {fr
-        ? "Le journal détaillé actuel suit le bloc. L’enregistrement des voies (cotation, essais et enchaînements) sera développé dans un module séparé pour éviter de mélanger les deux disciplines."
-        : "The detailed activity logger currently tracks bouldering. Route logging (grade, attempts, sends) will have its own format so the two disciplines never get mixed."}
+        ? "Bloc et voie ont chacun leur carnet : essais et tops sur les blocs (cotations natives des salles), voies en tête, moulinette ou enrouleur en cotation française. Les deux échelles ne sont jamais converties l’une dans l’autre."
+        : "Bouldering and routes each have their own log: attempts and tops on problems (native gym grades), lead, top-rope or auto-belay routes in French grades. The two scales are never converted into each other."}
     </div>
   </div>;
 }

@@ -86,6 +86,62 @@ export type Database = {
         };
         Relationships: [];
       };
+      route_ascents: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string;
+          client_id: string;
+          route_name: string | null;
+          grade: string;
+          style: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          result: "ONSIGHT" | "FLASH" | "REDPOINT" | "TOP_WITH_REST" | "ATTEMPT";
+          falls: number | null;
+          wall_angle: Database["public"]["Enums"]["wall_angle"];
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          session_id: string;
+          client_id: string;
+          route_name?: string | null;
+          grade: string;
+          style: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          result: "ONSIGHT" | "FLASH" | "REDPOINT" | "TOP_WITH_REST" | "ATTEMPT";
+          falls?: number | null;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_id?: string;
+          client_id?: string;
+          route_name?: string | null;
+          grade?: string;
+          style?: "LEAD" | "TOPROPE" | "AUTOBELAY";
+          result?: "ONSIGHT" | "FLASH" | "REDPOINT" | "TOP_WITH_REST" | "ATTEMPT";
+          falls?: number | null;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "route_ascents_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       training_sessions: {
         Row: {
           id: string;
@@ -1205,6 +1261,7 @@ export type Database = {
       };
       sessions: {
         Row: {
+          discipline: "BOULDER" | "ROUTE";
           created_at: string;
           duration_minutes: number | null;
           ended_at: string | null;
@@ -1223,6 +1280,7 @@ export type Database = {
           wearable_activity_id: string | null;
         };
         Insert: {
+          discipline?: "BOULDER" | "ROUTE";
           created_at?: string;
           duration_minutes?: number | null;
           ended_at?: string | null;
@@ -1241,6 +1299,7 @@ export type Database = {
           wearable_activity_id?: string | null;
         };
         Update: {
+          discipline?: "BOULDER" | "ROUTE";
           created_at?: string;
           duration_minutes?: number | null;
           ended_at?: string | null;
