@@ -59,7 +59,7 @@ jobs:
         run: |
           supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" || true
           echo "── Schema diff: hosted public schema → repo migrations (DDL only, no data) ──"
-          supabase db diff --linked --schema public -p "$SUPABASE_DB_PASSWORD"
+          supabase db diff --linked --schema public
       - name: Repair migration history
         if: ${{ inputs.mode == 'repair' }}
         run: |
