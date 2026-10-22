@@ -60,6 +60,12 @@ jobs:
           supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" || true
           echo "── Schema diff: hosted public schema → repo migrations (DDL only, no data) ──"
           supabase db diff --linked --schema public
+          echo "── Auth configuration (no secrets printed) ──"
+          curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"             "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" | jq '{
+              site_url, uri_allow_list, mailer_autoconfirm, external_email_enabled, external_google_enabled,
+              custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent,
+              mailer_otp_exp, password_min_length
+            }'
       - name: Repair migration history
         if: ${{ inputs.mode == 'repair' }}
         run: |
