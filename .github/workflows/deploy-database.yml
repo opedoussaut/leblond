@@ -12,6 +12,8 @@ name: Deploy database (Supabase)
 #   push     apply pending migrations (default)
 #   inspect  READ-ONLY: list migration history and print the schema diff
 #            between the hosted database and supabase/migrations
+#   smtp     configure the hosted Auth email sender from the SMTP_* secrets
+#            (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SENDER_EMAIL); never prints them.
 #   repair   align the migration HISTORY table only (no schema change), then push.
 #            Use when migrations were applied by another tool under different
 #            version numbers and `inspect` showed the schemas already match.
@@ -20,11 +22,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "push | inspect | repair"
+        description: "push | inspect | repair | smtp"
         required: true
         default: push
         type: choice
-        options: [push, inspect, repair]
+        options: [push, inspect, repair, smtp]
       revert_versions:
         description: "repair only: remote-only versions to mark reverted (space-separated)"
         required: false
@@ -64,7 +66,9 @@ jobs:
           curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"             "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" | jq '{
               site_url, uri_allow_list, mailer_autoconfirm, external_email_enabled, external_google_enabled,
               custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent,
-              mailer_otp_exp, password_min_length
+              mailer_otp_exp, password_min_length,
+              otp_template_has_code: ((.mailer_templates_magic_link_content // "") | contains(".Token")),
+              confirmation_template_set: ((.mailer_templates_confirmation_content // "") != "")
             }'
       - name: Repair migration history
         if: ${{ inputs.mode == 'repair' }}
@@ -74,6 +78,23 @@ jobs:
           supabase migration repair --linked -p "$SUPABASE_DB_PASSWORD" --status reverted $REVERT_VERSIONS
           supabase migration repair --linked -p "$SUPABASE_DB_PASSWORD" --status applied $APPLIED_VERSIONS
           supabase migration list --linked -p "$SUPABASE_DB_PASSWORD"
+      - name: Configure Auth email sender (SMTP)
+        if: ${{ inputs.mode == 'smtp' }}
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_SENDER_EMAIL: ${{ secrets.SMTP_SENDER_EMAIL }}
+        run: |
+          set -euo pipefail
+          for v in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_SENDER_EMAIL; do
+            [ -n "${!v}" ] || { echo "Missing secret $v"; exit 1; }
+          done
+          jq -n '{
+            smtp_host: env.SMTP_HOST, smtp_port: env.SMTP_PORT, smtp_user: env.SMTP_USER, smtp_pass: env.SMTP_PASS,
+            smtp_admin_email: env.SMTP_SENDER_EMAIL, smtp_sender_name: "LEBLOND", rate_limit_email_sent: 30
+          }' | curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json"             --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth"             | jq '{custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent}'
       - name: Push migrations
-        if: ${{ inputs.mode != 'inspect' }}
+        if: ${{ inputs.mode == 'push' || inputs.mode == 'repair' }}
         run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"
