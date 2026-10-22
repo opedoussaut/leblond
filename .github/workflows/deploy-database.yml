@@ -91,10 +91,16 @@ jobs:
           for v in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_SENDER_EMAIL; do
             [ -n "${!v}" ] || { echo "Missing secret $v"; exit 1; }
           done
-          jq -n '{
+          # The repo templates carry both the 6-digit code ({{ .Token }}) and the link.
+          jq -n --rawfile magic supabase/templates/magic-link.html --rawfile confirm supabase/templates/confirmation.html '{
             smtp_host: env.SMTP_HOST, smtp_port: env.SMTP_PORT, smtp_user: env.SMTP_USER, smtp_pass: env.SMTP_PASS,
-            smtp_admin_email: env.SMTP_SENDER_EMAIL, smtp_sender_name: "LEBLOND", rate_limit_email_sent: 30
-          }' | curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json"             --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth"             | jq '{custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent}'
+            smtp_admin_email: env.SMTP_SENDER_EMAIL, smtp_sender_name: "LEBLOND", rate_limit_email_sent: 30,
+            mailer_subjects_magic_link: "LEBLOND — code de connexion / sign-in code",
+            mailer_templates_magic_link_content: $magic,
+            mailer_subjects_confirmation: "LEBLOND — confirme ton compte / confirm your account",
+            mailer_templates_confirmation_content: $confirm
+          }' | curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json"             --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth"             | jq '{custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent,
+                   otp_template_has_code: ((.mailer_templates_magic_link_content // "") | contains(".Token"))}'
       - name: Push migrations
         if: ${{ inputs.mode == 'push' || inputs.mode == 'repair' }}
         run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"
