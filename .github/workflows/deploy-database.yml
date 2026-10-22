@@ -22,11 +22,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "push | inspect | repair | smtp"
+        description: "push | inspect | repair | smtp | authlogs"
         required: true
         default: push
         type: choice
-        options: [push, inspect, repair, smtp]
+        options: [push, inspect, repair, smtp, authlogs]
       revert_versions:
         description: "repair only: remote-only versions to mark reverted (space-separated)"
         required: false
@@ -101,6 +101,12 @@ jobs:
             mailer_templates_confirmation_content: $confirm
           }' | curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json"             --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth"             | jq '{custom_smtp_configured: ((.smtp_host // "") != ""), smtp_sender_name, rate_limit_email_sent,
                    otp_template_has_code: ((.mailer_templates_magic_link_content // "") | contains(".Token"))}'
+      - name: Recent Auth logs (read-only, emails masked)
+        if: ${{ inputs.mode == 'authlogs' }}
+        run: |
+          set -euo pipefail
+          START=$(date -u -d '-3 hours' +%Y-%m-%dT%H:%M:%SZ)
+          curl -fsS -G -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"             "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/analytics/endpoints/logs.all"             --data-urlencode "iso_timestamp_start=$START"             --data-urlencode "sql=select timestamp, event_message from auth_logs order by timestamp desc limit 40"             | jq -r '.result[]? | .event_message'             | jq -rR 'fromjson? // {msg: .} | [.time // "", .level // "", .path // "", (.status // "" | tostring), .msg // "", .error // ""] | join(" | ")'             | grep -iE "otp|mail|smtp|error|magic|signup|recover"             | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]+/<email>/g' || echo "(no matching auth log lines)"
       - name: Push migrations
         if: ${{ inputs.mode == 'push' || inputs.mode == 'repair' }}
         run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"
