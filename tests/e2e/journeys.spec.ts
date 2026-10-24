@@ -371,7 +371,7 @@ test("A6 — faster logging: session name, several problems/routes, tries, comme
   await chooseGym(page, "Climb Up Aubervilliers");
   const rform = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
   await rform.getByLabel("Date").fill(yesterday);
-  await rform.getByRole("button", { name: "Voie" }).click();
+  await rform.getByRole("button", { name: "Voie", exact: true }).click();
   await rform.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/edit$/);
   const log = page.getByRole("region", { name: /Choisis la cotation/ });
