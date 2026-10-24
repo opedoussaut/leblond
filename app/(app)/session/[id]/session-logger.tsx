@@ -10,7 +10,7 @@ import { RouteSession } from "./route-session";
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
 export const ROUTE_ASCENT_COLUMNS =
-  "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id,native_grade,native_grade_system";
+  "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id,native_grade,native_grade_system,tries,notes";
 
 export async function loadRouteAscents(viewer: Viewer, sessionId: string): Promise<RouteAscentRow[]> {
   const { data } = await viewer.supabase.from("route_ascents").select(ROUTE_ASCENT_COLUMNS)
@@ -55,6 +55,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
         id: p.id,
         native_grade: p.native_grade,
         native_grade_system: p.native_grade_system,
+        notes: p.notes,
         wall_angle: p.wall_angle as WallAngle,
         tags: tagSlugs(p) as StyleTag[],
         created_at: p.created_at,

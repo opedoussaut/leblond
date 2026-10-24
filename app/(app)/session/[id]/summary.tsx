@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GradeChip } from "@/components/climbing/grade-chip";
+import { ResultBadge } from "@/components/climbing/result-badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
@@ -75,7 +76,8 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{t.session.summaryTitle}</p>
-          <h1 className="mt-1 text-xl font-black">{view.gym.name}</h1>
+          <h1 className="mt-1 text-xl font-black">{view.session.title || view.gym.name}</h1>
+          {view.session.title ? <p className="text-sm font-semibold text-ink-2">{view.gym.name}</p> : null}
           <p className="text-sm text-ink-3">
             {formatDateTime(view.session.started_at, locale)} · {t.session.source}: {t.session.sourceManual}
           </p>
@@ -130,11 +132,15 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
                 const best = pa.some((a) => a.result === "FLASH") ? "FLASH" : pa.some((a) => a.result === "TOP") ? "TOP" : null;
                 return (
                   <li key={p.id}>
-                    <Link href={`/problem/${p.id}`} className="flex min-h-12 items-center gap-3 px-4 hover:bg-surface-2">
+                    <Link href={`/problem/${p.id}`} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 hover:bg-surface-2">
                       <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" showFont />
                       {p.name ? <span className="min-w-0 truncate text-sm font-semibold">{p.name}</span> : null}
                       <span className="shrink-0 text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
-                      <span className="ml-auto text-xs font-bold uppercase">{best ? t.results[best] : ""}</span>
+                      <span className="ml-auto flex gap-1">
+                        {best ? <ResultBadge tone={best === "FLASH" ? "flash" : "top"} label={t.results[best]} /> : null}
+                        {view.activeProjectProblemIds.includes(p.id) ? <ResultBadge tone="project" label="★" /> : null}
+                      </span>
+                      {p.notes ? <span className="basis-full text-xs italic text-ink-2">“{p.notes}”</span> : null}
                     </Link>
                   </li>
                 );

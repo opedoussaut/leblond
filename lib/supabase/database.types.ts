@@ -158,6 +158,7 @@ export type Database = {
           route_project_id: string | null;
           native_grade: string | null;
           native_grade_system: Database["public"]["Enums"]["grade_system"] | null;
+          tries: number;
           created_at: string;
           updated_at: string;
         };
@@ -176,6 +177,7 @@ export type Database = {
           route_project_id?: string | null;
           native_grade?: string | null;
           native_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
+          tries?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -194,6 +196,7 @@ export type Database = {
           route_project_id?: string | null;
           native_grade?: string | null;
           native_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
+          tries?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1340,6 +1343,7 @@ export type Database = {
       sessions: {
         Row: {
           discipline: "BOULDER" | "ROUTE";
+          title: string | null;
           created_at: string;
           duration_minutes: number | null;
           ended_at: string | null;
@@ -1359,6 +1363,7 @@ export type Database = {
         };
         Insert: {
           discipline?: "BOULDER" | "ROUTE";
+          title?: string | null;
           created_at?: string;
           duration_minutes?: number | null;
           ended_at?: string | null;
@@ -1378,6 +1383,7 @@ export type Database = {
         };
         Update: {
           discipline?: "BOULDER" | "ROUTE";
+          title?: string | null;
           created_at?: string;
           duration_minutes?: number | null;
           ended_at?: string | null;
@@ -1612,6 +1618,10 @@ export type Database = {
       reschedule_session: {
         Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };
         Returns: Database["public"]["Tables"]["sessions"]["Row"];
+      };
+      log_boulder_batch: {
+        Args: { p_session_id: string; p_grade: string; p_count: number; p_tries: number; p_outcome: string; p_notes?: string | null };
+        Returns: string[];
       };
       log_attempt: {
         Args: { p_problem_id: string; p_result: Database["public"]["Enums"]["attempt_result"]; p_session_id: string };

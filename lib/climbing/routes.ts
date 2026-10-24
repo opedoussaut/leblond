@@ -35,7 +35,18 @@ export const logRouteAscentSchema = z.object({
   routeProjectId: z.guid().nullable().optional(),
   /** The gym's own colour when it grades routes by colour; `grade` is then the climber's French equivalent. */
   nativeGrade: z.string().min(1).max(20).nullable().optional(),
-}).strict().refine((v) => !isClean(v.result) || !v.falls, "A clean ascent has no falls");
+  /** Goes it took (each line). Onsight / flash are single-try by definition. */
+  tries: z.number().int().min(1).max(100).default(1),
+  /** Comment on the climb. */
+  notes: z.string().trim().max(500).default(""),
+  /** Extra lines of the same grade/style/result logged in one tap (one id each, for idempotency). */
+  extraClientIds: z.array(z.guid()).max(29).default([]),
+  /** Keep this route as a project (creates it from the name, or "Projet <grade>"). Single line only. */
+  asProject: z.boolean().default(false),
+}).strict()
+  .refine((v) => !isClean(v.result) || !v.falls, "A clean ascent has no falls")
+  .refine((v) => !isFirstGoOnly(v.result) || v.tries === 1, "Onsight and flash are first-go results")
+  .refine((v) => !v.asProject || v.extraClientIds.length === 0, "A project is a single route");
 export type LogRouteAscentInput = z.infer<typeof logRouteAscentSchema>;
 
 /** Case- and accent-insensitive key used to recognise the same named route. */

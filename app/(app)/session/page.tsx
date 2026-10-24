@@ -16,7 +16,7 @@ export default async function SessionsPage() {
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const { data: sessions } = await viewer.supabase
     .from("sessions")
-    .select("id, started_at, ended_at, duration_minutes, discipline, gyms(name, brand)")
+    .select("id, started_at, ended_at, duration_minutes, discipline, title, gyms(name, brand)")
     .order("started_at", { ascending: false })
     .limit(50);
   const ids = (sessions ?? []).map((s) => s.id);
@@ -68,7 +68,7 @@ export default async function SessionsPage() {
                       className="block rounded-2xl border border-line bg-surface p-4 hover:bg-surface-2"
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate font-semibold">{s.gyms?.name}</span>
+                        <span className="truncate font-semibold">{s.title ? `${s.title} · ${s.gyms?.name ?? ""}` : s.gyms?.name}</span>
                         <span className="shrink-0 text-xs text-ink-3">{formatDateTime(s.started_at, locale)}</span>
                       </div>
                       <p className="mt-1 text-sm tabular-nums text-ink-2">

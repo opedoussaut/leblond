@@ -5,7 +5,9 @@ import { useEffect, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { endSession } from "@/lib/actions/sessions";
-import { deleteRouteAscent, logRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
+import { deleteRouteAscent, logRouteAscent, updateRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
+import { ResultBadge, routeTone, toneButtonStyle } from "@/components/climbing/result-badge";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import { createRouteProject } from "@/lib/actions/route-projects";
 import { ROUTE_RESULTS, ROUTE_STYLES, completesProject, isClean, routeKey, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
@@ -42,6 +44,11 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const [style, setStyle] = useState<RouteStyle>("LEAD");
   const [name, setName] = useState("");
   const [falls, setFalls] = useState(0);
+  const [count, setCount] = useState(1);
+  const [tries, setTries] = useState(1);
+  const [notes, setNotes] = useState("");
+  const [editing, setEditing] = useState<{ id: string; notes: string } | null>(null);
+  const L = loggingDictionary(locale);
   const [projects, setProjects] = useState(initialProjects);
   const [project, setProject] = useState<ActiveRouteProject | null>(null);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -68,12 +75,15 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const lo = Math.max(0, Math.min(index - 4, FRENCH_ROUTE_GRADES.length - 9));
   const quickGrades = FRENCH_ROUTE_GRADES.slice(lo, lo + 9);
 
-  function log(result: RouteResult) {
+  function log(result: RouteResult, asProject = false) {
     const clientId = crypto.randomUUID();
     const input = {
       sessionId, clientId, grade, style, result, falls: isClean(result) ? 0 : falls,
       routeName: name, wallAngle: "UNKNOWN" as const, routeProjectId: project?.id ?? null,
       nativeGrade: colours.length ? colour : null,
+      tries: isFirstGo(result) ? 1 : tries, notes,
+      extraClientIds: asProject ? [] : Array.from({ length: count - 1 }, () => crypto.randomUUID()),
+      asProject,
     };
     if (colours.length && !colour) { setNotice({ tone: "error", text: e.nativeColour + " ?" }); return; }
     setNotice(null);
@@ -83,17 +93,35 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         setNotice({ tone: "error", text: res.error === "notFirstAscent" ? r.notFirst : t.common.unknownError });
         return;
       }
-      setAscents((list) => [res.data!, ...list.filter((a) => a.id !== res.data!.id)]);
+      const { rows, projectSent, project: created } = res.data!;
+      const ids = new Set(rows.map((x) => x.id));
+      setAscents((list) => [...[...rows].reverse(), ...list.filter((a) => !ids.has(a.id))]);
       if (colour) setEquivalents((m) => ({ ...m, [colour]: grade }));
-      if (res.data!.projectSent && res.data!.route_project_id) {
-        const sent = projects.find((p) => p.id === res.data!.route_project_id);
-        setProjects((list) => list.filter((p) => p.id !== res.data!.route_project_id));
+      const last = rows[rows.length - 1];
+      if (projectSent && last?.route_project_id) {
+        const sent = projects.find((p) => p.id === last.route_project_id);
+        setProjects((list) => list.filter((p) => p.id !== last.route_project_id));
         setProject(null);
-        setNotice({ tone: "ok", text: fmt(r.projectSent, { name: sent?.route_name ?? res.data!.route_name ?? "" }) });
+        setNotice({ tone: "ok", text: fmt(r.projectSent, { name: sent?.route_name ?? last.route_name ?? "" }) });
+      } else if (created) {
+        setProjects((list) => [{ id: created.id, route_name: created.route_name, grade, goal_style: "LEAD" }, ...list]);
+        setNotice({ tone: "ok", text: fmt(r.projectCreated, { name: created.route_name }) });
       } else {
-        setNotice({ tone: "ok", text: fmt(r.logged, { grade, result: r.results[result] }) });
+        setNotice({ tone: "ok", text: rows.length > 1 ? fmt(L.loggedRoutes, { n: rows.length, grade })
+          : fmt(r.logged, { grade, result: r.results[result] }) });
       }
-      setFalls(0);
+      setFalls(0); setCount(1); setTries(1); setNotes("");
+    });
+  }
+
+  function saveComment() {
+    if (!editing) return;
+    const { id, notes: text } = editing;
+    setAscents((list) => list.map((a) => a.id === id ? { ...a, notes: text } : a));
+    setEditing(null);
+    start(async () => {
+      const res = await updateRouteAscent({ id, notes: text });
+      setNotice(res.ok ? { tone: "ok", text: L.saved } : { tone: "error", text: t.common.unknownError });
     });
   }
 
@@ -205,6 +233,12 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
           className="mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 font-normal" />
         <span className="mt-1 block text-xs font-normal text-ink-3">{r.routeNameHint}</span>
       </label>
+      <Stepper label={L.howManyRoutes} value={count} min={1} max={30} onChange={setCount} />
+      <Stepper label={L.tries} hint={L.triesRouteHint} value={tries} min={1} max={100} onChange={setTries} />
+      <label className="block text-sm font-bold">{L.comment}
+        <textarea value={notes} maxLength={500} rows={2} placeholder={L.commentPlaceholder} onChange={(ev) => setNotes(ev.target.value)}
+          className="mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 font-normal" />
+      </label>
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-bold" id="falls-label">{r.falls}</span>
         <div className="flex items-center gap-2" role="group" aria-labelledby="falls-label">
@@ -215,13 +249,19 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
             className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold">+</button>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-5">
-        {ROUTE_RESULTS.map((res) => <button key={res} type="button" disabled={pending} onClick={() => log(res)}
-          className={cn("min-h-16 rounded-2xl px-3 py-2 text-left disabled:opacity-60 sm:text-center",
-            isClean(res) ? "bg-accent text-accent-ink" : "border border-line bg-surface text-ink")}>
-          <strong className="block text-base">{r.results[res]}</strong>
-          <span className={cn("block text-xs", isClean(res) ? "text-accent-ink/80" : "text-ink-3")}>{r.resultHints[res]}</span>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {ROUTE_RESULTS.map((res) => <button key={res} type="button" disabled={pending || (isFirstGo(res) && tries > 1)} onClick={() => log(res)}
+          style={toneButtonStyle(routeTone(res))}
+          className="min-h-16 rounded-2xl border px-3 py-2 text-left disabled:opacity-40 sm:text-center">
+          <strong className="block text-base"><span aria-hidden>{routeSymbol(res)} </span>{r.results[res]}</strong>
+          <span className="block text-xs opacity-80">{isFirstGo(res) && tries > 1 ? L.flashOnlyOne : r.resultHints[res]}</span>
         </button>)}
+        <button type="button" disabled={pending || count > 1} onClick={() => log(falls > 0 ? "TOP_WITH_REST" : "ATTEMPT", true)}
+          style={toneButtonStyle("project")}
+          className="min-h-16 rounded-2xl border px-3 py-2 text-left disabled:opacity-40 sm:text-center">
+          <strong className="block text-base"><span aria-hidden>★ </span>{L.project}</strong>
+          <span className="block text-xs opacity-80">{fmt(L.routeProjectName, { grade })}</span>
+        </button>
       </div>
       {notice ? <p role={notice.tone === "error" ? "alert" : "status"}
         className={cn("text-sm font-semibold", notice.tone === "error" ? "text-danger" : "text-ink-2")}>{notice.text}</p> : null}
@@ -235,8 +275,17 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
             <span className="min-w-0">
               {a.native_grade && a.native_grade_system ? <GradeChip t={t} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
               <strong className="text-lg tabular-nums">{a.grade}</strong>
-              <span className="ml-2 text-sm font-semibold">{r.results[a.result]}</span>
-              <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}{a.route_project_id ? ` · ${r.inProject}` : ""}</span>
+              <ResultBadge tone={routeTone(a.result)} label={r.results[a.result]} className="ml-2" />
+              {a.route_project_id ? <ResultBadge tone="project" label={L.project} className="ml-1" /> : null}
+              <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.tries > 1 ? ` · ${fmt(L.triesShort, { n: a.tries })}` : ""}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
+              {a.notes ? <span className="mt-1 block text-sm italic text-ink-2">“{a.notes}”</span> : null}
+              {editing?.id === a.id ? <span className="mt-2 flex gap-2">
+                <input value={editing.notes} maxLength={500} aria-label={L.comment} autoFocus
+                  onChange={(ev) => setEditing({ id: a.id, notes: ev.target.value })}
+                  className="min-h-10 flex-1 rounded-lg border border-line bg-surface px-2 text-sm" />
+                <button type="button" onClick={saveComment} className="min-h-10 rounded-lg bg-accent px-3 text-xs font-bold text-accent-ink">{L.save}</button>
+              </span> : <button type="button" onClick={() => setEditing({ id: a.id, notes: a.notes })}
+                className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{a.notes ? L.editComment : L.addComment}</button>}
               {a.route_name && !a.route_project_id ? <button type="button" disabled={pending} onClick={() => trackAsProject(a)}
                 className="mt-1 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
             </span>
@@ -247,5 +296,25 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
 
     {mode === "live" ? <button type="button" disabled={pending} onClick={finish}
       className="min-h-14 w-full rounded-2xl bg-ink text-base font-black text-surface disabled:opacity-60">{r.end}</button> : null}
+  </div>;
+}
+
+const isFirstGo = (r: RouteResult) => r === "ONSIGHT" || r === "FLASH";
+const routeSymbol = (r: RouteResult) => (isFirstGo(r) ? "⚡" : r === "REDPOINT" || r === "TOP_WITH_REST" ? "✓" : "·");
+
+/** − value + control with large touch targets. */
+export function Stepper({ label, hint, value, min, max, onChange }: {
+  label: string; hint?: string; value: number; min: number; max: number; onChange: (n: number) => void;
+}) {
+  const id = "stepper-" + label.replace(/\W+/g, "-").toLowerCase();
+  return <div className="flex items-center justify-between gap-3">
+    <span><span className="block text-sm font-bold" id={id}>{label}</span>{hint ? <span className="block text-xs text-ink-3">{hint}</span> : null}</span>
+    <div className="flex items-center gap-2" role="group" aria-labelledby={id}>
+      <button type="button" aria-label={label + " −"} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}
+        className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold disabled:opacity-40">−</button>
+      <span className="w-8 text-center text-xl font-black tabular-nums" aria-live="polite">{value}</span>
+      <button type="button" aria-label={label + " +"} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}
+        className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold disabled:opacity-40">+</button>
+    </div>
   </div>;
 }

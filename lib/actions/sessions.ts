@@ -48,6 +48,7 @@ const pastSessionSchema = z.object({
   date: z.iso.date(),
   time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
   minutes: z.number().int().min(10).max(720),
+  title: z.string().trim().max(80).default(""),
 }).strict();
 
 /**
@@ -68,7 +69,7 @@ export async function createPastSession(input: unknown): Promise<ActionResult<{ 
   if (!gym || (v.discipline === "BOULDER" ? !gym.has_bouldering : !gym.has_routes)) return { ok: false, error: "invalid" };
   const endedAt = new Date(Math.min(startedAt.getTime() + v.minutes * 60_000, Date.now()));
   const { data, error } = await viewer.supabase.from("sessions").insert({
-    gym_id: v.gymId, user_id: viewer.userId, source: "MANUAL", discipline: v.discipline,
+    gym_id: v.gymId, user_id: viewer.userId, source: "MANUAL", discipline: v.discipline, title: v.title || null,
     started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(),
     duration_minutes: Math.max(1, Math.round((endedAt.getTime() - startedAt.getTime()) / 60_000)),
   }).select("id").single();
@@ -276,6 +277,64 @@ export async function deleteProblem(problemId: string): Promise<void> {
   await viewer.supabase.from("problems").delete().eq("id", problemId);
   revalidatePath("/", "layout");
   redirect("/session");
+}
+
+
+/* ───────────── Faster logging ───────────── */
+
+const batchSchema = z.object({
+  sessionId: id,
+  grade: z.string().min(1).max(10),
+  count: z.number().int().min(1).max(30),
+  tries: z.number().int().min(1).max(50),
+  outcome: z.enum(["FLASH", "TOP", "ATTEMPT", "PROJECT"]),
+  notes: z.string().trim().max(2000),
+}).strict().refine((v) => v.outcome !== "FLASH" || v.tries === 1, "A flash is a first try");
+
+/**
+ * Several problems of one grade in one go, each with its number of tries and
+ * outcome (flash, top, not sent, or kept as a project). One transaction.
+ */
+export async function logBoulderBatch(input: unknown): Promise<ActionResult<{ problems: LiveProblem[]; attempts: Tables<"attempts">[] }>> {
+  const viewer = await requireViewer();
+  const parsed = batchSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const { data: ids, error } = await viewer.supabase.rpc("log_boulder_batch", {
+    p_session_id: v.sessionId, p_grade: v.grade, p_count: v.count, p_tries: v.tries, p_outcome: v.outcome, p_notes: v.notes || null,
+  });
+  if (error || !ids?.length) return { ok: false, error: error?.message === "INVALID_GRADE" ? "invalidGrade" : "unknownError" };
+  const [{ data: problems }, { data: attempts }] = await Promise.all([
+    viewer.supabase.from("problems").select("*").in("id", ids),
+    viewer.supabase.from("attempts").select("*").in("problem_id", ids).order("attempt_number"),
+  ]);
+  revalidatePath("/session/" + v.sessionId);
+  if (v.outcome === "PROJECT") revalidatePath("/projects");
+  return { ok: true, data: { problems: (problems ?? []).map((p) => ({ ...p, tags: [] })), attempts: attempts ?? [] } };
+}
+
+/** Keep a problem as a project, from the logger (no navigation). */
+export async function markProblemProject(problemId: string): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  if (!id.safeParse(problemId).success) return { ok: false, error: "invalid" };
+  const { data: existing } = await viewer.supabase.from("projects").select("id").eq("problem_id", problemId).maybeSingle();
+  if (!existing) {
+    const { error } = await viewer.supabase.from("projects").insert({ problem_id: problemId, user_id: viewer.userId });
+    if (error) return { ok: false, error: "unknownError" };
+  }
+  revalidatePath("/projects");
+  return { ok: true };
+}
+
+/** Name (or un-name) a session. */
+export async function updateSessionTitle(sessionId: string, title: string): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const clean = title.trim();
+  if (!id.safeParse(sessionId).success || clean.length > 80) return { ok: false, error: "invalid" };
+  const { error } = await viewer.supabase.from("sessions").update({ title: clean || null }).eq("id", sessionId);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 /* ───────────── Attempts ───────────── */
