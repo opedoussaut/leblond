@@ -359,7 +359,8 @@ test("A6 — faster logging: session name, several problems/routes, tries, comme
   await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: "Sortie avec Thomas" })).toBeVisible();
   await expect(page.getByText("“arête gauche”")).toHaveCount(3);
-  await expect(page.getByText(/7 essais|4 essais/).first()).toBeVisible();
+  await expect(page.getByText("4 essai(s)", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 essai(s)", { exact: true })).toHaveCount(3);
   await page.goto("/projects");
   await expect(page.getByRole("link").filter({ hasText: "Noir" }).first()).toBeVisible();
   await page.goto("/session");

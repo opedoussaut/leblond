@@ -15,13 +15,13 @@ grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 
 -- Own climbers, so this file does not depend on the order test files run in.
 insert into auth.users (id, email) values
-  ('f0000000-0000-0000-0000-00000000000a', 'batch-a@example.test'),
-  ('f0000000-0000-0000-0000-00000000000b', 'batch-b@example.test');
+  ('f0000000-0000-0000-0000-00000000000a', 'batch-a@batch.test'),
+  ('f0000000-0000-0000-0000-00000000000b', 'batch-b@batch.test');
 insert into public.gyms (id, name, brand, grading_system, has_bouldering, has_routes)
 values ('e1000000-0000-0000-0000-000000000001', 'Batch Test Gym', 'ARKOSE', 'ARKOSE_COLOR', true, true);
 
 set role authenticated;
-select set_config('request.jwt.claims', '{"sub":"f0000000-0000-0000-0000-00000000000a","email":"batch-a@example.test","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"f0000000-0000-0000-0000-00000000000a","email":"batch-a@batch.test","role":"authenticated"}', false);
 update public.sessions set ended_at = now() where ended_at is null;
 
 insert into public.sessions (id, user_id, gym_id, title, started_at, ended_at, duration_minutes)
@@ -57,7 +57,7 @@ select pg_temp.expect_error($$insert into public.route_ascents (user_id, session
   'an onsight takes one try');
 
 -- Another climber cannot batch-log into this session.
-select set_config('request.jwt.claims', '{"sub":"f0000000-0000-0000-0000-00000000000b","email":"batch-b@example.test","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"f0000000-0000-0000-0000-00000000000b","email":"batch-b@batch.test","role":"authenticated"}', false);
 select pg_temp.expect_error($$select public.log_boulder_batch('e2000000-0000-0000-0000-000000000001', 'RED', 1, 1, 'TOP', null)$$,
   'cannot batch-log into another climber''s session');
 reset role;
