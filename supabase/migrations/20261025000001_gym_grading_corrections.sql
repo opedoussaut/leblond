@@ -29,6 +29,19 @@ alter table public.gyms
 comment on column public.gyms.route_grading is
   'FRENCH: routes graded 3a–9c. GYM_COLOR: routes graded with the gym colours (grading_system), French grade kept as the climber''s equivalent.';
 
+-- Each network's own scale is allowed for that network (Block'Out, Climb Up and
+-- Vertical'Art could previously only be Font / custom colours).
+alter table public.gyms drop constraint gyms_brand_system;
+alter table public.gyms add constraint gyms_brand_system check (
+  (brand = 'ARKOSE' and grading_system = 'ARKOSE_COLOR')
+  or (brand = 'CLIMBING_DISTRICT' and grading_system = 'CLIMBING_DISTRICT_COLOR')
+  or (brand = 'BLOCKOUT' and grading_system in ('BLOCKOUT_LEVEL', 'FONT'))
+  or (brand = 'CLIMB_UP' and grading_system in ('CLIMB_UP_COLOR', 'FONT'))
+  or (brand = 'VERTICAL_ART' and grading_system in ('VERTICAL_ART_COLOR', 'FONT'))
+  or (brand not in ('ARKOSE', 'CLIMBING_DISTRICT', 'BLOCKOUT', 'CLIMB_UP', 'VERTICAL_ART')
+      and grading_system in ('FONT', 'CUSTOM_COLOR', 'UNKNOWN'))
+);
+
 update public.gyms set grading_system = 'BLOCKOUT_LEVEL'
   where brand = 'BLOCKOUT' and external_provider is null and grading_system = 'FONT';
 update public.gyms set grading_system = 'CLIMB_UP_COLOR'
