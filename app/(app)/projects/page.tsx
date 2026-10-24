@@ -24,14 +24,14 @@ export default async function ProjectsPage() {
     ? await viewer.supabase.from("attempts").select("problem_id").in("problem_id", ids)
     : { data: [] };
   const r = routeDictionary(locale);
-  const [{ data: routeProjects }, { data: routeGoes }, { gyms, favouriteIds }] = await Promise.all([
+  const [{ data: routeProjects }, { data: routeGoes }, { gyms }] = await Promise.all([
     viewer.supabase.from("route_projects").select("id, route_name, grade, goal_style, status, started_at, gyms(name)")
       .order("status").order("started_at", { ascending: false }),
     viewer.supabase.from("route_ascents").select("route_project_id").not("route_project_id", "is", null),
     listGymsWithFavourites(viewer.supabase, viewer.userId),
   ]);
   const routeGyms = gyms.filter((g) => g.has_routes)
-    .sort((a, b) => Number(favouriteIds.includes(b.id)) - Number(favouriteIds.includes(a.id)) || a.name.localeCompare(b.name, "fr"))
+    .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base", ignorePunctuation: true }))
     .map((g) => ({ id: g.id, name: g.name + (g.city ? " · " + g.city : "") }));
 
   return (

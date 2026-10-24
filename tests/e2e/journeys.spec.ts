@@ -297,6 +297,35 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route colours
   await expect(page.getByRole("link", { name: /Sèvres-Lecourbe/ })).toBeVisible();
 });
 
+test("A5 — real gym scales and an alphabetical gym directory", async ({ page }) => {
+  await signInWithPassword(page, "past@leblond.local");
+  await page.goto("/session/new?where=past");
+  const picker = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
+  const names = (await picker.locator("option").allTextContents()).slice(1).map((n) => n.replace(/^[★✓ ]+/, "").split(" · ")[0]);
+  const sorted = [...names].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base", ignorePunctuation: true }));
+  expect(names).toEqual(sorted);
+
+  const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+  for (const [gym, grade, range] of [["Block'Out Paris", "B5", "≈ 6A–6A+"], ["Vertical'Art Rungis", "Bleu", "≈ 6A–6B"]] as const) {
+    await page.goto("/session/new?where=past");
+    await chooseGym(page, gym);
+    const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+    await form.getByLabel("Date").fill(yesterday);
+    await form.getByRole("button", { name: /Créer la séance/ }).click();
+    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page.getByRole("button", { name: new RegExp("^" + grade) })).toContainText(range);
+  }
+  // Climb Up: its own seven colours, white above red, and no invented Font range.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Climb Up Aubervilliers");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await form.getByLabel("Date").fill(yesterday);
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+  await expect(page.getByRole("button", { name: /^Violet/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
+});
+
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);

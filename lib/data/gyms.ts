@@ -10,7 +10,7 @@ export type GymRow = Tables<"gyms">;
  */
 export async function listGymsWithFavourites(supabase: ServerSupabase, userId: string) {
   const [{ data: gyms, error }, { data: favs }] = await Promise.all([
-    supabase.from("gyms").select("*").eq("active", true).is("external_provider", null).order("brand").order("name"),
+    supabase.from("gyms").select("*").eq("active", true).is("external_provider", null).order("name"),
     supabase.from("favourite_gyms").select("gym_id").eq("user_id", userId),
   ]);
   if (error) throw new Error(error.message);

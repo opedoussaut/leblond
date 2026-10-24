@@ -9,6 +9,9 @@ export const GRADE_SYSTEMS = [
   "FONT",
   "CUSTOM_COLOR",
   "UNKNOWN",
+  "BLOCKOUT_LEVEL",
+  "CLIMB_UP_COLOR",
+  "VERTICAL_ART_COLOR",
 ] as const;
 export type GradeSystem = (typeof GRADE_SYSTEMS)[number];
 
@@ -28,6 +31,9 @@ export type GymBrand = (typeof GYM_BRANDS)[number];
 export const BRAND_NATIVE_SYSTEM: Partial<Record<GymBrand, GradeSystem>> = {
   ARKOSE: "ARKOSE_COLOR",
   CLIMBING_DISTRICT: "CLIMBING_DISTRICT_COLOR",
+  BLOCKOUT: "BLOCKOUT_LEVEL",
+  CLIMB_UP: "CLIMB_UP_COLOR",
+  VERTICAL_ART: "VERTICAL_ART_COLOR",
 };
 
 /** Systems a user may pick for a gym of the given brand. */

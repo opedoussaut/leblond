@@ -27,12 +27,13 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
   const { data: existing } = await viewer.supabase.from("route_ascents").select(COLUMNS).eq("client_id", v.clientId).maybeSingle();
   if (existing) return { ok: true, data: existing as RouteAscentRow };
 
-  const { data: session } = await viewer.supabase.from("sessions").select("id, gym_id, discipline, started_at, ended_at, gyms(grading_system)")
+  const { data: session } = await viewer.supabase.from("sessions").select("id, gym_id, discipline, started_at, ended_at, gyms(grading_system, route_grading)")
     .eq("id", v.sessionId).maybeSingle();
   if (!session || session.discipline !== "ROUTE") return { ok: false, error: "notFound" };
 
   // Native colour: only at gyms that grade by colour, and only one of that gym's colours.
-  const gymSystem = (session.gyms?.grading_system ?? "UNKNOWN") as GradeSystem;
+  // Only gyms that grade their ROUTES by colour accept a native colour; others use French grades directly.
+  const gymSystem = (session.gyms?.route_grading === "GYM_COLOR" ? session.gyms.grading_system : "FONT") as GradeSystem;
   const nativeGrade = v.nativeGrade ?? null;
   if (nativeGrade && (!isColourSystem(gymSystem) || !isValidGrade(gymSystem, nativeGrade))) return { ok: false, error: "invalidGrade" };
 

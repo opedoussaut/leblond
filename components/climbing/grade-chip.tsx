@@ -36,7 +36,7 @@ export function GradeChip({
       className={cn(
         "inline-flex items-center gap-1.5 font-bold tracking-wide",
         // Font grades are case-sensitive (4b ≠ 4B-style notation): never upper-case them.
-        system !== "FONT" && "uppercase",
+        system !== "FONT" && system !== "BLOCKOUT_LEVEL" && "uppercase",
         text,
         className,
       )}
@@ -50,7 +50,7 @@ export function GradeChip({
       ) : null}
       <span>{label}</span>
       {mystery ? <span className="font-medium normal-case text-ink-3">({t.grades.mystery})</span> : null}
-      {range ? <span className="font-medium normal-case text-ink-3" title={t.grades.rangeHint}>{formatFontRange(range)}</span> : null}
+      {range ? <span className="font-medium normal-case text-ink-3" title={range.official ? t.grades.rangeOfficial : t.grades.rangeHint}>{formatFontRange(range)}</span> : null}
     </span>
   );
 }

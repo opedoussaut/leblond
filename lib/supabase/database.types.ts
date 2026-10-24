@@ -768,6 +768,7 @@ export type Database = {
           brand: Database["public"]["Enums"]["gym_brand"];
           city: string | null;
           country: string | null;
+          route_grading: "FRENCH" | "GYM_COLOR";
           created_at: string;
           created_by: string | null;
           external_id: string | null;
@@ -787,6 +788,7 @@ export type Database = {
           brand: Database["public"]["Enums"]["gym_brand"];
           city?: string | null;
           country?: string | null;
+          route_grading?: "FRENCH" | "GYM_COLOR";
           created_at?: string;
           created_by?: string | null;
           external_id?: string | null;
@@ -806,6 +808,7 @@ export type Database = {
           brand?: Database["public"]["Enums"]["gym_brand"];
           city?: string | null;
           country?: string | null;
+          route_grading?: "FRENCH" | "GYM_COLOR";
           created_at?: string;
           created_by?: string | null;
           external_id?: string | null;
@@ -1639,7 +1642,7 @@ export type Database = {
       coach_role: "user" | "assistant";
       connection_status: "CONNECTED" | "DISCONNECTED" | "ERROR";
       discipline: "bouldering" | "sport";
-      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN";
+      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN" | "BLOCKOUT_LEVEL" | "CLIMB_UP_COLOR" | "VERTICAL_ART_COLOR";
       gym_brand: "ARKOSE" | "CLIMBING_DISTRICT" | "BLOCKOUT" | "CLIMB_UP" | "VERTICAL_ART" | "INDEPENDENT" | "OUTDOOR" | "OTHER";
       media_type: "PROBLEM_PHOTO" | "ATTEMPT_VIDEO" | "SEND_VIDEO";
       normalization_source: "FONT_NATIVE" | "USER_ESTIMATE" | "GYM_PUBLISHED";
@@ -1760,7 +1763,7 @@ export const Constants = {
       coach_role: ["user", "assistant"],
       connection_status: ["CONNECTED", "DISCONNECTED", "ERROR"],
       discipline: ["bouldering", "sport"],
-      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN"],
+      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN", "BLOCKOUT_LEVEL", "CLIMB_UP_COLOR", "VERTICAL_ART_COLOR"],
       gym_brand: ["ARKOSE", "CLIMBING_DISTRICT", "BLOCKOUT", "INDEPENDENT", "OUTDOOR", "OTHER"],
       media_type: ["PROBLEM_PHOTO", "ATTEMPT_VIDEO", "SEND_VIDEO"],
       normalization_source: ["FONT_NATIVE", "USER_ESTIMATE", "GYM_PUBLISHED"],
