@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { isColorSystem } from "@/lib/grading/systems";
+import { QuickBoulderEntry } from "./quick-boulder-entry";
+import { ResultBadge, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
+import { loggingDictionary } from "@/lib/i18n/logging";
+import { markProblemProject, type LiveProblem } from "@/lib/actions/sessions";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
@@ -47,6 +51,7 @@ export type LiveProblemItem = {
   native_grade: string;
   /** The scale the problem was logged with (may predate a change of the gym's scale). */
   native_grade_system?: GradeSystem;
+  notes?: string | null;
   wall_angle: WallAngle;
   tags: StyleTag[];
   created_at: string;
@@ -101,6 +106,11 @@ export function LiveSession({
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [pending, start] = useTransition();
   const [now, setNow] = useState(() => Date.now());
+  const [quick, setQuick] = useState(false);
+  const [projectIds, setProjectIds] = useState(projectProblemIds);
+  const [bulkTries, setBulkTries] = useState(2);
+  const [commentDraft, setCommentDraft] = useState<string | null>(null);
+  const L = loggingDictionary(locale);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -148,6 +158,7 @@ export function LiveSession({
           tags: [],
           created_at: p.created_at,
           name: p.name,
+          notes: p.notes,
           outdoor_problem_id: p.outdoor_problem_id,
         },
       ]);
@@ -221,6 +232,54 @@ export function LiveSession({
       say("ok", fmt(t.session.logged, { result: t.results[saved.result] }));
       if (res.data.suggestFlash) setFlashPrompt(saved);
     });
+  }
+
+  /** Record several unsuccessful tries on the current problem in one tap. */
+  function logTries(n: number) {
+    if (!current) return;
+    const problemId = current.id;
+    start(async () => {
+      for (let i = 0; i < n; i++) {
+        const res = await logAttempt({ sessionId, problemId, result: "ATTEMPT" });
+        if (!res.ok || !res.data) return say("error", t.common.unknownError);
+        const saved = res.data.attempt;
+        setAttempts((list) => [...list, saved]);
+      }
+      say("ok", fmt(L.triesShort, { n }) + " ✓");
+    });
+  }
+
+  function makeProject() {
+    if (!current) return;
+    const problemId = current.id;
+    start(async () => {
+      const res = await markProblemProject(problemId);
+      if (!res.ok) return say("error", t.common.unknownError);
+      setProjectIds((ids) => (ids.includes(problemId) ? ids : [...ids, problemId]));
+      say("ok", L.projectSaved);
+    });
+  }
+
+  function saveComment() {
+    if (!current || commentDraft === null) return;
+    const problemId = current.id;
+    const notes = commentDraft.trim();
+    setProblems((list) => list.map((p) => (p.id === problemId ? { ...p, notes } : p)));
+    setCommentDraft(null);
+    start(async () => {
+      const res = await updateProblem({ problemId, notes: notes || null });
+      say(res.ok ? "ok" : "error", res.ok ? L.saved : t.common.unknownError);
+    });
+  }
+
+  function onQuickLogged(created: LiveProblem[], newAttempts: Attempt[], outcome: string) {
+    setProblems((list) => [...list, ...created.map((p) => ({
+      id: p.id, native_grade: p.native_grade, native_grade_system: p.native_grade_system, notes: p.notes,
+      wall_angle: p.wall_angle as WallAngle, tags: [] as StyleTag[], created_at: p.created_at, name: p.name,
+      outdoor_problem_id: p.outdoor_problem_id,
+    }))]);
+    setAttempts((list) => [...list, ...newAttempts]);
+    if (outcome === "PROJECT") setProjectIds((ids) => [...ids, ...created.map((p) => p.id)]);
   }
 
   function markFlash(a: Attempt) {
@@ -329,17 +388,17 @@ export function LiveSession({
             <Button size="xl" variant="secondary" onClick={() => log("ATTEMPT")} aria-label={t.results.ATTEMPT}>
               {t.results.try}
             </Button>
-            <Button size="xl" onClick={() => log("TOP")} aria-label={t.results.TOP}>
-              {t.results.top}
+            <Button size="xl" onClick={() => log("TOP")} aria-label={t.results.TOP} style={toneButtonStyle("top")}>
+              ✓ {t.results.top}
             </Button>
             <Button
               size="xl"
               onClick={() => log("FLASH")}
               disabled={!canFlash}
               aria-label={t.results.FLASH}
-              className="bg-ink! text-bg!"
+              style={toneButtonStyle("flash")}
             >
-              {t.results.flash}
+              ⚡ {t.results.flash}
             </Button>
           </div>
           {flashPrompt && flashPrompt.problem_id === current.id ? (
@@ -350,6 +409,31 @@ export function LiveSession({
               </Button>
             </div>
           ) : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2 p-2">
+            <span className="text-sm font-semibold">{L.tries}</span>
+            <button type="button" aria-label={L.tries + " −"} disabled={bulkTries <= 2} onClick={() => setBulkTries((n) => Math.max(2, n - 1))}
+              className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">−</button>
+            <span className="w-6 text-center font-black tabular-nums">{bulkTries}</span>
+            <button type="button" aria-label={L.tries + " +"} disabled={bulkTries >= 20} onClick={() => setBulkTries((n) => Math.min(20, n + 1))}
+              className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
+            <Button variant="secondary" disabled={pending} onClick={() => logTries(bulkTries)}>{fmt(L.logTries, { n: bulkTries })}</Button>
+            {projectIds.includes(current.id)
+              ? <ResultBadge tone="project" label={L.project} className="ml-auto" />
+              : <button type="button" disabled={pending} onClick={makeProject} style={toneButtonStyle("project")}
+                  className="ml-auto min-h-10 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
+          </div>
+          <div className="mt-3">
+            {commentDraft !== null ? <div className="flex gap-2">
+              <input value={commentDraft} maxLength={2000} autoFocus aria-label={L.comment} placeholder={L.commentPlaceholder}
+                onChange={(ev) => setCommentDraft(ev.target.value)}
+                className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-3 text-sm" />
+              <Button onClick={saveComment} disabled={pending}>{L.save}</Button>
+            </div> : <>
+              {current.notes ? <p className="text-sm italic text-ink-2">“{current.notes}”</p> : null}
+              <button type="button" onClick={() => setCommentDraft(current.notes ?? "")}
+                className="text-sm font-bold text-accent underline underline-offset-2">{current.notes ? L.editComment : L.addComment}</button>
+            </>}
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {currentSessionAttempts.length > 0 ? (
               <Button variant="ghost" onClick={undo} disabled={pending}>
@@ -415,6 +499,13 @@ export function LiveSession({
           + {t.session.addProblem}
         </Button>
       )}
+      {quick ? (
+        <QuickBoulderEntry sessionId={sessionId} system={gym.system} onLogged={onQuickLogged} onClose={() => setQuick(false)} />
+      ) : (
+        <Button size="lg" variant="secondary" className="w-full" onClick={() => { setQuick(true); setAdding(false); }}>
+          ⚡ {L.quickTitle}
+        </Button>
+      )}
 
       {ordered.length > 0 ? (
         <section className="space-y-2">
@@ -453,8 +544,9 @@ export function LiveSession({
                     ) : null}
                     <AttemptDots attempts={pa} />
                     <span className="ml-auto text-xs font-bold uppercase tracking-wider">
-                      {sent ? t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"] : ""}
-                      {projectProblemIds.includes(p.id) ? <span className="ml-2 text-accent">★</span> : null}
+                      {sent ? <ResultBadge tone={pa.some((a) => a.result === "FLASH") ? "flash" : "top"}
+                        label={t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"]} /> : null}
+                      {projectIds.includes(p.id) ? <ResultBadge tone="project" label={L.project} className="ml-1" /> : null}
                     </span>
                   </button>
                 </li>
@@ -515,8 +607,8 @@ function AttemptDots({ attempts }: { attempts: Attempt[] }) {
           key={a.id}
           className={cn(
             "inline-block h-2.5 w-2.5 rounded-full",
-            a.result === "ATTEMPT" ? "bg-ink-3" : a.result === "TOP" ? "bg-accent" : "bg-ink ring-2 ring-accent",
           )}
+          style={{ backgroundColor: RESULT_TONES[boulderTone(a.result)].bg === "#E5E7EB" ? "#9CA3AF" : RESULT_TONES[boulderTone(a.result)].bg }}
         />
       ))}
     </span>

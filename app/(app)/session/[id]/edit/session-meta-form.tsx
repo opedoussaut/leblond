@@ -3,14 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { deleteSession, rescheduleSession } from "@/lib/actions/sessions";
+import { deleteSession, rescheduleSession, updateSessionTitle } from "@/lib/actions/sessions";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 
 const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink";
 
 /** Date / start time / duration of a finished session. Attempts move with it (server-side). */
 export function SessionMetaForm({ sessionId, initial, today }: {
-  sessionId: string; initial: { date: string; time: string; minutes: number }; today: string;
+  sessionId: string; initial: { date: string; time: string; minutes: number; title: string }; today: string;
 }) {
   const { t, locale } = useI18n();
   const e = sessionEditDictionary(locale);
@@ -18,18 +19,24 @@ export function SessionMetaForm({ sessionId, initial, today }: {
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
   const [minutes, setMinutes] = useState(initial.minutes);
+  const [title, setTitle] = useState(initial.title);
+  const L = loggingDictionary(locale);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
   return <form aria-label={e.when} className="space-y-3 rounded-2xl border border-line bg-surface p-4" onSubmit={(ev) => {
     ev.preventDefault(); setMessage(null);
     start(async () => {
-      const res = await rescheduleSession({ sessionId, date, time, minutes });
+      const named = await updateSessionTitle(sessionId, title);
+      const res = named.ok ? await rescheduleSession({ sessionId, date, time, minutes }) : named;
       setMessage(res.ok ? { ok: true, text: e.saved } : { ok: false, text: res.error === "invalidDate" ? e.invalidDate : t.common.unknownError });
       if (res.ok) router.refresh();
     });
   }}>
     <h2 className="font-extrabold">{e.when}</h2>
+    <label className="block text-sm font-semibold">{L.sessionName}
+      <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />
+    </label>
     <div className="grid grid-cols-3 gap-3">
       <label className="text-sm font-semibold">{e.date}
         <input className={field} type="date" required max={today} min="2015-01-01" value={date} onChange={(ev) => setDate(ev.target.value)} />

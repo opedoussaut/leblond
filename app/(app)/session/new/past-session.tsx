@@ -11,6 +11,7 @@ import { createPastSession } from "@/lib/actions/sessions";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import type { Tables } from "@/lib/supabase/database.types";
 import { utcToZoned } from "@/lib/time";
+import { loggingDictionary } from "@/lib/i18n/logging";
 
 const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink";
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
@@ -35,6 +36,8 @@ export function PastSession({ gyms, favouriteIds, areas }: {
   const [time, setTime] = useState(defaults.time);
   const [minutes, setMinutes] = useState(90);
   const [discipline, setDiscipline] = useState<"BOULDER" | "ROUTE">("BOULDER");
+  const [title, setTitle] = useState("");
+  const L = loggingDictionary(locale);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
@@ -49,7 +52,7 @@ export function PastSession({ gyms, favouriteIds, areas }: {
     if (!place) return;
     setError("");
     start(async () => {
-      const res = await createPastSession({ gymId: place.id, discipline, date, time, minutes });
+      const res = await createPastSession({ gymId: place.id, discipline, date, time, minutes, title });
       if (!res.ok || !res.data) { setError(res.ok ? t.common.unknownError : res.error === "invalidDate" ? e.invalidDate : t.common.unknownError); return; }
       router.push(`/session/${res.data.sessionId}/edit`);
     });
@@ -86,6 +89,9 @@ export function PastSession({ gyms, favouriteIds, areas }: {
             <input className={field} type="number" required min={10} max={720} step={5} value={minutes} onChange={(ev) => setMinutes(Number(ev.target.value))} />
           </label>
         </div>
+        <label className="block text-sm font-semibold">{L.sessionName}
+          <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />
+        </label>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <button type="submit" disabled={pending}
           className="min-h-14 w-full rounded-2xl bg-accent px-6 text-base font-extrabold text-accent-ink disabled:opacity-60">

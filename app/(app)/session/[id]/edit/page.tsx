@@ -34,7 +34,7 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
         ✓ {e.done}
       </Link>
     </header>
-    <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes }} today={utcToZoned(new Date()).date} />
+    <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }} today={utcToZoned(new Date()).date} />
     <section aria-label={e.logTitle} className="space-y-3">
       <SessionLogger viewer={viewer} view={view} mode="edit" />
     </section>

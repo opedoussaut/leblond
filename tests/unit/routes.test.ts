@@ -74,3 +74,19 @@ describe("route projects", () => {
     expect(routeProjectProgress([])).toMatchObject({ ascents: 0, bestResult: null, firstFalls: null });
   });
 });
+
+describe("faster route logging", () => {
+  const base = { sessionId: "6f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", clientId: "7f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+    grade: "6b", style: "LEAD", result: "REDPOINT", falls: 0, routeName: "", wallAngle: "UNKNOWN" };
+  it("accepts several lines, tries and a comment in one entry", () => {
+    const v = logRouteAscentSchema.parse({ ...base, tries: 3, notes: "réglette du haut",
+      extraClientIds: ["8f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f"] });
+    expect(v).toMatchObject({ tries: 3, notes: "réglette du haut" });
+  });
+  it("keeps onsight and flash single-try, and a project single-route", () => {
+    expect(logRouteAscentSchema.safeParse({ ...base, result: "ONSIGHT", tries: 2 }).success).toBe(false);
+    expect(logRouteAscentSchema.safeParse({ ...base, result: "ATTEMPT", asProject: true,
+      extraClientIds: ["8f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f"] }).success).toBe(false);
+    expect(logRouteAscentSchema.parse(base)).toMatchObject({ tries: 1, notes: "", extraClientIds: [], asProject: false });
+  });
+});

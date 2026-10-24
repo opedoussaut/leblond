@@ -323,6 +323,75 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
   await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
 });
 
+test("A6 — faster logging: session name, several problems/routes, tries, comments, projects, colours", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signInWithPassword(page, "past@leblond.local");
+  const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+
+  // Named past bouldering session.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Demo Arkose");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await form.getByLabel("Date").fill(yesterday);
+  await form.getByLabel("Nom de la séance (facultatif)").fill("Sortie avec Thomas");
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+
+  // 3 red problems in 2 tries each, with a comment, in one tap.
+  await page.getByRole("button", { name: /Saisie rapide/ }).click();
+  const quick = page.getByRole("region", { name: /Saisie rapide/ });
+  await quick.getByRole("button", { name: /^Rouge/ }).click();
+  await quick.getByRole("button", { name: "Nombre de blocs +" }).click();
+  await quick.getByRole("button", { name: "Nombre de blocs +" }).click();
+  await quick.getByRole("button", { name: "Essais +" }).click();
+  await quick.getByLabel("Commentaire (facultatif)").fill("arête gauche");
+  await expect(quick.getByRole("button", { name: /^Flash/ })).toBeDisabled();
+  await quick.getByRole("button", { name: /^Top/ }).click();
+  await expect(quick.getByRole("status")).toHaveText("3 bloc(s) Rouge noté(s).");
+  // A black project after 4 tries; the flash button is orange.
+  await quick.getByRole("button", { name: /^Noir/ }).click();
+  await expect(quick.getByRole("button", { name: /^Flash/ })).toHaveCSS("background-color", "rgb(249, 115, 22)");
+  await expect(quick.getByRole("button", { name: /^Top/ })).toHaveCSS("background-color", "rgb(37, 99, 235)");
+  for (let i = 0; i < 3; i++) await quick.getByRole("button", { name: "Essais +" }).click();
+  await quick.getByRole("button", { name: /^Projet/ }).click();
+  await expect(quick.getByRole("status")).toHaveText("1 bloc(s) Noir noté(s).");
+
+  await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Sortie avec Thomas" })).toBeVisible();
+  await expect(page.getByText("“arête gauche”")).toHaveCount(3);
+  await expect(page.getByText(/7 essais|4 essais/).first()).toBeVisible();
+  await page.goto("/projects");
+  await expect(page.getByRole("link").filter({ hasText: "Noir" }).first()).toBeVisible();
+  await page.goto("/session");
+  await expect(page.getByRole("link", { name: /Sortie avec Thomas · Demo Arkose/ })).toBeVisible();
+
+  // Routes: two 6b redpoints in 3 tries with a comment, then a project.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Climb Up Aubervilliers");
+  const rform = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await rform.getByLabel("Date").fill(yesterday);
+  await rform.getByRole("button", { name: "Voie" }).click();
+  await rform.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+  const log = page.getByRole("region", { name: /Choisis la cotation/ });
+  await log.getByRole("button", { name: "6b", exact: true }).click();
+  await log.getByRole("button", { name: "Nombre de voies +" }).click();
+  await log.getByRole("button", { name: "Essais +" }).click();
+  await log.getByRole("button", { name: "Essais +" }).click();
+  await log.getByLabel("Commentaire (facultatif)").fill("dalle du haut");
+  await expect(log.getByRole("button", { name: /^À vue/ })).toBeDisabled();
+  await log.getByRole("button", { name: /^Enchaînée/ }).click();
+  await expect(log.getByRole("status")).toHaveText("2 voie(s) 6b notée(s).");
+  const list = page.getByRole("region", { name: /Voies de la séance/ });
+  await expect(list.getByRole("listitem").filter({ hasText: "dalle du haut" })).toHaveCount(2);
+  await expect(list.getByRole("listitem").first()).toContainText("3 essais");
+  await log.getByRole("button", { name: "7a", exact: true }).click();
+  await log.getByLabel(/Nom ou repère/).fill("Le toit");
+  await log.getByRole("button", { name: /^Projet/ }).click();
+  await expect(log.getByRole("status")).toHaveText("Projet créé : Le toit.");
+  await expect(log.getByRole("button", { name: /Le toit · 7a/ })).toBeVisible();
+});
+
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);

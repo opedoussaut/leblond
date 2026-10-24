@@ -11,21 +11,27 @@ import { isColourSystem } from "@/lib/grading/conversions";
 import type { ActionResult } from "@/lib/validation/common";
 
 export type RouteAscentRow = Pick<Tables<"route_ascents">,
-  "id" | "session_id" | "client_id" | "route_name" | "grade" | "style" | "result" | "falls" | "wall_angle" | "created_at" | "route_project_id" | "native_grade" | "native_grade_system">;
-const COLUMNS = "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id,native_grade,native_grade_system";
+  "id" | "session_id" | "client_id" | "route_name" | "grade" | "style" | "result" | "falls" | "wall_angle" | "created_at" | "route_project_id" | "native_grade" | "native_grade_system" | "tries" | "notes">;
+const COLUMNS = "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id,native_grade,native_grade_system,tries,notes";
+
+export type RouteLogResult = { rows: RouteAscentRow[]; projectSent: boolean; project: { id: string; route_name: string } | null };
 
 /**
- * Logs one climb of a route in a live ROUTE session. Idempotent per client_id:
- * a retried tap returns the ascent already stored instead of duplicating it.
+ * Logs one or several identical route lines (same grade, style, result, tries and
+ * comment) in a ROUTE session. Idempotent per client id: a retried tap returns the
+ * lines already stored instead of duplicating them.
  */
-export async function logRouteAscent(input: unknown): Promise<ActionResult<RouteAscentRow & { projectSent?: boolean }>> {
+export async function logRouteAscent(input: unknown): Promise<ActionResult<RouteLogResult>> {
   const viewer = await requireViewer();
   const parsed = logRouteAscentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const v = parsed.data;
 
-  const { data: existing } = await viewer.supabase.from("route_ascents").select(COLUMNS).eq("client_id", v.clientId).maybeSingle();
-  if (existing) return { ok: true, data: existing as RouteAscentRow };
+  const clientIds = [v.clientId, ...v.extraClientIds];
+  const { data: existing } = await viewer.supabase.from("route_ascents").select(COLUMNS).in("client_id", clientIds);
+  if (existing && existing.length === clientIds.length) {
+    return { ok: true, data: { rows: existing as RouteAscentRow[], projectSent: false, project: null } };
+  }
 
   const { data: session } = await viewer.supabase.from("sessions").select("id, gym_id, discipline, started_at, ended_at, gyms(grading_system, route_grading)")
     .eq("id", v.sessionId).maybeSingle();
@@ -61,6 +67,27 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
   }
   if (project && isFirstGoOnly(v.result)) return { ok: false, error: "notFirstAscent" };
 
+  // "★ Projet": keep this route as a project (created from its name, or "Projet <grade>").
+  let createdProject: { id: string; route_name: string } | null = null;
+  if (v.asProject && !project) {
+    let projectName = name;
+    if (!projectName) {
+      const { data: others } = await viewer.supabase.from("route_projects").select("route_key").eq("gym_id", session.gym_id);
+      const taken = new Set((others ?? []).map((o) => o.route_key));
+      let n = 1;
+      do { projectName = `Projet ${v.grade}${n > 1 ? ` (${n})` : ""}`; n++; } while (taken.has(routeKey(projectName)));
+    }
+    const { data: p, error: pError } = await viewer.supabase.from("route_projects").insert({
+      user_id: viewer.userId, gym_id: session.gym_id, route_name: projectName, route_key: routeKey(projectName),
+      grade: v.grade, goal_style: "LEAD", notes: v.notes,
+    }).select("id, route_name, goal_style, status").single();
+    if (pError || !p) return { ok: false, error: "unknownError" };
+    project = p;
+    createdProject = { id: p.id, route_name: p.route_name };
+    name = p.route_name;
+    revalidatePath("/projects");
+  }
+
   // Onsight / flash are only possible on the first ascent of a named route at this venue.
   if (name && isFirstGoOnly(v.result)) {
     const { data: sameVenue } = await viewer.supabase.from("sessions").select("id").eq("gym_id", session.gym_id).eq("discipline", "ROUTE");
@@ -73,18 +100,21 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
     }
   }
 
-  const { data, error } = await viewer.supabase.from("route_ascents").insert({
-    user_id: viewer.userId, session_id: v.sessionId, client_id: v.clientId, route_name: name || null,
+  const already = new Set((existing ?? []).map((e) => e.client_id));
+  const rows = clientIds.filter((c) => !already.has(c)).map((clientId, i) => ({
+    user_id: viewer.userId, session_id: v.sessionId, client_id: clientId, route_name: name || null,
     grade: v.grade, style: v.style, result: v.result, falls: v.result === "ATTEMPT" || v.result === "TOP_WITH_REST" ? v.falls : 0,
-    wall_angle: v.wallAngle, route_project_id: project?.id ?? null,
+    wall_angle: v.wallAngle, route_project_id: project?.id ?? null, tries: v.tries, notes: v.notes,
     native_grade: nativeGrade, native_grade_system: nativeGrade ? gymSystem : null,
-    ...(createdAt ? { created_at: createdAt } : {}),
-  }).select(COLUMNS).single();
+    ...(createdAt ? { created_at: new Date(new Date(createdAt).getTime() + i * 1000).toISOString() } : {}),
+  }));
+  const { data: inserted, error } = await viewer.supabase.from("route_ascents").insert(rows).select(COLUMNS);
   if (error?.code === "23505") {
-    const { data: again } = await viewer.supabase.from("route_ascents").select(COLUMNS).eq("client_id", v.clientId).maybeSingle();
-    if (again) return { ok: true, data: again as RouteAscentRow };
+    const { data: again } = await viewer.supabase.from("route_ascents").select(COLUMNS).in("client_id", clientIds);
+    if (again?.length) return { ok: true, data: { rows: again as RouteAscentRow[], projectSent: false, project: createdProject } };
   }
-  if (error || !data) return { ok: false, error: "unknownError" };
+  if (error || !inserted?.length) return { ok: false, error: "unknownError" };
+  const data = inserted[inserted.length - 1];
   let projectSent = false;
   if (project && project.status === "ACTIVE" && completesProject(v.result, v.style, project.goal_style)) {
     const { error: sentError } = await viewer.supabase.from("route_projects")
@@ -93,7 +123,21 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
     revalidatePath("/projects");
   }
   revalidatePath("/session/" + v.sessionId);
-  return { ok: true, data: { ...(data as RouteAscentRow), projectSent } };
+  return { ok: true, data: { rows: [...(existing ?? []), ...inserted] as RouteAscentRow[], projectSent, project: createdProject } };
+}
+
+/** Edit the comment (and tries) of a logged route line. */
+export async function updateRouteAscent(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = z.object({ id: z.guid(), notes: z.string().trim().max(500), tries: z.number().int().min(1).max(100).optional() })
+    .strict().safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { id, notes, tries } = parsed.data;
+  const { data, error } = await viewer.supabase.from("route_ascents")
+    .update({ notes, ...(tries ? { tries } : {}) }).eq("id", id).select("session_id").maybeSingle();
+  if (error || !data) return { ok: false, error: error?.code === "23514" ? "notFirstAscent" : "unknownError" };
+  revalidatePath("/session/" + data.session_id);
+  return { ok: true };
 }
 
 export async function deleteRouteAscent(ascentId: string): Promise<ActionResult> {
