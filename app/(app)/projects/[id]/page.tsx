@@ -44,7 +44,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent">★ {t.problem.isProject}</p>
         <h1 className="mt-1 text-2xl font-black">{problem.name || t.problem.unnamed}</h1>
         <div className="mt-1 flex items-center gap-3">
-          <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" />
+          <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           <span className="text-sm text-ink-3">{problem.gyms?.name}</span>
         </div>
       </header>

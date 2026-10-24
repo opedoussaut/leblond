@@ -20,6 +20,10 @@ export default async function ClimbingHome() {
       className="flex min-h-14 items-center justify-center rounded-2xl bg-accent px-6 text-base font-extrabold text-accent-ink hover:opacity-90 sm:inline-flex">
       {fr ? "Commencer une séance de grimpe" : "Start a climbing session"} →
     </Link>
+    <Link href="/session/new?where=past"
+      className="ml-0 flex min-h-12 items-center justify-center rounded-2xl border border-line bg-surface px-6 text-sm font-bold text-accent hover:bg-accent-soft sm:ml-3 sm:inline-flex">
+      ↺ {fr ? "Ajouter une séance déjà faite" : "Add a session you already did"}
+    </Link>
     <div className="grid gap-4 sm:grid-cols-2">
       <AreaCard href="/session" icon={<SessionIcon />}
         title={fr ? "Mes séances" : "My climbing sessions"}

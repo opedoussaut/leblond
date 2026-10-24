@@ -225,6 +225,78 @@ test("A3 — route project: create, log goes, auto-sent, and Patrick reads route
   await expect(page.getByRole("link", { name: /Toit bleu/ })).toContainText("Enchaîné");
 });
 
+test("A4 — past sessions: add after the fact, edit, Font ranges, route colours, delete", async ({ page }) => {
+  test.setTimeout(180_000);
+  await register(page, "Past Climber", "past@leblond.local");
+  const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+
+  // Bouldering session added afterwards, at Arkose: native colour shown with its Font range.
+  await page.goto("/session/new?where=past");
+  await expect(page.getByRole("tab", { name: "Séance passée" })).toHaveAttribute("aria-selected", "true");
+  await chooseGym(page, "Demo Arkose");
+  const pastForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await pastForm.getByLabel("Date").fill(yesterday);
+  await pastForm.getByLabel("Heure de début").fill("18:00");
+  await pastForm.getByLabel("Durée (minutes)").fill("90");
+  await pastForm.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  const editUrl = page.url();
+  await expect(page.getByRole("heading", { level: 1, name: "Modifier la séance" })).toBeVisible();
+  await expect(page.getByText("≈ 6A+–6C+").first()).toBeVisible();
+  await logGrade(page, "Rouge", ["Essai", "Top"]);
+  await logGrade(page, "Bleu", ["Flash"]);
+  await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.locator("dl").getByText("≈ 6A+–6C+")).toBeVisible();
+
+  // Edit date/time from the summary; the session keeps its attempts.
+  await page.getByRole("link", { name: /Modifier/ }).click();
+  await expect(page).toHaveURL(editUrl);
+  const when = page.getByRole("form", { name: "Date, heure et durée" });
+  await when.getByLabel("Heure de début").fill("10:15");
+  await when.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(when.getByRole("status")).toHaveText("Enregistré.");
+  await page.reload();
+  await expect(when.getByLabel("Heure de début")).toHaveValue("10:15");
+  await page.goto("/follow-up");
+  const climbing = page.getByRole("region", { name: "Bloc · 30 derniers jours" });
+  await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
+  await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
+
+  // Route session afterwards at a colour-graded route gym: colour + French equivalent + style.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Climbing District Sèvres-Lecourbe");
+  const routeForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await routeForm.getByLabel("Date").fill(yesterday);
+  await routeForm.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+  const log = page.getByRole("region", { name: /Choisis la cotation/ });
+  await log.getByRole("button", { name: "Bleu", exact: true }).click();
+  await log.getByRole("button", { name: "6a", exact: true }).click();
+  await log.getByRole("button", { name: "Enrouleur" }).click();
+  await log.getByRole("button", { name: /^Enchaînée/ }).click();
+  await expect(log.getByRole("status")).toHaveText("6a · Enchaînée noté.");
+  await log.getByRole("button", { name: "Rouge", exact: true }).click();
+  await log.getByRole("button", { name: "6c", exact: true }).click();
+  await log.getByRole("button", { name: "Tête" }).click();
+  await log.getByRole("button", { name: /^Non sortie/ }).click();
+  await expect(log.getByRole("status")).toHaveText("6c · Non sortie noté.");
+  const list = page.getByRole("region", { name: /Voies de la séance/ });
+  await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("Bleu");
+  // LEBLOND remembers the climber's own equivalent for each colour at this gym.
+  await page.reload();
+  await log.getByRole("button", { name: "Bleu", exact: true }).click();
+  await expect(log.getByRole("button", { name: "6a", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  // Delete the bouldering session.
+  await page.goto(editUrl);
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Supprimer la séance" }).click();
+  await expect(page).toHaveURL(/\/session$/);
+  await expect(page.getByRole("link", { name: /Demo Arkose/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Sèvres-Lecourbe/ })).toBeVisible();
+});
+
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);

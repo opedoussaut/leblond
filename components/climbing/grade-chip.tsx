@@ -1,6 +1,7 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { getGradeDefinition, isMysteryGrade } from "@/lib/grading";
 import { gradeLabel } from "@/lib/grading/labels";
+import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import type { Dictionary } from "@/lib/i18n";
 import { cn } from "@/components/ui/cn";
 
@@ -14,13 +15,17 @@ export function GradeChip({
   grade,
   size = "md",
   className,
+  showFont = false,
 }: {
   t: Dictionary;
   system: GradeSystem;
   grade: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  /** Also show the indicative Font range from the LEBLOND reference table (colour grades only). */
+  showFont?: boolean;
 }) {
+  const range = showFont ? fontRangeFor(system, grade) : null;
   const def = getGradeDefinition(system, grade);
   const label = gradeLabel(t, system, grade);
   const mystery = isMysteryGrade(system, grade);
@@ -45,6 +50,7 @@ export function GradeChip({
       ) : null}
       <span>{label}</span>
       {mystery ? <span className="font-medium normal-case text-ink-3">({t.grades.mystery})</span> : null}
+      {range ? <span className="font-medium normal-case text-ink-3" title={t.grades.rangeHint}>{formatFontRange(range)}</span> : null}
     </span>
   );
 }

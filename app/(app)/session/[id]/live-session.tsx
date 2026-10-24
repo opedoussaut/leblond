@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
 import {
@@ -66,6 +67,7 @@ export function LiveSession({
   initialAttempts,
   projectProblemIds,
   outdoor = null,
+  mode = "live",
 }: {
   sessionId: string;
   userId: string;
@@ -76,6 +78,8 @@ export function LiveSession({
   projectProblemIds: string[];
   /** Set when the session is in a Fontainebleau area from the Boolder catalogue. */
   outdoor?: { area: AreaItem; problems: CatalogueItem[] } | null;
+  /** "edit": filling in or correcting a finished session — no timer, no end button. */
+  mode?: "live" | "edit";
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -271,16 +275,18 @@ export function LiveSession({
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-ok">● {t.session.active}</p>
-        <h1 className="mt-1 text-xl font-black leading-tight">{gym.name}</h1>
+        {mode === "live" ? <>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-ok">● {t.session.active}</p>
+          <h1 className="mt-1 text-xl font-black leading-tight">{gym.name}</h1>
+        </> : <h2 className="text-lg font-black leading-tight">{gym.name}</h2>}
         {outdoor && areaWarning(outdoor.area, locale) ? (
           <p className="mt-1 text-sm font-semibold text-danger">
             ⚠ {t.outdoor.warning} : {areaWarning(outdoor.area, locale)}
           </p>
         ) : null}
-        <p className="font-mono text-3xl font-bold tabular-nums" aria-label={t.session.elapsed}>
+        {mode === "live" ? <p className="font-mono text-3xl font-bold tabular-nums" aria-label={t.session.elapsed}>
           {elapsed(startedAt, now)}
-        </p>
+        </p> : null}
         <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
           {(
             [
@@ -308,7 +314,7 @@ export function LiveSession({
       {current && !adding ? (
         <section aria-label={t.session.current} className="rounded-3xl border-2 border-ink/80 bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
-            <GradeChip t={t} system={gym.system} grade={current.native_grade} size="lg" />
+            <GradeChip t={t} system={gym.system} grade={current.native_grade} size="lg" showFont />
             <AttemptDots attempts={currentSessionAttempts} />
           </div>
           {current.outdoor_problem_id != null ? (
@@ -429,7 +435,7 @@ export function LiveSession({
                     )}
                   >
                     <span className={cn("shrink-0", outdoor ? "w-12" : "w-32")}>
-                      <GradeChip t={t} system={gym.system} grade={p.native_grade} size="sm" />
+                      <GradeChip t={t} system={gym.system} grade={p.native_grade} size="sm" showFont />
                     </span>
                     {outdoor ? (
                       <span className="flex min-w-0 items-center gap-2">
@@ -457,7 +463,7 @@ export function LiveSession({
         <p className="text-sm text-ink-2">{t.session.emptyLive}</p>
       )}
 
-      <div className="pt-4">
+      {mode === "live" ? <div className="pt-4">
         {confirmEnd ? (
           <div className="space-y-2 rounded-2xl border border-line p-4">
             <p className="font-semibold">{t.session.endConfirm}</p>
@@ -475,7 +481,7 @@ export function LiveSession({
             {t.session.end}
           </Button>
         )}
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -554,6 +560,7 @@ function GradeGrid({
               {system === "FONT" ? g.id : (t.grades.colors as Record<string, string>)[g.id]}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-[11px] font-medium">{t.grades.mystery}</span> : null}
+            {fontRangeFor(system, g.id) ? <span className="text-[11px] font-medium opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
           </button>
         ))}
       </div>

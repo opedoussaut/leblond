@@ -9,6 +9,8 @@ import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { startSession } from "@/lib/actions/sessions";
 import { routeDictionary } from "@/lib/i18n/routes";
+import { sessionEditDictionary } from "@/lib/i18n/session-edit";
+import { PastSession } from "./past-session";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export function StartSession({
@@ -20,7 +22,7 @@ export function StartSession({
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
   areas: AreaItem[];
-  initialTab: "gym" | "bleau";
+  initialTab: "gym" | "bleau" | "past";
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -28,7 +30,8 @@ export function StartSession({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState(false);
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState<"gym" | "bleau" | "past">(initialTab);
+  const e = sessionEditDictionary(locale);
 
   const begin = (gymId: string, discipline: "BOULDER" | "ROUTE" = "BOULDER") =>
     start(async () => {
@@ -39,11 +42,12 @@ export function StartSession({
 
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label={t.session.whereToday} className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1">
+      <div role="tablist" aria-label={t.session.whereToday} className="grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
         {(
           [
             ["gym", t.outdoor.tabGym],
             ["bleau", t.outdoor.tabBleau],
+            ["past", e.pastTab],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -62,7 +66,9 @@ export function StartSession({
         ))}
       </div>
       {error ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
-      {tab === "gym" ? (
+      {tab === "past" ? (
+        <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} />
+      ) : tab === "gym" ? (
         <>
           <GymPicker mode="pick" gyms={gyms} favouriteIds={favouriteIds} pending={pending}
             onPick={(gym) => {
