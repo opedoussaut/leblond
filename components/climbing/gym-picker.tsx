@@ -17,6 +17,10 @@ function normalize(value: string) {
   return value.toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/['’\-]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/** Alphabetical, French collation, ignoring case, accents and apostrophes (Block'Out, Vertical'Art). */
+const byGymName = (a: Gym, b: Gym) =>
+  a.name.localeCompare(b.name, "fr", { sensitivity: "base", ignorePunctuation: true });
+
 /** The venue directory shows the disciplines the facility actually offers. */
 export function GymPicker({
   gyms: initialGyms, favouriteIds, mode, selected = [], onPick, onToggle, pending,
@@ -45,12 +49,8 @@ export function GymPicker({
         (discipline === "routes" && g.has_routes) ||
         (discipline === "both" && g.has_bouldering && g.has_routes)) &&
       (!q || normalize(g.name + " " + (g.city ?? "") + " " + t.brands[g.brand]).includes(q))
-    ).sort((a, b) =>
-      Number(selected.includes(b.id)) - Number(selected.includes(a.id)) ||
-      Number(favouriteIds.includes(b.id)) - Number(favouriteIds.includes(a.id)) ||
-      a.name.localeCompare(b.name, "fr")
-    );
-  }, [gyms, query, discipline, brand, selected, favouriteIds, t]);
+    ).sort(byGymName);
+  }, [gyms, query, discipline, brand, t]);
 
   const disciplineLabel = (g: Gym) =>
     g.has_bouldering && g.has_routes ? t.gyms.both : g.has_bouldering ? t.gyms.boulder : t.gyms.routes;
@@ -117,6 +117,7 @@ export function GymPicker({
             {filtered.map((g) => (
               <option key={g.id} value={g.id}>
                 {(selected.includes(g.id) && mode === "multi" ? "✓ " : "") +
+                  (favouriteIds.includes(g.id) ? "★ " : "") +
                   g.name + " · " + (g.city ?? "IDF") + " · " + disciplineLabel(g)}
               </option>
             ))}

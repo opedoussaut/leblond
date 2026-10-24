@@ -52,3 +52,23 @@ describe("route ascents with a native colour", () => {
     expect(logRouteAscentSchema.safeParse({ ...base, style: "AUTOBELAY" }).success).toBe(true);
   });
 });
+
+describe("real gym scales (official sources)", () => {
+  it("Climb Up keeps its own order: white sits above red", async () => {
+    const { listGrades } = await import("@/lib/grading");
+    expect(listGrades("CLIMB_UP_COLOR").map((g) => g.id)).toEqual(["YELLOW", "GREEN", "BLUE", "PURPLE", "RED", "WHITE", "BLACK"]);
+    expect(fontRangeFor("CLIMB_UP_COLOR", "RED")).toBeNull(); // no published equivalence
+  });
+  it("Vertical'Art uses its published Bleau ranges", () => {
+    expect(fontRangeFor("VERTICAL_ART_COLOR", "BLUE")).toMatchObject({ from: "6A", to: "6B", official: true });
+    expect(formatFontRange(fontRangeFor("VERTICAL_ART_COLOR", "PURPLE")!)).toBe("≥ 7B+");
+  });
+  it("Block'Out grades are levels B1 → B14 with estimates from the reference table", async () => {
+    const { isValidGrade, listGrades } = await import("@/lib/grading");
+    expect(listGrades("BLOCKOUT_LEVEL")).toHaveLength(14);
+    expect(isValidGrade("BLOCKOUT_LEVEL", "B14")).toBe(true);
+    expect(isValidGrade("BLOCKOUT_LEVEL", "B15")).toBe(false);
+    expect(formatFontRange(fontRangeFor("BLOCKOUT_LEVEL", "B5")!)).toBe("≈ 6A–6A+");
+    expect(isColourSystem("BLOCKOUT_LEVEL")).toBe(false);
+  });
+});

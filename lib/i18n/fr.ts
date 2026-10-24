@@ -148,6 +148,7 @@ export const fr = {
     goHome: "Aller à l’accueil",
   },
   grades: {
+    rangeOfficial: "Équivalence publiée par la salle",
     rangeHint: "Estimation indicative (table de correspondance LEBLOND)",
     systems: {
       ARKOSE_COLOR: "Couleurs Arkose",
@@ -155,6 +156,9 @@ export const fr = {
       FONT: "Cotation Font (bloc)",
       CUSTOM_COLOR: "Couleurs de la salle",
       UNKNOWN: "Inconnu",
+      BLOCKOUT_LEVEL: "Niveaux Block’Out (B1–B14)",
+      CLIMB_UP_COLOR: "Couleurs Climb Up",
+      VERTICAL_ART_COLOR: "Couleurs Vertical’Art",
     },
     colors: {
       WHITE: "Blanc",

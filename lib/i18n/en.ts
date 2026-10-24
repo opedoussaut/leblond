@@ -144,6 +144,7 @@ export const en: Dictionary = {
     goHome: "Go to home",
   },
   grades: {
+    rangeOfficial: "Equivalence published by the gym",
     rangeHint: "Indicative estimate (LEBLOND reference table)",
     systems: {
       ARKOSE_COLOR: "Arkose colours",
@@ -151,6 +152,9 @@ export const en: Dictionary = {
       FONT: "Font grade (bouldering)",
       CUSTOM_COLOR: "Gym colours",
       UNKNOWN: "Unknown",
+      BLOCKOUT_LEVEL: "Block’Out levels (B1–B14)",
+      CLIMB_UP_COLOR: "Climb Up colours",
+      VERTICAL_ART_COLOR: "Vertical’Art colours",
     },
     colors: {
       WHITE: "White",

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { isColorSystem } from "@/lib/grading/systems";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
@@ -44,6 +45,8 @@ type Attempt = Tables<"attempts">;
 export type LiveProblemItem = {
   id: string;
   native_grade: string;
+  /** The scale the problem was logged with (may predate a change of the gym's scale). */
+  native_grade_system?: GradeSystem;
   wall_angle: WallAngle;
   tags: StyleTag[];
   created_at: string;
@@ -314,7 +317,7 @@ export function LiveSession({
       {current && !adding ? (
         <section aria-label={t.session.current} className="rounded-3xl border-2 border-ink/80 bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
-            <GradeChip t={t} system={gym.system} grade={current.native_grade} size="lg" showFont />
+            <GradeChip t={t} system={current.native_grade_system ?? gym.system} grade={current.native_grade} size="lg" showFont />
             <AttemptDots attempts={currentSessionAttempts} />
           </div>
           {current.outdoor_problem_id != null ? (
@@ -435,7 +438,7 @@ export function LiveSession({
                     )}
                   >
                     <span className={cn("shrink-0", outdoor ? "w-12" : "w-32")}>
-                      <GradeChip t={t} system={gym.system} grade={p.native_grade} size="sm" showFont />
+                      <GradeChip t={t} system={p.native_grade_system ?? gym.system} grade={p.native_grade} size="sm" showFont />
                     </span>
                     {outdoor ? (
                       <span className="flex min-w-0 items-center gap-2">
@@ -543,7 +546,7 @@ function GradeGrid({
           </Button>
         ) : null}
       </div>
-      <div className={cn("grid gap-2", system === "FONT" ? "grid-cols-6" : "grid-cols-3")}>
+      <div className={cn("grid gap-2", isColorSystem(system) ? "grid-cols-3" : system === "FONT" ? "grid-cols-6" : "grid-cols-4")}>
         {grades.map((g) => (
           <button
             key={g.id}
@@ -552,12 +555,12 @@ function GradeGrid({
             onClick={() => onPick(g.id)}
             className={cn(
               "flex flex-col items-center justify-center rounded-2xl border border-line px-1 text-center font-bold disabled:opacity-50",
-              system === "FONT" ? "min-h-12" : "min-h-16",
+              isColorSystem(system) ? "min-h-16" : "min-h-12",
             )}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
-            <span className={cn("text-sm tracking-wide", system !== "FONT" && "uppercase")}>
-              {system === "FONT" ? g.id : (t.grades.colors as Record<string, string>)[g.id]}
+            <span className={cn("text-sm tracking-wide", isColorSystem(system) && "uppercase")}>
+              {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-[11px] font-medium">{t.grades.mystery}</span> : null}
             {fontRangeFor(system, g.id) ? <span className="text-[11px] font-medium opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}

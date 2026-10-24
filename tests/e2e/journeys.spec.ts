@@ -225,7 +225,7 @@ test("A3 — route project: create, log goes, auto-sent, and Patrick reads route
   await expect(page.getByRole("link", { name: /Toit bleu/ })).toContainText("Enchaîné");
 });
 
-test("A4 — past sessions: add after the fact, edit, Font ranges, route colours, delete", async ({ page }) => {
+test("A4 — past sessions: add after the fact, edit, Font ranges, route styles, delete", async ({ page }) => {
   test.setTimeout(180_000);
   await register(page, "Past Climber", "past@leblond.local");
   const yesterday = parisDate(new Date(Date.now() - 86_400_000));
@@ -270,23 +270,20 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route colours
   await routeForm.getByLabel("Date").fill(yesterday);
   await routeForm.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/edit$/);
+  // Climbing District grades its routes in French grades (not colours): no colour picker.
   const log = page.getByRole("region", { name: /Choisis la cotation/ });
-  await log.getByRole("button", { name: "Bleu", exact: true }).click();
+  await expect(log.getByText("Couleur de la salle")).toHaveCount(0);
   await log.getByRole("button", { name: "6a", exact: true }).click();
   await log.getByRole("button", { name: "Enrouleur" }).click();
   await log.getByRole("button", { name: /^Enchaînée/ }).click();
   await expect(log.getByRole("status")).toHaveText("6a · Enchaînée noté.");
-  await log.getByRole("button", { name: "Rouge", exact: true }).click();
   await log.getByRole("button", { name: "6c", exact: true }).click();
-  await log.getByRole("button", { name: "Tête" }).click();
+  await log.getByRole("button", { name: "Moulinette" }).click();
   await log.getByRole("button", { name: /^Non sortie/ }).click();
   await expect(log.getByRole("status")).toHaveText("6c · Non sortie noté.");
   const list = page.getByRole("region", { name: /Voies de la séance/ });
-  await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("Bleu");
-  // LEBLOND remembers the climber's own equivalent for each colour at this gym.
-  await page.reload();
-  await log.getByRole("button", { name: "Bleu", exact: true }).click();
-  await expect(log.getByRole("button", { name: "6a", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("6a");
+  await expect(list.getByRole("listitem").filter({ hasText: "Moulinette" })).toContainText("6c");
 
   // Delete the bouldering session.
   await page.goto(editUrl);
@@ -295,6 +292,35 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route colours
   await expect(page).toHaveURL(/\/session$/);
   await expect(page.getByRole("link", { name: /Demo Arkose/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Sèvres-Lecourbe/ })).toBeVisible();
+});
+
+test("A5 — real gym scales and an alphabetical gym directory", async ({ page }) => {
+  await signInWithPassword(page, "past@leblond.local");
+  await page.goto("/session/new?where=past");
+  const picker = page.getByRole("combobox", { name: "Choisir une salle dans l’annuaire" });
+  const names = (await picker.locator("option").allTextContents()).slice(1).map((n) => n.replace(/^[★✓ ]+/, "").split(" · ")[0]);
+  const sorted = [...names].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base", ignorePunctuation: true }));
+  expect(names).toEqual(sorted);
+
+  const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+  for (const [gym, grade, range] of [["Block'Out Paris", "B5", "≈ 6A–6A+"], ["Vertical'Art Rungis", "Bleu", "≈ 6A–6B"]] as const) {
+    await page.goto("/session/new?where=past");
+    await chooseGym(page, gym);
+    const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+    await form.getByLabel("Date").fill(yesterday);
+    await form.getByRole("button", { name: /Créer la séance/ }).click();
+    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page.getByRole("button", { name: new RegExp("^" + grade) })).toContainText(range);
+  }
+  // Climb Up: its own seven colours, white above red, and no invented Font range.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Climb Up Aubervilliers");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await form.getByLabel("Date").fill(yesterday);
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+  await expect(page.getByRole("button", { name: /^Violet/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
 });
 
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {

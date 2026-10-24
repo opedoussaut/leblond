@@ -40,7 +40,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
     for (const h of history ?? []) if (h.native_grade && !colourEquivalents[h.native_grade]) colourEquivalents[h.native_grade] = h.grade;
     return <RouteSession sessionId={view.session.id} gymId={view.gym.id} gymName={view.gym.name}
       startedAt={view.session.started_at} initialAscents={ascents} defaultGrade={defaultGrade}
-      initialProjects={projects ?? []} gymSystem={view.gym.grading_system}
+      initialProjects={projects ?? []} gymSystem={view.gym.route_grading === "GYM_COLOR" ? view.gym.grading_system : "FONT"}
       colourEquivalents={colourEquivalents} mode={mode} />;
   }
 
@@ -54,6 +54,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
       initialProblems={view.problems.map((p) => ({
         id: p.id,
         native_grade: p.native_grade,
+        native_grade_system: p.native_grade_system,
         wall_angle: p.wall_angle as WallAngle,
         tags: tagSlugs(p) as StyleTag[],
         created_at: p.created_at,

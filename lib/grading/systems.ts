@@ -11,6 +11,9 @@ import type { GradeSystem } from "@/lib/climbing/types";
  * Sources (see docs/grading.md):
  * - Arkose: https://arkose.com/groupe/actus/niveau-escalade-bloc-couleur-tout-comprendre
  * - Climbing District: https://climbingdistrict.com/infos/faq/
+ * - Block'Out: https://blockout.fr/tours/la-grimpe (B1 → B14, "sans se limiter à la seule couleur des prises")
+ * - Climb Up: https://www.climb-up.fr/faq/ (7 niveaux : jaune, vert, bleu, violet, rouge, blanc, noir)
+ * - Vertical'Art: https://www.vertical-art.fr/faq/ (blanc → violet, référence cotation Bleau)
  */
 
 export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
@@ -137,6 +140,36 @@ export const CUSTOM_COLOR_GRADES: GradeDefinition[] = (
   swatchText,
 }));
 
+/** Block'Out: numbered levels B1 (easiest) → B14, shown on a sign at the top of each problem. */
+export const BLOCKOUT_GRADES: GradeDefinition[] = Array.from({ length: 14 }, (_, i) => ({
+  id: "B" + (i + 1),
+  system: "BLOCKOUT_LEVEL" as const,
+  kind: "ORDERED" as const,
+  ordinal: i,
+}));
+
+/** Climb Up: seven bouldering levels in the network's own order (white is above red). */
+export const CLIMB_UP_GRADES: GradeDefinition[] = ordered("CLIMB_UP_COLOR", [
+  ["YELLOW", undefined, "#F2C318", "#1a1400"],
+  ["GREEN", undefined, "#2E9E4F", "#ffffff"],
+  ["BLUE", undefined, "#1F63C6", "#ffffff"],
+  ["PURPLE", undefined, "#6B2FA3", "#ffffff"],
+  ["RED", undefined, "#C8282B", "#ffffff"],
+  ["WHITE", undefined, "#F4F4F4", "#111111"],
+  ["BLACK", undefined, "#151515", "#ffffff"],
+]);
+
+/** Vertical'Art: seven colours, each tied to a published Bleau range (see conversions.ts). */
+export const VERTICAL_ART_GRADES: GradeDefinition[] = ordered("VERTICAL_ART_COLOR", [
+  ["WHITE", undefined, "#F4F4F4", "#111111"],
+  ["ORANGE", undefined, "#EE7D1C", "#1a0d00"],
+  ["GREEN", undefined, "#2E9E4F", "#ffffff"],
+  ["BLUE", undefined, "#1F63C6", "#ffffff"],
+  ["RED", undefined, "#C8282B", "#ffffff"],
+  ["BLACK", undefined, "#151515", "#ffffff"],
+  ["PURPLE", undefined, "#6B2FA3", "#ffffff"],
+]);
+
 export const UNKNOWN_GRADES: GradeDefinition[] = [
   { id: "UNKNOWN", system: "UNKNOWN", kind: "UNORDERED", ordinal: null },
 ];
@@ -147,6 +180,9 @@ export const GRADES_BY_SYSTEM: Record<GradeSystem, GradeDefinition[]> = {
   FONT: FONT_GRADES,
   CUSTOM_COLOR: CUSTOM_COLOR_GRADES,
   UNKNOWN: UNKNOWN_GRADES,
+  BLOCKOUT_LEVEL: BLOCKOUT_GRADES,
+  CLIMB_UP_COLOR: CLIMB_UP_GRADES,
+  VERTICAL_ART_COLOR: VERTICAL_ART_GRADES,
 };
 
 /** Whether grades in this system can be placed on an ordinal scale. */
@@ -155,5 +191,6 @@ export function isOrderedSystem(system: GradeSystem): boolean {
 }
 
 export function isColorSystem(system: GradeSystem): boolean {
-  return system === "ARKOSE_COLOR" || system === "CLIMBING_DISTRICT_COLOR" || system === "CUSTOM_COLOR";
+  return system === "ARKOSE_COLOR" || system === "CLIMBING_DISTRICT_COLOR" || system === "CUSTOM_COLOR"
+    || system === "CLIMB_UP_COLOR" || system === "VERTICAL_ART_COLOR";
 }
