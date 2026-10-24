@@ -225,7 +225,7 @@ test("A3 — route project: create, log goes, auto-sent, and Patrick reads route
   await expect(page.getByRole("link", { name: /Toit bleu/ })).toContainText("Enchaîné");
 });
 
-test("A4 — past sessions: add after the fact, edit, Font ranges, route colours, delete", async ({ page }) => {
+test("A4 — past sessions: add after the fact, edit, Font ranges, route styles, delete", async ({ page }) => {
   test.setTimeout(180_000);
   await register(page, "Past Climber", "past@leblond.local");
   const yesterday = parisDate(new Date(Date.now() - 86_400_000));
@@ -270,23 +270,20 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route colours
   await routeForm.getByLabel("Date").fill(yesterday);
   await routeForm.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/edit$/);
+  // Climbing District grades its routes in French grades (not colours): no colour picker.
   const log = page.getByRole("region", { name: /Choisis la cotation/ });
-  await log.getByRole("button", { name: "Bleu", exact: true }).click();
+  await expect(log.getByText("Couleur de la salle")).toHaveCount(0);
   await log.getByRole("button", { name: "6a", exact: true }).click();
   await log.getByRole("button", { name: "Enrouleur" }).click();
   await log.getByRole("button", { name: /^Enchaînée/ }).click();
   await expect(log.getByRole("status")).toHaveText("6a · Enchaînée noté.");
-  await log.getByRole("button", { name: "Rouge", exact: true }).click();
   await log.getByRole("button", { name: "6c", exact: true }).click();
-  await log.getByRole("button", { name: "Tête" }).click();
+  await log.getByRole("button", { name: "Moulinette" }).click();
   await log.getByRole("button", { name: /^Non sortie/ }).click();
   await expect(log.getByRole("status")).toHaveText("6c · Non sortie noté.");
   const list = page.getByRole("region", { name: /Voies de la séance/ });
-  await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("Bleu");
-  // LEBLOND remembers the climber's own equivalent for each colour at this gym.
-  await page.reload();
-  await log.getByRole("button", { name: "Bleu", exact: true }).click();
-  await expect(log.getByRole("button", { name: "6a", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("6a");
+  await expect(list.getByRole("listitem").filter({ hasText: "Moulinette" })).toContainText("6c");
 
   // Delete the bouldering session.
   await page.goto(editUrl);
