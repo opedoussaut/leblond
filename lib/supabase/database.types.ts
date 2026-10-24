@@ -156,6 +156,8 @@ export type Database = {
           wall_angle: Database["public"]["Enums"]["wall_angle"];
           notes: string;
           route_project_id: string | null;
+          native_grade: string | null;
+          native_grade_system: Database["public"]["Enums"]["grade_system"] | null;
           created_at: string;
           updated_at: string;
         };
@@ -172,6 +174,8 @@ export type Database = {
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
           notes?: string;
           route_project_id?: string | null;
+          native_grade?: string | null;
+          native_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -188,6 +192,8 @@ export type Database = {
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
           notes?: string;
           route_project_id?: string | null;
+          native_grade?: string | null;
+          native_grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1600,6 +1606,10 @@ export type Database = {
         Returns: boolean;
       };
       link_wearable_activity: { Args: { p_activity_id: string; p_session_id: string }; Returns: undefined };
+      reschedule_session: {
+        Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };
+        Returns: Database["public"]["Tables"]["sessions"]["Row"];
+      };
       log_attempt: {
         Args: { p_problem_id: string; p_result: Database["public"]["Enums"]["attempt_result"]; p_session_id: string };
         Returns: {

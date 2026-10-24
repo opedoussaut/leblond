@@ -8,6 +8,7 @@ import { ATTEMPT_RESULTS, isSend, STYLE_TAGS, WALL_ANGLES, type GradeSystem } fr
 import { isValidGrade } from "@/lib/grading";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/common";
+import { zonedToUtc } from "@/lib/time";
 
 const id = z.guid();
 
@@ -39,6 +40,64 @@ export async function startSession(
   await viewer.supabase.from("favourite_gyms").upsert({ user_id: viewer.userId, gym_id: gymId });
   revalidatePath("/", "layout");
   return { ok: true, data: { sessionId: data.id } };
+}
+
+const pastSessionSchema = z.object({
+  gymId: id,
+  discipline: z.enum(["BOULDER", "ROUTE"]),
+  date: z.iso.date(),
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  minutes: z.number().int().min(10).max(720),
+}).strict();
+
+/**
+ * Records a session that already happened (climbed without the app open).
+ * It is created finished, at the local Paris date/time given, and then filled
+ * in from the edit page; its attempts are dated inside it.
+ */
+export async function createPastSession(input: unknown): Promise<ActionResult<{ sessionId: string }>> {
+  const viewer = await requireViewer();
+  const parsed = pastSessionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const startedAt = zonedToUtc(v.date, v.time);
+  if (Number.isNaN(startedAt.getTime()) || startedAt.getTime() > Date.now() || startedAt.getFullYear() < 2000) {
+    return { ok: false, error: "invalidDate" };
+  }
+  const { data: gym } = await viewer.supabase.from("gyms").select("has_bouldering, has_routes").eq("id", v.gymId).single();
+  if (!gym || (v.discipline === "BOULDER" ? !gym.has_bouldering : !gym.has_routes)) return { ok: false, error: "invalid" };
+  const endedAt = new Date(Math.min(startedAt.getTime() + v.minutes * 60_000, Date.now()));
+  const { data, error } = await viewer.supabase.from("sessions").insert({
+    gym_id: v.gymId, user_id: viewer.userId, source: "MANUAL", discipline: v.discipline,
+    started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(),
+    duration_minutes: Math.max(1, Math.round((endedAt.getTime() - startedAt.getTime()) / 60_000)),
+  }).select("id").single();
+  if (error || !data) return { ok: false, error: "unknownError" };
+  revalidatePath("/", "layout");
+  return { ok: true, data: { sessionId: data.id } };
+}
+
+const rescheduleSchema = z.object({
+  sessionId: id,
+  date: z.iso.date(),
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  minutes: z.number().int().min(1).max(1440),
+}).strict();
+
+/** Change the date, start time or duration of a finished session; its attempts move with it. */
+export async function rescheduleSession(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = rescheduleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const startedAt = zonedToUtc(v.date, v.time);
+  if (Number.isNaN(startedAt.getTime()) || startedAt.getTime() > Date.now()) return { ok: false, error: "invalidDate" };
+  const { error } = await viewer.supabase.rpc("reschedule_session", {
+    p_session_id: v.sessionId, p_started_at: startedAt.toISOString(), p_duration_minutes: v.minutes,
+  });
+  if (error) return { ok: false, error: error.message === "INVALID_START" ? "invalidDate" : "unknownError" };
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function endSession(sessionId: string): Promise<ActionResult> {

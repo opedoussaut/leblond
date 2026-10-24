@@ -25,7 +25,8 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   ]);
   const { where } = await searchParams;
   const initialTab =
-    where === "bleau" || (where !== "gym" && last?.gyms?.external_provider === "BOOLDER") ? "bleau" : "gym";
+    where === "past" ? "past"
+    : where === "bleau" || (where !== "gym" && last?.gyms?.external_provider === "BOOLDER") ? "bleau" : "gym";
   return (
     <div>
       <PageHeader title={t.session.newTitle} subtitle={t.session.whereToday} />

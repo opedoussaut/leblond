@@ -1,10 +1,13 @@
+import Link from "next/link";
+import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { summarizeRoutes, type RouteAscentFact } from "@/lib/analytics/routes";
 import type { RouteAscentRow } from "@/lib/actions/routes";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatDateTime, formatDuration, formatRatio } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
+import { getDictionary, type Locale } from "@/lib/i18n";
+import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { SessionDetailsForm } from "./details-form";
 
@@ -18,10 +21,16 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
   }));
   const s = summarizeRoutes(facts);
   return <div className="space-y-5">
-    <header>
-      <p className="leblond-eyebrow text-accent">{r.summaryTitle}</p>
-      <h1 className="mt-1 text-2xl font-black tracking-tight">{gymName}</h1>
-      <p className="mt-1 text-sm text-ink-2">{formatDateTime(session.started_at, locale)} · {formatDuration(session.duration_minutes)}</p>
+    <header className="flex items-start justify-between gap-3">
+      <div>
+        <p className="leblond-eyebrow text-accent">{r.summaryTitle}</p>
+        <h1 className="mt-1 text-2xl font-black tracking-tight">{gymName}</h1>
+        <p className="mt-1 text-sm text-ink-2">{formatDateTime(session.started_at, locale)} · {formatDuration(session.duration_minutes)}</p>
+      </div>
+      <Link href={`/session/${session.id}/edit`}
+        className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-surface px-4 text-sm font-bold text-accent">
+        ✎ {sessionEditDictionary(locale).edit}
+      </Link>
     </header>
     <Card>
       <div className="grid grid-cols-4 gap-3">
@@ -44,7 +53,8 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
         <ul className="space-y-2">
           {[...ascents].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((a) =>
             <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm">
-              <span><strong className="text-base tabular-nums">{a.grade}</strong> <span className="font-semibold">{r.results[a.result]}</span></span>
+              <span>{a.native_grade && a.native_grade_system ? <GradeChip t={getDictionary(locale)} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
+                <strong className="text-base tabular-nums">{a.grade}</strong> <span className="font-semibold">{r.results[a.result]}</span></span>
               <span className="text-xs text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
             </li>)}
         </ul>}

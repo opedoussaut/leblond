@@ -5,11 +5,14 @@ import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { completesProject, isFirstGoOnly, logRouteAscentSchema, routeKey } from "@/lib/climbing/routes";
 import type { Tables } from "@/lib/supabase/database.types";
+import type { GradeSystem } from "@/lib/climbing/types";
+import { isValidGrade } from "@/lib/grading";
+import { isColourSystem } from "@/lib/grading/conversions";
 import type { ActionResult } from "@/lib/validation/common";
 
 export type RouteAscentRow = Pick<Tables<"route_ascents">,
-  "id" | "session_id" | "client_id" | "route_name" | "grade" | "style" | "result" | "falls" | "wall_angle" | "created_at" | "route_project_id">;
-const COLUMNS = "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id";
+  "id" | "session_id" | "client_id" | "route_name" | "grade" | "style" | "result" | "falls" | "wall_angle" | "created_at" | "route_project_id" | "native_grade" | "native_grade_system">;
+const COLUMNS = "id,session_id,client_id,route_name,grade,style,result,falls,wall_angle,created_at,route_project_id,native_grade,native_grade_system";
 
 /**
  * Logs one climb of a route in a live ROUTE session. Idempotent per client_id:
@@ -24,10 +27,22 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
   const { data: existing } = await viewer.supabase.from("route_ascents").select(COLUMNS).eq("client_id", v.clientId).maybeSingle();
   if (existing) return { ok: true, data: existing as RouteAscentRow };
 
-  const { data: session } = await viewer.supabase.from("sessions").select("id, gym_id, discipline, ended_at")
+  const { data: session } = await viewer.supabase.from("sessions").select("id, gym_id, discipline, started_at, ended_at, gyms(grading_system)")
     .eq("id", v.sessionId).maybeSingle();
   if (!session || session.discipline !== "ROUTE") return { ok: false, error: "notFound" };
-  if (session.ended_at) return { ok: false, error: "invalid" };
+
+  // Native colour: only at gyms that grade by colour, and only one of that gym's colours.
+  const gymSystem = (session.gyms?.grading_system ?? "UNKNOWN") as GradeSystem;
+  const nativeGrade = v.nativeGrade ?? null;
+  if (nativeGrade && (!isColourSystem(gymSystem) || !isValidGrade(gymSystem, nativeGrade))) return { ok: false, error: "invalidGrade" };
+
+  // A finished session (added afterwards or being edited): date the ascent inside it.
+  let createdAt: string | undefined;
+  if (session.ended_at) {
+    const { count } = await viewer.supabase.from("route_ascents").select("id", { count: "exact", head: true }).eq("session_id", session.id);
+    const at = Math.min(new Date(session.ended_at).getTime(), new Date(session.started_at).getTime() + ((count ?? 0) + 1) * 1000);
+    createdAt = new Date(at).toISOString();
+  }
 
   // A project chosen in the logger, or an active project at this venue with the same name.
   let name = v.routeName.trim();
@@ -61,6 +76,8 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
     user_id: viewer.userId, session_id: v.sessionId, client_id: v.clientId, route_name: name || null,
     grade: v.grade, style: v.style, result: v.result, falls: v.result === "ATTEMPT" || v.result === "TOP_WITH_REST" ? v.falls : 0,
     wall_angle: v.wallAngle, route_project_id: project?.id ?? null,
+    native_grade: nativeGrade, native_grade_system: nativeGrade ? gymSystem : null,
+    ...(createdAt ? { created_at: createdAt } : {}),
   }).select(COLUMNS).single();
   if (error?.code === "23505") {
     const { data: again } = await viewer.supabase.from("route_ascents").select(COLUMNS).eq("client_id", v.clientId).maybeSingle();

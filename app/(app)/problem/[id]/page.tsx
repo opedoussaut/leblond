@@ -55,7 +55,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
         </p>
         <h1 className="text-2xl font-black">{problem.name || t.problem.unnamed}</h1>
         <div className="flex flex-wrap items-center gap-3">
-          <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" />
+          <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           {meaning ? <span className="text-sm text-ink-3">{meaning}</span> : null}
         </div>
         <p className="text-xs text-ink-3">{t.grades.nativeNote} · {t.grades.systems[problem.native_grade_system]}</p>

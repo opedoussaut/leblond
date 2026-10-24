@@ -148,6 +148,7 @@ export const fr = {
     goHome: "Aller à l’accueil",
   },
   grades: {
+    rangeHint: "Estimation indicative (table de correspondance LEBLOND)",
     systems: {
       ARKOSE_COLOR: "Couleurs Arkose",
       CLIMBING_DISTRICT_COLOR: "Couleurs Climbing District",

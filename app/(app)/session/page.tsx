@@ -3,6 +3,7 @@ import { LinkButton } from "@/components/ui/button";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
 import { countActivity, summarizeRoutes } from "@/lib/analytics";
 import { routeDictionary } from "@/lib/i18n/routes";
+import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { requireViewer } from "@/lib/auth/viewer";
 import { toAttemptFact } from "@/lib/data/climbing";
 import { formatDateTime, formatDuration } from "@/lib/format";
@@ -47,6 +48,9 @@ export default async function SessionsPage() {
           + {t.session.start}
         </LinkButton>
       )}
+      <LinkButton href="/session/new?where=past" variant="secondary" size="lg" className="w-full">
+        ↺ {sessionEditDictionary(locale).pastTitle}
+      </LinkButton>
 
       <section className="space-y-3">
         <SectionTitle>{t.session.history}</SectionTitle>

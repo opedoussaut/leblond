@@ -11,6 +11,7 @@ import { tagSlugs } from "@/lib/data/session";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
+import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import type { StyleTag } from "@/lib/climbing/types";
 import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
@@ -23,7 +24,7 @@ function HighestRow({ t, items }: { t: Dictionary; items: HighestGrade[] }) {
     <span className="flex flex-col items-end gap-1">
       {items.map((h) => (
         <span key={h.system} className="flex items-center gap-2">
-          <GradeChip t={t} system={h.system} grade={h.grade} />
+          <GradeChip t={t} system={h.system} grade={h.grade} showFont={!h.normalized} />
           {h.normalized && h.system !== "FONT" ? (
             <span className="text-sm text-ink-3">/ {fmt(t.grades.estimatedFont, { grade: h.normalized.grade })}</span>
           ) : null}
@@ -71,12 +72,18 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
 
   return (
     <div className="space-y-5">
-      <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{t.session.summaryTitle}</p>
-        <h1 className="mt-1 text-xl font-black">{view.gym.name}</h1>
-        <p className="text-sm text-ink-3">
-          {formatDateTime(view.session.started_at, locale)} · {t.session.source}: {t.session.sourceManual}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{t.session.summaryTitle}</p>
+          <h1 className="mt-1 text-xl font-black">{view.gym.name}</h1>
+          <p className="text-sm text-ink-3">
+            {formatDateTime(view.session.started_at, locale)} · {t.session.source}: {t.session.sourceManual}
+          </p>
+        </div>
+        <Link href={`/session/${view.session.id}/edit`}
+          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-surface px-4 text-sm font-bold text-accent">
+          ✎ {sessionEditDictionary(locale).edit}
+        </Link>
       </header>
 
       <Card>
@@ -124,7 +131,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
                 return (
                   <li key={p.id}>
                     <Link href={`/problem/${p.id}`} className="flex min-h-12 items-center gap-3 px-4 hover:bg-surface-2">
-                      <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" />
+                      <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" showFont />
                       {p.name ? <span className="min-w-0 truncate text-sm font-semibold">{p.name}</span> : null}
                       <span className="shrink-0 text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
                       <span className="ml-auto text-xs font-bold uppercase">{best ? t.results[best] : ""}</span>

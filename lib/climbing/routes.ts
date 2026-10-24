@@ -33,6 +33,8 @@ export const logRouteAscentSchema = z.object({
   routeName: z.string().trim().max(120),
   wallAngle: z.enum(WALL_ANGLES),
   routeProjectId: z.guid().nullable().optional(),
+  /** The gym's own colour when it grades routes by colour; `grade` is then the climber's French equivalent. */
+  nativeGrade: z.string().min(1).max(20).nullable().optional(),
 }).strict().refine((v) => !isClean(v.result) || !v.falls, "A clean ascent has no falls");
 export type LogRouteAscentInput = z.infer<typeof logRouteAscentSchema>;
 

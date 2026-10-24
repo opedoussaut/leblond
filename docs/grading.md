@@ -33,3 +33,18 @@ A grade is always rendered with its **name**; the swatch is decorative (WCAG: ne
 Since 3 October 2026 the Font scale uses Fontainebleau's lettered grades below 6A (`1a … 5c`), the notation Boolder publishes for every Fontainebleau problem, so outdoor problems are stored exactly as graded. From 6A the usual upper-case notation (`6A`, `6A+` …) is kept. Each entry is one grade step, so trends and "next grade" work across the whole scale.
 
 Indoor tickets that only say "4" or "5+" are logged with the nearest letter. Rows saved before this change were moved by migration `20261003000000_fontainebleau_boolder.sql` to the lowest matching letter: `3 → 3a`, `4 → 4a`, `4+ → 4c`, `5 → 5a`, `5+ → 5c` (a convention, chosen because the old notation does not say which letter was meant).
+
+## Indicative Font ranges for gym colours
+
+Next to each Arkose or Climbing District colour, LEBLOND shows an indicative Fontainebleau range
+(e.g. Arkose red "≈ 6A+–6C+"). The ranges come from the LEBLOND reference table
+[`grade-reference.csv`](./grade-reference.csv) and are implemented in `lib/grading/conversions.ts`.
+They are labelled as estimates, never replace the native grade, and do not feed the normalised analytics
+(those still use per-problem estimates with their own confidence). Colours absent from the table
+(Climbing District white/orange, pink mystery, independent gyms' custom colours) show no range.
+
+## Routes at colour-graded gyms
+
+When a route gym grades by colour, an ascent stores the native colour (`route_ascents.native_grade`) **and**
+the French sport grade the climber considers equivalent (`route_ascents.grade`). LEBLOND suggests the French
+grade the climber last used for that colour at that gym; it never invents a colour-to-French mapping.

@@ -12,15 +12,27 @@ import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { fmt } from "@/lib/i18n";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { formatClock } from "@/lib/training/sessions";
+import { GradeChip } from "@/components/climbing/grade-chip";
+import type { GradeSystem } from "@/lib/climbing/types";
+import { listGrades } from "@/lib/grading";
+import { isColourSystem } from "@/lib/grading/conversions";
+import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 
 type Grade = (typeof FRENCH_ROUTE_GRADES)[number];
 
 /** Live logger for a ROUTE session: grade + style, then one tap on the result. */
 export type ActiveRouteProject = { id: string; route_name: string; grade: string; goal_style: RouteStyle };
 
-export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAscents, defaultGrade, initialProjects }: {
+export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAscents, defaultGrade, initialProjects,
+  gymSystem = "FONT", colourEquivalents = {}, mode = "live" }: {
   sessionId: string; gymId: string; gymName: string; startedAt: string; initialAscents: RouteAscentRow[];
   defaultGrade: Grade; initialProjects: ActiveRouteProject[];
+  /** The gym's grading system; colour systems log the colour plus a French equivalent. */
+  gymSystem?: GradeSystem;
+  /** The climber's last French grade for each colour at this gym. */
+  colourEquivalents?: Record<string, string>;
+  /** "edit": filling in or correcting a finished session — no timer, no end button. */
+  mode?: "live" | "edit";
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -35,6 +47,15 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [pending, start] = useTransition();
+  const e = sessionEditDictionary(locale);
+  const colours = isColourSystem(gymSystem) ? listGrades(gymSystem) : [];
+  const [colour, setColour] = useState<string | null>(null);
+  const [equivalents, setEquivalents] = useState(colourEquivalents);
+  function chooseColour(c: string) {
+    setColour(c);
+    const known = equivalents[c];
+    if (known && (FRENCH_ROUTE_GRADES as readonly string[]).includes(known)) setGrade(known as Grade);
+  }
 
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -52,7 +73,9 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
     const input = {
       sessionId, clientId, grade, style, result, falls: isClean(result) ? 0 : falls,
       routeName: name, wallAngle: "UNKNOWN" as const, routeProjectId: project?.id ?? null,
+      nativeGrade: colours.length ? colour : null,
     };
+    if (colours.length && !colour) { setNotice({ tone: "error", text: e.nativeColour + " ?" }); return; }
     setNotice(null);
     start(async () => {
       const res = await logRouteAscent(input);
@@ -61,6 +84,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         return;
       }
       setAscents((list) => [res.data!, ...list.filter((a) => a.id !== res.data!.id)]);
+      if (colour) setEquivalents((m) => ({ ...m, [colour]: grade }));
       if (res.data!.projectSent && res.data!.route_project_id) {
         const sent = projects.find((p) => p.id === res.data!.route_project_id);
         setProjects((list) => list.filter((p) => p.id !== res.data!.route_project_id));
@@ -119,14 +143,14 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const elapsed = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
 
   return <div className="space-y-5 pb-6">
-    <header className="flex items-start justify-between gap-3">
+    {mode === "live" ? <header className="flex items-start justify-between gap-3">
       <div>
         <p className="leblond-eyebrow text-accent">● {r.routeSession}</p>
         <h1 className="mt-1 text-2xl font-black tracking-tight">{gymName}</h1>
       </div>
       <p className="text-right"><span className="block text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.session.elapsed}</span>
         <span className="text-2xl font-black tabular-nums" role="timer">{formatClock(elapsed)}</span></p>
-    </header>
+    </header> : <h2 className="text-lg font-black">{gymName} · {r.routeSession}</h2>}
 
     <section aria-labelledby="route-log" className="leblond-premium-surface space-y-5 p-4 sm:p-6">
       <h2 id="route-log" className="sr-only">{r.logHint}</h2>
@@ -142,8 +166,20 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
           </button>)}
         </div>
       </fieldset> : null}
+      {colours.length ? <fieldset>
+        <legend className="text-sm font-bold">{e.nativeColour}</legend>
+        <div className="mt-2 grid grid-cols-4 gap-2">
+          {colours.map((g) => <button key={g.id} type="button" aria-pressed={colour === g.id} onClick={() => chooseColour(g.id)}
+            style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
+            className={cn("min-h-12 rounded-xl border px-1 text-xs font-extrabold uppercase",
+              colour === g.id ? "ring-4 ring-accent ring-offset-2" : "border-line")}>
+            {(t.grades.colors as Record<string, string>)[g.id] ?? g.id}
+          </button>)}
+        </div>
+      </fieldset> : null}
       <fieldset>
-        <legend className="text-sm font-bold">{r.grade}</legend>
+        <legend className="text-sm font-bold">{colours.length ? e.frenchEquivalent : r.grade}</legend>
+        {colours.length ? <p className="mt-1 text-xs text-ink-3">{e.frenchHint}</p> : null}
         <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-9">
           {quickGrades.map((g) => <button key={g} type="button" aria-pressed={grade === g} onClick={() => setGrade(g)}
             className={cn("min-h-12 rounded-xl border text-base font-extrabold tabular-nums",
@@ -197,6 +233,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         <ul className="space-y-2">
           {ascents.map((a) => <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
             <span className="min-w-0">
+              {a.native_grade && a.native_grade_system ? <GradeChip t={t} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
               <strong className="text-lg tabular-nums">{a.grade}</strong>
               <span className="ml-2 text-sm font-semibold">{r.results[a.result]}</span>
               <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}{a.route_project_id ? ` · ${r.inProject}` : ""}</span>
@@ -208,7 +245,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         </ul>}
     </section>
 
-    <button type="button" disabled={pending} onClick={finish}
-      className="min-h-14 w-full rounded-2xl bg-ink text-base font-black text-surface disabled:opacity-60">{r.end}</button>
+    {mode === "live" ? <button type="button" disabled={pending} onClick={finish}
+      className="min-h-14 w-full rounded-2xl bg-ink text-base font-black text-surface disabled:opacity-60">{r.end}</button> : null}
   </div>;
 }

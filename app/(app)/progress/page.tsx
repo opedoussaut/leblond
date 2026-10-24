@@ -103,7 +103,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 <li key={w.system}>
                   <p className="text-sm text-ink-2">{t.grades.systems[w.system as GradeSystem]}</p>
                   <p className="font-bold">
-                    {w.level ? <GradeChip t={t} system={w.system as GradeSystem} grade={w.level} /> : t.home.notEnough}
+                    {w.level ? <GradeChip t={t} system={w.system as GradeSystem} grade={w.level} showFont /> : t.home.notEnough}
                   </p>
                   <p className="text-xs text-ink-3">
                     {w.levels.map((l) => fmt(t.progress.levelRow, { grade: l.grade, sends: l.sends, problems: l.problems })).join(" · ")}

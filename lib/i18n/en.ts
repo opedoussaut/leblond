@@ -144,6 +144,7 @@ export const en: Dictionary = {
     goHome: "Go to home",
   },
   grades: {
+    rangeHint: "Indicative estimate (LEBLOND reference table)",
     systems: {
       ARKOSE_COLOR: "Arkose colours",
       CLIMBING_DISTRICT_COLOR: "Climbing District colours",
