@@ -30,15 +30,23 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
   return <section aria-labelledby="summary-title" className="space-y-5">
     <h2 id="summary-title" className="text-xl font-black">{t.summary}</h2>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <Tile label={t.duration} value={`${formatDuration(s.actualMinutes)}${s.plannedMinutes ? " / " + formatDuration(s.plannedMinutes) : ""}`} />
-      <Tile label={t.exercisesDone} value={`${s.done + s.modified} / ${s.exercises}`} />
-      <Tile label={t.setsDone} value={`${s.completedSets} / ${s.plannedSets}`} />
+      <Tile label={t.duration} value={exercises.length
+        ? `${formatDuration(s.actualMinutes)}${s.plannedMinutes ? " / " + formatDuration(s.plannedMinutes) : ""}`
+        : formatDuration(s.actualMinutes)} />
+      {exercises.length ? <>
+        <Tile label={t.exercisesDone} value={`${s.done + s.modified} / ${s.exercises}`} />
+        <Tile label={t.setsDone} value={`${s.completedSets} / ${s.plannedSets}`} />
+      </> : null}
       <Tile label={t.rpe.split(" (")[0]} value={session.rpe ? `${session.rpe} / 10` : "—"} />
     </div>
     {session.pain && session.pain > 0 ? <p role="note" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
       <strong>{t.painReported} : {session.pain}/10.</strong> {session.painNotes}
     </p> : null}
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+    {session.notes ? <section aria-label={t.descriptionTitle} className="rounded-2xl border border-line bg-surface p-4">
+      <h3 className="text-sm font-extrabold">{t.descriptionTitle}</h3>
+      <p className="mt-1 whitespace-pre-line text-sm text-ink-2">{session.notes}</p>
+    </section> : null}
+    {exercises.length ? <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
       <table className="w-full min-w-[520px] text-left text-sm">
         <caption className="sr-only">{t.plannedVsActual}</caption>
         <thead className="text-xs uppercase tracking-wider text-ink-3">
@@ -53,8 +61,7 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
           </tr>)}
         </tbody>
       </table>
-    </div>
-    {session.notes ? <p className="rounded-xl border border-line bg-surface p-4 text-sm text-ink-2">{session.notes}</p> : null}
+    </div> : null}
     {session.climbingSessionId ? <Link className="inline-block text-sm font-bold text-accent underline underline-offset-4" href={"/session/" + session.climbingSessionId}>{t.linkClimb.split(" (")[0]} ↗</Link> : null}
   </section>;
 }

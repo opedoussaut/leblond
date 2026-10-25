@@ -53,6 +53,29 @@ export const createTrainingSessionSchema = z.discriminatedUnion("source", [
 ]);
 export type CreateTrainingSessionInput = z.infer<typeof createTrainingSessionSchema>;
 
+/** A training session already done, entered after the fact: type, when, total time, free description. */
+export const pastTrainingSchema = z.object({
+  methodId: optionalMethod,
+  title: z.string().trim().max(120),
+  date: localDate,
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  minutes: z.number().int().min(5).max(480),
+  rpe: z.number().int().min(1).max(10).nullable(),
+  notes: z.string().trim().max(2000),
+}).strict();
+
+/** Editable fields of a session that is not running. */
+export const editTrainingSchema = z.object({
+  sessionId: z.guid(),
+  title: z.string().trim().min(1).max(120),
+  date: localDate,
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  minutes: z.number().int().min(5).max(480),
+  rpe: z.number().int().min(1).max(10).nullable(),
+  pain: z.number().int().min(0).max(10).nullable(),
+  notes: z.string().trim().max(2000),
+}).strict();
+
 export const saveSetSchema = z.object({
   exerciseId: z.guid(),
   setIndex: z.number().int().min(1).max(50),

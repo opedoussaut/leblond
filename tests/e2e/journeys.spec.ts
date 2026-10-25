@@ -393,6 +393,45 @@ test("A6 — faster logging: session name, several problems/routes, tries, comme
   await expect(log.getByRole("button", { name: /Le toit · 7a/ })).toBeVisible();
 });
 
+test("A7 — training: record a strength session after the fact, edit it, delete it", async ({ page }) => {
+  await signInWithPassword(page, "past@leblond.local");
+  const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+  await page.goto("/train/sessions");
+  await page.getByText("+ Enregistrer une séance déjà faite").click();
+  const form = page.getByRole("form", { name: "Enregistrer une séance déjà faite" });
+  await expect(form.getByLabel("Type de séance")).toHaveValue("strength-conditioning");
+  await form.getByLabel("Titre (facultatif)").fill("Renforcement");
+  await form.getByLabel("Date").fill(yesterday);
+  await form.getByLabel("Temps total (minutes)").fill("75");
+  await form.getByLabel(/Effort perçu/).fill("7");
+  await form.getByLabel(/Description/).fill("3×8 tractions lestées +5 kg, gainage 3×30 s");
+  await form.getByRole("button", { name: "Enregistrer la séance" }).click();
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Renforcement" })).toBeVisible();
+  await expect(page.getByText("1h15")).toBeVisible();
+  await expect(page.getByText("3×8 tractions lestées +5 kg, gainage 3×30 s")).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+
+  // Edit: longer, with pain reported.
+  await page.getByRole("button", { name: "✎ Modifier" }).click();
+  const edit = page.getByRole("form", { name: "Modifier la séance" });
+  await edit.getByLabel("Temps total (minutes)").fill("90");
+  await edit.getByLabel(/Douleur/).fill("5");
+  await edit.getByLabel(/Description/).fill("Tractions + gainage. Point de tension épaule gauche.");
+  await edit.getByRole("button", { name: "Enregistrer les modifications" }).click();
+  await expect(page.getByText("1h30")).toBeVisible();
+  await expect(page.getByText(/Douleur signalée : 5\/10/)).toBeVisible();
+  await page.goto("/follow-up/training");
+  await expect(page.getByRole("link", { name: /Renforcement/ })).toContainText("90 min");
+
+  // Delete.
+  await page.getByRole("link", { name: /Renforcement/ }).click();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Supprimer", exact: true }).click();
+  await expect(page).toHaveURL(/\/train\/sessions$/);
+  await expect(page.getByRole("link", { name: /Renforcement/ })).toHaveCount(0);
+});
+
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);

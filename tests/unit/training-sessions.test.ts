@@ -112,3 +112,17 @@ describe("templates and validation", () => {
     expect(saveSetSchema.safeParse({ exerciseId: "6f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", setIndex: 0, reps: 6, seconds: null, loadKg: null, completed: true, notes: "" }).success).toBe(false);
   });
 });
+
+describe("free-form and editable training sessions", () => {
+  it("accepts a past session with type, total time and description only", async () => {
+    const { pastTrainingSchema, editTrainingSchema } = await import("@/lib/training/sessions");
+    expect(pastTrainingSchema.safeParse({ methodId: "strength-conditioning", title: "", date: "2026-10-24", time: "18:00",
+      minutes: 75, rpe: 7, notes: "3×8 tractions lestées" }).success).toBe(true);
+    expect(pastTrainingSchema.safeParse({ methodId: null, title: "Mobilité", date: "2026-10-24", time: "18:00",
+      minutes: 30, rpe: null, notes: "" }).success).toBe(true);
+    expect(pastTrainingSchema.safeParse({ methodId: null, title: "", date: "2026-10-24", time: "18:00",
+      minutes: 0, rpe: null, notes: "" }).success).toBe(false);
+    expect(editTrainingSchema.safeParse({ sessionId: "6f1c1d1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", title: "Renfo", date: "2026-10-24",
+      time: "07:30", minutes: 60, rpe: 6, pain: 5, notes: "épaule gauche" }).success).toBe(true);
+  });
+});

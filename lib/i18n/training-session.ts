@@ -51,6 +51,12 @@ const fr = {
   startPlanSession: "Démarrer", error: "Impossible d’enregistrer. Réessaie.",
   prepare: "Préparer la séance", openSession: "Ouvrir la séance",
   safetyNote: "Charges indicatives et prudentes, à adapter. Arrête en cas de douleur.",
+  pastTitle: "Enregistrer une séance déjà faite",
+  pastHint: "Renforcement, poutre, mobilité… Indique le type, le temps total et décris librement ce que tu as fait.",
+  type: "Type de séance", otherType: "Autre (libre)", totalMinutes: "Temps total (minutes)",
+  description: "Description (exercices, charges, sensations…)", descriptionPlaceholder: "ex. 3×8 tractions lestées +5 kg, 3×30 s gainage, mobilité épaules 10 min",
+  record: "Enregistrer la séance", edit: "✎ Modifier", editTitle: "Modifier la séance", saveChanges: "Enregistrer les modifications",
+  descriptionTitle: "Description", rpeShort: "Effort perçu (1–10, facultatif)", painShort: "Douleur (0–10, facultatif)",
 };
 type Dict = typeof fr;
 
@@ -104,6 +110,12 @@ const en: Dict = {
   weekOf: "Week of", scheduledCount: "{n} session(s) added to your calendar.",
   startPlanSession: "Start", error: "Could not save. Please try again.",
   prepare: "Prepare session", openSession: "Open session",
+  pastTitle: "Record a session you already did",
+  pastHint: "Strength, fingerboard, mobility… Pick the type, the total time and describe what you did.",
+  type: "Session type", otherType: "Other (free)", totalMinutes: "Total time (minutes)",
+  description: "Description (exercises, loads, how it felt…)", descriptionPlaceholder: "e.g. 3×8 weighted pull-ups +5 kg, 3×30 s hollow hold, 10 min shoulder mobility",
+  record: "Save session", edit: "✎ Edit", editTitle: "Edit session", saveChanges: "Save changes",
+  descriptionTitle: "Description", rpeShort: "Perceived effort (1–10, optional)", painShort: "Pain (0–10, optional)",
   safetyNote: "Conservative, indicative loads — adapt them. Stop if anything hurts.",
 };
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QuickSessionForm } from "@/components/training/session-actions";
+import { PastTrainingForm } from "@/components/training/training-free-forms";
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
@@ -55,6 +56,11 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
         <h2 id="new-heading" className="text-xl font-extrabold">{t.newSession}</h2>
         <p className="mt-1 text-sm text-ink-2">{t.newSessionHint}</p>
         <div className="mt-4"><QuickSessionForm locale={locale} today={today} presetMethod={presetMethod} /></div>
+        <details className="mt-6 border-t border-line pt-4">
+          <summary className="min-h-10 cursor-pointer text-base font-extrabold text-accent">+ {t.pastTitle}</summary>
+          <p className="mt-1 text-sm text-ink-2">{t.pastHint}</p>
+          <div className="mt-4"><PastTrainingForm locale={locale} today={today} /></div>
+        </details>
       </section>
       <div className="space-y-6">
         <section aria-labelledby="upcoming-heading" className="space-y-3">
