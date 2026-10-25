@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
-  changeTrainingStatus, createTrainingSession, deleteTrainingSession, schedulePlanWeek, startTrainingSession,
+  changeTrainingStatus, createTrainingSession, schedulePlanWeek, startTrainingSession,
 } from "@/lib/actions/training-sessions";
 import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
@@ -55,11 +55,7 @@ export function SessionLifecycleActions({ locale, id, status }: { locale: Locale
         <button type="button" disabled={pending} onClick={() => run(() => changeTrainingStatus(id, "PLANNED"))}
           className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-sm font-bold">{t.reschedule}</button>
       ) : null}
-      {status !== "IN_PROGRESS" ? (
-        <button type="button" disabled={pending}
-          onClick={() => { if (window.confirm(t.deleteConfirm)) run(() => deleteTrainingSession(id), () => router.push("/train/sessions")); }}
-          className="min-h-12 rounded-2xl px-4 text-sm font-bold text-danger underline underline-offset-4">{t.delete}</button>
-      ) : null}
+
     </div>
   </div>;
 }

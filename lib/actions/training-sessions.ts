@@ -7,10 +7,11 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { trainingPlanSchema } from "@/lib/training/plans";
 import { snapshotOf, templateFor } from "@/lib/training/session-templates";
 import {
-  activeSeconds, canTransition, completeSessionSchema, createTrainingSessionSchema, dateForPlanDay,
+  activeSeconds, canTransition, completeSessionSchema, createTrainingSessionSchema, dateForPlanDay, editTrainingSchema, pastTrainingSchema,
   exerciseStatusSchema, saveSetSchema, settledExerciseStatus, type TrainingStatus,
 } from "@/lib/training/sessions";
 import { loadTrainingSession } from "@/lib/data/training-sessions";
+import { zonedToUtc } from "@/lib/time";
 
 type Result<T = undefined> = { ok: true; data: T } | { ok: false; error: "invalid" | "not_found" | "live" | "state" | "limit" | "unknown"; liveId?: string };
 
@@ -333,5 +334,55 @@ export async function deleteTrainingSession(sessionId: string): Promise<Result> 
   const { error } = await viewer.supabase.from("training_sessions").delete().eq("id", s.id);
   if (error) return { ok: false, error: "unknown" };
   revalidateTraining();
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Record a training session already done (e.g. strength work): type, date,
+ * total time and a free description — no exercise-by-exercise detail required.
+ */
+export async function logPastTrainingSession(input: unknown): Promise<Result<{ id: string }>> {
+  const viewer = await requireViewer();
+  const parsed = pastTrainingSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const start = zonedToUtc(v.date, v.time);
+  if (Number.isNaN(start.getTime()) || start.getTime() > Date.now()) return { ok: false, error: "invalid" };
+  const fr = viewer.profile.preferred_language !== "en";
+  const { data, error } = await viewer.supabase.from("training_sessions").insert({
+    user_id: viewer.userId,
+    title: v.title || methodTitle(v.methodId) || (fr ? "Séance d’entraînement" : "Training session"),
+    method_id: v.methodId, status: "COMPLETED",
+    scheduled_date: v.date, scheduled_time: v.time, planned_minutes: v.minutes, actual_minutes: v.minutes,
+    started_at: start.toISOString(), completed_at: new Date(start.getTime() + v.minutes * 60_000).toISOString(),
+    rpe: v.rpe, notes: v.notes,
+  }).select("id").single();
+  if (error || !data) return { ok: false, error: "unknown" };
+  revalidateTraining(data.id);
+  return { ok: true, data: { id: data.id } };
+}
+
+/** Edit a session that is not running: title, date/time, total time, effort, pain, description. */
+export async function updateTrainingSession(input: unknown): Promise<Result> {
+  const viewer = await requireViewer();
+  const parsed = editTrainingSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const s = await loadOwned(viewer, v.sessionId);
+  if (!s) return { ok: false, error: "not_found" };
+  if (s.status === "IN_PROGRESS") return { ok: false, error: "state" };
+  const start = zonedToUtc(v.date, v.time);
+  if (Number.isNaN(start.getTime())) return { ok: false, error: "invalid" };
+  const done = s.status === "COMPLETED" || s.status === "INTERRUPTED";
+  if (done && start.getTime() > Date.now()) return { ok: false, error: "invalid" };
+  const { error } = await viewer.supabase.from("training_sessions").update({
+    title: v.title, scheduled_date: v.date, scheduled_time: v.time, rpe: v.rpe, pain: v.pain, notes: v.notes,
+    ...(done
+      ? { actual_minutes: v.minutes, started_at: start.toISOString(), paused_seconds: 0, paused_at: null,
+          completed_at: new Date(start.getTime() + v.minutes * 60_000).toISOString() }
+      : { planned_minutes: v.minutes }),
+  }).eq("id", s.id);
+  if (error) return { ok: false, error: "unknown" };
+  revalidateTraining(s.id);
   return { ok: true, data: undefined };
 }

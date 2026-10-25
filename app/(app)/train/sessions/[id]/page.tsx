@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { SessionLifecycleActions } from "@/components/training/session-actions";
 import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
+import { EditTrainingForm } from "@/components/training/training-free-forms";
+import { utcToZoned } from "@/lib/time";
+import { localDate_ } from "@/lib/training/sessions";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadTrainingSession } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
@@ -72,6 +75,12 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     </section> : null}
 
     {!running && session.status !== "COMPLETED" ? <SessionLifecycleActions locale={locale} id={session.id} status={session.status} /> : null}
+    {!running ? <EditTrainingForm locale={locale} today={localDate_(new Date())} session={{
+      id: session.id, title: session.title,
+      ...(session.startedAt ? utcToZoned(session.startedAt) : { date: session.scheduledDate ?? localDate_(new Date()), time: session.scheduledTime ?? "18:00" }),
+      minutes: session.actualMinutes ?? session.plannedMinutes ?? 60,
+      rpe: session.rpe, pain: session.pain, notes: session.notes,
+    }} /> : null}
     <p className="text-xs text-ink-3">{t.safetyNote}</p>
   </div>;
 }
