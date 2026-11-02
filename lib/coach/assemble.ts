@@ -5,7 +5,10 @@ import { isSend } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { routeAscentsInLastDays, routeWorkingGrade, summarizeRoutes } from "@/lib/analytics/routes";
+import { coachSummary, pactProgress } from "@/lib/analytics/alter-ego";
+import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
 import { resolveNormalized } from "@/lib/grading";
+import { localDate_ } from "@/lib/training/sessions";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
 
 /**
@@ -191,6 +194,10 @@ export async function assembleCoachContext(
     }
   }
 
+  const pact = await loadOpenPact(viewer.supabase);
+  const today = localDate_(now);
+  const pactState = pact ? pactProgress(pact, await loadClimberWork(viewer.supabase), today) : null;
+
   return buildCoachContext({
     climber: {
       name: viewer.profile.display_name,
@@ -214,6 +221,7 @@ export async function assembleCoachContext(
     focusRouteProject,
     activeRouteProjects,
     quickAction: opts.quickAction ?? null,
+    alterEgo: pact && pactState ? coachSummary(pact, today, pactState.standing, pactState.easeOff) : null,
     now,
   });
 }

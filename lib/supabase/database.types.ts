@@ -53,6 +53,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      alter_ego_pacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          display_name: string;
+          plan_id: string | null;
+          plan_name: string;
+          plan_snapshot: Json;
+          progression: Json;
+          start_date: string;
+          horizon_weeks: number;
+          start_boulder_grade: string | null;
+          target_boulder_grade: string | null;
+          start_route_grade: string | null;
+          target_route_grade: string | null;
+          status: string;
+          paused_since: string | null;
+          paused_days: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          display_name: string;
+          plan_id?: string | null;
+          plan_name: string;
+          plan_snapshot: Json;
+          progression: Json;
+          start_date: string;
+          horizon_weeks: number;
+          start_boulder_grade?: string | null;
+          target_boulder_grade?: string | null;
+          start_route_grade?: string | null;
+          target_route_grade?: string | null;
+          status?: string;
+          paused_since?: string | null;
+          paused_days?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          display_name?: string;
+          plan_id?: string | null;
+          plan_name?: string;
+          plan_snapshot?: Json;
+          progression?: Json;
+          start_date?: string;
+          horizon_weeks?: number;
+          start_boulder_grade?: string | null;
+          target_boulder_grade?: string | null;
+          start_route_grade?: string | null;
+          target_route_grade?: string | null;
+          status?: string;
+          paused_since?: string | null;
+          paused_days?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       training_plans: {
         Row: {
           id: string;

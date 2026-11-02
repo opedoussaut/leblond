@@ -34,6 +34,7 @@ Five people: Olivier (admin), Thomas, Marc, Houssem, David. There is no open sig
 - Session summary, problem pages, Font estimate kept separate from the native grade, private photos/videos, projects
 - Progress: send/flash rate with counts, attempts per send, weekly activity, working level per native system, Font working grade (only when reliable), trend, road-to-target dimensions, cross-gym native and normalised views, style / wall-angle / gym breakdowns
 - Patrick: streaming chat on the OpenAI Responses API with 8 quick actions and bounded structured context
+- Alter ego: a private, fictional partner who follows a signed copy of your plan, trains alongside you during a session and on the days you skip — [docs/alter-ego.md](docs/alter-ego.md)
 - Wearables: FIT import for any watch, COROS/Suunto/Garmin OAuth adapters with truthful status, activity ↔ session linking, cross-source de-duplication
 - PWA (installable), French and English
 

@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { AreaCard } from "@/components/layout/area-card";
 import { AtlasIcon, CalendarIcon, PatrickIcon } from "@/components/layout/nav-icons";
+import { AlterEgoScore } from "@/components/training/alter-ego-score";
 import { PageHeader } from "@/components/ui/card";
+import { pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
+import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
+import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { getI18n } from "@/lib/i18n/server";
 import { localDate_ } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
@@ -15,10 +19,13 @@ export default async function TrainingHome() {
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
-  const [sessions, { count: assessments }, { count: plans }] = await Promise.all([
+  const ego = alterEgoDictionary(locale);
+  const [sessions, { count: assessments }, { count: plans }, pact, work] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
     viewer.supabase.from("training_assessments").select("id", { count: "exact", head: true }),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
+    loadOpenPact(viewer.supabase),
+    loadClimberWork(viewer.supabase),
   ]);
   const today = localDate_(new Date());
   const live = sessions?.find((s) => s.status === "IN_PROGRESS");
@@ -82,6 +89,15 @@ export default async function TrainingHome() {
         </Link>
       </div>
     </section>
+
+    {pact ? <AlterEgoScore locale={locale} pact={pact} progress={pactProgress(pact, work, today)} href="/train/alter-ego" />
+      : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>
+          <p className="mt-1 text-sm text-ink-2">{ego.cardEmpty}</p>
+        </div>
+        <Link href="/train/alter-ego" className={buttonClass("secondary", "md", "shrink-0")}>{ego.cardSign}</Link>
+      </section>}
 
     <section aria-labelledby="journey-heading" className="space-y-4">
       <h2 id="journey-heading" className="text-lg font-extrabold">{fr ? "Mon parcours, étape par étape" : "My journey, step by step"}</h2>
