@@ -4,6 +4,8 @@ import { SessionLifecycleActions } from "@/components/training/session-actions";
 import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
+import { loadFactor, pactClock, pactWeek, shouldEaseOff } from "@/lib/analytics/alter-ego";
+import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
 import { utcToZoned } from "@/lib/time";
 import { localDate_ } from "@/lib/training/sessions";
 import { requireViewer } from "@/lib/auth/viewer";
@@ -36,6 +38,12 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   const running = session.status === "IN_PROGRESS";
   const finished = session.status === "COMPLETED" || session.status === "INTERRUPTED";
   const climbs = running ? await recentClimbs(viewer.supabase) : [];
+  const pact = running ? await loadOpenPact(viewer.supabase) : null;
+  const ego = pact?.status === "ACTIVE" ? {
+    name: pact.displayName,
+    factor: loadFactor(pactWeek(pact, pactClock(pact, localDate_(new Date()))), pact.progression),
+    easeOff: shouldEaseOff(await loadClimberWork(viewer.supabase)),
+  } : null;
 
   return <div className="space-y-6">
     <Link href="/train/sessions" className="text-sm font-bold text-accent underline underline-offset-4">← {t.backToList}</Link>
@@ -51,7 +59,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
       </p>
     </header>
 
-    {running ? <TrainingPlayer locale={locale} session={session} exercises={exercises}
+    {running ? <TrainingPlayer locale={locale} session={session} exercises={exercises} ego={ego}
       climbs={climbs.map((c) => ({ id: c.id, label: `${c.gyms?.name ?? "Session"} · ${formatDate(c.started_at, locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` }))} /> : null}
 
     {finished ? <SessionSummary locale={locale} session={session} exercises={exercises} /> : null}
