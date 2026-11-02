@@ -9,7 +9,7 @@ import { METHODS_FOR_PLANS } from "./catalogue";
  * exercise can be modified or skipped in the player, and the instructions are
  * snapshotted into the session so later Atlas edits never rewrite history.
  */
-export const TEMPLATE_VERSION = 1;
+export const TEMPLATE_VERSION = 2;
 
 export type Block = "WARMUP" | "MAIN" | "COOLDOWN";
 export type Modality = "REPS" | "HOLD" | "TIME" | "ROUTES" | "INTERVALS" | "FREE";
@@ -198,6 +198,13 @@ const MAIN: Record<string, readonly ExerciseTemplate[]> = {
       intensity: loc("2 répétitions en réserve", "2 reps in reserve"),
       summary: loc("Équilibre agoniste/antagoniste des épaules.", "Balance shoulder pushing and pulling."),
       steps: [loc("Corps gainé, coudes à 45°.", "Braced body, elbows at 45°.")] }),
+    ex({ key: "dips", block: "MAIN", methodId: "strength-conditioning", name: loc("Dips", "Dips"),
+      modality: "REPS", targetSets: 3, targetReps: 6, restSeconds: 120,
+      intensity: loc("2 répétitions en réserve", "2 reps in reserve"),
+      summary: loc("Poussée verticale, utile pour les rétablissements.", "Vertical pushing, useful for mantles."),
+      steps: [loc("Sur deux appuis stables, épaules basses, descends jusqu’à ce que les coudes forment un angle droit.", "On two stable supports, shoulders down, lower until your elbows reach a right angle."),
+        loc("Élastique sous les genoux si besoin.", "Use a band under your knees if needed.")],
+      safety: loc("Arrête si l’avant de l’épaule tire ou fait mal.", "Stop if the front of the shoulder pulls or hurts.") }),
     ex({ key: "hollow-hold", block: "MAIN", methodId: "strength-conditioning", name: loc("Gainage creux", "Hollow hold"),
       modality: "HOLD", targetSets: 3, targetSeconds: 30, restSeconds: 60,
       intensity: loc("Contrôlé", "Controlled"),

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { egoTimeline } from "@/lib/analytics/alter-ego";
 import {
   changeTrainingStatus, completeTrainingSession, deleteTrainingSet, pauseTrainingSession,
   saveTrainingSet, setCurrentExercise, setExerciseStatus,
@@ -14,6 +15,7 @@ import {
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
 } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
+import { AlterEgoLane } from "./alter-ego-lane";
 
 type ClimbOption = { id: string; label: string };
 const inputClass = "mt-1 block w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg font-bold tabular-nums text-ink";
@@ -50,8 +52,9 @@ function updatePending(sessionId: string, fn: (list: SaveSetInput[]) => SaveSetI
 const sameSet = (a: Pick<SaveSetInput, "exerciseId" | "setIndex">, b: Pick<SaveSetInput, "exerciseId" | "setIndex">) =>
   a.exerciseId === b.exerciseId && a.setIndex === b.setIndex;
 
-export function TrainingPlayer({ locale, session, exercises: initial, climbs }: {
+export function TrainingPlayer({ locale, session, exercises: initial, climbs, ego = null }: {
   locale: Locale; session: TrainingSession; exercises: TrainingExercise[]; climbs: ClimbOption[];
+  ego?: { name: string; factor: number; easeOff: boolean } | null;
 }) {
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
@@ -114,6 +117,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
   const rest = restRemaining(restEndsAt, now);
   const doneCount = exercises.filter((e) => e.status !== "PENDING").length;
   const progress = useMemo(() => exercises.length ? Math.round((doneCount / exercises.length) * 100) : 0, [doneCount, exercises.length]);
+  const egoPhases = useMemo(() => (ego ? egoTimeline(initial, ego.factor) : []), [ego, initial]);
 
   function patchExercise(id: string, update: (e: TrainingExercise) => TrainingExercise) {
     setExercises((list) => list.map((e) => (e.id === id ? update(e) : e)));
@@ -235,6 +239,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       <p className="mt-2 text-xs font-semibold text-ink-2">
         {fmt(t.exerciseOf, { n: index + 1, total: exercises.length })} · {progress}%
       </p>
+      {ego ? <AlterEgoLane locale={locale} name={ego.name} phases={egoPhases} exerciseNames={initial.map((e) => e.name)}
+        elapsed={elapsed} youFraction={progress / 100} easeOff={ego.easeOff} /> : null}
     </section>
 
     {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">
@@ -249,9 +255,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
-      <details className="mt-3 rounded-xl border border-line bg-surface-2 p-3">
-        <summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{t.howTo}</summary>
-        <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
+      <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
+        <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{t.howTo}</summary>
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
           {(instr.steps ?? []).map((s, i) => <li key={i}>{pick(s, locale)}</li>)}
         </ol>
         {instr.safety ? <p className="mt-3 text-sm text-ink"><strong>{t.safety} :</strong> {pick(instr.safety, locale)}</p> : null}

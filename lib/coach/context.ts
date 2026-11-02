@@ -1,3 +1,4 @@
+import type { coachSummary } from "@/lib/analytics/alter-ego";
 import {
   DEFAULT_TREND_RULE,
   DEFAULT_WORKING_LEVEL_RULE,
@@ -152,6 +153,7 @@ export interface CoachContextInput {
   focusRouteProject?: FocusRouteProjectInput | null;
   activeRouteProjects?: Array<{ name: string; grade: string; goalStyle: string; gymName: string; goes: number }>;
   quickAction?: QuickAction | null;
+  alterEgo?: ReturnType<typeof coachSummary> | null;
   now: Date;
 }
 
@@ -329,6 +331,7 @@ export function buildCoachContext(input: CoachContextInput) {
       ? { ...input.focusProject, attempts: input.focusProject.attempts.slice(-40) }
       : null,
     quickAction: input.quickAction ?? null,
+    alterEgo: input.alterEgo ?? null,
   };
   return enforceBudget(ctx);
 }

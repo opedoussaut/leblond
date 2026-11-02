@@ -11,3 +11,4 @@ export * from "./targets";
 export * from "./snapshot";
 export * from "./routes";
 export * from "./fitness";
+export * from "./alter-ego";
