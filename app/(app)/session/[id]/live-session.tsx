@@ -338,7 +338,7 @@ export function LiveSession({
     <div className="space-y-5">
       <header>
         {mode === "live" ? <>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-ok">● {t.session.active}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok">● {t.session.active}</p>
           <h1 className="mt-1 text-xl font-black leading-tight">{gym.name}</h1>
         </> : <h2 className="text-lg font-black leading-tight">{gym.name}</h2>}
         {outdoor && areaWarning(outdoor.area, locale) ? (
@@ -361,7 +361,7 @@ export function LiveSession({
             <div key={label} className="rounded-xl bg-surface-2 py-2">
               <dt className="sr-only">{label}</dt>
               <dd className="text-2xl font-black tabular-nums leading-none">{v}</dd>
-              <dd aria-hidden className="mt-1 text-[11px] uppercase tracking-wide text-ink-3">
+              <dd aria-hidden className="mt-1 text-xs uppercase tracking-[0.12em] text-ink-3">
                 {label}
               </dd>
             </div>
@@ -374,7 +374,7 @@ export function LiveSession({
       </p>
 
       {current && !adding ? (
-        <section aria-label={t.session.current} className="rounded-3xl border-2 border-ink/80 bg-surface p-4">
+        <section aria-label={t.session.current} className="rounded-2xl border-2 border-ink/80 bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
             <GradeChip t={t} system={current.native_grade_system ?? gym.system} grade={current.native_grade} size="lg" showFont />
             <AttemptDots attempts={currentSessionAttempts} />
@@ -420,7 +420,7 @@ export function LiveSession({
             {projectIds.includes(current.id)
               ? <ResultBadge tone="project" label={L.project} className="ml-auto" />
               : <button type="button" disabled={pending} onClick={makeProject} style={toneButtonStyle("project")}
-                  className="ml-auto min-h-10 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
+                  className="ml-auto min-h-11 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
           </div>
           <div className="mt-3">
             {commentDraft !== null ? <div className="flex gap-2">
@@ -543,7 +543,7 @@ export function LiveSession({
                       </span>
                     ) : null}
                     <AttemptDots attempts={pa} />
-                    <span className="ml-auto text-xs font-bold uppercase tracking-wider">
+                    <span className="ml-auto text-xs font-bold uppercase tracking-[0.12em]">
                       {sent ? <ResultBadge tone={pa.some((a) => a.result === "FLASH") ? "flash" : "top"}
                         label={t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"]} /> : null}
                       {projectIds.includes(p.id) ? <ResultBadge tone="project" label={L.project} className="ml-1" /> : null}
@@ -629,7 +629,7 @@ function GradeGrid({
   const { t } = useI18n();
   const grades = listGrades(system);
   return (
-    <section className="rounded-3xl border border-line bg-surface p-4">
+    <section className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-bold">{t.session.pickGrade}</h2>
         {onCancel ? (
@@ -651,11 +651,11 @@ function GradeGrid({
             )}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
-            <span className={cn("text-sm tracking-wide", isColorSystem(system) && "uppercase")}>
+            <span className={cn("text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
               {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}
             </span>
-            {g.kind === "MYSTERY" ? <span className="text-[11px] font-medium">{t.grades.mystery}</span> : null}
-            {fontRangeFor(system, g.id) ? <span className="text-[11px] font-medium opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
+            {g.kind === "MYSTERY" ? <span className="text-xs font-medium">{t.grades.mystery}</span> : null}
+            {fontRangeFor(system, g.id) ? <span className="text-xs font-medium opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
           </button>
         ))}
       </div>
@@ -687,7 +687,7 @@ function ChipRow({
               aria-pressed={on}
               onClick={() => onToggle(o.value)}
               className={cn(
-                "min-h-10 rounded-full border px-3 text-sm",
+                "min-h-11 rounded-full border px-3 text-sm",
                 on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
               )}
             >

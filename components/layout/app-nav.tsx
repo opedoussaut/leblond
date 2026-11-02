@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { AREAS, activeSubPage, sectionForPath, type SectionId } from "@/lib/navigation/sections";
@@ -57,7 +58,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining }: { hasLiveSession: bo
                         <Link href={child.href}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "flex min-h-10 items-center rounded-lg px-2.5 text-[13px] font-semibold transition-colors",
+                            "flex min-h-11 items-center rounded-xl px-2.5 text-sm font-semibold transition-colors",
                             active ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
                           )}>
                           {t.nav[child.key]}
@@ -83,7 +84,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining }: { hasLiveSession: bo
                 <Link href={href} aria-current={selected ? "true" : undefined}
                   data-active-area={selected ? "true" : undefined}
                   className={cn(
-                    "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-center text-[11px] font-semibold",
+                    "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-center text-xs font-semibold",
                     selected ? "bg-accent-soft text-accent" : "text-ink-3",
                   )}>
                   <span className="[&_svg]:h-5 [&_svg]:w-5"><Icon /></span>
@@ -105,16 +106,21 @@ export function AreaSubNav() {
   const area = AREAS.find((a) => a.id === sectionForPath(pathname));
   const currentPage = activeSubPage(pathname);
   const { t } = useI18n();
+  const activeChip = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    const row = activeChip.current?.closest("nav");
+    if (row && activeChip.current) row.scrollLeft = activeChip.current.offsetLeft - (row.clientWidth - activeChip.current.offsetWidth) / 2;
+  }, [pathname]);
   if (!area || area.children.length === 0) return null;
   return (
-    <nav aria-label={t.nav.subNav} className="-mx-4 mb-5 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:hidden">
+    <nav aria-label={t.nav.subNav} className="leblond-scroll-row relative -mx-4 mb-5 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:hidden">
       <ul className="flex w-max gap-2">
         {area.children.map((child) => {
           const active = currentPage?.href === child.href;
           return <li key={child.href}>
-            <Link href={child.href} aria-current={active ? "page" : undefined}
+            <Link href={child.href} aria-current={active ? "page" : undefined} ref={active ? activeChip : undefined}
               className={cn(
-                "inline-flex min-h-10 items-center whitespace-nowrap rounded-full border px-4 text-[13px] font-semibold",
+                "inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 text-sm font-semibold",
                 active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2",
               )}>
               {t.nav[child.key]}

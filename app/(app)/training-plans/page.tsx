@@ -35,7 +35,7 @@ export default async function TrainingPlansPage({ searchParams }: PageProps<"/tr
   return (
     <div>
       <Link href="/train" className="text-sm font-bold text-accent underline underline-offset-4">← {t.back}</Link>
-      <h1 className="mt-5 text-3xl font-black tracking-tight">{t.planTitle}</h1>
+      <h1 className="mt-5 text-2xl font-black tracking-tight md:text-3xl">{t.planTitle}</h1>
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{t.plansSubtitle}</p>
       {error ? (
         <p role="alert" className="mt-5 rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{t.unavailable}</p>

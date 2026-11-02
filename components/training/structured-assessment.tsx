@@ -13,14 +13,15 @@ import {
 } from "@/lib/training/assessment-protocol";
 import { METHODS_FOR_PLANS, TRAINING_AXES } from "@/lib/training/catalogue";
 import { SkillSliders } from "./assessment-workspace";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
-const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink";
 const OPTIONS = [4, 8, 12, 16, 24];
 
 export function EvidenceBadge({ level, locale }: { level: EvidenceLevel; locale: Locale }) {
   const tone = level === "measured" ? "bg-accent text-accent-ink" : level === "observed" ? "bg-accent-soft text-accent"
     : level === "insufficient" ? "border border-dashed border-line text-ink-3" : "bg-surface-2 text-ink-2";
-  return <span title={EVIDENCE_LABELS[level].hint[locale]} className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold " + tone}>
+  return <span title={EVIDENCE_LABELS[level].hint[locale]} className={"inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold " + tone}>
     {EVIDENCE_LABELS[level][locale]}
   </span>;
 }
@@ -109,7 +110,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
     <fieldset className="rounded-xl border border-line bg-surface p-3">
       <legend className="px-1 text-sm font-semibold">{label}</legend>
       <div className="mt-1 flex gap-2">
-        {[true, false].map((v) => <label key={String(v)} className={"flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border text-sm font-bold " +
+        {[true, false].map((v) => <label key={String(v)} className={"flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border text-sm font-bold " +
           (value === v ? "border-accent bg-accent-soft text-accent" : "border-line")}>
           <input type="radio" className="sr-only" name={name} checked={value === v} onChange={() => onChange(v)} />
           {v ? (fr ? "Oui" : "Yes") : (fr ? "Non" : "No")}
@@ -118,8 +119,8 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
     </fieldset>;
 
   return <section aria-labelledby="protocol-step" className="space-y-5">
-    <div className="rounded-[1.5rem] border border-accent/25 bg-accent-soft p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-accent">
+    <div className="rounded-2xl border border-accent/25 bg-accent-soft p-4">
+      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">
         {fr ? `Protocole LEBLOND v${PROTOCOL_VERSION} · étape ${step + 1} sur ${steps.length}` : `LEBLOND protocol v${PROTOCOL_VERSION} · step ${step + 1} of ${steps.length}`}
       </p>
       <ol className="mt-3 flex gap-1" aria-hidden="true">
@@ -143,7 +144,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
       {yesNo("warm", ctx.warmedUp, (v) => set("warmedUp", v), fr ? "As-tu fait un échauffement complet (général + doigts) ?" : "Have you completed a full warm-up (general + fingers)?")}
     </div> : null}
 
-    {step === 1 ? <div className="grid gap-4 sm:grid-cols-2">
+    {step === 1 ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <label className="block text-sm font-semibold">{fr ? "Discipline" : "Discipline"}
         <select className={field} value={ctx.discipline} onChange={(e) => set("discipline", e.target.value as AssessmentContext["discipline"])}>
           <option value="BOULDER">{fr ? "Bloc" : "Bouldering"}</option>
@@ -190,13 +191,13 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
             <span className="text-xs font-semibold text-ink-3">{t.axis[test.dimension]} · {test.unit}</span>
           </div>
           <p className="mt-1 text-sm text-ink-2">{test.rationale[locale]}</p>
-          <details className="mt-2"><summary className="min-h-10 cursor-pointer text-sm font-bold text-accent">{fr ? "Procédure" : "Procedure"}</summary>
+          <details className="mt-2"><summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{fr ? "Procédure" : "Procedure"}</summary>
             <p className="mt-1 text-xs text-ink-2"><strong>{fr ? "Matériel" : "Equipment"} :</strong> {test.equipment[locale]}</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-2">{test.procedure.map((p, i) => <li key={i}>{p[locale]}</li>)}</ol>
             <p className="mt-2 text-sm"><strong>{fr ? "Arrêt / contre-indications" : "Stop rules"} :</strong> {test.stopRules[locale]}</p>
             {test.reference ? <a className="mt-2 inline-block text-xs font-semibold text-accent underline" href={test.reference.url} target="_blank" rel="noopener noreferrer">{test.reference.label} ↗</a> : null}
           </details>
-          {allowed ? <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {allowed ? <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-sm font-semibold">{fr ? "Résultat" : "Result"} ({test.unit}, {test.min}–{test.max})
               <input className={field} type="number" inputMode="decimal" min={test.min} max={test.max} value={values[test.id] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [test.id]: e.target.value }))} />
@@ -221,7 +222,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
       <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
         <table className="w-full min-w-[560px] text-left text-sm">
           <caption className="sr-only">{steps[5]}</caption>
-          <thead className="text-xs uppercase tracking-wider text-ink-3"><tr>
+          <thead className="text-xs uppercase tracking-[0.12em] text-ink-3"><tr>
             <th className="px-4 py-3">{fr ? "Dimension" : "Dimension"}</th><th className="px-4 py-3">{fr ? "Valeur" : "Value"}</th>
             <th className="px-4 py-3">{fr ? "Source" : "Source"}</th><th className="px-4 py-3">{fr ? "Qualité" : "Quality"}</th></tr></thead>
           <tbody>
@@ -265,7 +266,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
       <p className="text-sm text-ink-2">{fr
         ? `Méthodes qui correspondent à tes priorités, compte tenu de ${frequency} séance(s) par semaine. Choisis celle qui servira de scénario.`
         : `Methods matching your priorities, given ${frequency} session(s) per week. Choose the one used for the scenario.`}</p>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {matches.map(({ method, priority }) => {
           const finger = ["max-hangs", "repeaters", "campus"].includes(method.id);
           const caution = finger && (ctx.experienceMonths < 24 || ctx.currentPain);
@@ -300,7 +301,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
       </label>
       {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
       <button type="button" disabled={!confirmed || pending} onClick={save}
-        className="min-h-14 w-full rounded-2xl bg-accent px-6 text-base font-black text-accent-ink disabled:opacity-50 sm:w-auto">
+        className={buttonClass("primary", "md", "w-full sm:w-auto")}>
         {pending ? "…" : fr ? "Enregistrer mon bilan" : "Save my assessment"}
       </button>
     </div> : null}
@@ -312,7 +313,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
         {onCancel ? <button type="button" onClick={onCancel} className="min-h-12 rounded-full px-4 text-sm font-bold text-ink-2">{fr ? "Annuler" : "Cancel"}</button> : null}
       </div>
       {step < steps.length - 1 ? <button type="button" onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
-        className="min-h-12 rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink">{fr ? "Suivant" : "Next"} →</button> : null}
+        className={buttonClass("primary", "md")}>{fr ? "Suivant" : "Next"} →</button> : null}
     </div>
   </section>;
 }

@@ -19,6 +19,7 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
 import { isColourSystem } from "@/lib/grading/conversions";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
+import { buttonClass } from "@/components/ui/button";
 
 type Grade = (typeof FRENCH_ROUTE_GRADES)[number];
 
@@ -174,7 +175,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
     {mode === "live" ? <header className="flex items-start justify-between gap-3">
       <div>
         <p className="leblond-eyebrow text-accent">● {r.routeSession}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight">{gymName}</h1>
+        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{gymName}</h1>
       </div>
       <p className="text-right"><span className="block text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.session.elapsed}</span>
         <span className="text-2xl font-black tabular-nums" role="timer">{formatClock(elapsed)}</span></p>
@@ -215,7 +216,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         </div>
         <label className="mt-2 flex items-center gap-2 text-sm text-ink-2">{r.moreGrades}
           <select value={grade} onChange={(e) => setGrade(e.target.value as Grade)}
-            className="min-h-10 rounded-lg border border-line bg-surface px-2 font-bold text-ink">
+            className="min-h-11 rounded-xl border border-line bg-surface px-2 font-bold text-ink">
             {FRENCH_ROUTE_GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         </label>
@@ -249,7 +250,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
             className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold">+</button>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {ROUTE_RESULTS.map((res) => <button key={res} type="button" disabled={pending || (isFirstGo(res) && tries > 1)} onClick={() => log(res)}
           style={toneButtonStyle(routeTone(res))}
           className="min-h-16 rounded-2xl border px-3 py-2 text-left disabled:opacity-40 sm:text-center">
@@ -282,14 +283,14 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
               {editing?.id === a.id ? <span className="mt-2 flex gap-2">
                 <input value={editing.notes} maxLength={500} aria-label={L.comment} autoFocus
                   onChange={(ev) => setEditing({ id: a.id, notes: ev.target.value })}
-                  className="min-h-10 flex-1 rounded-lg border border-line bg-surface px-2 text-sm" />
-                <button type="button" onClick={saveComment} className="min-h-10 rounded-lg bg-accent px-3 text-xs font-bold text-accent-ink">{L.save}</button>
+                  className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-2 text-sm" />
+                <button type="button" onClick={saveComment} className={buttonClass("primary", "sm")}>{L.save}</button>
               </span> : <button type="button" onClick={() => setEditing({ id: a.id, notes: a.notes })}
                 className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{a.notes ? L.editComment : L.addComment}</button>}
               {a.route_name && !a.route_project_id ? <button type="button" disabled={pending} onClick={() => trackAsProject(a)}
                 className="mt-1 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
             </span>
-            <button type="button" onClick={() => remove(a.id)} className="min-h-10 rounded-lg px-3 text-xs font-bold text-danger">{r.remove}</button>
+            <button type="button" onClick={() => remove(a.id)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{r.remove}</button>
           </li>)}
         </ul>}
     </section>

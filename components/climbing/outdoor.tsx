@@ -209,7 +209,7 @@ export function BoolderProblemPicker({
   }, [problems, query, circuit, grade]);
 
   return (
-    <section className="space-y-3 rounded-3xl border border-line bg-surface p-4" aria-label={t.outdoor.pickTitle}>
+    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4" aria-label={t.outdoor.pickTitle}>
       <div className="flex items-center justify-between">
         <h2 className="font-bold">{t.outdoor.pickTitle}</h2>
         {onCancel ? (
@@ -234,7 +234,7 @@ export function BoolderProblemPicker({
             aria-pressed={circuit === c}
             onClick={() => setCircuit(c)}
             className={cn(
-              "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm",
+              "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm",
               circuit === c ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
             )}
           >
@@ -292,7 +292,7 @@ export function BoolderProblemPicker({
         </>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onClick={onNotInTopo} className="text-sm text-accent underline-offset-2 hover:underline">
+        <button type="button" onClick={onNotInTopo} className="inline-flex min-h-11 items-center text-sm text-accent underline-offset-2 hover:underline">
           {t.outdoor.notInTopo}
         </button>
         <BoolderAttribution />

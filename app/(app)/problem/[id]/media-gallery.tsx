@@ -32,7 +32,7 @@ export function MediaGallery({ items }: { items: Item[] }) {
             <button
               type="button"
               disabled={pending}
-              className="min-h-10 px-2 text-danger"
+              className="min-h-11 px-2 text-danger"
               onClick={() =>
                 start(async () => {
                   await deleteMedia(m.id);

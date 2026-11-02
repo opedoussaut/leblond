@@ -75,15 +75,18 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await page.getByRole("link", { name: /Planifier dans mon calendrier/ }).click();
   await expect(page).toHaveURL(/\/calendar\?method=max-hangs/);
   await expect(page.getByLabel("Méthode de l’Atlas (facultatif)")).toHaveValue("max-hangs");
-  await page.getByLabel("Date", { exact: true }).fill("2026-11-15");
+  // Always next month: saving a date only moves the calendar when it leaves the current month.
+  const next = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+  const month = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+  await page.getByLabel("Date", { exact: true }).fill(`${month}-15`);
   await page.getByLabel("Titre", { exact: true }).fill("Poutre avec mes amis");
   await page.getByRole("button", { name: "Enregistrer la date" }).click();
-  await expect(page).toHaveURL(/\/calendar\?month=2026-11/);
+  await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${month}`));
   await expect(page.getByText("Poutre avec mes amis")).toBeVisible();
   await page.getByRole("button", { name: "Marquer effectué" }).click();
   await expect(page.getByText("Effectué")).toBeVisible();
-  await page.getByRole("button", { name: "2026-11-16" }).click();
-  await expect(page.getByRole("region", { name: "2026-11-16" })).toBeFocused();
+  await page.getByRole("button", { name: `${month}-16` }).click();
+  await expect(page.getByRole("region", { name: `${month}-16` })).toBeFocused();
   await page.getByRole("button", { name: /Ajouter une date/ }).click();
   await expect(page.getByLabel("Titre", { exact: true })).toBeFocused();
 });

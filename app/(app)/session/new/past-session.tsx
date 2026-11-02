@@ -12,8 +12,9 @@ import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import type { Tables } from "@/lib/supabase/database.types";
 import { utcToZoned } from "@/lib/time";
 import { loggingDictionary } from "@/lib/i18n/logging";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
-const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink";
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
 
 /** Create a finished session after the fact, then fill it in on the edit page. */
@@ -68,7 +69,7 @@ export function PastSession({ gyms, favouriteIds, areas }: {
         <div className="flex items-center justify-between gap-3">
           <p><span className="block text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{e.chosen}</span>
             <strong className="text-lg">{place.name}</strong></p>
-          <button type="button" onClick={() => setPlace(null)} className="min-h-10 rounded-full border border-line px-4 text-sm font-bold text-accent">{e.change}</button>
+          <button type="button" onClick={() => setPlace(null)} className="min-h-11 rounded-full border border-line px-4 text-sm font-bold text-accent">{e.change}</button>
         </div>
         {place.hasBouldering && place.hasRoutes ? <fieldset>
           <legend className="text-sm font-semibold">{e.discipline}</legend>
@@ -78,14 +79,14 @@ export function PastSession({ gyms, favouriteIds, areas }: {
               {d === "BOULDER" ? e.boulder : e.route}</button>)}
           </div>
         </fieldset> : null}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <label className="text-sm font-semibold">{e.date}
             <input className={field} type="date" required max={now.date} min="2015-01-01" value={date} onChange={(ev) => setDate(ev.target.value)} />
           </label>
           <label className="text-sm font-semibold">{e.time}
             <input className={field} type="time" required value={time} onChange={(ev) => setTime(ev.target.value)} />
           </label>
-          <label className="text-sm font-semibold">{e.minutes}
+          <label className="col-span-2 text-sm font-semibold sm:col-span-1">{e.minutes}
             <input className={field} type="number" required min={10} max={720} step={5} value={minutes} onChange={(ev) => setMinutes(Number(ev.target.value))} />
           </label>
         </div>
@@ -94,7 +95,7 @@ export function PastSession({ gyms, favouriteIds, areas }: {
         </label>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <button type="submit" disabled={pending}
-          className="min-h-14 w-full rounded-2xl bg-accent px-6 text-base font-extrabold text-accent-ink disabled:opacity-60">
+          className={buttonClass("primary", "md", "w-full")}>
           {pending ? e.creating : e.create}
         </button>
       </form>

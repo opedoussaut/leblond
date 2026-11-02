@@ -8,8 +8,9 @@ import { deleteRouteProject, updateRouteProject } from "@/lib/actions/route-proj
 import { ROUTE_STYLES, type RouteProjectStatus, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { routeDictionary } from "@/lib/i18n/routes";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
-const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink";
 
 export function RouteProjectEditor({ project }: {
   project: { id: string; grade: string; goalStyle: RouteStyle; status: RouteProjectStatus; notes: string };
@@ -50,7 +51,7 @@ export function RouteProjectEditor({ project }: {
     </label>
     <div className="flex flex-wrap gap-2">
       <button type="button" disabled={pending} onClick={() => save(project.status)}
-        className="min-h-12 rounded-full bg-accent px-5 text-sm font-extrabold text-accent-ink disabled:opacity-60">{r.save}</button>
+        className={buttonClass("primary", "md")}>{r.save}</button>
       {project.status !== "SENT" ? <button type="button" disabled={pending} onClick={() => save("SENT")}
         className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold">{r.markSent}</button> : null}
       {project.status === "ACTIVE" ? <button type="button" disabled={pending} onClick={() => save("ABANDONED")}
