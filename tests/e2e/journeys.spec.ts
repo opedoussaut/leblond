@@ -635,7 +635,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
     await page.setViewportSize(size);
     for (const p of ["/home", "/climbing", "/session", "/session/new", "/projects", "/train", "/train/sessions", "/training-plans",
       "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
-      "/training-assessment", guidedSessionUrl]) {
+      "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
       const look = await page.evaluate(() => ({
@@ -674,4 +674,57 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("lb-pending-sets-")).length)).toBe(0);
   await page.reload();
   await expect(page.getByRole("listitem").filter({ hasText: /Série \d/ })).toHaveCount(2);
+});
+
+test("F — alter ego: sign a pact, train alongside it, pause and leave", async ({ page }) => {
+  await signInWithPassword(page, "guided@leblond.local");
+  await page.goto("/train");
+  await page.getByRole("link", { name: "Signer un pacte" }).click();
+  await expect(page).toHaveURL(/\/train\/alter-ego/);
+  await page.getByLabel("Nom de ton alter ego").fill("Double");
+  // The profile fills in the goal only: the form says what is missing.
+  await page.getByRole("button", { name: "Signer le pacte" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Pour chaque discipline" })).toBeVisible();
+  await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
+  await page.getByRole("button", { name: "Signer le pacte" }).click();
+  await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
+  await expect(page.getByText("L’écart n’est qu’un score.", { exact: false })).toBeVisible();
+
+  // The score is on the training page, and the ego trains through the running session.
+  await page.goto("/train");
+  await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
+  await page.getByRole("link", { name: /Reprendre/ }).click();
+  await expect(page.getByRole("timer")).toBeVisible();
+  const lane = page.getByRole("group", { name: "Double s’entraîne avec toi" });
+  await expect(lane).toBeVisible();
+  await expect(lane).toContainText(/Série|Repos|terminé/);
+
+  // Nothing overflows at the narrowest phone width.
+  await page.setViewportSize({ width: 360, height: 740 });
+  for (const p of ["/train/alter-ego", "/train"]) {
+    await page.goto(p);
+    await expect(page.locator("#app-main h1")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, p).toBeLessThanOrEqual(0);
+  }
+
+  // A pause freezes the ego, and it leaves the live session too.
+  await page.goto("/train/alter-ego");
+  await page.getByRole("button", { name: "Mettre le pacte en pause" }).click();
+  await expect(page.getByRole("button", { name: "Reprendre le pacte" })).toBeVisible();
+  await expect(page.getByText(/En pause/)).toBeVisible();
+  await page.goto("/train");
+  await page.getByRole("link", { name: /Reprendre/ }).click();
+  await expect(page.getByRole("timer")).toBeVisible();
+  await expect(page.getByRole("group", { name: "Double s’entraîne avec toi" })).toHaveCount(0);
+
+  // Leaving asks twice, then the page offers a new pact.
+  await page.goto("/train/alter-ego");
+  await page.getByRole("button", { name: "Reprendre le pacte" }).click();
+  await page.getByRole("button", { name: "Abandonner le pacte" }).click();
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
+  await page.getByRole("button", { name: "Abandonner le pacte" }).click();
+  await page.getByRole("button", { name: "Oui, abandonner" }).click();
+  await expect(page.getByRole("button", { name: "Signer le pacte" })).toBeVisible();
 });
