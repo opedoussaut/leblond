@@ -103,4 +103,4 @@ jobs:
                    otp_template_has_code: ((.mailer_templates_magic_link_content // "") | contains(".Token"))}'
       - name: Push migrations
         if: ${{ inputs.mode == 'push' || inputs.mode == 'repair' }}
-        run: supabase db push --linked -p "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --linked --yes -p "$SUPABASE_DB_PASSWORD"
