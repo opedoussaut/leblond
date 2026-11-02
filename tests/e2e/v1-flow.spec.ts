@@ -261,12 +261,12 @@ test("PWA manifest is installable", async ({ request }) => {
   expect((await request.get("/sw.js")).ok()).toBe(true);
 });
 
-// Runs last: the new-session page then opens on the Fontainebleau tab for Alex.
+// Runs last: the new-session page then opens on the outdoor tab for Alex.
 // Catalogue = tests/fixtures/boolder-sample.json (real Boolder rows, © Boolder, CC BY 4.0), loaded by CI.
 test("Fontainebleau session: Boolder topo, closures, lettered Font grades", async ({ page }) => {
   await signIn(page, ALEX);
   await page.goto("/session/new");
-  await page.getByRole("tab", { name: "Fontainebleau" }).click();
+  await page.getByRole("tab", { name: "Extérieur" }).click();
   await expect(page.getByText("Topo : © Boolder").first()).toBeVisible();
 
   // A closed area asks for confirmation and shows Boolder's warning.
@@ -328,4 +328,29 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
 
   await page.goto("/settings/connections");
   await expect(page.getByText("Topo chargé")).toBeVisible();
+});
+
+// Follows the Fontainebleau test: Alex last climbed outdoors, so the page opens on that tab.
+test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/session/new");
+  await expect(page.getByRole("tab", { name: "Extérieur" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("link", { name: /Dampierre Maincourt sur bleau.info/ })).toHaveAttribute("href", "https://bleau.info/maincourt");
+  await page.getByRole("button", { name: /Dampierre Maincourt/ }).click();
+  await expect(page.getByRole("heading", { name: "Dampierre Maincourt" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Quel bloc ?" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "6A", exact: true }).click();
+  const current = page.getByRole("region", { name: "Bloc en cours" });
+  await current.getByRole("button", { name: "Top", exact: true }).click();
+  await expect(page.getByText(/noté./)).toBeVisible();
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+
+  // The site stays out of the gym list.
+  await page.goto("/session/new?where=gym");
+  await expect(page.getByRole("tab", { name: "Salle" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("button", { name: /Dampierre Maincourt/ })).toHaveCount(0);
+  await expect(page.getByRole("option", { name: /Dampierre Maincourt/ })).toHaveCount(0);
 });

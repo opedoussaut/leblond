@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GymPicker } from "@/components/climbing/gym-picker";
-import { AreaPicker, type AreaItem } from "@/components/climbing/outdoor";
+import { OutdoorPicker, type AreaItem } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -18,13 +18,13 @@ import { fieldClass as field } from "@/components/ui/field";
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
 
 /** Create a finished session after the fact, then fill it in on the edit page. */
-export function PastSession({ gyms, favouriteIds, areas }: {
-  gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[];
+export function PastSession({ gyms, favouriteIds, areas, sites }: {
+  gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[]; sites: Tables<"gyms">[];
 }) {
   const { t, locale } = useI18n();
   const e = sessionEditDictionary(locale);
   const router = useRouter();
-  const [where, setWhere] = useState<"gym" | "bleau">("gym");
+  const [where, setWhere] = useState<"gym" | "outdoor">("gym");
   const [place, setPlace] = useState<Place | null>(null);
   const now = utcToZoned(new Date());
   // Default start: two hours ago, rounded down to the quarter-hour (always in the past).
@@ -101,15 +101,16 @@ export function PastSession({ gyms, favouriteIds, areas }: {
       </form>
     ) : <>
       <div role="group" aria-label={e.where} className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1">
-        {(["gym", "bleau"] as const).map((w) => <button key={w} type="button" aria-pressed={where === w} onClick={() => setWhere(w)}
+        {(["gym", "outdoor"] as const).map((w) => <button key={w} type="button" aria-pressed={where === w} onClick={() => setWhere(w)}
           className={cn("min-h-11 rounded-xl text-sm font-bold", where === w ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
-          {w === "gym" ? e.gymTab : e.bleauTab}</button>)}
+          {w === "gym" ? e.gymTab : e.outdoorTab}</button>)}
       </div>
       {where === "gym"
         ? <GymPicker mode="pick" gyms={gyms} favouriteIds={favouriteIds}
           onPick={(g) => choose({ id: g.id, name: g.name, hasBouldering: g.has_bouldering, hasRoutes: g.has_routes })} />
-        : <AreaPicker areas={areas} favouriteGymIds={favouriteIds}
-          onPick={(a) => choose({ id: a.gym_id, name: a.name, hasBouldering: true, hasRoutes: false })} />}
+        : <OutdoorPicker sites={sites} areas={areas} favouriteGymIds={favouriteIds}
+          onPickSite={(s) => choose({ id: s.id, name: s.name, hasBouldering: s.has_bouldering, hasRoutes: s.has_routes })}
+          onPickArea={(a) => choose({ id: a.gym_id, name: a.name, hasBouldering: true, hasRoutes: false })} />}
     </>}
   </div>;
 }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GymPicker } from "@/components/climbing/gym-picker";
-import { AreaPicker, type AreaItem } from "@/components/climbing/outdoor";
+import { OutdoorPicker, type AreaItem } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -17,12 +17,14 @@ export function StartSession({
   gyms,
   favouriteIds,
   areas,
+  sites,
   initialTab,
 }: {
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
   areas: AreaItem[];
-  initialTab: "gym" | "bleau" | "past";
+  sites: Tables<"gyms">[];
+  initialTab: "gym" | "outdoor" | "past";
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -30,7 +32,7 @@ export function StartSession({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState(false);
-  const [tab, setTab] = useState<"gym" | "bleau" | "past">(initialTab);
+  const [tab, setTab] = useState<"gym" | "outdoor" | "past">(initialTab);
   const e = sessionEditDictionary(locale);
 
   const begin = (gymId: string, discipline: "BOULDER" | "ROUTE" = "BOULDER") =>
@@ -46,7 +48,7 @@ export function StartSession({
         {(
           [
             ["gym", t.outdoor.tabGym],
-            ["bleau", t.outdoor.tabBleau],
+            ["outdoor", t.outdoor.tabOutdoor],
             ["past", e.pastTab],
           ] as const
         ).map(([key, label]) => (
@@ -67,7 +69,7 @@ export function StartSession({
       </div>
       {error ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
       {tab === "past" ? (
-        <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} />
+        <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} />
       ) : tab === "gym" ? (
         <>
           <GymPicker mode="pick" gyms={gyms} favouriteIds={favouriteIds} pending={pending}
@@ -92,7 +94,8 @@ export function StartSession({
           ) : null}
         </>
       ) : (
-        <AreaPicker areas={areas} favouriteGymIds={favouriteIds} pending={pending} onPick={(a) => begin(a.gym_id)} />
+        <OutdoorPicker sites={sites} areas={areas} favouriteGymIds={favouriteIds} pending={pending}
+          onPickSite={(s) => begin(s.id)} onPickArea={(a) => begin(a.gym_id)} />
       )}
     </div>
   );

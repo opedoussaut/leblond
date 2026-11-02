@@ -33,6 +33,13 @@ Boolder publishes its Fontainebleau topo as open data (SQLite `boolder.db`, http
 
 Import: GitHub Actions → **Import Boolder (Fontainebleau)** (`.github/workflows/import-boolder.yml`), or locally `npx tsx scripts/import-boolder.ts --db boolder.db` (service role). `tests/fixtures/boolder-sample.json` holds 39 real rows for tests and local development.
 
+## Other outdoor sites
+
+Sites Boolder does not cover are single rows in `gyms`, added by migration with `external_provider = 'LEBLOND'` (see `20261102000001_outdoor_sites.sql`). They appear in the outdoor tab, not in the gym list, and work even if the Boolder catalogue was never imported.
+
+- **Dampierre Maincourt:** bouldering on the Font scale. There is no topo, so the climber logs each problem by grade.
+- **bleau.info:** link only, opened in a new tab. Nothing is copied or scraped.
+
 ## Policy
 
 - Official/authorised APIs only. No scraping, no reverse engineering.
