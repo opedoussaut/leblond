@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { assessmentInputSchema, checkinInputSchema, elapsedWeeks } from "@/lib/training/assessment";
+import { MAX_ASSESSMENTS, assessmentInputSchema, checkinInputSchema, elapsedWeeks } from "@/lib/training/assessment";
 import { PROTOCOL_VERSION } from "@/lib/training/assessment-protocol";
 
 type Result = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "not_found" | "unknown" };
@@ -15,7 +15,7 @@ export async function createTrainingAssessment(input: unknown): Promise<Result> 
   const { count, error: countError } = await viewer.supabase.from("training_assessments")
     .select("id", { count: "exact", head: true });
   if (countError) return { ok: false, error: "unknown" };
-  if ((count ?? 0) >= 12) return { ok: false, error: "limit" };
+  if ((count ?? 0) >= MAX_ASSESSMENTS) return { ok: false, error: "limit" };
 
   const { methodId, ratings, horizonWeeks, sessionsPerWeek, goal, kind, measurements, context } = parsed.data;
   const structured = kind !== undefined;
@@ -29,9 +29,7 @@ export async function createTrainingAssessment(input: unknown): Promise<Result> 
     })
     .select("id").single();
   if (error || !data) return { ok: false, error: "unknown" };
-  revalidatePath("/training-assessment");
-  revalidatePath("/train/assess");
-  revalidatePath("/follow-up");
+  revalidateAssessments();
   return { ok: true, id: data.id };
 }
 
@@ -71,6 +69,23 @@ export async function deleteTrainingAssessment(id: string): Promise<{ ok: boolea
   const { error } = await viewer.supabase.from("training_assessments")
     .delete().eq("id", id).eq("user_id", viewer.userId);
   if (error) return { ok: false };
-  revalidatePath("/training-assessment");
+  revalidateAssessments();
   return { ok: true };
+}
+
+/** Clears the climber's assessments and, by cascade, their check-ins. The climbing journal is untouched. */
+export async function resetTrainingAssessments(confirmation: unknown): Promise<{ ok: boolean }> {
+  const viewer = await requireViewer();
+  if (confirmation !== "RESET") return { ok: false };
+  const { error } = await viewer.supabase.from("training_assessments")
+    .delete().eq("user_id", viewer.userId);
+  if (error) return { ok: false };
+  revalidateAssessments();
+  return { ok: true };
+}
+
+function revalidateAssessments() {
+  revalidatePath("/training-assessment");
+  revalidatePath("/train/assess");
+  revalidatePath("/follow-up");
 }

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { AssessmentWorkspace } from "@/components/training/assessment-workspace";
-import { computeSnapshot } from "@/lib/analytics";
+import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
+import { loadRouteAscents } from "@/lib/data/routes";
 import { getI18n } from "@/lib/i18n/server";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
-import { skillRatingsSchema, type SavedAssessment, type SavedCheckin } from "@/lib/training/assessment";
+import { MAX_ASSESSMENTS, skillRatingsSchema, type SavedAssessment, type SavedCheckin } from "@/lib/training/assessment";
 import { workingGradeHistory } from "@/lib/training/grade-history";
 import { gradeToScore } from "@/lib/grading";
 import { observedEvidence } from "@/lib/training/assessment-protocol";
@@ -19,14 +20,15 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const a = assessmentDictionary(locale);
 
-  const [{ data: assessments, error: assessmentError }, { data: checkins, error: checkinsError }, dataset] = await Promise.all([
+  const [{ data: assessments, error: assessmentError }, { data: checkins, error: checkinsError }, dataset, routes] = await Promise.all([
     viewer.supabase.from("training_assessments")
       .select("id, method_id, ratings, horizon_weeks, sessions_per_week, goal, kind, measurements, context, created_at")
-      .order("created_at", { ascending: false }).limit(12),
+      .order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
     viewer.supabase.from("training_checkins")
       .select("id, assessment_id, week, ratings, notes, created_at")
-      .order("week", { ascending: true }).limit(300),
+      .order("week", { ascending: true }).limit(1000),
     loadClimbingDataset(viewer.supabase),
+    loadRouteAscents(viewer.supabase),
   ]);
 
   const saved: SavedAssessment[] = (assessments ?? []).flatMap(record => {
@@ -65,11 +67,24 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
     sends28d: recent.counts.tops, flashes28d: recent.counts.flashes,
     workingGrade: snapshot.workingGrade.level, workingSample: snapshot.workingGrade.sampleSize,
   });
-  const gradeObservation = working.level
-    ? { label: String(working.system), level: working.level, sampleSize: working.sampleSize }
+  const routeWorking = routeWorkingGrade(routes ?? [], new Date());
+  const boulderObserved = working.level
+    ? { level: working.level + " · " + working.system, sample: working.sampleSize }
     : snapshot.workingGrade.level
-      ? { label: "FONT (reliable estimates)", level: snapshot.workingGrade.level, sampleSize: snapshot.workingGrade.sampleSize }
-      : null;
+      ? { level: snapshot.workingGrade.level + " · " + a.levelFontEstimate, sample: snapshot.workingGrade.sampleSize }
+      : { level: null, sample: 0 };
+  // Boulder and route levels stay side by side: one is never converted into the other.
+  const discipline = viewer.profile.target_discipline;
+  const levels = {
+    boulder: {
+      declared: viewer.profile.self_reported_level, observed: boulderObserved.level, sample: boulderObserved.sample,
+      target: discipline === "ROUTE" ? null : viewer.profile.target_grade,
+    },
+    route: {
+      declared: viewer.profile.self_reported_route_grade, observed: routeWorking.grade, sample: routeWorking.sampleSize,
+      target: discipline === "BOULDER" ? null : viewer.profile.target_route_grade,
+    },
+  };
 
   const history = Object.fromEntries(saved.map(item => [item.id,
     workingGradeHistory(dataset, viewer.profile.target_grade_system, item.createdAt, item.horizonWeeks, new Date()),
@@ -98,7 +113,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
       {assessmentError || checkinsError
         ? <p role="alert" className="mt-6 rounded-xl border border-warn p-4 text-sm">{a.savedAccess} — database migration may be missing.</p>
         : <AssessmentWorkspace locale={locale} initialAssessments={saved} initialCheckins={entries}
-          gradeObservation={gradeObservation} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
+          levels={levels} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
           today={localDate_(new Date())} observedEvidence={observed}
           defaults={{ discipline: viewer.profile.target_discipline === "ROUTE" || viewer.profile.target_discipline === "BOTH" ? viewer.profile.target_discipline : "BOULDER",
             sessionsPerWeekNow: Math.round(recent.counts.sessions / 4) }}
