@@ -51,7 +51,7 @@ export function SessionDetailsForm({
       <form action={action} className="space-y-4">
         <SectionTitle>{t.session.feelings}</SectionTitle>
         <p className="text-xs text-ink-3">{t.session.scaleHint}</p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ScaleInput name="perceivedEnergyBefore" label={t.session.energyBefore} value={initial.perceivedEnergyBefore} />
           <ScaleInput name="perceivedEnergyAfter" label={t.session.energyAfter} value={initial.perceivedEnergyAfter} />
           <ScaleInput name="fatigue" label={t.session.fatigue} value={initial.fatigue} />

@@ -34,7 +34,7 @@ export function GradeChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-bold tracking-wide",
+        "inline-flex items-center gap-1.5 font-bold tracking-[0.12em]",
         // Font grades are case-sensitive (4b ≠ 4B-style notation): never upper-case them.
         system !== "FONT" && system !== "BLOCKOUT_LEVEL" && "uppercase",
         text,

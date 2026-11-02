@@ -44,13 +44,13 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
     });
   }
 
-  return <section aria-labelledby="quick-entry" className="space-y-4 rounded-3xl border-2 border-accent/40 bg-surface p-4">
+  return <section aria-labelledby="quick-entry" className="space-y-4 rounded-2xl border-2 border-accent/40 bg-surface p-4">
     <div className="flex items-start justify-between gap-2">
       <div>
         <h2 id="quick-entry" className="font-extrabold">⚡ {L.quickTitle}</h2>
         <p className="text-xs text-ink-3">{L.quickHint}</p>
       </div>
-      <button type="button" onClick={onClose} className="min-h-10 rounded-full px-3 text-sm font-bold text-ink-2">{t.common.cancel}</button>
+      <button type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm font-bold text-ink-2">{t.common.cancel}</button>
     </div>
     <fieldset>
       <legend className="text-sm font-bold">{t.session.pickGrade}</legend>
@@ -60,7 +60,7 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
           className={cn("flex min-h-12 flex-col items-center justify-center rounded-xl border px-1 text-xs font-extrabold",
             isColorSystem(system) && "uppercase", grade === g.id ? "ring-4 ring-accent ring-offset-2" : "border-line")}>
           <span>{isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}</span>
-          {fontRangeFor(system, g.id) ? <span className="text-[10px] font-medium normal-case opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
+          {fontRangeFor(system, g.id) ? <span className="text-xs font-medium normal-case opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
         </button>)}
       </div>
     </fieldset>

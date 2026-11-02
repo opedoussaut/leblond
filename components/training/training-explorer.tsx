@@ -54,7 +54,7 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
             key={item}
             onClick={() => pickCategory(item)}
             aria-pressed={category === item}
-            className={"rounded-full border px-5 py-2.5 text-sm font-bold transition-colors " + (category === item ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2 hover:border-accent")}
+            className={"min-h-11 rounded-full border px-5 py-2 text-sm font-bold transition-colors " + (category === item ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2 hover:border-accent")}
           >
             {t.groups[item]} <span className="opacity-70">({TRAINING_CATALOGUE.filter((entry) => entry.category === item).length})</span>
           </button>
@@ -63,10 +63,10 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
       <AtlasRadar entries={selectedEntries} locale={locale} heading={t.compare} />
       <div className="mt-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-black">{t.groups[category]}</h2>
+          <h2 className="text-lg font-black">{t.groups[category]}</h2>
           <p className="text-sm text-ink-3">{selected.length}/3 {t.selected} · {t.max}</p>
         </div>
-        <button type="button" className="text-sm font-semibold text-accent underline underline-offset-4" onClick={() => setSelected([])}>{t.clear}</button>
+        <button type="button" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline underline-offset-4" onClick={() => setSelected([])}>{t.clear}</button>
       </div>
       <div className="my-5 flex flex-col gap-3 sm:flex-row">
         <input
@@ -87,14 +87,14 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
         </select>
       </div>
       {visible.length === 0 ? <p className="rounded-2xl border border-line p-8 text-center text-ink-3">{t.noResults}</p> : null}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((entry) => {
           const active = selected.includes(entry.id);
           const disabled = !active && selected.length >= 3;
           return (
             <article key={entry.id} className={"flex flex-col rounded-2xl border bg-surface p-5 " + (active ? "border-accent" : "border-line")}>
               <div className="flex items-start justify-between gap-3">
-                <span className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-ink-2">
+                <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-2">
                   {t.evidence[entry.evidence]}
                 </span>
                 <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-ink-2">
@@ -115,7 +115,7 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
                 </Link>
               </h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-2">{entry.description[locale]}</p>
-              {entry.caution ? <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-xs leading-relaxed text-ink-2">{entry.caution[locale]}</p> : null}
+              {entry.caution ? <p className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-xs leading-relaxed text-ink-2">{entry.caution[locale]}</p> : null}
               <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
                 <span className="text-xs font-semibold text-ink-3">{t.goals[entry.goals[0]]}</span>
                 <div className="flex flex-wrap items-center gap-3">

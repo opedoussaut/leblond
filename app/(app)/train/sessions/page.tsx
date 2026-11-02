@@ -30,7 +30,7 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
     <Link href={"/train/sessions/" + s.id}
       className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent">
       <span className="min-w-0">
-        <strong className="block truncate">{s.title}</strong>
+        <strong className="line-clamp-2 block">{s.title}</strong>
         <span className="text-xs text-ink-2">
           {t.status[s.status]}
           {s.scheduledDate ? " · " + formatDate(s.scheduledDate + "T12:00:00", locale, { weekday: "short", day: "numeric", month: "short" }) : ""}
@@ -51,13 +51,13 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
       <ul className="space-y-2">{live.map((s) => row(s, t.resume))}</ul>
     </section> : null}
 
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
       <section aria-labelledby="new-heading" className="leblond-premium-surface p-5 sm:p-6">
-        <h2 id="new-heading" className="text-xl font-extrabold">{t.newSession}</h2>
+        <h2 id="new-heading" className="text-lg font-extrabold">{t.newSession}</h2>
         <p className="mt-1 text-sm text-ink-2">{t.newSessionHint}</p>
         <div className="mt-4"><QuickSessionForm locale={locale} today={today} presetMethod={presetMethod} /></div>
         <details className="mt-6 border-t border-line pt-4">
-          <summary className="min-h-10 cursor-pointer text-base font-extrabold text-accent">+ {t.pastTitle}</summary>
+          <summary className="min-h-11 cursor-pointer text-base font-extrabold text-accent">+ {t.pastTitle}</summary>
           <p className="mt-1 text-sm text-ink-2">{t.pastHint}</p>
           <div className="mt-4"><PastTrainingForm locale={locale} today={today} /></div>
         </details>

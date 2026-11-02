@@ -7,6 +7,7 @@ import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { localDate_ } from "@/lib/training/sessions";
+import { buttonClass } from "@/components/ui/button";
 
 export const metadata = { title: "LEBLOND — Training journey" };
 
@@ -51,9 +52,9 @@ export default async function TrainingHome() {
       title={fr ? "S’entraîner" : "Training"}
       subtitle={fr ? "Évaluer, préparer, réaliser et planifier ton entraînement." : "Assess, prepare, execute and schedule your training."}/>
 
-    <section aria-labelledby="today-heading" className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <div className="rounded-[1.5rem] border border-accent/30 bg-accent-soft p-5 sm:p-6">
-        <h2 id="today-heading" className="text-xs font-extrabold uppercase tracking-[0.13em] text-accent">
+    <section aria-labelledby="today-heading" className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
+        <h2 id="today-heading" className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">
           {live ? (fr ? "Séance en cours" : "Session in progress") : (fr ? "Prochaine séance" : "Next session")}
         </h2>
         {featured ? <>
@@ -63,7 +64,7 @@ export default async function TrainingHome() {
             {featured.plannedMinutes ? ` · ${featured.plannedMinutes} min` : ""}
           </p>
           <Link href={"/train/sessions/" + featured.id}
-            className="mt-4 inline-flex min-h-12 items-center rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink">
+            className={buttonClass("primary", "md", "mt-4")}>
             {live ? (fr ? "Reprendre" : "Resume") : (fr ? "Ouvrir et démarrer" : "Open and start")} →
           </Link>
         </> : <>
@@ -76,7 +77,7 @@ export default async function TrainingHome() {
           <h2 className="text-lg font-extrabold">{fr ? "Séance ponctuelle" : "One-off session"}</h2>
           <p className="mt-1 text-sm text-ink-2">{fr ? "Pas besoin de programme : choisis une méthode et commence." : "No plan needed: pick a method and go."}</p>
         </div>
-        <Link href="/train/sessions" className="inline-flex min-h-12 items-center justify-center rounded-full border border-line bg-surface px-5 text-sm font-bold text-accent hover:bg-accent-soft">
+        <Link href="/train/sessions" className={buttonClass("secondary", "md")}>
           {fr ? "Nouvelle séance d’entraînement" : "New training session"} +
         </Link>
       </div>
@@ -84,10 +85,10 @@ export default async function TrainingHome() {
 
     <section aria-labelledby="journey-heading" className="space-y-4">
       <h2 id="journey-heading" className="text-lg font-extrabold">{fr ? "Mon parcours, étape par étape" : "My journey, step by step"}</h2>
-      <ol className="grid gap-3 sm:grid-cols-2">
+      <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {steps.map((step) => <li key={step.no}>
           <Link href={step.href}
-            className="group flex h-full gap-4 rounded-[1.5rem] border border-line bg-surface p-5 transition-colors hover:border-accent">
+            className="group flex h-full gap-4 rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent">
             <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums " +
               (step.done ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent")} aria-hidden="true">{step.done ? "✓" : step.no}</span>
             <span className="block">
@@ -99,7 +100,7 @@ export default async function TrainingHome() {
       </ol>
     </section>
 
-    <section className="grid gap-4 sm:grid-cols-3" aria-label={fr ? "Ressources" : "Resources"}>
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-label={fr ? "Ressources" : "Resources"}>
       <AreaCard href="/atlas" icon={<AtlasIcon />} title="Training Atlas"
         description={fr ? "Fiches de méthodes, comparaisons et sources." : "Method sheets, comparisons and sources."}/>
       <AreaCard href="/calendar" icon={<CalendarIcon />} title={fr ? "Calendrier" : "Calendar"}

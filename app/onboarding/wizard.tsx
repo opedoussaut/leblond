@@ -70,7 +70,7 @@ export function OnboardingWizard({
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-3">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
         {fmt(t.onboarding.stepOf, { n: step, total: TOTAL })}
       </p>
       <div className="mt-1 h-1 rounded-full bg-surface-2" aria-hidden>
@@ -80,7 +80,7 @@ export function OnboardingWizard({
       <div className="mt-8 space-y-5">
         {step === 1 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.languageTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.languageTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.languageHelp}</p>
             <LanguagePicker
               legend={t.onboarding.languageTitle}
@@ -92,7 +92,7 @@ export function OnboardingWizard({
 
         {step === 2 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.whoTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.whoTitle}</h1>
             <div>
               <Label htmlFor="ob-name">{t.onboarding.displayName}</Label>
               <Input id="ob-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
@@ -102,7 +102,7 @@ export function OnboardingWizard({
 
         {step === 3 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.levelTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.levelTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.levelHelp}</p>
             <fieldset className="space-y-3 rounded-2xl border border-line bg-surface p-4">
               <legend className="px-2 font-bold">{t.onboarding.boulderLevel}</legend>
@@ -129,7 +129,7 @@ export function OnboardingWizard({
 
         {step === 4 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.targetTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.targetTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.targetHelp}</p>
             <GoalSelect idPrefix="ob-target"
               discipline={targetDiscipline} onDisciplineChange={setTargetDiscipline}
@@ -153,7 +153,7 @@ export function OnboardingWizard({
 
         {step === 5 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.gymsTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.gymsTitle}</h1>
             <p className="text-sm text-ink-2">{t.onboarding.gymsHelp}</p>
             <GymPicker
               mode="multi"
@@ -169,7 +169,7 @@ export function OnboardingWizard({
 
         {step === 6 ? (
           <>
-            <h1 className="text-2xl font-black">{t.onboarding.wearableTitle}</h1>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t.onboarding.wearableTitle}</h1>
             <p className="text-ink-2">{t.onboarding.wearableHelp}</p>
           </>
         ) : null}

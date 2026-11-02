@@ -47,7 +47,7 @@ export default async function ProjectsPage() {
                   {p.problems ? (
                     <GradeChip t={t} system={p.problems.native_grade_system} grade={p.problems.native_grade} showFont />
                   ) : null}
-                  <span className="text-xs font-bold uppercase tracking-wider text-ink-3">{t.projects.status[p.status]}</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.projects.status[p.status]}</span>
                 </div>
                 <p className="mt-1 font-semibold">{p.problems?.name || t.problem.unnamed}</p>
                 <p className="text-sm text-ink-3">
@@ -69,7 +69,7 @@ export default async function ProjectsPage() {
             <Link href={`/projects/routes/${p.id}`} className="block rounded-2xl border border-line bg-surface p-4 hover:bg-surface-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-lg font-black tabular-nums">{p.grade}</span>
-                <span className="text-xs font-bold uppercase tracking-wider text-ink-3">{r.projectStatus[p.status]}</span>
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{r.projectStatus[p.status]}</span>
               </div>
               <p className="mt-1 font-semibold">{p.route_name}</p>
               <p className="text-sm text-ink-3">
@@ -80,7 +80,7 @@ export default async function ProjectsPage() {
           </li>)}
         </ul> : <p className="text-sm text-ink-2">{r.noProjects}</p>}
         <details className="rounded-2xl border border-line bg-surface p-4">
-          <summary className="min-h-10 cursor-pointer font-bold text-accent">+ {r.newProject}</summary>
+          <summary className="min-h-11 cursor-pointer font-bold text-accent">+ {r.newProject}</summary>
           <div className="mt-3"><RouteProjectForm gyms={routeGyms} /></div>
         </details>
       </section>

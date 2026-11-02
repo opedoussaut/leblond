@@ -58,7 +58,7 @@ export function LanguagePicker({
                 onChange={() => onChange(option.value)}
               />
               <div className="mb-4 flex w-full items-center justify-between gap-2">
-                <span aria-hidden="true" className="rounded-lg border border-line/70 bg-surface/80 px-2.5 py-1.5 text-xs font-bold tracking-[0.15em] text-ink-2">
+                <span aria-hidden="true" className="rounded-xl border border-line/70 bg-surface/80 px-2.5 py-1.5 text-xs font-bold tracking-[0.12em] text-ink-2">
                   {option.code}
                 </span>
                 <span

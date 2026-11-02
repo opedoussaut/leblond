@@ -37,7 +37,7 @@ export default async function SessionsPage() {
       <PageHeader title={t.session.title} />
       {live ? (
         <Card className="border-accent">
-          <p className="text-xs font-bold uppercase tracking-wider text-ok">● {t.session.active}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok">● {t.session.active}</p>
           <p className="mt-1 font-semibold">{live.gyms?.name}</p>
           <LinkButton href={`/session/${live.id}`} size="lg" className="mt-3 w-full">
             {t.session.resume}

@@ -43,7 +43,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
       <p className="leblond-eyebrow text-accent">{t.status[session.status]}
         {session.scheduledDate ? " · " + formatDate(session.scheduledDate + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) : ""}
         {session.scheduledTime ? " · " + session.scheduledTime : ""}</p>
-      <h1 className="mt-2 text-3xl font-black tracking-tight">{session.title}</h1>
+      <h1 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">{session.title}</h1>
       {session.objective ? <p className="mt-2 text-sm text-ink-2"><strong>{t.objective} :</strong> {session.objective}</p> : null}
       <p className="mt-1 text-xs text-ink-3">
         {session.plannedMinutes ? `${t.planned} : ${session.plannedMinutes} ${t.minutesShort}` : ""}

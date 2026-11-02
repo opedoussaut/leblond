@@ -17,6 +17,7 @@ import type { StyleTag } from "@/lib/climbing/types";
 import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
+import { buttonClass } from "@/components/ui/button";
 
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
@@ -75,15 +76,15 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{t.session.summaryTitle}</p>
-          <h1 className="mt-1 text-xl font-black">{view.session.title || view.gym.name}</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{t.session.summaryTitle}</p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{view.session.title || view.gym.name}</h1>
           {view.session.title ? <p className="text-sm font-semibold text-ink-2">{view.gym.name}</p> : null}
           <p className="text-sm text-ink-3">
             {formatDateTime(view.session.started_at, locale)} · {t.session.source}: {t.session.sourceManual}
           </p>
         </div>
         <Link href={`/session/${view.session.id}/edit`}
-          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-surface px-4 text-sm font-bold text-accent">
+          className={buttonClass("secondary", "md", "shrink-0")}>
           ✎ {sessionEditDictionary(locale).edit}
         </Link>
       </header>

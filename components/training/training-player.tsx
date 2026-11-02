@@ -13,6 +13,7 @@ import {
   activeSeconds, formatClock, pick, restRemaining,
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
 } from "@/lib/training/sessions";
+import { buttonClass } from "@/components/ui/button";
 
 type ClimbOption = { id: string; label: string };
 const inputClass = "mt-1 block w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg font-bold tabular-nums text-ink";
@@ -214,14 +215,14 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
   const instr = current.instructions;
 
   return <div className="space-y-5 pb-6">
-    <section aria-label={t.player} className="sticky top-0 z-20 -mx-4 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:rounded-[1.5rem] md:border md:bg-surface md:px-5">
+    <section aria-label={t.player} className="sticky top-0 z-20 -mx-4 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:rounded-2xl md:border md:bg-surface md:px-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{pausedAt ? t.paused : t.elapsed}</p>
           <p className="text-3xl font-black tabular-nums tracking-tight" role="timer" aria-live="off">{formatClock(elapsed)}</p>
         </div>
         <button type="button" onClick={togglePause} aria-pressed={!!pausedAt}
-          className="min-h-14 rounded-full border border-line bg-surface px-6 text-base font-extrabold text-accent">
+          className={buttonClass("secondary", "md")}>
           {pausedAt ? "▶ " + t.resumeTimer : "❚❚ " + t.pause}
         </button>
       </div>
@@ -236,7 +237,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       </p>
     </section>
 
-    {rest > 0 ? <section role="status" aria-live="polite" className="rounded-[1.5rem] border border-accent/30 bg-accent-soft p-5 text-center">
+    {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">
       <p className="text-sm font-bold uppercase tracking-[0.12em] text-accent">{t.restTimer}</p>
       <p className="mt-1 text-5xl font-black tabular-nums text-accent">{formatClock(rest)}</p>
       <button type="button" onClick={clearRest} className="mt-3 min-h-12 rounded-full border border-accent/30 bg-surface px-5 text-sm font-bold text-accent">{t.skipRest}</button>
@@ -249,7 +250,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
       <details className="mt-3 rounded-xl border border-line bg-surface-2 p-3">
-        <summary className="min-h-10 cursor-pointer text-sm font-bold text-accent">{t.howTo}</summary>
+        <summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{t.howTo}</summary>
         <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
           {(instr.steps ?? []).map((s, i) => <li key={i}>{pick(s, locale)}</li>)}
         </ol>
@@ -272,7 +273,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
                     s.loadKg !== null ? `${s.loadKg > 0 ? "+" : ""}${s.loadKg} kg` : null].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <button type="button" onClick={() => removeSet(s.setIndex)} className="min-h-10 rounded-lg px-3 text-xs font-bold text-danger">{t.removeSet}</button>
+              <button type="button" onClick={() => removeSet(s.setIndex)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{t.removeSet}</button>
             </li>)}
           </ul>}
       </div>
@@ -280,7 +281,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
 
     {notice ? <p role="status" className="text-center text-sm font-semibold text-ink-2">{notice}</p> : null}
 
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <button type="button" onClick={nextExercise}
         className="min-h-16 w-full rounded-2xl bg-ink px-6 text-lg font-black text-surface">
         {index < exercises.length - 1 ? t.next + " →" : t.finish}
@@ -309,7 +310,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs }: 
 
     {finishing ? <FinishForm locale={locale} sessionId={session.id} climbs={climbs} onCancel={() => setFinishing(false)} onDone={() => { clearRest(); router.refresh(); }} />
       : <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={() => setFinishing(true)} className="min-h-12 rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink">{t.finish}</button>
+        <button type="button" onClick={() => setFinishing(true)} className={buttonClass("primary", "md")}>{t.finish}</button>
         <button type="button" onClick={stopEarly} className="min-h-12 rounded-full px-4 text-sm font-bold text-danger underline underline-offset-4">{t.stopEarly}</button>
       </div>}
   </div>;
@@ -335,7 +336,7 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
     });
   }
   return <form onSubmit={submit} className="leblond-premium-surface space-y-4 p-5" aria-labelledby="finish-title">
-    <h2 id="finish-title" className="text-xl font-black">{t.finishTitle}</h2>
+    <h2 id="finish-title" className="text-lg font-black">{t.finishTitle}</h2>
     <p className="text-sm text-ink-2">{t.finishHint}</p>
     <fieldset>
       <legend className="text-sm font-semibold">{t.rpe}</legend>
@@ -364,7 +365,7 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
     </label> : null}
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
     <div className="flex flex-wrap gap-3">
-      <button type="submit" disabled={pending} className="min-h-14 flex-1 rounded-2xl bg-accent px-6 text-base font-black text-accent-ink disabled:opacity-60">
+      <button type="submit" disabled={pending} className={buttonClass("primary", "md", "flex-1")}>
         {pending ? t.saving : t.confirmFinish}
       </button>
       <button type="button" onClick={onCancel} className="min-h-14 rounded-2xl border border-line px-5 text-sm font-bold">{t.previous}</button>
@@ -410,7 +411,7 @@ function SetLogger({ locale, exercise, onLog }: {
       ) : null}
     </div>
     <button type="button" onClick={submit}
-      className="mt-4 min-h-16 w-full rounded-2xl bg-accent px-6 text-lg font-black text-accent-ink active:scale-[0.99]">
+      className={buttonClass("primary", "md", "mt-4 w-full text-lg active:scale-[0.99]")}>
       ✓ {t.logSet}
     </button>
   </>;

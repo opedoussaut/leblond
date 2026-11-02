@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
+import { buttonClass } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Training Lab",
@@ -21,16 +22,16 @@ export default async function TrainingLabPage() {
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6">
       <header className="flex items-center justify-between gap-4 border-b border-line pb-5">
         <Link href="/" aria-label="LEBLOND home"><Wordmark /></Link>
-        <Link href="/training-plans" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink hover:opacity-90">
+        <Link href="/training-plans" className={buttonClass("primary", "sm")}>
           {t.myPlans}
         </Link>
       </header>
       <section className="py-10 sm:py-16">
-        <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-accent">{t.eyebrow}</p>
+        <p className="mb-3 text-xs font-black uppercase tracking-[0.12em] text-accent">{t.eyebrow}</p>
         <h1 className="max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{t.title}</h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">{t.subtitle}</p>
       </section>
-      <section className="mb-8 grid gap-3 sm:grid-cols-2">
+      <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link href="/training/evaluate" className="rounded-2xl border border-accent bg-accent-soft p-5 text-ink hover:opacity-90">
           <p className="text-lg font-black">{a.publicEvaluate} →</p>
           <p className="mt-2 text-sm">{a.publicPrivacy}</p>
@@ -41,10 +42,10 @@ export default async function TrainingLabPage() {
         </Link>
       </section>
       <TrainingExplorer locale={locale} />
-      <section className="mt-12 rounded-3xl border border-line bg-surface p-6 sm:p-9">
+      <section className="mt-12 rounded-2xl border border-line bg-surface p-6 sm:p-9">
         <h2 className="text-2xl font-black">{t.saveIntro}</h2>
         <p className="mt-2 max-w-2xl text-ink-2">{t.saveDescription}</p>
-        <Link href="/training-plans" className="mt-5 inline-block rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink">
+        <Link href="/training-plans" className={buttonClass("primary", "md", "mt-5")}>
           {t.myPlans} →
         </Link>
       </section>

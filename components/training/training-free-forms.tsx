@@ -6,8 +6,9 @@ import { deleteTrainingSession, logPastTrainingSession, updateTrainingSession } 
 import type { Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
-const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink";
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
 
 /** A training session already done: type, date, total time, effort, free description. */
@@ -40,14 +41,14 @@ export function PastTrainingForm({ locale, today }: { locale: Locale; today: str
     <label className="block text-sm font-semibold">{t.sessionTitle}
       <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
     </label>
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <label className="text-sm font-semibold">{t.date}
         <input className={field} type="date" required max={today} value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
       <label className="text-sm font-semibold">{t.time}
         <input className={field} type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
-      <label className="text-sm font-semibold">{t.totalMinutes}
+      <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.totalMinutes}
         <input className={field} type="number" required min={5} max={480} step={5} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} />
       </label>
     </div>
@@ -58,7 +59,7 @@ export function PastTrainingForm({ locale, today }: { locale: Locale; today: str
       <textarea className={field} rows={4} maxLength={2000} placeholder={t.descriptionPlaceholder} value={notes} onChange={(e) => setNotes(e.target.value)} />
     </label>
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
-    <button type="submit" disabled={pending} className="min-h-12 rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink disabled:opacity-60">{t.record}</button>
+    <button type="submit" disabled={pending} className={buttonClass("primary", "md")}>{t.record}</button>
   </form>;
 }
 
@@ -78,7 +79,7 @@ export function EditTrainingForm({ locale, session, today }: {
   return <div className="space-y-3">
     <div className="flex flex-wrap gap-3">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold text-accent">{t.edit}</button>
+        className={buttonClass("secondary", "md")}>{t.edit}</button>
       <button type="button" disabled={pending}
         onClick={() => { if (window.confirm(t.deleteConfirm)) start(async () => { const r = await deleteTrainingSession(session.id); if (r.ok) router.push("/train/sessions"); else setError(t.error); }); }}
         className="min-h-12 rounded-full border border-danger/40 px-5 text-sm font-bold text-danger disabled:opacity-60">{t.delete}</button>
@@ -96,14 +97,14 @@ export function EditTrainingForm({ locale, session, today }: {
       <label className="block text-sm font-semibold">{t.sessionTitle}
         <input className={field} required maxLength={120} value={v.title} onChange={(e) => set("title", e.target.value)} />
       </label>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <label className="text-sm font-semibold">{t.date}
           <input className={field} type="date" required max={today} value={v.date} onChange={(e) => set("date", e.target.value)} />
         </label>
         <label className="text-sm font-semibold">{t.time}
           <input className={field} type="time" required value={v.time} onChange={(e) => set("time", e.target.value)} />
         </label>
-        <label className="text-sm font-semibold">{t.totalMinutes}
+        <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.totalMinutes}
           <input className={field} type="number" required min={5} max={480} value={v.minutes} onChange={(e) => set("minutes", Number(e.target.value))} />
         </label>
       </div>
@@ -118,7 +119,7 @@ export function EditTrainingForm({ locale, session, today }: {
       <label className="block text-sm font-semibold">{t.description}
         <textarea className={field} rows={4} maxLength={2000} placeholder={t.descriptionPlaceholder} value={v.notes} onChange={(e) => set("notes", e.target.value)} />
       </label>
-      <button type="submit" disabled={pending} className="min-h-12 rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink disabled:opacity-60">{t.saveChanges}</button>
+      <button type="submit" disabled={pending} className={buttonClass("primary", "md")}>{t.saveChanges}</button>
     </form> : null}
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
   </div>;

@@ -53,7 +53,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
         <p className="text-sm text-ink-3">
           {gym?.name} · {formatDateTime(problem.created_at, locale)}
         </p>
-        <h1 className="text-2xl font-black">{problem.name || t.problem.unnamed}</h1>
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           {meaning ? <span className="text-sm text-ink-3">{meaning}</span> : null}

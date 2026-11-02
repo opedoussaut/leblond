@@ -82,7 +82,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
         <Link href={backHref} className="text-sm font-bold text-accent underline underline-offset-4">← {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Suivi" : "Follow-up")}</Link>
         <Link href="/progress" className="text-sm font-bold text-accent underline underline-offset-4">{locale==="fr"?"Mes résultats":"My results"} →</Link>
       </div>
-      <h1 className="mt-6 text-3xl font-black tracking-tight">{doing
+      <h1 className="mt-6 text-2xl font-black tracking-tight md:text-3xl">{doing
         ? (locale === "fr" ? "Bilan d’entraînement" : "Training assessment")
         : (locale === "fr" ? "Bilans et évolution" : "Assessments and progress")}</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink-2">{doing

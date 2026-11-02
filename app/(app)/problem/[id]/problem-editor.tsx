@@ -105,7 +105,7 @@ export function ProblemEditor({
                   aria-pressed={on}
                   onClick={() => setTags((cur) => (on ? cur.filter((x) => x !== s) : [...cur, s]))}
                   className={cn(
-                    "min-h-10 rounded-full border px-3 text-sm",
+                    "min-h-11 rounded-full border px-3 text-sm",
                     on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
                   )}
                 >

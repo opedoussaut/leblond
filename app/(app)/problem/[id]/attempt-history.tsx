@@ -34,11 +34,11 @@ export function AttemptHistory({ attempts }: { attempts: Tables<"attempts">[] })
           <li key={a.id} className="py-2">
             <div className="flex items-center gap-3">
               <span className="w-8 text-sm tabular-nums text-ink-3">#{a.attempt_number}</span>
-              <span className="font-bold uppercase tracking-wide">{t.results[a.result]}</span>
+              <span className="font-bold uppercase tracking-[0.12em]">{t.results[a.result]}</span>
               <span className="text-xs text-ink-3">{formatDateTime(a.created_at, locale)}</span>
               <button
                 type="button"
-                className="ml-auto min-h-10 px-2 text-sm text-accent"
+                className="ml-auto min-h-11 px-2 text-sm text-accent"
                 onClick={() => setEditing(editing === a.id ? null : a.id)}
               >
                 {t.session.tapToChange}

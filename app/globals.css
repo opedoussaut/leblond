@@ -39,8 +39,14 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* One scale for the whole app, so sizes cannot drift from page to page:
+     controls round at xl, cards at 2xl, and headings use two weights. */
+  --radius-2xl: 1.25rem;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 800;
+  --tracking-tight: -0.015em;
 }
 
 html {
@@ -52,8 +58,48 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "tnum" 1, "ss01" 1;
   min-height: 100dvh;
+}
+
+/* A native date or time field must never push a form wider than the screen. */
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* One dropdown look everywhere: the arrow stays visible and long labels stop before it. */
+select {
+  appearance: none;
+  padding-right: 2.25rem;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%234e6379' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+}
+
+/* Actions stack at equal width on a phone and sit side by side from tablet up. */
+.leblond-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+  .leblond-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* Horizontal chip rows scroll by touch without a scrollbar under them. */
+.leblond-scroll-row {
+  scrollbar-width: none;
+}
+
+.leblond-scroll-row::-webkit-scrollbar {
+  display: none;
 }
 
 /* Visible, consistent focus for keyboard users (accessibility §44). */
@@ -85,14 +131,14 @@ body {
 .leblond-premium-surface {
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 1.65rem;
+  border-radius: 1.25rem;
   box-shadow: 0 18px 55px -42px rgba(20, 50, 87, 0.32);
 }
 
 .leblond-hero-panel {
   background: linear-gradient(130deg, #0b2745 0%, #164878 53%, #477eab 100%);
   color: #f6faff;
-  border-radius: 1.75rem;
+  border-radius: 1.25rem;
   overflow: hidden;
   box-shadow: 0 24px 60px -37px rgba(12, 60, 112, 0.68);
 }
@@ -105,13 +151,13 @@ body {
 
 .leblond-hero-art {
   object-fit: cover;
-  border-radius: 1.35rem;
+  border-radius: 0.75rem;
   box-shadow: 0 18px 42px -16px rgba(2, 14, 34, 0.46);
 }
 
 .leblond-eyebrow {
-  letter-spacing: 0.2em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
