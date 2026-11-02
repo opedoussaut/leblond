@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { loadRouteAscents } from "@/lib/data/routes";
+import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
 import { formatDate, formatRatio } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
@@ -37,7 +38,7 @@ export default async function FollowUpHome() {
     loadClimbingDataset(viewer.supabase),
     loadRouteAscents(viewer.supabase),
     listTrainingSessions(viewer.supabase, 400),
-    viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(12),
+    viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
   ]);
   const snap = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 30);
   const today = localDate_(now);
