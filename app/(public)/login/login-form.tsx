@@ -131,7 +131,7 @@ export function LoginForm({ next, googleEnabled }: { next: string; googleEnabled
       <div role="tablist" aria-label={t.auth.authMode} className="flex rounded-xl border border-line bg-surface-2 p-1">
         {(["signin", "register"] as const).map(item => (
           <button key={item} type="button" role="tab" aria-selected={mode === item}
-            onClick={() => setMode(item)} className={"flex-1 rounded-lg px-3 py-2.5 text-sm font-bold " +
+            onClick={() => setMode(item)} className={"flex-1 rounded-xl px-3 py-2.5 text-sm font-bold " +
               (mode === item ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
             {item === "signin" ? t.auth.signInPassword : t.auth.registerTab}
           </button>
@@ -148,7 +148,7 @@ export function LoginForm({ next, googleEnabled }: { next: string; googleEnabled
       </button>
       {!googleEnabled ? <p className="text-center text-xs text-ink-3">{t.auth.googlePending}</p> : null}
       {oauthError ? <Notice tone="error">{t.auth.unknownError}</Notice> : null}
-      <button type="button" className="w-full text-center text-sm font-semibold text-accent underline underline-offset-4"
+      <button type="button" className="min-h-11 w-full text-center text-sm font-semibold text-accent underline underline-offset-4"
         onClick={() => setMode(mode === "code" ? "signin" : "code")}>
         {mode === "code" ? t.auth.backToPassword : t.auth.useEmailCode}
       </button>

@@ -26,8 +26,8 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
   return <div className="space-y-6">
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{e.editing}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight">{e.editTitle}</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{e.editing}</p>
+        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{e.editTitle}</h1>
         <p className="text-sm text-ink-2">{view.gym.name}</p>
       </div>
       <Link href={`/session/${id}`} className="inline-flex min-h-12 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-surface">

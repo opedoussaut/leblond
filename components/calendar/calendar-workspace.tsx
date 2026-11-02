@@ -10,6 +10,8 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { CalendarEntrySessionButton } from "@/components/training/session-actions";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import type { TrainingStatus } from "@/lib/training/sessions";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
 export type CalendarTraining = {
   id: string; title: string; status: TrainingStatus; eventDate: string; startTime: string;
@@ -28,7 +30,6 @@ function monthDays(month:string) {
   const size=new Date(Date.UTC(y,m,0)).getUTCDate();
   return { start,size };
 }
-const field="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink";
 const kinds=["CLIMB","TRAIN","REST","ASSESS","OTHER"] as const;
 const disciplines=["BOULDER","ROUTE","BOTH","NONE"] as const;
 
@@ -92,7 +93,7 @@ export function CalendarWorkspace({
   function remove(id:string){
     start(async()=>{const r=await removeCalendarEntry(id);if(!r.ok)setFeedback(t.error);else router.refresh();});
   }
-  return <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
+  return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
     <section className="leblond-premium-surface p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
         <button type="button" aria-label={t.previous} onClick={()=>goMonth(-1)} className="min-h-11 rounded-full border border-line px-4 text-lg">‹</button>
@@ -119,11 +120,11 @@ export function CalendarWorkspace({
     </section>
     <div className="space-y-5">
     <section ref={detailsRef} tabIndex={-1} aria-label={safeSelected}
-      className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-5 focus:outline-none">
-      <h2 className="text-xl font-extrabold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
+      className="space-y-3 rounded-2xl border border-line bg-surface p-5 focus:outline-none">
+      <h2 className="text-lg font-extrabold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
       {selectedEvents.length===0&&selectedSessions.length===0&&selectedTrainings.length===0?<p className="text-sm text-ink-3">{t.empty}</p>:null}
       <button type="button" onClick={() => titleRef.current?.focus()}
-        className="inline-flex min-h-10 items-center rounded-full border border-accent/30 bg-accent-soft px-4 text-xs font-bold text-accent hover:border-accent">
+        className="inline-flex min-h-11 items-center rounded-full border border-accent/30 bg-accent-soft px-4 text-xs font-bold text-accent hover:border-accent">
         + {t.add}
       </button>
       {selectedSessions.map(s=><Link key={s.id} href={"/session/"+s.id} className="flex justify-between gap-3 rounded-xl border border-line bg-surface p-4 hover:border-accent">
@@ -137,7 +138,7 @@ export function CalendarWorkspace({
       {selectedEvents.map(e=><div key={e.id} className="rounded-xl border border-line bg-surface p-4">
         <div className="flex items-start justify-between gap-2">
           <div><strong className="block">{e.title}</strong><p className="mt-1 text-xs text-ink-2">{t[e.kind]} · {t[e.discipline]}{e.startTime?" · "+e.startTime:""}{e.minutes?" · "+e.minutes+" min":""}</p></div>
-          <span className="rounded-full bg-accent-soft px-2 py-1 text-[11px] font-bold text-accent">{t[e.status]}</span>
+          <span className="rounded-full bg-accent-soft px-2 py-1 text-xs font-bold text-accent">{t[e.status]}</span>
         </div>
         {e.notes?<p className="mt-3 text-sm text-ink-2">{e.notes}</p>:null}
         {e.methodId?<Link className="mt-2 inline-block text-sm font-semibold text-accent underline" href={"/atlas/"+e.methodId}>{t.methodDetail} ↗</Link>:null}
@@ -146,15 +147,15 @@ export function CalendarWorkspace({
           <CalendarEntrySessionButton locale={locale} entryId={e.id} sessionId={linkedByEntry.get(e.id)?.id ?? null}/>
         </div>:null}
         <div className="mt-4 flex flex-wrap gap-2">
-          {e.status!=="DONE"&&!(e.kind==="TRAIN")?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markDone}</button>:null}
-          {e.status!=="PLANNED"?<button disabled={pending} onClick={()=>change(e.id,"PLANNED")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markPlanned}</button>:null}
-          {e.status!=="SKIPPED"?<button disabled={pending} onClick={()=>change(e.id,"SKIPPED")} className="min-h-9 rounded-lg border border-line px-3 text-xs font-semibold">{t.markSkipped}</button>:null}
-          <button disabled={pending} onClick={()=>remove(e.id)} className="min-h-9 rounded-lg border border-line px-3 text-xs text-danger">{t.delete}</button>
+          {e.status!=="DONE"&&!(e.kind==="TRAIN")?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markDone}</button>:null}
+          {e.status!=="PLANNED"?<button disabled={pending} onClick={()=>change(e.id,"PLANNED")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markPlanned}</button>:null}
+          {e.status!=="SKIPPED"?<button disabled={pending} onClick={()=>change(e.id,"SKIPPED")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markSkipped}</button>:null}
+          <button disabled={pending} onClick={()=>remove(e.id)} className="min-h-11 rounded-xl border border-line px-3 text-xs text-danger">{t.delete}</button>
         </div>
       </div>)}
     </section>
     <section className="leblond-premium-surface p-5">
-      <h2 className="text-xl font-extrabold">{t.add}</h2>
+      <h2 className="text-lg font-extrabold">{t.add}</h2>
       <form onSubmit={submit} className="mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm font-semibold">{t.day}<input className={field} type="date" required min="2020-01-01" max="2100-12-31" value={date} onChange={e=>setDate(e.target.value)}/></label>
@@ -171,7 +172,7 @@ export function CalendarWorkspace({
         </select></label>
         <label className="block text-sm font-semibold">{t.notes}<textarea className={field} rows={3} maxLength={1000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
         {feedback?<p role="status" className="text-sm text-ink-2">{feedback}</p>:null}
-        <button type="submit" disabled={pending} className="w-full rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{pending?t.saving:t.save}</button>
+        <button type="submit" disabled={pending} className={buttonClass("primary", "md", "w-full")}>{pending?t.saving:t.save}</button>
       </form>
     </section>
     </div>

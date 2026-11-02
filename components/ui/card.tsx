@@ -5,14 +5,14 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLElement>)
 }
 
 export function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={cn("text-xs font-bold uppercase tracking-[0.14em] text-ink-3", className)}>{children}</h2>;
+  return <h2 className={cn("text-xs font-bold uppercase tracking-[0.12em] text-ink-3", className)}>{children}</h2>;
 }
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
   return (
     <header className="mb-5 flex items-start justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-black tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-ink-2">{subtitle}</p> : null}
       </div>
       {action}

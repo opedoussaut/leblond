@@ -53,7 +53,7 @@ export default async function TrainingHistoryPage() {
         <ul className="space-y-2">
           {list.map((s) => <li key={s.id}>
             <Link href={"/train/sessions/" + s.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 hover:border-accent">
-              <span className="min-w-0"><strong className="block truncate">{s.title}</strong>
+              <span className="min-w-0"><strong className="line-clamp-2 block">{s.title}</strong>
                 <span className="text-xs text-ink-2">{t.status[s.status]}
                   {s.plannedMinutes ? ` · ${t.planned} ${s.plannedMinutes} min` : ""}
                   {s.actualMinutes !== null ? ` · ${t.actual} ${s.actualMinutes} min` : ""}

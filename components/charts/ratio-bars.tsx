@@ -9,7 +9,7 @@ export function RatioBars({
       {rows.map((r) => {
         const pct = r.attempted ? (r.sent / r.attempted) * 100 : 0;
         return (
-          <li key={r.key} className="grid grid-cols-[minmax(6rem,9rem)_1fr_auto] items-center gap-3">
+          <li key={r.key} className="grid grid-cols-1 grid-cols-[minmax(6rem,9rem)_1fr_auto] items-center gap-3">
             <span className="min-w-0 truncate text-sm">{r.label}</span>
             <span className="h-3 rounded-full bg-surface-2" aria-hidden>
               <span className="block h-3 rounded-full bg-accent" style={{ width: `${pct}%` }} />

@@ -18,13 +18,13 @@ function Evidence({ kind, fr }: { kind: "observed" | "recorded" | "self"; fr: bo
     recorded: fr ? "Enregistré · séances d’entraînement" : "Recorded · training sessions",
     self: fr ? "Déclaratif · bilans" : "Self-reported · assessments",
   }[kind];
-  return <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-ink-2">{label}</span>;
+  return <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-bold text-ink-2">{label}</span>;
 }
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return <div className="rounded-2xl bg-surface-2 p-4">
     <p className="text-xs font-semibold text-ink-3">{label}</p>
     <p className="mt-1 text-2xl font-black tabular-nums">{value}</p>
-    {hint ? <p className="mt-1 text-[11px] text-ink-3">{hint}</p> : null}
+    {hint ? <p className="mt-1 text-xs text-ink-3">{hint}</p> : null}
   </div>;
 }
 
@@ -54,7 +54,7 @@ export default async function FollowUpHome() {
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="climb-heading" className="text-xl font-extrabold">{fr ? "Bloc · 30 derniers jours" : "Bouldering · last 30 days"}</h2>
+        <h2 id="climb-heading" className="text-lg font-extrabold">{fr ? "Bloc · 30 derniers jours" : "Bouldering · last 30 days"}</h2>
         <Evidence kind="observed" fr={fr} />
       </div>
       {snap.counts.sessions === 0 ? <p className="text-sm text-ink-2">
@@ -77,7 +77,7 @@ export default async function FollowUpHome() {
 
     <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="train-heading" className="text-xl font-extrabold">{fr ? "Entraînement · 8 dernières semaines" : "Training · last 8 weeks"}</h2>
+        <h2 id="train-heading" className="text-lg font-extrabold">{fr ? "Entraînement · 8 dernières semaines" : "Training · last 8 weeks"}</h2>
         <Evidence kind="recorded" fr={fr} />
       </div>
       {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
@@ -97,7 +97,7 @@ export default async function FollowUpHome() {
 
     <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="assess-heading" className="text-xl font-extrabold">{fr ? "Bilans" : "Assessments"}</h2>
+        <h2 id="assess-heading" className="text-lg font-extrabold">{fr ? "Bilans" : "Assessments"}</h2>
         <Evidence kind="self" fr={fr} />
       </div>
       {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucun bilan. C’est facultatif." : "No assessments. They are optional."}</p>

@@ -119,13 +119,13 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
             </ul>
             <div className="mt-4 grid grid-cols-2 gap-4 border-t border-line pt-3">
               <div>
-                <p className="text-xs uppercase tracking-wider text-ink-3">{t.progress.highestSent}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{t.progress.highestSent}</p>
                 {snap.highestSent.map((h) => (
                   <GradeChip key={h.system} t={t} system={h.system} grade={h.grade} className="mt-1 flex" />
                 ))}
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-ink-3">{t.progress.highestFlashed}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{t.progress.highestFlashed}</p>
                 {snap.highestFlashed.map((h) => (
                   <GradeChip key={h.system} t={t} system={h.system} grade={h.grade} className="mt-1 flex" />
                 ))}
@@ -225,7 +225,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 <p className="text-sm text-ink-2">{t.progress.noTags}</p>
               )}
             </div>
-            <h3 className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-ink-3">{t.progress.byAngle}</h3>
+            <h3 className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.progress.byAngle}</h3>
             <div className="mt-3">
               <RatioBars
                 rows={snap.wallAngleStats.map((s) => ({
@@ -241,7 +241,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
           {snap.wearable.sessions.length ? (
             <Card>
               <details>
-                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-ink-3">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
                   {t.progress.wearableOverlay}
                 </summary>
                 <ul className="mt-3 divide-y divide-line text-sm">

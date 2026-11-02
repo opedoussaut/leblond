@@ -25,7 +25,7 @@ export default async function AdminPage() {
             <Card className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-bold">{r.display_name}</span>
-                <span className="text-xs uppercase tracking-wider text-ink-3">{r.role}</span>
+                <span className="text-xs uppercase tracking-[0.12em] text-ink-3">{r.role}</span>
               </div>
               <p className="text-sm text-ink-2">{r.email}</p>
               <p className="text-sm text-ink-2">

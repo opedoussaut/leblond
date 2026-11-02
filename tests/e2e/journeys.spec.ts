@@ -611,14 +611,17 @@ test("D — private data: signed-out visitors are redirected, other climbers get
 
 test("E — approved light identity, intact artwork and no overflow (desktop + mobile)", async ({ page }) => {
   await signInWithPassword(page, "guided@leblond.local");
-  for (const size of [DESKTOP, { width: 390, height: 844 }]) {
+  for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
-    for (const p of ["/home", "/train", "/train/sessions", "/follow-up", "/atlas/max-hangs", "/training-assessment", guidedSessionUrl]) {
+    for (const p of ["/home", "/climbing", "/session", "/session/new", "/projects", "/train", "/train/sessions", "/training-plans",
+      "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
+      "/training-assessment", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
       const look = await page.evaluate(() => ({
         bg: getComputedStyle(document.body).backgroundColor,
-        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        // clientWidth, not innerWidth: a phone zooms out to fit a page that is too wide, which hides the overflow from innerWidth.
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         clipped: [...document.querySelectorAll("#app-main h1, #app-main h2")].filter((el) => el.scrollWidth > el.clientWidth + 1).length,
       }));
       expect(look.bg, p).toBe("rgb(244, 247, 251)");

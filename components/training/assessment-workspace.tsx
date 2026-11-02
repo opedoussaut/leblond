@@ -12,6 +12,7 @@ import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRa
 import { METHODS_FOR_PLANS, TRAINING_AXES, type TrainingAxis } from "@/lib/training/catalogue";
 import { EVIDENCE_LABELS, OBSERVED_LABELS, PROTOCOL_TESTS, compareMeasurements, parseContext, parseMeasurements, type ObservedEvidence } from "@/lib/training/assessment-protocol";
 import { EvidenceBadge, StructuredAssessment } from "./structured-assessment";
+import { buttonClass } from "@/components/ui/button";
 
 const LINE_COLORS = { baseline: "#8093a8", expected: "#297cc8", actual: "#173e66" } as const;
 
@@ -67,13 +68,13 @@ export function SkillSliders({ locale, ratings, onChange }: {
     {TRAINING_AXES.map((axis) => <label key={axis} className="block rounded-xl border border-line bg-surface px-4 py-3">
       <span className="flex items-center justify-between gap-3">
         <strong className="text-sm">{t.axis[axis]}</strong>
-        <span className="rounded-lg bg-accent-soft px-3 py-1 font-black tabular-nums text-accent">{ratings[axis].toFixed(1)} / 5</span>
+        <span className="rounded-xl bg-accent-soft px-3 py-1 font-black tabular-nums text-accent">{ratings[axis].toFixed(1)} / 5</span>
       </span>
       <span className="mt-1 block text-xs leading-relaxed text-ink-2">{SKILL_PROMPTS[axis][locale]}</span>
       <input type="range" className="mt-3 w-full accent-accent" min="1" max="5" step="0.5" value={ratings[axis]}
         aria-label={t.axis[axis]}
         onChange={e=>onChange({...ratings,[axis]:Number(e.target.value)})}/>
-      <span className="flex justify-between gap-2 text-[11px] text-ink-3">
+      <span className="flex justify-between gap-2 text-xs text-ink-3">
         <span>{RATING_ANCHORS[locale][0]}</span>
         <span>{RATING_ANCHORS[locale][4]}</span>
       </span>
@@ -209,10 +210,10 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   return <div className="mt-7 space-y-6">
     <nav className="flex flex-wrap items-center gap-2" aria-label={a.history}>
       <button type="button" onClick={startNew}
-        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink">{assessments.length ? (locale==="fr"?"Nouveau bilan (réévaluation)":"New assessment (reassess)") : a.add} +</button>
+        className={buttonClass("primary", "md")}>{assessments.length ? (locale==="fr"?"Nouveau bilan (réévaluation)":"New assessment (reassess)") : a.add} +</button>
       {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
         aria-pressed={!formMode && selectedId===item.id}
-        className={"rounded-xl border px-3 py-2 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
+        className={"min-h-11 rounded-xl border px-3 py-1.5 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
         {METHODS_FOR_PLANS.find(m=>m.id===item.methodId)?.title??a.noMethod} · {new Date(item.createdAt).toLocaleDateString(locale==="fr"?"fr-FR":"en-GB")}
       </button>)}
     </nav>
@@ -224,7 +225,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       }}/>
     : chosen && scenario ? <>
       <EvidencePanel locale={locale} record={chosen} baseline={assessments[assessments.length-1]}/>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-surface-2 p-4"><p className="text-xs font-semibold text-ink-3">{a.selected}</p>
           <p className="mt-1 font-black">{chosenMethod?.title??a.noMethod}</p></div>
         <div className="rounded-xl bg-surface-2 p-4"><p className="text-xs font-semibold text-ink-3">{a.period}</p>
@@ -234,7 +235,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       </div>
       {chosen.goal ? <p className="rounded-xl border border-line p-4 text-sm"><strong>{a.goal}:</strong> {chosen.goal}</p> : null}
       <ProfileRadar locale={locale} baseline={chosen.ratings} expected={scenario} actual={observed}/>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-line bg-surface p-4">
           <p className="text-xs font-semibold text-ink-3">{a.expectedEnd}</p>
           <ul className="mt-3 space-y-2">
@@ -306,7 +307,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
               :"I repeated the same protocol and noted any changes or limitations."}</span>
           </label>
           <button type="button" onClick={saveWeek} disabled={pending || !checkinProtocolConfirmed}
-            className="mt-4 rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink disabled:opacity-50">{a.save}</button>
+            className={buttonClass("primary", "md", "mt-4")}>{a.save}</button>
         </>}
       </section>
       <button type="button" disabled={pending} onClick={remove}
@@ -342,7 +343,7 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
       {(["measured","observed","self","insufficient"] as const).map(l=><span key={l} className="flex items-center gap-1.5"><EvidenceBadge level={l} locale={locale}/><span className="text-ink-3">{EVIDENCE_LABELS[l].hint[locale]}</span></span>)}
     </div>
-    {measurements.length ? <ul className="grid gap-2 sm:grid-cols-2">
+    {measurements.length ? <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {measurements.map(m=>{ const def=PROTOCOL_TESTS.find(d=>d.id===m.id)!; const c=changes.find(x=>x.id===m.id);
         return <li key={m.id} className="rounded-xl border border-line p-3 text-sm">
           <div className="flex items-center justify-between gap-2"><strong>{def.name[locale]}</strong><EvidenceBadge level="measured" locale={locale}/></div>
@@ -353,13 +354,13 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
           {c && !c.comparable ? <p className="mt-1 text-xs font-semibold text-ink-2">{fr?"Comparaison indicative : conditions ou version différentes.":"Indicative comparison: conditions or version differ."}</p> : null}
         </li>;})}
     </ul> : <p className="flex items-center gap-2 text-sm text-ink-2"><EvidenceBadge level="insufficient" locale={locale}/> {fr ? "Aucun test mesuré dans ce bilan." : "No measured test in this assessment."}</p>}
-    {context?.observed.length ? <ul className="grid gap-2 sm:grid-cols-2">
+    {context?.observed.length ? <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {context.observed.map(o=><li key={o.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm">
         <span>{OBSERVED_LABELS[o.id]?.[locale] ?? o.id}<span className="block text-xs text-ink-3">n = {o.sample}</span></span>
         <span className="flex items-center gap-2"><strong className="tabular-nums">{o.value}</strong><EvidenceBadge level={o.evidence} locale={locale}/></span>
       </li>)}
     </ul> : null}
-    <ul className="grid gap-2 sm:grid-cols-3">
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       {TRAINING_AXES.map(axis=>{ const d=ratingDelta(axis); return <li key={axis} className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
         <span className="flex items-center gap-1.5">{t.axis[axis]}</span>
         <span className="tabular-nums font-bold">{record.ratings[axis].toFixed(1)}{d!==null && d!==0 ? <span className="ml-1 text-xs text-ink-3">({d>0?"+":""}{d.toFixed(1)})</span> : null}</span>

@@ -4,7 +4,7 @@ export function Stat({ value, label, className }: { value: React.ReactNode; labe
   return (
     <div className={cn("min-w-0", className)}>
       <div className="text-2xl font-black tabular-nums leading-none">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-wider text-ink-3">{label}</div>
+      <div className="mt-1 text-xs uppercase tracking-[0.12em] text-ink-3">{label}</div>
     </div>
   );
 }

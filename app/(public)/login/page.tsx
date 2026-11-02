@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
   return (
     <main className="leblond-login-glow pt-safe flex min-h-dvh items-center justify-center px-4 py-5 sm:px-6 sm:py-9">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-line bg-surface shadow-[0_28px_100px_-50px_rgba(9,41,77,0.42)] md:grid-cols-2">
+      <div className="grid grid-cols-1 w-full max-w-5xl overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_28px_100px_-50px_rgba(9,41,77,0.42)] md:grid-cols-2">
         <div className="flex items-center justify-center bg-[#164775] p-3 sm:p-5 md:p-7">
           <Image
             src="/brand/leblond-approved-hero.svg"
@@ -23,13 +23,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             height={720}
             unoptimized
             priority
-            className="aspect-square h-auto max-h-[360px] w-full rounded-[1.5rem] object-contain md:max-h-none"
+            className="aspect-square h-auto max-h-[360px] w-full rounded-2xl object-contain md:max-h-none"
           />
         </div>
         <div className="flex flex-col justify-center p-6 sm:p-9 lg:p-12">
           <header className="mb-7">
             <span className="leblond-eyebrow text-accent">THE CLIMBING INTELLIGENCE STUDIO</span>
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">{t.auth.title}</h1>
+            <h1 className="mt-4 text-ink text-2xl font-black tracking-tight md:text-3xl">{t.auth.title}</h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-2">{t.auth.subtitle}</p>
           </header>
           <section aria-label={t.auth.title}>

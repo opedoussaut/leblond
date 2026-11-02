@@ -3,6 +3,9 @@ import { cn } from "./cn";
 const control =
   "w-full min-h-12 rounded-xl border border-line bg-surface px-3 text-base text-ink placeholder:text-ink-3 focus:border-accent";
 
+/** The same control for fields written inside a <label>. 16 px text: iPhones zoom the page on anything smaller. */
+export const fieldClass = cn("mt-1 block py-2.5", control);
+
 export function Label({ htmlFor, children, hint }: { htmlFor: string; children: React.ReactNode; hint?: string }) {
   return (
     <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-semibold">
@@ -17,7 +20,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
 }
 
 export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cn(control, "appearance-none", className)} />;
+  return <select {...props} className={cn(control, className)} />;
 }
 
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

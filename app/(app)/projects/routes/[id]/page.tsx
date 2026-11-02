@@ -31,8 +31,8 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
   return <div className="space-y-5">
     <Link href="/projects" className="text-sm font-bold text-accent underline underline-offset-4">← {t.projects.title}</Link>
     <header>
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent">★ {r.projectsTitle} · {r.projectStatus[project.status]}</p>
-      <h1 className="mt-1 text-2xl font-black tracking-tight">{project.route_name}</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">★ {r.projectsTitle} · {r.projectStatus[project.status]}</p>
+      <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{project.route_name}</h1>
       <p className="mt-1 text-sm text-ink-2">
         <strong className="text-lg tabular-nums text-ink">{project.grade}</strong> · {project.gyms?.name} · {r.goalStyle} : {r.styles[project.goal_style]}
       </p>

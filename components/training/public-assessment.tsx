@@ -8,6 +8,7 @@ import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { DEFAULT_SKILLS, expectedRatingsAtWeek, methodMatches, type SkillRatings } from "@/lib/training/assessment";
 import { METHODS_FOR_PLANS, TRAINING_AXES } from "@/lib/training/catalogue";
+import { buttonClass } from "@/components/ui/button";
 
 export function PublicAssessment({ locale }: { locale: Locale }) {
   const a = assessmentDictionary(locale);
@@ -24,7 +25,7 @@ export function PublicAssessment({ locale }: { locale: Locale }) {
 
   return <div className="space-y-7">
     <div className="rounded-2xl border border-line bg-surface-2 p-5">
-      <h2 className="text-xl font-black">{a.current}</h2>
+      <h2 className="text-lg font-black">{a.current}</h2>
       <p className="mt-2 text-sm text-ink-2">{a.rateHint}</p>
       <div className="mt-5">
         <SkillSliders locale={locale} ratings={ratings} onChange={updated => {
@@ -34,9 +35,9 @@ export function PublicAssessment({ locale }: { locale: Locale }) {
       </div>
     </div>
     <section className="rounded-2xl border border-line bg-surface p-5">
-      <h2 className="text-xl font-black">{a.suggested}</h2>
+      <h2 className="text-lg font-black">{a.suggested}</h2>
       <p className="mt-2 text-sm text-ink-2">{a.suggestedWhy}</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {recommended.map(({ method:item, priority })=><button
           type="button" key={item.id} aria-pressed={methodId===item.id}
           onClick={()=>setMethodId(item.id)}
@@ -45,7 +46,7 @@ export function PublicAssessment({ locale }: { locale: Locale }) {
           <span className="mt-1 block text-xs text-ink-3">{t.axis[priority]}</span>
         </button>)}
       </div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="text-sm font-bold">{a.method}
           <select value={methodId} onChange={e=>setMethodId(e.target.value)}
             className="mt-2 block w-full rounded-xl border border-line bg-bg p-3 text-sm">
@@ -69,8 +70,8 @@ export function PublicAssessment({ locale }: { locale: Locale }) {
     <ProfileRadar locale={locale} baseline={ratings} expected={expected} actual={tryFollowup?followup:null}/>
     <section className="rounded-xl border border-line bg-surface p-5">
       <h2 className="text-lg font-black">{a.expectedEnd}</h2>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {TRAINING_AXES.map(axis=><div className="flex justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm" key={axis}>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {TRAINING_AXES.map(axis=><div className="flex justify-between rounded-xl bg-surface-2 px-3 py-2 text-sm" key={axis}>
           <span>{t.axis[axis]}</span><strong className="tabular-nums">{ratings[axis].toFixed(1)} → {expected[axis].toFixed(2)}</strong>
         </div>)}
       </div>
@@ -90,6 +91,6 @@ export function PublicAssessment({ locale }: { locale: Locale }) {
     </section>
     <p className="text-sm leading-relaxed text-ink-2">{a.publicPrivacy}</p>
     <Link href="/login?next=%2Ftraining-assessment"
-      className="inline-flex rounded-xl bg-accent px-5 py-3 font-bold text-accent-ink">{a.privateTracking} →</Link>
+      className={buttonClass("primary", "md")}>{a.privateTracking} →</Link>
   </div>;
 }

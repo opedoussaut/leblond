@@ -79,7 +79,7 @@ export function StartSession({
           {choice ? (
             <section aria-labelledby="discipline-choice" className="rounded-2xl border border-accent/30 bg-accent-soft p-4">
               <h2 id="discipline-choice" className="font-extrabold">{choice.name} · {r.chooseDiscipline}</h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {([["BOULDER", r.boulder, r.boulderHint], ["ROUTE", r.route, r.routeHint]] as const).map(([d, label, hint]) => (
                   <button key={d} type="button" disabled={pending} onClick={() => begin(choice.id, d)}
                     className="min-h-20 rounded-2xl border border-line bg-surface p-4 text-left hover:border-accent disabled:opacity-60">

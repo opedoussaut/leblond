@@ -138,7 +138,7 @@ export function GymPicker({
                 </div>
                 <button type="button" disabled={pending} onClick={() => onToggle?.(g)}
                   aria-label={t.gyms.remove + " " + g.name}
-                  className="min-h-10 shrink-0 rounded-lg px-3 text-xs font-bold text-accent hover:bg-surface">
+                  className="min-h-11 shrink-0 rounded-xl px-3 text-xs font-bold text-accent hover:bg-surface">
                   {t.gyms.remove}
                 </button>
               </li>

@@ -7,8 +7,9 @@ import { createRouteProject } from "@/lib/actions/route-projects";
 import { ROUTE_STYLES, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { routeDictionary } from "@/lib/i18n/routes";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass as field } from "@/components/ui/field";
 
-const field = "mt-1 block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink";
 
 /** Create a route project at a venue that offers routes. */
 export function RouteProjectForm({ gyms }: { gyms: Array<{ id: string; name: string }> }) {
@@ -56,6 +57,6 @@ export function RouteProjectForm({ gyms }: { gyms: Array<{ id: string; name: str
     </label>
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
     <button type="submit" disabled={pending || !name.trim()}
-      className="min-h-12 rounded-full bg-accent px-6 text-sm font-extrabold text-accent-ink disabled:opacity-50">{r.create}</button>
+      className={buttonClass("primary", "md")}>{r.create}</button>
   </form>;
 }

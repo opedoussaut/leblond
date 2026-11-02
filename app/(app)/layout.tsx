@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="hidden md:fixed md:left-0 md:top-0 md:z-40 md:block md:w-64 md:border-r md:border-line md:bg-surface md:px-5 md:py-6">
         <Wordmark size={28} />
       </div>
-      <a href="#app-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-3 focus:text-accent">Skip to content</a>
+      <a href="#app-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-3 focus:text-accent">Skip to content</a>
       <main id="app-main" className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pb-16 md:pt-9 lg:px-12">
         <RouteFocus />
         <AreaSubNav />

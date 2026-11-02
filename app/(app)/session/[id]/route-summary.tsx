@@ -11,6 +11,7 @@ import { getDictionary, type Locale } from "@/lib/i18n";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { SessionDetailsForm } from "./details-form";
+import { buttonClass } from "@/components/ui/button";
 
 /** Summary of a finished ROUTE session (French sport grades only). */
 export function RouteSessionSummary({ locale, session, gymName, ascents }: {
@@ -25,12 +26,12 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
     <header className="flex items-start justify-between gap-3">
       <div>
         <p className="leblond-eyebrow text-accent">{r.summaryTitle}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight">{session.title || gymName}</h1>
+        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{session.title || gymName}</h1>
         {session.title ? <p className="text-sm font-semibold text-ink-2">{gymName}</p> : null}
         <p className="mt-1 text-sm text-ink-2">{formatDateTime(session.started_at, locale)} · {formatDuration(session.duration_minutes)}</p>
       </div>
       <Link href={`/session/${session.id}/edit`}
-        className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-surface px-4 text-sm font-bold text-accent">
+        className={buttonClass("secondary", "md", "shrink-0")}>
         ✎ {sessionEditDictionary(locale).edit}
       </Link>
     </header>

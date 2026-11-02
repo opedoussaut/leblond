@@ -198,8 +198,8 @@ export function PatrickChat({
       <div className="mt-4 flex-1 space-y-3" aria-live="polite">
         {messages.length === 0 ? (
           <>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-3">{t.patrick.quickActions}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.patrick.quickActions}</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {QUICK_ACTIONS.map((a) => (
                 <button
                   key={a}
@@ -239,7 +239,7 @@ export function PatrickChat({
             ) : null}
             {conversations.length ? (
               <div className="pt-4">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-3">{t.patrick.conversations}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.patrick.conversations}</p>
                 <ul className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface">
                   {conversations.map((c) => (
                     <li key={c.id}>
@@ -257,7 +257,7 @@ export function PatrickChat({
             <div
               key={m.id}
               className={cn(
-                "max-w-[92%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed",
+                "max-w-[92%] rounded-2xl px-4 py-3 text-base leading-relaxed",
                 m.role === "user" ? "ml-auto bg-accent text-accent-ink" : "bg-surface border border-line",
               )}
             >
@@ -296,7 +296,7 @@ export function PatrickChat({
           {busy ? "…" : t.patrick.send}
         </Button>
       </form>
-      <p className="mt-1 text-[11px] text-ink-3">
+      <p className="mt-1 text-xs text-ink-3">
         {t.patrick.contextNote} {t.patrick.disclaimer}
       </p>
     </div>
