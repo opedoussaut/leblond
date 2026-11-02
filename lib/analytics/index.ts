@@ -10,3 +10,4 @@ export * from "./sessions";
 export * from "./targets";
 export * from "./snapshot";
 export * from "./routes";
+export * from "./fitness";

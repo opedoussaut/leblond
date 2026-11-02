@@ -8,6 +8,10 @@ import { assessmentContextSchema, measurementSchema } from "./assessment-protoco
  * medically established abilities, or validated longitudinal forecasts.
  */
 export type SkillRatings = Record<TrainingAxis, number>;
+
+/** Assessments are meant to be repeated: at the suggested pace this is about five years of history. */
+export const MAX_ASSESSMENTS = 60;
+
 export const skillRatingsSchema = z.object({
   technique: z.number().min(1).max(5).multipleOf(0.5),
   fingers: z.number().min(1).max(5).multipleOf(0.5),

@@ -442,7 +442,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.getByRole("link", { name: /Faire mon bilan de départ/ }).click();
   await expect(page).toHaveURL(/\/train\/assess/);
   await runProtocol(page, 25, 8);
-  await expect(page.getByText("25 s")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Profil par niveau de preuve" }).getByText("25 s")).toBeVisible();
 
   // Recommended Atlas method → add to a plan → schedule this week.
   await page.goto("/atlas/max-hangs");
@@ -520,6 +520,26 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await runProtocol(page, 31, 9);
   await expect(page.getByText(/\+6 vs initial/)).toBeVisible();
   await expect(page.getByText(/\+1 vs initial/)).toBeVisible();
+
+  // Repeated assessments read as a trend, one chart per test, never one score.
+  await expect(page.getByRole("heading", { name: "Mon niveau actuel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Suspension 20 mm au poids du corps" })).toBeVisible();
+  await expect(page.getByText("+6 s depuis le premier résultat · en progrès")).toBeVisible();
+
+  // Reset asks twice, keeps nothing and leaves the journal alone.
+  await page.getByRole("button", { name: "Réinitialiser mes bilans" }).click();
+  await page.getByRole("button", { name: "Les garder" }).click();
+  await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toBeVisible();
+  await page.getByRole("button", { name: "Réinitialiser mes bilans" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Supprimer 2 bilan(s)" })).toBeVisible();
+  await page.getByRole("button", { name: "Oui, tout effacer" }).click();
+  await expect(page.getByText("Tes bilans ont été réinitialisés.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Mon niveau actuel" })).toBeVisible();
+  await page.goto("/follow-up/training");
+  await expect(page.getByRole("link", { name: /Max hangs/ }).filter({ hasText: "Terminée" })).toBeVisible();
 });
 
 test("C — navigation moves section, selection and focus together (desktop)", async ({ page }) => {
@@ -650,6 +670,8 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   await page.getByRole("button", { name: /Valider la série/ }).click();
   await page.getByRole("button", { name: /Valider la série/ }).click();
   await expect(page.getByRole("listitem").filter({ hasText: /^Série 2/ })).toBeVisible();
+  // Reload only once both saves are confirmed: a reload sent mid-save can render before the second one commits.
+  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("lb-pending-sets-")).length)).toBe(0);
   await page.reload();
   await expect(page.getByRole("listitem").filter({ hasText: /Série \d/ })).toHaveCount(2);
 });

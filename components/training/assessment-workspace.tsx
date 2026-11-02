@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { assessmentCadence, measuredHistory, selfRatedHistory } from "@/lib/analytics/fitness";
+import { CurrentLevelPanel, FitnessCharts, type CurrentLevels } from "./fitness-charts";
 import { WorkingGradeChart } from "./grade-progress";
 import type { ObservedWorkingGrade } from "@/lib/training/grade-history";
-import { deleteTrainingAssessment, saveTrainingCheckin } from "@/lib/actions/training-assessments";
-import type { Locale } from "@/lib/i18n";
+import { deleteTrainingAssessment, resetTrainingAssessments, saveTrainingCheckin } from "@/lib/actions/training-assessments";
+import { fmt, type Locale } from "@/lib/i18n";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRatingsAtWeek, type SavedAssessment, type SavedCheckin, type SkillRatings } from "@/lib/training/assessment";
@@ -123,7 +125,7 @@ export function TrendChart({ locale, axis, baseline, selected, checkins }: {
   </div>;
 }
 
-export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, gradeObservation, gradeHistory, gradeSystem, gradeTarget, today, observedEvidence, defaults, startInForm = false }: {
+export function AssessmentWorkspace({ locale, initialAssessments, initialCheckins, levels, gradeHistory, gradeSystem, gradeTarget, today, observedEvidence, defaults, startInForm = false }: {
   locale: Locale;
   today: string;
   observedEvidence: ObservedEvidence[];
@@ -131,7 +133,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   startInForm?: boolean;
   initialAssessments: SavedAssessment[];
   initialCheckins: SavedCheckin[];
-  gradeObservation: {label:string; level:string; sampleSize:number} | null;
+  levels: CurrentLevels;
   gradeHistory: Record<string, ObservedWorkingGrade[]>;
   gradeSystem: string;
   gradeTarget: {grade:string; ordinal:number} | null;
@@ -157,6 +159,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
   });
   const [axis,setAxis]=useState<TrainingAxis>("technique");
   const [notice,setNotice]=useState("");
+  const [confirmingReset,setConfirmingReset]=useState(false);
   const [pending,startTransition]=useTransition();
   const chosen=assessments.find(e=>e.id===selectedId);
   const related=chosen?checkins.filter(c=>c.assessmentId===chosen.id).sort((x,y)=>x.week-y.week):[];
@@ -207,16 +210,31 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     });
   }
 
+  function reset() {
+    setNotice("");
+    startTransition(async()=>{
+      const result=await resetTrainingAssessments("RESET");
+      if(!result.ok){setNotice(a.problem);return;}
+      setAssessments([]);setCheckins([]);setSelectedId("");setWorking({...DEFAULT_SKILLS});
+      setConfirmingReset(false);setFormMode(true);setNotice(a.resetDone);router.refresh();
+    });
+  }
+
   return <div className="mt-7 space-y-6">
-    <nav className="flex flex-wrap items-center gap-2" aria-label={a.history}>
+    <CurrentLevelPanel locale={locale} levels={levels} cadence={assessmentCadence(assessments, today)}/>
+    <div className="space-y-3">
       <button type="button" onClick={startNew}
         className={buttonClass("primary", "md")}>{assessments.length ? (locale==="fr"?"Nouveau bilan (réévaluation)":"New assessment (reassess)") : a.add} +</button>
-      {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
-        aria-pressed={!formMode && selectedId===item.id}
-        className={"min-h-11 rounded-xl border px-3 py-1.5 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
-        {METHODS_FOR_PLANS.find(m=>m.id===item.methodId)?.title??a.noMethod} · {new Date(item.createdAt).toLocaleDateString(locale==="fr"?"fr-FR":"en-GB")}
-      </button>)}
-    </nav>
+      {assessments.length ? <nav className="leblond-scroll-row -mx-1 flex gap-2 overflow-x-auto px-1" aria-label={a.history}>
+        {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
+          aria-pressed={!formMode && selectedId===item.id}
+          className={"min-h-11 shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
+          {METHODS_FOR_PLANS.find(m=>m.id===item.methodId)?.title??a.noMethod} · {new Date(item.createdAt).toLocaleDateString(locale==="fr"?"fr-FR":"en-GB")}
+        </button>)}
+      </nav> : null}
+    </div>
+    {!formMode && assessments.length ? <FitnessCharts locale={locale} measured={measuredHistory(assessments)}
+      selfRated={selfRatedHistory(assessments, checkins)}/> : null}
     {formMode ? <StructuredAssessment locale={locale} today={today} observed={observedEvidence} defaults={defaults}
       onCancel={assessments.length ? () => setFormMode(false) : undefined}
       onSaved={(record) => {
@@ -314,12 +332,17 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         className="text-sm font-bold text-danger underline underline-offset-4 disabled:opacity-50">{a.deleteLabel}</button>
     </> : <p className="text-sm text-ink-2">{a.none}</p>}
     {notice ? <p role="status" className="text-sm font-bold text-ink-2">{notice}</p> : null}
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <h2 className="font-black">{a.objective}</h2>
-      {gradeObservation ? <p className="mt-3 text-sm"><strong>{a.observedGrade}:</strong> {gradeObservation.level} · {gradeObservation.label} · {gradeObservation.sampleSize} {locale==="fr"?"blocs analysés":"analyzed problems"}</p>
-        :<p className="mt-3 text-sm text-ink-2">{a.missingGrade}</p>}
-      <p className="mt-2 text-xs leading-relaxed text-ink-3">{a.gradeHelp}</p>
-    </section>
+    {assessments.length ? <section aria-labelledby="reset-heading" className="rounded-2xl border border-line bg-surface p-4">
+      <h2 id="reset-heading" className="text-lg font-bold">{a.resetTitle}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-ink-2">{a.resetHint}</p>
+      {confirmingReset ? <>
+        <p role="alert" className="mt-3 text-sm font-bold">{fmt(a.resetConfirm,{count:assessments.length})}</p>
+        <div className="leblond-actions mt-3">
+          <button type="button" disabled={pending} onClick={reset} className={buttonClass("danger", "md")}>{a.resetYes}</button>
+          <button type="button" disabled={pending} onClick={()=>setConfirmingReset(false)} className={buttonClass("secondary", "md")}>{a.resetNo}</button>
+        </div>
+      </> : <button type="button" onClick={()=>setConfirmingReset(true)} className={buttonClass("danger", "md", "mt-3")}>{a.resetLabel}</button>}
+    </section> : null}
   </div>;
 }
 
