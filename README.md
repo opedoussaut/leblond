@@ -29,6 +29,7 @@ Five people: Olivier (admin), Thomas, Marc, Houssem, David. There is no open sig
 - Passwordless sign-in (6-digit code or magic link), five-person whitelist enforced in the app **and** in the database
 - Two-minute onboarding (name, language, level, target, gyms, Patrick intro)
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
+- Outdoor sites without a topo, such as Dampierre Maincourt, logged by Font grade — [docs/integrations.md](docs/integrations.md)
 - Fontainebleau outdoor sessions: 90 areas and ~19,000 problems from Boolder's open data (© Boolder, CC BY 4.0), picked by name or circuit number, closure warnings shown; bleau.info is linked, never copied
 - Live session for chalky fingers: native-grade grid, one-tap **TRY · TOP · FLASH**, undo, flash suggestion, optional wall angle and style tags
 - Session summary, problem pages, Font estimate kept separate from the native grade, private photos/videos, projects

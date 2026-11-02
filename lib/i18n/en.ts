@@ -553,7 +553,11 @@ export const en: Dictionary = {
   },
   outdoor: {
     tabGym: "Gym",
-    tabBleau: "Fontainebleau",
+    tabOutdoor: "Outdoors",
+    otherSites: "Other sites",
+    siteHint: "Bouldering · Font grades · no built-in topo",
+    siteGuide: "{name} on bleau.info, new tab",
+    siteGuideShort: "Guide",
     areasTitle: "Fontainebleau areas",
     searchAreas: "Search an area",
     noAreas: "No area found.",

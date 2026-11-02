@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { listGymsWithFavourites } from "@/lib/data/gyms";
-import { listOutdoorAreas } from "@/lib/data/outdoor";
+import { listOutdoorAreas, listOutdoorSites } from "@/lib/data/outdoor";
 import { getI18n } from "@/lib/i18n/server";
 import { StartSession } from "./start-session";
 
@@ -13,9 +13,10 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   const { data: live } = await viewer.supabase.from("sessions").select("id").is("ended_at", null).maybeSingle();
   if (live) redirect(`/session/${live.id}`);
   const { t } = await getI18n(viewer.profile.preferred_language);
-  const [{ gyms, favouriteIds }, areas, { data: last }] = await Promise.all([
+  const [{ gyms, favouriteIds }, areas, sites, { data: last }] = await Promise.all([
     listGymsWithFavourites(viewer.supabase, viewer.userId),
     listOutdoorAreas(viewer.supabase),
+    listOutdoorSites(viewer.supabase),
     viewer.supabase
       .from("sessions")
       .select("gyms(external_provider)")
@@ -26,11 +27,11 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   const { where } = await searchParams;
   const initialTab =
     where === "past" ? "past"
-    : where === "bleau" || (where !== "gym" && last?.gyms?.external_provider === "BOOLDER") ? "bleau" : "gym";
+    : where === "outdoor" || (where !== "gym" && last?.gyms?.external_provider) ? "outdoor" : "gym";
   return (
     <div>
       <PageHeader title={t.session.newTitle} subtitle={t.session.whereToday} />
-      <StartSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} initialTab={initialTab} />
+      <StartSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} initialTab={initialTab} />
     </div>
   );
 }

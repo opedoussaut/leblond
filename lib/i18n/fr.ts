@@ -558,7 +558,11 @@ export const fr = {
   },
   outdoor: {
     tabGym: "Salle",
-    tabBleau: "Fontainebleau",
+    tabOutdoor: "Extérieur",
+    otherSites: "Autres sites",
+    siteHint: "Bloc · cotation Font · pas de topo intégré",
+    siteGuide: "Fiche de {name} sur bleau.info, nouvel onglet",
+    siteGuideShort: "Fiche",
     areasTitle: "Secteurs de Fontainebleau",
     searchAreas: "Chercher un secteur",
     noAreas: "Aucun secteur trouvé.",

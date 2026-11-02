@@ -15,6 +15,7 @@ import {
   searchable,
 } from "@/lib/integrations/outdoor/boolder";
 import { fmt, type Dictionary } from "@/lib/i18n";
+import type { Tables } from "@/lib/supabase/database.types";
 
 export interface AreaItem {
   id: number;
@@ -82,6 +83,57 @@ export function CircuitBadge({ color, number, className }: { color: string | nul
 
 export function areaWarning(area: Pick<AreaItem, "warning_fr" | "warning_en">, locale: string) {
   return locale === "en" ? (area.warning_en ?? area.warning_fr) : (area.warning_fr ?? area.warning_en);
+}
+
+/** Sites without a topo, then the Fontainebleau areas. Each list works without the other. */
+export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSite, onPickArea }: {
+  sites: Tables<"gyms">[];
+  areas: AreaItem[];
+  favouriteGymIds: string[];
+  pending?: boolean;
+  onPickSite: (site: Tables<"gyms">) => void;
+  onPickArea: (area: AreaItem) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="space-y-5">
+      {sites.length ? (
+        <section aria-labelledby="outdoor-sites" className="space-y-2">
+          <h2 id="outdoor-sites" className="text-sm font-bold">{t.outdoor.otherSites}</h2>
+          <ul className="space-y-2">
+            {sites.map((site) => (
+              <li key={site.id} className="flex items-stretch gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => onPickSite(site)}
+                  className="flex min-h-16 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-line bg-surface px-4 py-2 text-left hover:bg-surface-2"
+                >
+                  <span className="block truncate font-semibold">{site.name}</span>
+                  <span className="block text-xs text-ink-3">{t.outdoor.siteHint}</span>
+                </button>
+                {site.source_url ? (
+                  <a
+                    href={site.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={fmt(t.outdoor.siteGuide, { name: site.name })}
+                    className="flex shrink-0 items-center rounded-2xl border border-line bg-surface px-3 text-xs font-bold text-accent hover:bg-surface-2"
+                  >
+                    {t.outdoor.siteGuideShort}
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <section aria-labelledby="outdoor-areas" className="space-y-2">
+        <h2 id="outdoor-areas" className="text-sm font-bold">{t.outdoor.areasTitle}</h2>
+        <AreaPicker areas={areas} favouriteGymIds={favouriteGymIds} pending={pending} onPick={onPickArea} />
+      </section>
+    </div>
+  );
 }
 
 /** Fontainebleau area list (Boolder catalogue) with search and closure warnings. */

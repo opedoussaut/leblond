@@ -6,7 +6,7 @@ export type GymRow = Tables<"gyms">;
 
 /**
  * Gyms climbers pick from by hand. Catalogue entries (one per Boolder area)
- * are excluded here and offered through the Fontainebleau area picker instead.
+ * and other outdoor sites are excluded here and offered in the outdoor tab instead.
  */
 export async function listGymsWithFavourites(supabase: ServerSupabase, userId: string) {
   const [{ data: gyms, error }, { data: favs }] = await Promise.all([

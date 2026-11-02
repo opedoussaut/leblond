@@ -1,4 +1,5 @@
 import "server-only";
+import type { Tables } from "@/lib/supabase/database.types";
 import type { ServerSupabase } from "@/lib/supabase/server";
 
 export const OUTDOOR_AREA_COLUMNS =
@@ -30,6 +31,16 @@ export interface OutdoorProblemItem {
   popularity: number | null;
   parent_id: number | null;
   bleau_info_id: string | null;
+}
+
+/** Outdoor sites added by migration: no topo, the climber logs by grade. */
+export const OUTDOOR_SITE_PROVIDER = "LEBLOND";
+
+export async function listOutdoorSites(supabase: ServerSupabase): Promise<Tables<"gyms">[]> {
+  const { data, error } = await supabase.from("gyms").select("*")
+    .eq("external_provider", OUTDOOR_SITE_PROVIDER).eq("active", true).order("name");
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
 /** Fontainebleau areas (Boolder catalogue), most prominent first. Empty if never imported. */
