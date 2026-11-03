@@ -14,6 +14,7 @@ grant execute on function pg_temp.expect_error(text, text) to authenticated, ano
 grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 
 -- Own climbers, so this file does not depend on the order test files run in.
+insert into public.beta_users (email, display_name) values ('batch-a@batch.test', 'A'), ('batch-b@batch.test', 'B');
 insert into auth.users (id, email) values
   ('f0000000-0000-0000-0000-00000000000a', 'batch-a@batch.test'),
   ('f0000000-0000-0000-0000-00000000000b', 'batch-b@batch.test');

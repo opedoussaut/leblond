@@ -11,7 +11,20 @@ test.describe.configure({ mode: "serial" });
 
 const ALEX = "alex@leblond.local";
 const SAM = "sam@leblond.local";
+const GONE = "gone@leblond.local";
+const PASSWORD = "ReasonablyStrongTestingPassword123!";
+const NOT_INVITED = "Cette adresse ne fait pas partie de la bêta fermée.";
 let arkoseSessionUrl = "";
+
+async function registerWithPassword(page: Page, name: string, email: string) {
+  await page.goto("/login");
+  await page.getByRole("tab", { name: "Créer un compte" }).click();
+  await page.getByLabel("Prénom ou pseudo").fill(name);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+}
 
 async function logGrade(page: Page, grade: string, results: Array<"ESSAI" | "TOP" | "FLASH">) {
   const addButton = page.getByRole("button", { name: /AJOUTER UN BLOC/ });
@@ -34,15 +47,28 @@ async function chooseGym(page: Page, name: string) {
   await picker.selectOption(id);
 }
 
-test("any climber may register a private account with a basic profile", async ({ page }) => {
+test("sign-up is by invitation: a stranger is refused on every route", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login/);
-  await page.getByRole("tab", { name: "Créer un compte" }).click();
-  await page.getByLabel("Prénom ou pseudo").fill("New Climber");
+  await expect(page.getByText(/Bêta fermée, sur invitation/)).toBeVisible();
+  await registerWithPassword(page, "Stranger", "stranger@leblond.local");
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
+  await page.getByRole("button", { name: "Recevoir un code par e-mail à la place" }).click();
   await page.getByLabel("Adresse e-mail").fill("stranger@leblond.local");
-  await page.getByLabel("Mot de passe", { exact: true }).fill("ReasonablyStrongTestingPassword123!");
-  await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTestingPassword123!");
-  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await page.getByRole("button", { name: "Recevoir mon code" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+  await expect(page.getByLabel("Code reçu par e-mail")).toHaveCount(0);
+
+  // A refused Google account comes back to the callback with an error description.
+  await page.goto("/auth/callback?error=server_error&error_code=unexpected_failure&error_description=Database+error+saving+new+user");
+  await expect(page).toHaveURL(/\/login\?error=invite/);
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+});
+
+test("an invited climber registers a private account with a basic profile", async ({ page }) => {
+  await registerWithPassword(page, "New Climber", "newcomer@leblond.local");
   await expect(page).toHaveURL(/\/onboarding/);
   await expect(page.getByRole("heading", { name: "Choisis ta langue" })).toBeVisible();
   await expect(page.getByText("L’expérience LeBlond en français")).toBeVisible();
@@ -252,6 +278,28 @@ test("history is preserved and private: another tester sees nothing", async ({ p
   await expect(page.getByText("Aucune séance pour l’instant.")).toBeVisible();
   const res = await page.goto(new URL(arkoseSessionUrl).pathname);
   expect(res?.status()).toBe(404);
+});
+
+test("a tester deactivated in Beta administration lands on Accès désactivé", async ({ page }) => {
+  await registerWithPassword(page, "Gone", GONE);
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  await page.context().clearCookies();
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  const row = page.getByRole("listitem").filter({ hasText: GONE });
+  await row.getByRole("button", { name: "Désactiver" }).click();
+  await expect(row.getByRole("button", { name: "Réactiver" })).toBeVisible();
+
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.getByLabel("Adresse e-mail").fill(GONE);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await expect(page).toHaveURL(/\/revoked/);
+  await expect(page.getByRole("heading", { name: "Accès désactivé" })).toBeVisible();
+  await page.goto("/session");
+  await expect(page).toHaveURL(/\/revoked/);
 });
 
 test("PWA manifest is installable", async ({ request }) => {

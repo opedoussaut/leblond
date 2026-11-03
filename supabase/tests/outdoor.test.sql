@@ -95,10 +95,10 @@ select pg_temp.expect((select count(*) from public.problems where outdoor_proble
 insert into public.problems (gym_id, native_grade, native_grade_system, outdoor_problem_id)
   values ('50000000-0000-0000-0000-000000000001', '4c', 'FONT', 100);
 
--- ── Any signed-in climber can read shared catalogue; anonymous cannot ───
+-- ── Deactivated climbers and anonymous visitors cannot read the catalogue ──
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c3","email":"gone@outdoor.test","role":"authenticated"}', false);
-select pg_temp.expect((select count(*) from public.outdoor_problems) > 0, 'registered climber can read shared catalogue');
-select pg_temp.expect((select count(*) from public.problems) = 0, 'registered climber cannot read other peoples private attempts');
+select pg_temp.expect((select count(*) from public.outdoor_problems) = 0, 'deactivated climber cannot read the catalogue');
+select pg_temp.expect((select count(*) from public.problems) = 0, 'deactivated climber cannot read other peoples private attempts');
 reset role;
 
 set role anon;

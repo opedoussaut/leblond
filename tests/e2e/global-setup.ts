@@ -15,11 +15,15 @@ export default async function globalSetup() {
   for (const u of data?.users ?? []) {
     if (u.email?.endsWith("@leblond.local")) await admin.auth.admin.deleteUser(u.id);
   }
+  // Closed beta: every demo climber who signs up is invited first.
+  // stranger@leblond.local is deliberately left out.
+  const testers = ["Sam", "Newcomer", "Gone", "Training", "Free", "Routes", "Past", "Guided"];
   await admin.from("beta_users").upsert(
     [
       { email: "alex@leblond.local", display_name: "Alex", role: "admin", active: true },
-      { email: "sam@leblond.local", display_name: "Sam", role: "beta_tester", active: true },
+      ...testers.map((name) => ({ email: `${name.toLowerCase()}@leblond.local`, display_name: name, role: "beta_tester", active: true })),
     ],
     { onConflict: "email" },
   );
+  await admin.from("beta_users").delete().eq("email", "stranger@leblond.local");
 }

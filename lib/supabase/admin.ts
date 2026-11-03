@@ -6,7 +6,6 @@ import type { Database } from "./database.types";
 /**
  * Service-role client. BYPASSES RLS — use only in server code for the few
  * operations that must not be performed with the user's privileges:
- *  - whitelist checks before sending a sign-in email,
  *  - storing/reading encrypted wearable tokens,
  *  - admin roster management.
  * Never import this from a Client Component.

@@ -48,6 +48,8 @@ Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever 
 ### 4. Load the whitelist
 Actions → **Update beta whitelist** → Run workflow. The log shows names and roles only.
 
+Sign-up is by invitation: an email that is not on the active whitelist cannot create an account, and an existing account outside it lands on "Accès désactivé" with its data kept. To check the hosted whitelist without showing any email, run **Deploy database (Supabase)** with mode `access`: it prints counts only (accounts, active invitations, active admin, accounts outside the whitelist, invitations with no account yet).
+
 ### 4b. Load the Fontainebleau topo (optional)
 Actions → **Import Boolder (Fontainebleau)** → Run workflow. It downloads Boolder's open data (© Boolder, CC BY 4.0) and loads the Fontainebleau areas, circuits and problems; the log shows the counts. Re-run it from time to time to pick up Boolder's updates (new problems, closures). Settings → Connections shows the date of the last import.
 
