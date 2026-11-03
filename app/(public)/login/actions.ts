@@ -2,18 +2,19 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isNotInvitedError } from "@/lib/auth/closed-beta";
 import { siteUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { publicSupabaseEnv } from "@/lib/supabase/public-env";
 import { email as emailSchema, otpCode, safeNext } from "@/lib/validation/common";
 
 export type LoginState =
-  | { step: "email"; error?: "invalidEmail" | "rateLimited" | "unknownError" | "notConfigured" }
+  | { step: "email"; error?: "invalidEmail" | "notInvited" | "rateLimited" | "unknownError" | "notConfigured" }
   | { step: "code"; email: string; error?: "invalidCode" | "rateLimited" | "unknownError" };
 
 export type PasswordState = {
   error?: "invalidCredentials" | "invalidEmail" | "weakPassword" | "passwordMismatch" |
-    "rateLimited" | "unknownError" | "notConfigured" | "invalidName";
+    "notInvited" | "rateLimited" | "unknownError" | "notConfigured" | "invalidName";
   sentConfirmation?: boolean;
 };
 const passwordSchema = z.string().min(8).max(72);
@@ -51,6 +52,7 @@ export async function registerWithEmail(_state: PasswordState, formData: FormDat
   });
   if (error) {
     if (error.status === 429) return { error: "rateLimited" };
+    if (isNotInvitedError(error)) return { error: "notInvited" };
     if (/password/i.test(error.message)) return { error: "weakPassword" };
     return { error: "unknownError" };
   }
@@ -72,7 +74,10 @@ export async function sendCode(_prev: LoginState, formData: FormData): Promise<L
       emailRedirectTo: siteUrl() + "/auth/callback?next=" + encodeURIComponent(safeNext(formData.get("next"))),
     },
   });
-  if (error) return { step: "email", error: error.status === 429 ? "rateLimited" : "unknownError" };
+  if (error) {
+    if (error.status === 429) return { step: "email", error: "rateLimited" };
+    return { step: "email", error: isNotInvitedError(error) ? "notInvited" : "unknownError" };
+  }
   return { step: "code", email: address.data };
 }
 

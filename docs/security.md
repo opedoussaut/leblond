@@ -14,7 +14,7 @@
 | AI rate limit | Per user per 24 h, counted on append-only `ai_usage`. |
 | Input validation | Zod on every server action and route; DB check constraints for grades, flash rule, ranges. |
 | Safe errors | Generic error codes to clients; no private content in logs; AI telemetry has no prompt text. |
-| Whitelist | Server pre-check before sending email + `auth.users` trigger rejecting uninvited/deactivated emails. |
+| Whitelist | `auth.users` trigger rejects uninvited/deactivated emails on every sign-up route (password, email code, magic link, Google). `is_active_beta_user()` gates RLS, and `requireViewer()` sends accounts outside the active whitelist to `/revoked`; their data is kept. The login page tells a refused address it is not part of the closed beta, which reveals whether an address is invited, not whether it has an account. |
 
 ## Admin
 

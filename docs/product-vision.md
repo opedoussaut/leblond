@@ -37,7 +37,7 @@ All logged sessions belong to one history, irrespective of whether they were cre
 
 ## Public/free and privacy
 
-Open sign-up, no subscription and free features. Public educational content (catalogue and method references) is shareable. Personal logs, plans and assessments remain private by default under authentication and row-level security. Optional public sharing should require explicit consent.
+Sign-up is by invitation during the closed beta; no subscription and free features. Public educational content (catalogue and method references) is shareable. Personal logs, plans and assessments remain private by default under authentication and row-level security. Optional public sharing should require explicit consent.
 
 ## Product and safety constraints
 

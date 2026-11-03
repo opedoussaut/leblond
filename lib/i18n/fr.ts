@@ -65,7 +65,7 @@ export const fr = {
   },
   auth: {
     title: "Connexion",
-    subtitle: "Ton espace escalade : crée un compte ou retrouve ta progression.",
+    subtitle: "Bêta fermée, sur invitation : crée ton compte avec l’adresse invitée, ou retrouve ta progression.",
     authMode: "Méthode de connexion",
     registerTab: "Créer un compte",
     signInPassword: "Se connecter",

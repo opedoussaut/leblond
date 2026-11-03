@@ -33,7 +33,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-2">{t.auth.subtitle}</p>
           </header>
           <section aria-label={t.auth.title}>
-            {params.error === "link" ? <Notice tone="error">{t.auth.linkError}</Notice> : null}
+            {params.error === "link" || params.error === "invite" ? (
+              <div className="mb-5">
+                <Notice tone="error">{params.error === "link" ? t.auth.linkError : t.auth.notInvited}</Notice>
+              </div>
+            ) : null}
             {publicSupabaseEnv()
               ? <LoginForm next={next} googleEnabled={googleEnabled} />
               : <Notice tone="warn">{t.auth.notConfigured}</Notice>}

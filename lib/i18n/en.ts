@@ -62,7 +62,7 @@ export const en: Dictionary = {
   },
   auth: {
     title: "Welcome back",
-    subtitle: "Your climbing space. Create an account or continue your progress.",
+    subtitle: "Closed beta, invitation only: create your account with the invited email, or continue your progress.",
     authMode: "Sign-in method",
     registerTab: "Create account",
     signInPassword: "Sign in",
