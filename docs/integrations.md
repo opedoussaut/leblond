@@ -31,11 +31,13 @@ Boolder publishes its Fontainebleau topo as open data (SQLite `boolder.db`, http
 - Climbers never write the catalogue (RLS + revoked privileges); their problems and attempts stay private. If a problem disappears upstream, the climber's history is kept and only the link is cleared.
 - **Attribution**: "Topo: © Boolder, CC BY 4.0" with links, wherever catalogue data appears (area picker, live picker, problem page, Connections).
 
-Import: GitHub Actions → **Import Boolder (Fontainebleau)** (`.github/workflows/import-boolder.yml`), or locally `npx tsx scripts/import-boolder.ts --db boolder.db` (service role). `tests/fixtures/boolder-sample.json` holds 39 real rows for tests and local development.
+Import: GitHub Actions → **Import Boolder (Fontainebleau)** (`.github/workflows/import-boolder.yml`), or locally `npx tsx scripts/import-boolder.ts --db boolder.db` (service role). With `--sql-dir <dir>` the script writes SQL batches instead; the workflow runs those through the Supabase Management API with the deploy secrets. `tests/fixtures/boolder-sample.json` holds 39 real rows for tests and local development.
 
 ## Other outdoor sites
 
 Sites Boolder does not cover are single rows in `gyms`, added by migration with `external_provider = 'LEBLOND'` (see `20261102000001_outdoor_sites.sql`). They appear in the outdoor tab, not in the gym list, and work even if the Boolder catalogue was never imported.
+
+Climbers can also add a crag from the outdoor picker (*+ Ajouter un site extérieur*): a shared `gyms` row with brand `OUTDOOR`, Font grading for boulders, the disciplines it offers and an optional link to its source page (a guide, a federation page). Boulders and routes logged there carry their own name, grade, sector, beta and topo reference (book, page, number) with an optional link. These are citations: guidebook diagrams and photos are never copied.
 
 - **Dampierre Maincourt:** bouldering on the Font scale. There is no topo, so the climber logs each problem by grade.
 - **bleau.info:** link only, opened in a new tab. Nothing is copied or scraped.

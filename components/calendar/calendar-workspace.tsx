@@ -11,6 +11,7 @@ import { CalendarEntrySessionButton } from "@/components/training/session-action
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import type { TrainingStatus } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
+import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
 export type CalendarTraining = {
@@ -166,7 +167,8 @@ export function CalendarWorkspace({
           <label className="text-sm font-semibold">{t.kind}<select className={field} value={kind} onChange={e=>setKind(e.target.value as CalendarInput["kind"])}>{kinds.map(k=><option key={k} value={k}>{t[k]}</option>)}</select></label>
           <label className="text-sm font-semibold">{t.discipline}<select className={field} value={discipline} onChange={e=>setDiscipline(e.target.value as CalendarInput["discipline"])}>{disciplines.map(d=><option key={d} value={d}>{t[d]}</option>)}</select></label>
         </div>
-        <label className="block text-sm font-semibold">{t.minutes}<input className={field} type="number" min={10} max={480} value={minutes} onChange={e=>setMinutes(e.target.value)}/></label>
+        <DurationField label={t.minutes} optional value={minutes?Number(minutes):null}
+          onChange={v=>setMinutes(v==null?"":String(v))} min={10} max={480} step={5}/>
         <label className="block text-sm font-semibold">{t.method}<select className={field} value={method} onChange={e=>setMethod(e.target.value)}>
           <option value="">{t.noMethod}</option>{METHODS_FOR_PLANS.map(m=><option value={m.id} key={m.id}>{m.title}</option>)}
         </select></label>

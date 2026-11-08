@@ -216,11 +216,23 @@ test("connections: truthful statuses, FIT import, link to session", async ({ pag
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Activité importée.")).toBeVisible();
   await page.getByRole("button", { name: "Associer à une séance" }).first().click();
-  await expect(page.getByText(/Activité de montre associée/)).toBeVisible();
+  const linkedNote = page.getByText(/Associée\. Ouvre la séance pour comparer/);
+  await expect(linkedNote).toBeVisible();
 
   // Re-importing the same file is detected as a duplicate.
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Cette activité semble déjà importée.")).toBeVisible();
+
+  // On the session: imported file marked as such, times still the typed ones until confirmed.
+  await page.goto("/session");
+  await page.getByRole("link", { name: /Demo Climbing District/ }).first().click();
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+  await expect(page.getByText("Horaires saisis à la main")).toBeVisible();
+  const table = page.getByRole("definition").filter({ hasText: "→" });
+  await expect(table).toHaveCount(2);
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "Reprendre les horaires de la montre" }).click();
+  await expect(page.getByText("Horaires repris de la montre")).toBeVisible();
 });
 
 test("Patrick analyses the persisted session (with wearable context), streamed", async ({ page }) => {
@@ -335,7 +347,7 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await signIn(page, ALEX);
   await page.goto("/session/new");
   await expect(page.getByRole("tab", { name: "Extérieur" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("link", { name: /Dampierre Maincourt sur bleau.info/ })).toHaveAttribute("href", "https://bleau.info/maincourt");
+  await expect(page.getByRole("link", { name: /Fiche de Dampierre Maincourt/ })).toHaveAttribute("href", "https://bleau.info/maincourt");
   await page.getByRole("button", { name: /Dampierre Maincourt/ }).click();
   await expect(page.getByRole("heading", { name: "Dampierre Maincourt" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Quel bloc ?" })).toHaveCount(0);
@@ -353,4 +365,24 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await expect(page.getByRole("tab", { name: "Salle" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: /Dampierre Maincourt/ })).toHaveCount(0);
   await expect(page.getByRole("option", { name: /Dampierre Maincourt/ })).toHaveCount(0);
+
+  // A crag no topo covers, added by the climber (the link is optional), then a named boulder in a sector.
+  await page.goto("/session/new");
+  await page.getByRole("tab", { name: "Extérieur" }).click();
+  await page.getByRole("button", { name: "+ Ajouter un site extérieur" }).click();
+  const siteForm = page.getByRole("form", { name: "Nouveau site extérieur" });
+  await siteForm.getByLabel("Nom du site").fill("Saffres E2E");
+  await siteForm.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByRole("heading", { name: "Saffres E2E" })).toBeVisible();
+  await page.getByLabel("Nom (facultatif)").fill("La Fissure");
+  await page.getByLabel("Secteur").fill("Secteur Nord");
+  await page.getByRole("button", { name: "6B", exact: true }).click();
+  await page.getByRole("region", { name: "Bloc en cours" }).getByRole("button", { name: "Top", exact: true }).click();
+  await expect(page.getByText(/noté./)).toBeVisible();
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await page.getByRole("link", { name: /La Fissure/ }).click();
+  await expect(page.getByRole("heading", { name: "La Fissure" })).toBeVisible();
+  await expect(page.getByText("Secteur Nord").first()).toBeVisible();
 });

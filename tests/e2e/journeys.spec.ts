@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * Acceptance journeys for the two LEBLOND experiences on a real local stack:
@@ -24,6 +24,13 @@ function mondayOf(date: string) {
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7));
   return dt.toISOString().slice(0, 10);
+}
+
+/** Picks a duration in the hours + minutes control (a fieldset named by its legend). */
+async function pickDuration(scope: Page | Locator, legend: string, total: number) {
+  const group = scope.getByRole("group", { name: legend, exact: true });
+  await group.getByLabel("Heures").selectOption(String(Math.floor(total / 60)));
+  await group.getByLabel("Minutes").selectOption(String(total % 60));
 }
 
 async function register(page: Page, name: string, email: string) {
@@ -237,7 +244,7 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   const pastForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
   await pastForm.getByLabel("Date").fill(yesterday);
   await pastForm.getByLabel("Heure de début").fill("18:00");
-  await pastForm.getByLabel("Durée (minutes)").fill("90");
+  await pickDuration(pastForm, "Durée", 90);
   await pastForm.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
   const editUrl = page.url();
@@ -284,6 +291,19 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   const list = page.getByRole("region", { name: /Voies de la séance/ });
   await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("6a");
   await expect(list.getByRole("listitem").filter({ hasText: "Moulinette" })).toContainText("6c");
+
+  // Every detail of a route can be completed afterwards, on its own page.
+  await list.getByRole("listitem").filter({ hasText: "Moulinette" }).getByRole("link", { name: /Détails/ }).click();
+  await expect(page).toHaveURL(/\/route\/[0-9a-f-]{36}$/);
+  const ascent = page.getByRole("form", { name: "Modifier la voie" });
+  await ascent.getByLabel("Nom de la voie").fill("Le dièdre gris");
+  await ascent.getByLabel("Secteur").fill("Mur du fond");
+  await ascent.getByLabel("Commentaire").fill("Sortie à revoir");
+  await ascent.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(ascent.getByText("Enregistré.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("form", { name: "Modifier la voie" }).getByLabel("Nom de la voie")).toHaveValue("Le dièdre gris");
+  await expect(page.getByRole("form", { name: "Modifier la voie" }).getByLabel("Secteur")).toHaveValue("Mur du fond");
 
   // Delete the bouldering session.
   await page.goto(editUrl);
@@ -402,7 +422,7 @@ test("A7 — training: record a strength session after the fact, edit it, delete
   await expect(form.getByLabel("Type de séance")).toHaveValue("strength-conditioning");
   await form.getByLabel("Titre (facultatif)").fill("Renforcement");
   await form.getByLabel("Date").fill(yesterday);
-  await form.getByLabel("Temps total (minutes)").fill("75");
+  await pickDuration(form, "Temps total", 75);
   await form.getByLabel(/Effort perçu/).fill("7");
   await form.getByLabel(/Description/).fill("3×8 tractions lestées +5 kg, gainage 3×30 s");
   await form.getByRole("button", { name: "Enregistrer la séance" }).click();
@@ -415,7 +435,7 @@ test("A7 — training: record a strength session after the fact, edit it, delete
   // Edit: longer, with pain reported.
   await page.getByRole("button", { name: "✎ Modifier" }).click();
   const edit = page.getByRole("form", { name: "Modifier la séance" });
-  await edit.getByLabel("Temps total (minutes)").fill("90");
+  await pickDuration(edit, "Temps total", 90);
   await edit.getByLabel(/Douleur/).fill("5");
   await edit.getByLabel(/Description/).fill("Tractions + gainage. Point de tension épaule gauche.");
   await edit.getByRole("button", { name: "Enregistrer les modifications" }).click();

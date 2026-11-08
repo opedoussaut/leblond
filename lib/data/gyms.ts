@@ -6,11 +6,12 @@ export type GymRow = Tables<"gyms">;
 
 /**
  * Gyms climbers pick from by hand. Catalogue entries (one per Boolder area)
- * and other outdoor sites are excluded here and offered in the outdoor tab instead.
+ * and every outdoor site (brand OUTDOOR, including those added by climbers)
+ * are excluded here and offered in the outdoor tab instead.
  */
 export async function listGymsWithFavourites(supabase: ServerSupabase, userId: string) {
   const [{ data: gyms, error }, { data: favs }] = await Promise.all([
-    supabase.from("gyms").select("*").eq("active", true).is("external_provider", null).order("name"),
+    supabase.from("gyms").select("*").eq("active", true).is("external_provider", null).neq("brand", "OUTDOOR").order("name"),
     supabase.from("favourite_gyms").select("gym_id").eq("user_id", userId),
   ]);
   if (error) throw new Error(error.message);

@@ -2,20 +2,24 @@ import { Card, SectionTitle } from "@/components/ui/card";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import type { Tables } from "@/lib/supabase/database.types";
-import { LinkActivity, UnlinkActivity } from "./link-activity";
+import { ActivityTiming, LinkActivity, UnlinkActivity } from "./link-activity";
 
 type Candidate = { id: string; startedAt: string; durationSeconds: number; device: string | null };
 
+const PROVIDER_LABEL: Record<string, string> = { COROS: "COROS", SUUNTO: "Suunto", GARMIN: "Garmin", STRAVA: "Strava" };
+
 /** Wearable metrics for a session — only fields that actually exist are shown. */
 export async function SessionWearable({
-  sessionId,
+  session,
   activity,
   candidates,
 }: {
-  sessionId: string;
+  session: Pick<Tables<"sessions">, "id" | "started_at" | "ended_at" | "duration_minutes" | "timing_source">;
   activity: Tables<"wearable_activities"> | null;
   candidates: Candidate[];
 }) {
+  const sessionId = session.id;
+  const timing = { startedAt: session.started_at, endedAt: session.ended_at, durationMinutes: session.duration_minutes };
   const { t, locale } = await getI18n();
   if (!activity) {
     return (
@@ -24,8 +28,11 @@ export async function SessionWearable({
         {candidates.length ? (
           <LinkActivity
             sessionId={sessionId}
+            session={timing}
             options={candidates.map((c) => ({
               id: c.id,
+              startedAt: c.startedAt,
+              durationSeconds: c.durationSeconds,
               label: `${formatDateTime(c.startedAt, locale)} · ${formatDuration(c.durationSeconds / 60)}${c.device ? ` · ${c.device}` : ""}`,
             }))}
           />
@@ -50,6 +57,9 @@ export async function SessionWearable({
   return (
     <Card>
       <SectionTitle>{t.session.wearable}</SectionTitle>
+      <p className="mt-1 text-xs font-semibold text-ink-3">
+        {activity.provider === "FIT_IMPORT" ? t.session.importedFit : PROVIDER_LABEL[activity.provider] ?? activity.provider}
+      </p>
       <dl className="mt-2 divide-y divide-line">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between py-2 text-sm">
@@ -58,6 +68,12 @@ export async function SessionWearable({
           </div>
         ))}
       </dl>
+      <ActivityTiming
+        sessionId={sessionId}
+        activity={{ startedAt: activity.started_at, durationSeconds: activity.duration_seconds }}
+        session={timing}
+        timingSource={session.timing_source}
+      />
       <p className="mt-2 text-xs text-ink-3">{t.connections.medicalNote}</p>
       <UnlinkActivity activityId={activity.id} />
     </Card>

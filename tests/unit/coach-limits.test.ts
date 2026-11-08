@@ -62,7 +62,8 @@ describe("limits are sent to the server only when set", () => {
     let sent: Record<string, unknown> = {};
     const fakeFetch = (async (_u: string, init: RequestInit) => {
       sent = JSON.parse(String(init.body));
-      return new Response("data: [DONE]\n\n", { headers: { "content-type": "text/event-stream" } });
+      const answer = { id: "c", object: "chat.completion.chunk", created: 1, model: "m", choices: [{ index: 0, delta: { content: "ok" }, finish_reason: "stop" }] };
+      return new Response(`data: ${JSON.stringify(answer)}\n\ndata: [DONE]\n\n`, { headers: { "content-type": "text/event-stream" } });
     }) as unknown as typeof fetch;
     const coach = new ChatCompletionsCoach("m", { baseURL: "http://x/v1", fetch: fakeFetch, generation });
     const s = await coach.chat({ instructions: "i", context: "c", messages: [{ role: "user", content: "q" }] });

@@ -126,6 +126,8 @@ export function PatrickChat({
             ? t.patrick.notConfigured
             : err.error === "provider_busy"
               ? t.patrick.busy
+              : err.error === "provider_quota"
+              ? t.patrick.quota
               : err.error === "rate_limited"
               ? fmt(t.patrick.rateLimited, { limit: err.limit ?? dailyLimit })
               : t.patrick.error,
@@ -147,6 +149,8 @@ export function PatrickChat({
       }
       router.refresh();
     } catch {
+      // A stream cut before any text: drop the empty bubble; a partial answer stays visible.
+      setMessages((m) => m.filter((x) => !(x.id === botId && !x.content)));
       setError(t.patrick.error);
     } finally {
       setBusy(false);

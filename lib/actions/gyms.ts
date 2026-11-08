@@ -14,6 +14,9 @@ const createGymSchema = z.object({
   gradingSystem: z.enum(GRADE_SYSTEMS).optional(),
   hasBouldering: z.boolean().default(true),
   hasRoutes: z.boolean().default(false),
+  /** Outdoor sites: link to the original guide / topo page (never a copy of it). */
+  sourceUrl: z.union([z.string().trim().max(500).regex(/^https:\/\/\S+$/), z.literal("")]).optional()
+    .transform((v) => v || null),
 }).refine((v) => v.hasBouldering || v.hasRoutes, { path: ["hasBouldering"] });
 
 export async function createGym(input: z.input<typeof createGymSchema>): Promise<ActionResult<Tables<"gyms">>> {
@@ -27,7 +30,12 @@ export async function createGym(input: z.input<typeof createGymSchema>): Promise
 
   const { data, error } = await viewer.supabase
     .from("gyms")
-    .insert({ name, brand, city, country: "FR", grading_system: gradingSystem, has_bouldering: parsed.data.hasBouldering, has_routes: parsed.data.hasRoutes, created_by: viewer.userId })
+    .insert({
+      name, brand, city, country: "FR", grading_system: gradingSystem,
+      has_bouldering: parsed.data.hasBouldering, has_routes: parsed.data.hasRoutes, created_by: viewer.userId,
+      // The link is optional: an empty field is stored as no link (the column only accepts web addresses).
+      source_url: brand === "OUTDOOR" && parsed.data.sourceUrl ? parsed.data.sourceUrl : null,
+    })
     .select()
     .single();
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "unknownError" };

@@ -39,17 +39,23 @@ async function readVideoMeta(file: File): Promise<{ duration: number | null; wid
  */
 export function MediaUploader({
   userId,
-  problemId,
+  problemId = null,
+  routeAscentId = null,
   sessionId,
   attemptId = null,
   compact = false,
+  photoLabel,
   onUploaded,
 }: {
   userId: string;
-  problemId: string;
+  /** Subject: a boulder problem or a route ascent. */
+  problemId?: string | null;
+  routeAscentId?: string | null;
   sessionId: string | null;
   attemptId?: string | null;
   compact?: boolean;
+  /** Button label for photos (defaults to "problem photo"). */
+  photoLabel?: string;
   onUploaded?: () => void;
 }) {
   const { t } = useI18n();
@@ -71,7 +77,7 @@ export function MediaUploader({
 
     setBusy(true);
     try {
-      const path = mediaPath(userId, problemId, crypto.randomUUID(), file.type);
+      const path = mediaPath(userId, (problemId ?? routeAscentId)!, crypto.randomUUID(), file.type);
       const meta = kind === "video" ? await readVideoMeta(file) : { duration: null, width: null, height: null };
       const { error: upErr } = await getBrowserClient()
         .storage.from(MEDIA_BUCKET)
@@ -80,6 +86,7 @@ export function MediaUploader({
       const res = await registerMedia({
         storagePath: path,
         problemId,
+        routeAscentId,
         sessionId,
         attemptId,
         mediaType,
@@ -104,7 +111,7 @@ export function MediaUploader({
   return (
     <div className={cn(compact ? "flex flex-wrap items-center gap-2" : "space-y-3")}>
       <label htmlFor={photoId} className={buttonClass("secondary", "md", "cursor-pointer")}>
-        📷 {busy ? t.problem.uploading : t.problem.addPhoto}
+        📷 {busy ? t.problem.uploading : photoLabel ?? t.problem.addPhoto}
       </label>
       <input
         ref={photoRef}

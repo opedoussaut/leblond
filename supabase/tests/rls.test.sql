@@ -121,7 +121,7 @@ select pg_temp.expect_error(
 
 -- Official directory: seed all five networks, preserve the true disciplines
 -- and keep rows visible only to signed-in climbers.
-select pg_temp.expect((select count(*) from public.gyms where source_url is not null and external_provider is null) = 29,
+select pg_temp.expect((select count(*) from public.gyms where source_url is not null and external_provider is null and brand <> 'OUTDOOR') = 29,
   'all 29 verified Île-de-France venues are seeded');
 select pg_temp.expect((select brand = 'OUTDOOR' and grading_system = 'FONT' and has_bouldering and not has_routes from public.gyms
   where external_provider = 'LEBLOND' and external_id = 'dampierre-maincourt'),
