@@ -35,8 +35,6 @@ insert into public.problems (id, gym_id, created_by, native_grade, native_grade_
 values ('e7000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'BLUE', 'ARKOSE_COLOR');
 select public.log_attempt('e6000000-0000-0000-0000-000000000001', 'e7000000-0000-0000-0000-000000000001', 'ATTEMPT');
 select public.log_attempt('e6000000-0000-0000-0000-000000000001', 'e7000000-0000-0000-0000-000000000001', 'TOP');
-insert into public.route_ascents (user_id, session_id, client_id, grade, style, result, tries)
-values ('f3000000-0000-0000-0000-00000000000a', 'e6000000-0000-0000-0000-000000000001', gen_random_uuid(), '6a', 'LEAD', 'REDPOINT', 2);
 
 insert into public.wearable_activities (id, user_id, provider, provider_activity_id, started_at, duration_seconds, dedup_key)
 values ('e8000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:1', '2026-09-21 09:00:27+00', 5400, 'k1');
@@ -52,8 +50,6 @@ select pg_temp.expect((select timing_source = 'ACTIVITY' and started_at = '2026-
   from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'watch start and duration applied');
 select pg_temp.expect((select bool_and(created_at between '2026-09-21 09:00:27+00' and '2026-09-21 10:30:27+00') and count(distinct created_at) = 2
   from public.attempts where session_id = 'e6000000-0000-0000-0000-000000000001'), 'attempts moved into the new window, order kept');
-select pg_temp.expect((select bool_and(created_at between '2026-09-21 09:00:27+00' and '2026-09-21 10:30:27+00')
-  from public.route_ascents where session_id = 'e6000000-0000-0000-0000-000000000001'), 'route ascents moved too');
 select pg_temp.expect((select count(*) = 2 from public.attempts where session_id = 'e6000000-0000-0000-0000-000000000001'),
   'no attempt duplicated');
 
@@ -83,6 +79,19 @@ select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001');
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000002', null);
 select pg_temp.expect((select timing_source = 'MANUAL' and wearable_activity_id is null and started_at = '2026-09-21 09:01+00'
   from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'unlinking keeps the times, now as manual ones');
+
+-- Route sessions: ascents move with the session too.
+insert into public.sessions (id, user_id, gym_id, discipline, started_at, ended_at, duration_minutes)
+values ('e6000000-0000-0000-0000-000000000004', 'f3000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
+  'ROUTE', '2026-09-24 08:00+00', '2026-09-24 10:00+00', 120);
+insert into public.route_ascents (user_id, session_id, client_id, grade, style, result, tries)
+values ('f3000000-0000-0000-0000-00000000000a', 'e6000000-0000-0000-0000-000000000004', gen_random_uuid(), '6a', 'LEAD', 'REDPOINT', 2);
+insert into public.wearable_activities (id, user_id, provider, provider_activity_id, started_at, duration_seconds, dedup_key)
+values ('e8000000-0000-0000-0000-000000000005', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:5', '2026-09-24 14:00+00', 3600, 'k5');
+select public.link_wearable_activity('e8000000-0000-0000-0000-000000000005', 'e6000000-0000-0000-0000-000000000004');
+select public.apply_activity_timing('e6000000-0000-0000-0000-000000000004');
+select pg_temp.expect((select count(*) = 1 and bool_and(created_at between '2026-09-24 14:00+00' and '2026-09-24 15:00+00')
+  from public.route_ascents where session_id = 'e6000000-0000-0000-0000-000000000004'), 'route ascents move with the session too');
 
 -- 2. A session logged live: attempts carry real times and stay where they are.
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
