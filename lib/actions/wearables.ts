@@ -61,7 +61,16 @@ export async function syncProvider(provider: string): Promise<ActionResult<{ ins
   }
 }
 
-export async function linkActivityToSession(activityId: string, sessionId: string | null): Promise<ActionResult> {
+/**
+ * Links (or unlinks) a watch activity and a climbing session. With
+ * `useActivityTiming`, the session then takes the activity's start time and
+ * duration — only after the climber has seen and confirmed both.
+ */
+export async function linkActivityToSession(
+  activityId: string,
+  sessionId: string | null,
+  options: { useActivityTiming?: boolean } = {},
+): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!z.guid().safeParse(activityId).success || (sessionId !== null && !z.guid().safeParse(sessionId).success)) {
     return { ok: false, error: "invalid" };
@@ -70,10 +79,32 @@ export async function linkActivityToSession(activityId: string, sessionId: strin
     ? await viewer.supabase.rpc("link_wearable_activity", { p_activity_id: activityId, p_session_id: sessionId })
     : await viewer.supabase.rpc("unlink_wearable_activity", { p_activity_id: activityId });
   if (error) return { ok: false, error: "unknownError" };
-  revalidatePath("/settings/connections");
-  if (sessionId) revalidatePath(`/session/${sessionId}`);
-  revalidatePath("/progress");
+  if (sessionId && options.useActivityTiming) {
+    const { error: timingError } = await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
+    if (timingError) {
+      revalidatePath("/", "layout");
+      return { ok: false, error: timingErrorCode(timingError.message) };
+    }
+  }
+  revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** Copies the linked activity's start time and duration onto a finished session. */
+export async function applyActivityTiming(sessionId: string): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  if (!z.guid().safeParse(sessionId).success) return { ok: false, error: "invalid" };
+  const { error } = await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
+  if (error) return { ok: false, error: timingErrorCode(error.message) };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+function timingErrorCode(message: string): string {
+  if (message.includes("SESSION_STILL_LIVE")) return "liveSession";
+  if (message.includes("NO_TIMING")) return "noTiming";
+  if (message.includes("INVALID_START")) return "invalidDate";
+  return "unknownError";
 }
 
 export async function deleteActivity(activityId: string): Promise<ActionResult> {

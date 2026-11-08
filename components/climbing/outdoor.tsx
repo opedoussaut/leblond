@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
-import { Input, Select } from "@/components/ui/field";
+import { Input, Label, Select } from "@/components/ui/field";
+import { createGym } from "@/lib/actions/gyms";
 import { compareGrades } from "@/lib/grading";
 import {
   BOOLDER_ATTRIBUTION,
@@ -85,7 +86,79 @@ export function areaWarning(area: Pick<AreaItem, "warning_fr" | "warning_en">, l
   return locale === "en" ? (area.warning_en ?? area.warning_fr) : (area.warning_fr ?? area.warning_en);
 }
 
-/** Sites without a topo, then the Fontainebleau areas. Each list works without the other. */
+function siteHint(t: Dictionary, site: Pick<Tables<"gyms">, "has_bouldering" | "has_routes">) {
+  if (site.has_bouldering && site.has_routes) return t.outdoor.siteHintBoth;
+  return site.has_routes ? t.outdoor.siteHintRoutes : t.outdoor.siteHint;
+}
+
+/** A crag or bouldering spot without a built-in topo, added by a climber (shared with other testers). */
+function NewOutdoorSiteForm({ onCreated, onCancel }: { onCreated: (site: Tables<"gyms">) => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const [hasBouldering, setHasBouldering] = useState(true);
+  const [hasRoutes, setHasRoutes] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <form
+      aria-label={t.outdoor.addSiteTitle}
+      className="space-y-3 rounded-2xl border border-line bg-surface p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        setError(null);
+        start(async () => {
+          const res = await createGym({
+            name: String(fd.get("name") ?? ""),
+            brand: "OUTDOOR",
+            city: String(fd.get("city") ?? ""),
+            gradingSystem: "FONT",
+            hasBouldering,
+            hasRoutes,
+            sourceUrl: String(fd.get("sourceUrl") ?? "").trim(),
+          });
+          if (res.ok && res.data) onCreated(res.data);
+          else setError(!res.ok && res.error === "duplicate" ? t.outdoor.siteDuplicate : t.common.unknownError);
+        });
+      }}
+    >
+      <h3 className="font-bold">{t.outdoor.addSiteTitle}</h3>
+      <p className="text-xs text-ink-3">{t.outdoor.addSiteHint}</p>
+      <div>
+        <Label htmlFor="site-name">{t.outdoor.siteName}</Label>
+        <Input id="site-name" name="name" required minLength={2} maxLength={120} placeholder={t.outdoor.siteNamePlaceholder} />
+      </div>
+      <div>
+        <Label htmlFor="site-city" hint={t.common.optional}>{t.outdoor.siteRegion}</Label>
+        <Input id="site-city" name="city" maxLength={120} />
+      </div>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold">{t.gyms.discipline}</legend>
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" checked={hasBouldering} onChange={(e) => setHasBouldering(e.target.checked)} />
+          {t.gyms.boulder}
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" checked={hasRoutes} onChange={(e) => setHasRoutes(e.target.checked)} />
+          {t.gyms.routes}
+        </label>
+      </fieldset>
+      <div>
+        <Label htmlFor="site-link" hint={t.common.optional}>{t.outdoor.siteLink}</Label>
+        <Input id="site-link" name="sourceUrl" type="url" inputMode="url" maxLength={500} pattern={String.raw`https://\S+`} placeholder="https://" />
+        <p className="mt-1 text-xs text-ink-3">{t.outdoor.siteLinkHint}</p>
+      </div>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending || (!hasBouldering && !hasRoutes)} className="flex-1">
+          {pending ? t.common.saving : t.common.save}
+        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>
+      </div>
+    </form>
+  );
+}
+
+/** Sites without a topo (with a form to add one), then the Fontainebleau areas. Each list works without the other. */
 export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSite, onPickArea }: {
   sites: Tables<"gyms">[];
   areas: AreaItem[];
@@ -95,11 +168,12 @@ export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSi
   onPickArea: (area: AreaItem) => void;
 }) {
   const { t } = useI18n();
+  const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-5">
-      {sites.length ? (
-        <section aria-labelledby="outdoor-sites" className="space-y-2">
-          <h2 id="outdoor-sites" className="text-sm font-bold">{t.outdoor.otherSites}</h2>
+      <section aria-labelledby="outdoor-sites" className="space-y-2">
+        <h2 id="outdoor-sites" className="text-sm font-bold">{t.outdoor.otherSites}</h2>
+        {sites.length ? (
           <ul className="space-y-2">
             {sites.map((site) => (
               <li key={site.id} className="flex items-stretch gap-2">
@@ -110,7 +184,7 @@ export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSi
                   className="flex min-h-16 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-line bg-surface px-4 py-2 text-left hover:bg-surface-2"
                 >
                   <span className="block truncate font-semibold">{site.name}</span>
-                  <span className="block text-xs text-ink-3">{t.outdoor.siteHint}</span>
+                  <span className="block text-xs text-ink-3">{site.city ? `${site.city} · ` : ""}{siteHint(t, site)}</span>
                 </button>
                 {site.source_url ? (
                   <a
@@ -126,8 +200,16 @@ export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSi
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
+        ) : null}
+        {adding ? (
+          <NewOutdoorSiteForm onCancel={() => setAdding(false)} onCreated={(site) => { setAdding(false); onPickSite(site); }} />
+        ) : (
+          <button type="button" onClick={() => setAdding(true)}
+            className="min-h-11 text-sm font-bold text-accent underline-offset-2 hover:underline">
+            {t.outdoor.addSite}
+          </button>
+        )}
+      </section>
       <section aria-labelledby="outdoor-areas" className="space-y-2">
         <h2 id="outdoor-areas" className="text-sm font-bold">{t.outdoor.areasTitle}</h2>
         <AreaPicker areas={areas} favouriteGymIds={favouriteGymIds} pending={pending} onPick={onPickArea} />

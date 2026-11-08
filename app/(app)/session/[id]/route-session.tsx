@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
@@ -281,14 +282,15 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
               <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.tries > 1 ? ` · ${fmt(L.triesShort, { n: a.tries })}` : ""}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
               {a.notes ? <span className="mt-1 block text-sm italic text-ink-2">“{a.notes}”</span> : null}
               {editing?.id === a.id ? <span className="mt-2 flex gap-2">
-                <input value={editing.notes} maxLength={500} aria-label={L.comment} autoFocus
+                <input value={editing.notes} maxLength={2000} aria-label={L.comment} autoFocus
                   onChange={(ev) => setEditing({ id: a.id, notes: ev.target.value })}
                   className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-2 text-sm" />
                 <button type="button" onClick={saveComment} className={buttonClass("primary", "sm")}>{L.save}</button>
               </span> : <button type="button" onClick={() => setEditing({ id: a.id, notes: a.notes })}
                 className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{a.notes ? L.editComment : L.addComment}</button>}
               {a.route_name && !a.route_project_id ? <button type="button" disabled={pending} onClick={() => trackAsProject(a)}
-                className="mt-1 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
+                className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
+              <Link href={`/route/${a.id}`} className="mt-1 inline-block text-xs font-bold text-accent underline underline-offset-2">{r.details} ›</Link>
             </span>
             <button type="button" onClick={() => remove(a.id)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{r.remove}</button>
           </li>)}

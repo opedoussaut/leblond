@@ -5,6 +5,7 @@ import OpenAI from "openai";
  * directly, so the provider can be swapped without touching routes or UI.
  */
 import type { CoachConfig } from "./config";
+import { CoachProviderError, providerHeaders, streamChunkError } from "./errors";
 import type { CoachChatInput, CoachGenerationOptions, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
 export type { CoachMessage, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
 
@@ -129,10 +130,15 @@ export class ChatCompletionsCoach implements CoachProvider {
   private client: OpenAI;
   constructor(
     readonly model: string,
-    options: { baseURL: string; apiKey?: string | null; fetch?: typeof fetch; generation?: CoachGenerationOptions },
+    options: { baseURL: string; apiKey?: string | null; fetch?: typeof fetch; generation?: CoachGenerationOptions; appUrl?: string | null },
   ) {
     // The SDK requires a non-empty key; self-hosted servers ignore it.
-    this.client = new OpenAI({ apiKey: options.apiKey || "not-needed", baseURL: options.baseURL, fetch: options.fetch });
+    this.client = new OpenAI({
+      apiKey: options.apiKey || "not-needed",
+      baseURL: options.baseURL,
+      fetch: options.fetch,
+      defaultHeaders: providerHeaders(options.baseURL, options.appUrl ?? null),
+    });
     this.generation = options.generation ?? NO_LIMITS;
   }
   private generation: CoachGenerationOptions;
@@ -163,12 +169,16 @@ export class ChatCompletionsCoach implements CoachProvider {
     async function* text() {
       const think = createThinkFilter();
       let usage: CoachUsage = { inputTokens: null, outputTokens: null };
+      let shown = false;
       try {
         for await (const chunk of stream) {
+          const failure = streamChunkError(chunk);
+          if (failure) throw failure;
           // Only the answer (`content`) is shown; separate reasoning fields are ignored.
           const delta = chunk.choices?.[0]?.delta?.content;
           if (delta) {
             const visible = think.push(delta);
+            if (visible.trim()) shown = true;
             if (visible) yield visible;
           }
           if (chunk.usage) {
@@ -176,7 +186,10 @@ export class ChatCompletionsCoach implements CoachProvider {
           }
         }
         const rest = think.flush();
+        if (rest.trim()) shown = true;
         if (rest) yield rest;
+        // A reasoning model can spend its whole token budget thinking and answer nothing.
+        if (!shown) throw new CoachProviderError("empty_answer");
         resolveDone(usage);
       } catch (e) {
         rejectDone(e);
@@ -191,16 +204,17 @@ export class ChatCompletionsCoach implements CoachProvider {
 /** Builds the configured provider (see lib/coach/config.ts). */
 export function createCoachProvider(
   config: CoachConfig,
-  options: { fetch?: typeof fetch } = {},
+  options: { fetch?: typeof fetch; appUrl?: string | null } = {},
 ): CoachProvider | null {
   if (!config.configured) return null;
   if (config.provider === "openai") {
-    return new OpenAIResponsesCoach(config.apiKey, config.model, { ...options, generation: config.generation });
+    return new OpenAIResponsesCoach(config.apiKey, config.model, { fetch: options.fetch, generation: config.generation });
   }
   return new ChatCompletionsCoach(config.model, {
     baseURL: config.baseURL,
     apiKey: config.apiKey,
     fetch: options.fetch,
     generation: config.generation,
+    appUrl: options.appUrl ?? null,
   });
 }

@@ -94,3 +94,10 @@ training_exercise_sets       one row per set, unique (exercise_id, set_index) â†
 - Patrick's context adds `routeClimbing` (30/90-day route summaries, lead working grade), route sessions in
   `recentSessions`, `activeRouteProjects`, and a `focusRouteSession` / `focusRouteProject` when asked. Route and
   boulder scales are listed separately and the prompt forbids converting between them.
+
+## Outdoor details and watch timing (`20261108000000_fit_timing.sql`, `20261108000001_outdoor_details.sql`)
+
+- `sessions.timing_source` (`MANUAL` / `ACTIVITY`): where the session's times come from. A trigger sets it back to `MANUAL` when the times are edited directly; `reschedule_session` does the same unless nothing changed. `apply_activity_timing(session)` copies an activity's start and duration (see [wearables.md](wearables.md)).
+- `problems.beta`, `topo_ref`, `topo_url` and `route_ascents.sector`, `beta`, `topo_ref`, `topo_url`: details for climbs logged outside a topo. A boulder's sector uses `problems.wall_zone`. Links must be https; beta and notes are capped at 2000 characters. Topo references are citations only.
+- `media.route_ascent_id`: photos and videos of a route ascent. RLS checks that the climber owns the ascent, and the problem for problem media.
+- `gyms.source_url` must be a web address.

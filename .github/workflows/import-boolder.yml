@@ -6,7 +6,10 @@ name: Import Boolder (Fontainebleau)
 # own problems and attempts are never touched.
 #
 # Run "Deploy database (Supabase)" first so the catalogue tables exist.
-# Repository secrets required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+# Writes through the database with the same secrets as "Deploy database":
+# SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_ID (SQL batches sent to the
+# Supabase Management API, in order; the clean-up batch runs only if every
+# upsert succeeded). Prints counts only.
 
 on:
   workflow_dispatch:
@@ -39,12 +42,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Import
+      - name: Build SQL batches
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
           SHA=$(git -C boolder-data rev-parse HEAD)
           DATE=$(git -C boolder-data log -1 --format=%cI)
-          npx tsx scripts/import-boolder.ts --db boolder-data/boolder.db --source-version "$SHA" --source-date "$DATE" $DRY_RUN
+          npx tsx scripts/import-boolder.ts --db boolder-data/boolder.db --source-version "$SHA" --source-date "$DATE" --sql-dir "$RUNNER_TEMP/boolder-sql" $DRY_RUN
+      - name: Import
+        if: ${{ !inputs.dry_run }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          [[ -n "$SUPABASE_ACCESS_TOKEN" && -n "$SUPABASE_PROJECT_ID" ]] || { echo "SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID missing"; exit 1; }
+          for f in "$RUNNER_TEMP"/boolder-sql/*.sql; do
+            jq -n --rawfile q "$f" '{query: $q}' > "$RUNNER_TEMP/body.json"
+            code=$(curl -sS -o "$RUNNER_TEMP/out.json" -w '%{http_code}' -X POST               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json"               --data-binary "@$RUNNER_TEMP/body.json"               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query")
+            if [[ "$code" != 2* ]]; then echo "batch $(basename "$f") failed: HTTP $code"; head -c 400 "$RUNNER_TEMP/out.json"; echo; exit 1; fi
+            echo "batch $(basename "$f") ok"
+          done
+          echo "── catalogue now ──"
+          cat "$RUNNER_TEMP/out.json"; echo

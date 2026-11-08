@@ -103,7 +103,12 @@ export function FitImport() {
               </Button>
             </div>
           ) : null}
-          {linked ? <p className="mt-1">✓ {t.session.linkedActivity}</p> : null}
+          {linked && result.suggestedSessionId ? (
+            <p className="mt-1">
+              ✓ {t.connections.fitLinkedHint}{" "}
+              <Link className="underline" href={`/session/${result.suggestedSessionId}`}>{t.session.title} →</Link>
+            </p>
+          ) : null}
         </Notice>
       ) : null}
       {result?.kind === "duplicate" ? <Notice tone="warn">{t.connections.fitDuplicate}</Notice> : null}

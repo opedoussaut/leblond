@@ -9,7 +9,9 @@ import type { ActionResult } from "@/lib/validation/common";
 
 const registerSchema = z.object({
   storagePath: z.string().max(300),
-  problemId: z.guid(),
+  /** The subject: a boulder problem, or a route ascent (exactly one). */
+  problemId: z.guid().nullable(),
+  routeAscentId: z.guid().nullable().default(null),
   sessionId: z.guid().nullable(),
   attemptId: z.guid().nullable(),
   mediaType: z.enum(MEDIA_TYPES),
@@ -18,7 +20,7 @@ const registerSchema = z.object({
   durationSeconds: z.number().positive().max(3600).nullable(),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
-});
+}).refine((v) => (v.problemId === null) !== (v.routeAscentId === null), "one subject");
 
 /**
  * Records an object the browser has just uploaded to the private bucket.
@@ -35,8 +37,9 @@ export async function registerMedia(input: z.input<typeof registerSchema>): Prom
   if (kind === "image" ? v.mediaType !== "PROBLEM_PHOTO" : v.mediaType === "PROBLEM_PHOTO") {
     return { ok: false, error: "badType" };
   }
+  const subjectId = v.problemId ?? v.routeAscentId;
   const [owner, folder, file] = v.storagePath.split("/");
-  if (owner !== viewer.userId || folder !== v.problemId || !file || v.storagePath.split("/").length !== 3) {
+  if (owner !== viewer.userId || folder !== subjectId || !file || v.storagePath.split("/").length !== 3) {
     return { ok: false, error: "forbidden" };
   }
   const { data: listed } = await viewer.supabase.storage.from(MEDIA_BUCKET).list(`${owner}/${folder}`, { search: file });
@@ -45,6 +48,7 @@ export async function registerMedia(input: z.input<typeof registerSchema>): Prom
   const { error } = await viewer.supabase.from("media").insert({
     user_id: viewer.userId,
     problem_id: v.problemId,
+    route_ascent_id: v.routeAscentId,
     session_id: v.sessionId,
     attempt_id: v.attemptId,
     media_type: v.mediaType,
@@ -59,17 +63,17 @@ export async function registerMedia(input: z.input<typeof registerSchema>): Prom
     await viewer.supabase.storage.from(MEDIA_BUCKET).remove([v.storagePath]);
     return { ok: false, error: "unknownError" };
   }
-  if (v.mediaType === "PROBLEM_PHOTO") {
+  if (v.problemId && v.mediaType === "PROBLEM_PHOTO") {
     await viewer.supabase.from("problems").update({ photo_url: v.storagePath }).eq("id", v.problemId).is("photo_url", null);
   }
-  revalidatePath(`/problem/${v.problemId}`);
+  revalidatePath(v.problemId ? `/problem/${v.problemId}` : `/route/${v.routeAscentId}`);
   return { ok: true };
 }
 
 export async function deleteMedia(mediaId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!z.guid().safeParse(mediaId).success) return { ok: false, error: "invalid" };
-  const { data: m } = await viewer.supabase.from("media").select("storage_path, problem_id").eq("id", mediaId).single();
+  const { data: m } = await viewer.supabase.from("media").select("storage_path, problem_id, route_ascent_id").eq("id", mediaId).single();
   if (!m) return { ok: false, error: "notFound" };
   await viewer.supabase.storage.from(MEDIA_BUCKET).remove([m.storage_path]);
   const { error } = await viewer.supabase.from("media").delete().eq("id", mediaId);
@@ -78,5 +82,6 @@ export async function deleteMedia(mediaId: string): Promise<ActionResult> {
     await viewer.supabase.from("problems").update({ photo_url: null }).eq("id", m.problem_id).eq("photo_url", m.storage_path);
     revalidatePath(`/problem/${m.problem_id}`);
   }
+  if (m.route_ascent_id) revalidatePath(`/route/${m.route_ascent_id}`);
   return { ok: true };
 }

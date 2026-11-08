@@ -49,7 +49,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
     <LiveSession
       sessionId={view.session.id}
       userId={viewer.userId}
-      gym={{ id: view.gym.id, name: view.gym.name, system: view.gym.grading_system }}
+      gym={{ id: view.gym.id, name: view.gym.name, system: view.gym.grading_system, outdoor: view.gym.brand === "OUTDOOR" }}
       startedAt={view.session.started_at}
       initialProblems={view.problems.map((p) => ({
         id: p.id,

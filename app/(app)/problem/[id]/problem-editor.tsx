@@ -11,6 +11,8 @@ import { deleteProblem, updateProblem } from "@/lib/actions/sessions";
 import { STYLE_TAGS, WALL_ANGLES, type GradeSystem, type StyleTag, type WallAngle } from "@/lib/climbing/types";
 import { ESTIMATE_CONFIDENCE_PRESETS, FONT_SCALE, RELIABLE_CONFIDENCE, type EstimateConfidencePreset } from "@/lib/grading";
 
+const URL_PATTERN = String.raw`https://\S+`;
+
 function presetFor(confidence: number): EstimateConfidencePreset {
   const entries = Object.entries(ESTIMATE_CONFIDENCE_PRESETS) as Array<[EstimateConfidencePreset, number]>;
   return entries.reduce((best, cur) => (Math.abs(cur[1] - confidence) < Math.abs(best[1] - confidence) ? cur : best))[0];
@@ -27,6 +29,14 @@ export function ProblemEditor({
     wallZone: string;
     setter: string;
     notes: string;
+    beta: string;
+    topoRef: string;
+    topoUrl: string;
+    nativeGrade: string;
+    /** Outdoor: sector instead of wall zone, topo reference and link. */
+    outdoor: boolean;
+    /** Picked from the topo catalogue: its grade comes from the topo. */
+    catalogue: boolean;
     tags: StyleTag[];
     estimate: { grade: string; confidence: number } | null;
   };
@@ -42,6 +52,7 @@ export function ProblemEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const canEstimate = problem.system !== "FONT";
+  const canRegrade = problem.system === "FONT" && !problem.catalogue;
 
   return (
     <Card>
@@ -58,6 +69,11 @@ export function ProblemEditor({
               wallZone: String(fd.get("wallZone") ?? ""),
               setter: String(fd.get("setter") ?? ""),
               notes: String(fd.get("notes") ?? ""),
+              beta: String(fd.get("beta") ?? ""),
+              ...(problem.outdoor
+                ? { topoRef: String(fd.get("topoRef") ?? ""), topoUrl: String(fd.get("topoUrl") ?? "").trim() }
+                : {}),
+              ...(canRegrade ? { nativeGrade: String(fd.get("nativeGrade") ?? problem.nativeGrade) } : {}),
               tags,
               ...(canEstimate
                 ? {
@@ -73,9 +89,19 @@ export function ProblemEditor({
         }}
       >
         <SectionTitle>{t.problem.details}</SectionTitle>
-        <div>
-          <Label htmlFor="p-name">{t.problem.name}</Label>
-          <Input id="p-name" name="name" defaultValue={problem.name} maxLength={120} />
+        <div className={canRegrade ? "grid grid-cols-[1fr_7rem] gap-3" : undefined}>
+          <div>
+            <Label htmlFor="p-name">{t.problem.name}</Label>
+            <Input id="p-name" name="name" defaultValue={problem.name} maxLength={120} />
+          </div>
+          {canRegrade ? (
+            <div>
+              <Label htmlFor="p-grade">{t.problem.grade}</Label>
+              <Select id="p-grade" name="nativeGrade" defaultValue={problem.nativeGrade}>
+                {FONT_SCALE.map((g) => <option key={g} value={g}>{g}</option>)}
+              </Select>
+            </div>
+          ) : null}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -89,7 +115,7 @@ export function ProblemEditor({
             </Select>
           </div>
           <div>
-            <Label htmlFor="p-zone">{t.problem.zone}</Label>
+            <Label htmlFor="p-zone">{problem.outdoor ? t.problem.sector : t.problem.zone}</Label>
             <Input id="p-zone" name="wallZone" defaultValue={problem.wallZone} maxLength={80} />
           </div>
         </div>
@@ -162,6 +188,25 @@ export function ProblemEditor({
           <Label htmlFor="p-notes">{t.problem.notes}</Label>
           <Textarea id="p-notes" name="notes" defaultValue={problem.notes} maxLength={2000} />
         </div>
+        <div>
+          <Label htmlFor="p-beta" hint={t.common.optional}>{t.problem.beta}</Label>
+          <Textarea id="p-beta" name="beta" defaultValue={problem.beta} maxLength={2000} placeholder={t.problem.betaPlaceholder} />
+        </div>
+        {problem.outdoor ? (
+          <fieldset className="space-y-3 rounded-xl bg-surface-2 p-3">
+            <legend className="px-1 text-sm font-semibold">{t.problem.topoTitle}</legend>
+            <p className="text-xs text-ink-3">{t.problem.topoNote}</p>
+            <div>
+              <Label htmlFor="p-topo-ref" hint={t.common.optional}>{t.problem.topoRef}</Label>
+              <Input id="p-topo-ref" name="topoRef" defaultValue={problem.topoRef} maxLength={160} placeholder={t.problem.topoRefPlaceholder} />
+            </div>
+            <div>
+              <Label htmlFor="p-topo-url" hint={t.common.optional}>{t.problem.topoUrl}</Label>
+              <Input id="p-topo-url" name="topoUrl" type="url" inputMode="url" defaultValue={problem.topoUrl} maxLength={500}
+                pattern={URL_PATTERN} placeholder="https://" />
+            </div>
+          </fieldset>
+        ) : null}
         {saved === "ok" ? <Notice tone="ok">✓</Notice> : saved === "error" ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : t.common.save}

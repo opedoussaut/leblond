@@ -13,6 +13,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { utcToZoned } from "@/lib/time";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { buttonClass } from "@/components/ui/button";
+import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
@@ -86,9 +87,8 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
           <label className="text-sm font-semibold">{e.time}
             <input className={field} type="time" required value={time} onChange={(ev) => setTime(ev.target.value)} />
           </label>
-          <label className="col-span-2 text-sm font-semibold sm:col-span-1">{e.minutes}
-            <input className={field} type="number" required min={10} max={720} step={5} value={minutes} onChange={(ev) => setMinutes(Number(ev.target.value))} />
-          </label>
+          <DurationField className="col-span-2 sm:col-span-1" label={e.minutes} value={minutes}
+            onChange={(v) => setMinutes(v ?? 0)} min={10} max={720} step={5} />
         </div>
         <label className="block text-sm font-semibold">{L.sessionName}
           <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />

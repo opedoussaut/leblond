@@ -20,7 +20,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { bleauInfoUrl, boolderProblemUrl } from "@/lib/integrations/outdoor/boolder";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { AttemptHistory } from "./attempt-history";
-import { MediaGallery } from "./media-gallery";
+import { MediaGallery } from "@/components/climbing/media-gallery";
 import { ProblemEditor } from "./problem-editor";
 
 export default async function ProblemPage({ params }: PageProps<"/problem/[id]">) {
@@ -32,7 +32,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
   const problem = data as unknown as ProblemWithTags;
 
   const [{ data: gym }, { data: attempts }, { data: media }, { data: project }, topo] = await Promise.all([
-    viewer.supabase.from("gyms").select("name").eq("id", problem.gym_id).single(),
+    viewer.supabase.from("gyms").select("name, brand").eq("id", problem.gym_id).single(),
     viewer.supabase.from("attempts").select("*").eq("problem_id", id).order("attempt_number"),
     viewer.supabase.from("media").select("*").eq("problem_id", id).order("created_at", { ascending: false }),
     viewer.supabase.from("projects").select("id, status").eq("problem_id", id).maybeSingle(),
@@ -59,6 +59,19 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
           {meaning ? <span className="text-sm text-ink-3">{meaning}</span> : null}
         </div>
         <p className="text-xs text-ink-3">{t.grades.nativeNote} · {t.grades.systems[problem.native_grade_system]}</p>
+        {problem.wall_zone && gym?.brand === "OUTDOOR" ? (
+          <p className="text-sm text-ink-2">{t.problem.sector} : {problem.wall_zone}</p>
+        ) : null}
+        {problem.topo_ref || problem.topo_url ? (
+          <p className="text-sm text-ink-2">
+            {t.problem.topoRef} : {problem.topo_ref ?? ""}{" "}
+            {problem.topo_url ? (
+              <a href={problem.topo_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-2 hover:underline">
+                {t.problem.topoSource} ↗
+              </a>
+            ) : null}
+          </p>
+        ) : null}
         {isMysteryGrade(problem.native_grade_system, problem.native_grade) ? (
           <p className="text-sm text-ink-2">{t.grades.mysteryHelp}</p>
         ) : null}
@@ -144,6 +157,12 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
           wallZone: problem.wall_zone ?? "",
           setter: problem.setter ?? "",
           notes: problem.notes ?? "",
+          beta: problem.beta ?? "",
+          topoRef: problem.topo_ref ?? "",
+          topoUrl: problem.topo_url ?? "",
+          nativeGrade: problem.native_grade,
+          outdoor: gym?.brand === "OUTDOOR",
+          catalogue: problem.outdoor_problem_id != null,
           tags: tagSlugs(problem) as StyleTag[],
           estimate:
             problem.normalized_grade && problem.normalization_confidence != null

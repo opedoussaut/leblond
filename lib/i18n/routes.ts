@@ -43,6 +43,11 @@ const fr = {
   autoSentRule: "Un passage propre (à vue, flash ou enchaîné) dans le style visé marque le projet comme enchaîné ; une ascension en tête vaut pour tous les styles.",
   noRouteGyms: "Aucune salle de voie dans tes salles. Ajoute-la depuis l’annuaire.", boulderProjects: "Projets de bloc",
   logHereHint: "Pour noter un passage, démarre une séance de voie dans cette salle et choisis le projet.",
+  ascentTitle: "Voie notée", details: "Détails", editTitle: "Modifier la voie", resultLabel: "Résultat",
+  nameLabel: "Nom de la voie", tries: "Essais", sector: "Secteur", comment: "Commentaire",
+  wallAngle: "Profil", photo: "Photo de la voie", media: "Photos & vidéos", backToSession: "Retour à la séance",
+  deleteAscent: "Supprimer cette ligne", deleteAscentConfirm: "Supprimer cette ligne du carnet ?",
+  firstGoOnly: "À vue et flash : un seul essai, sans chute.",
 };
 type Dict = typeof fr;
 
@@ -89,6 +94,11 @@ const en: Dict = {
   autoSentRule: "A clean ascent (onsight, flash or redpoint) in the goal style marks the project as sent; a lead ascent counts for every style.",
   noRouteGyms: "None of your gyms has routes. Add one from the directory.", boulderProjects: "Boulder projects",
   logHereHint: "To log a go, start a route session at this gym and pick the project.",
+  ascentTitle: "Logged route", details: "Details", editTitle: "Edit route", resultLabel: "Result",
+  nameLabel: "Route name", tries: "Tries", sector: "Sector", comment: "Comment",
+  wallAngle: "Angle", photo: "Route photo", media: "Photos & videos", backToSession: "Back to the session",
+  deleteAscent: "Delete this line", deleteAscentConfirm: "Delete this line from your logbook?",
+  firstGoOnly: "Onsight and flash: one try, no fall.",
 };
 
 export const routeDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);

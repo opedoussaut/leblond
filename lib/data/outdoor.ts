@@ -36,9 +36,11 @@ export interface OutdoorProblemItem {
 /** Outdoor sites added by migration: no topo, the climber logs by grade. */
 export const OUTDOOR_SITE_PROVIDER = "LEBLOND";
 
+/** Crags without a topo catalogue: sites added by migration and those added by climbers. */
 export async function listOutdoorSites(supabase: ServerSupabase): Promise<Tables<"gyms">[]> {
   const { data, error } = await supabase.from("gyms").select("*")
-    .eq("external_provider", OUTDOOR_SITE_PROVIDER).eq("active", true).order("name");
+    .or(`external_provider.eq.${OUTDOOR_SITE_PROVIDER},and(external_provider.is.null,brand.eq.OUTDOOR)`)
+    .eq("active", true).order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
 }

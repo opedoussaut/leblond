@@ -11,6 +11,7 @@ import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { TrainingStatus } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
+import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
 type LiveError = { liveId?: string };
@@ -94,9 +95,8 @@ export function QuickSessionForm({ locale, today, presetMethod = "" }: { locale:
       <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
     </label>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.minutes}
-        <input className={field} type="number" min={10} max={240} step={5} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} />
-      </label>
+      <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
+        onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} step={5} />
       <label className="text-sm font-semibold">{t.date}
         <input className={field} type="date" min="2020-01-01" max="2100-12-31" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>

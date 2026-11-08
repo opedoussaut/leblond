@@ -169,7 +169,13 @@ const createProblemSchema = z.object({
   gymId: id,
   nativeGrade: z.string().min(1).max(10),
   wallAngle: z.enum(WALL_ANGLES).optional(),
+  // Outdoor boulders logged outside the topo: optional name and sector.
+  name: z.string().trim().max(120).optional(),
+  sector: z.string().trim().max(80).optional(),
 });
+
+/** Link to the original topo / guide page: https only, never a copy of it. */
+const topoUrl = z.string().trim().max(500).regex(/^https:\/\/\S+$/);
 
 export type LiveProblem = Tables<"problems"> & { tags: string[] };
 
@@ -192,6 +198,8 @@ export async function createProblem(input: z.input<typeof createProblemSchema>):
       native_grade_system: system,
       // Native Font grades are their own normalised grade: no separate estimate stored.
       wall_angle: parsed.data.wallAngle ?? "UNKNOWN",
+      name: parsed.data.name || null,
+      wall_zone: parsed.data.sector || null,
     })
     .select()
     .single();
@@ -206,6 +214,11 @@ const updateProblemSchema = z.object({
   wallZone: z.string().trim().max(80).nullable().optional(),
   setter: z.string().trim().max(80).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  beta: z.string().max(2000).nullable().optional(),
+  topoRef: z.string().trim().max(160).nullable().optional(),
+  topoUrl: z.union([topoUrl, z.literal("")]).nullable().optional(),
+  // Correct the native grade (not for catalogue boulders, whose grade comes from the topo).
+  nativeGrade: z.string().min(1).max(10).optional(),
   tags: z.array(z.enum(STYLE_TAGS)).max(12).optional(),
   // Optional Font estimate for colour-graded problems. null clears it.
   estimate: z
@@ -221,7 +234,7 @@ export async function updateProblem(input: z.input<typeof updateProblemSchema>):
   const v = parsed.data;
   const { data: problem } = await viewer.supabase
     .from("problems")
-    .select("native_grade_system")
+    .select("native_grade_system, outdoor_problem_id")
     .eq("id", v.problemId)
     .single();
   if (!problem) return { ok: false, error: "notFound" };
@@ -232,6 +245,14 @@ export async function updateProblem(input: z.input<typeof updateProblemSchema>):
   if (v.wallZone !== undefined) patch.wall_zone = v.wallZone || null;
   if (v.setter !== undefined) patch.setter = v.setter || null;
   if (v.notes !== undefined) patch.notes = v.notes || null;
+  if (v.beta !== undefined) patch.beta = v.beta?.trim() || null;
+  if (v.topoRef !== undefined) patch.topo_ref = v.topoRef || null;
+  if (v.topoUrl !== undefined) patch.topo_url = v.topoUrl || null;
+  if (v.nativeGrade !== undefined) {
+    if (problem.outdoor_problem_id !== null) return { ok: false, error: "invalid" };
+    if (!isValidGrade(problem.native_grade_system as GradeSystem, v.nativeGrade)) return { ok: false, error: "invalidGrade" };
+    patch.native_grade = v.nativeGrade;
+  }
   if (v.estimate !== undefined) {
     if (problem.native_grade_system === "FONT") return { ok: false, error: "invalid" };
     if (v.estimate === null) {

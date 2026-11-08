@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { completesProject, isFirstGoOnly, logRouteAscentSchema, routeKey } from "@/lib/climbing/routes";
+import { completesProject, isClean, isFirstGoOnly, logRouteAscentSchema, routeKey, updateRouteAscentSchema } from "@/lib/climbing/routes";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { isValidGrade } from "@/lib/grading";
@@ -126,17 +126,35 @@ export async function logRouteAscent(input: unknown): Promise<ActionResult<Route
   return { ok: true, data: { rows: [...(existing ?? []), ...inserted] as RouteAscentRow[], projectSent, project: createdProject } };
 }
 
-/** Edit the comment (and tries) of a logged route line. */
+/** Edit a logged route line: comment and tries (live), or every detail afterwards. */
 export async function updateRouteAscent(input: unknown): Promise<ActionResult> {
   const viewer = await requireViewer();
-  const parsed = z.object({ id: z.guid(), notes: z.string().trim().max(500), tries: z.number().int().min(1).max(100).optional() })
-    .strict().safeParse(input);
+  const parsed = updateRouteAscentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { id, notes, tries } = parsed.data;
+  const v = parsed.data;
+  const patch: Partial<Tables<"route_ascents">> = {};
+  if (v.notes !== undefined) patch.notes = v.notes;
+  if (v.tries !== undefined) patch.tries = v.tries;
+  if (v.routeName !== undefined) patch.route_name = v.routeName || null;
+  if (v.grade !== undefined) patch.grade = v.grade;
+  if (v.style !== undefined) patch.style = v.style;
+  if (v.result !== undefined) {
+    patch.result = v.result;
+    if (isClean(v.result)) patch.falls = null;
+    if (isFirstGoOnly(v.result)) patch.tries = 1;
+  }
+  if (v.falls !== undefined && !(v.result && isClean(v.result))) patch.falls = v.falls;
+  if (v.wallAngle !== undefined) patch.wall_angle = v.wallAngle;
+  if (v.sector !== undefined) patch.sector = v.sector || null;
+  if (v.beta !== undefined) patch.beta = v.beta || null;
+  if (v.topoRef !== undefined) patch.topo_ref = v.topoRef || null;
+  if (v.topoUrl !== undefined) patch.topo_url = v.topoUrl || null;
+  if (!Object.keys(patch).length) return { ok: true };
   const { data, error } = await viewer.supabase.from("route_ascents")
-    .update({ notes, ...(tries ? { tries } : {}) }).eq("id", id).select("session_id").maybeSingle();
+    .update(patch).eq("id", v.id).select("session_id").maybeSingle();
   if (error || !data) return { ok: false, error: error?.code === "23514" ? "notFirstAscent" : "unknownError" };
   revalidatePath("/session/" + data.session_id);
+  revalidatePath("/route/" + v.id);
   return { ok: true };
 }
 

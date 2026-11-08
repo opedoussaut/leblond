@@ -7,10 +7,11 @@ import { deleteMedia } from "@/lib/actions/media";
 
 type Item = { id: string; type: string; mime: string; url: string | null };
 
-export function MediaGallery({ items }: { items: Item[] }) {
+export function MediaGallery({ items, photoLabel }: { items: Item[]; photoLabel?: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
+  const photo = photoLabel ?? t.problem.addPhoto;
   if (items.length === 0) return <p className="text-sm text-ink-2">{t.problem.noMedia}</p>;
   return (
     <ul className="grid grid-cols-2 gap-2">
@@ -22,12 +23,12 @@ export function MediaGallery({ items }: { items: Item[] }) {
             ) : (
               // Signed, short-lived private URLs: plain <img> avoids proxying private media through the optimiser.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={m.url} alt={t.problem.addPhoto} className="aspect-square w-full object-cover" loading="lazy" />
+              <img src={m.url} alt={photo} className="aspect-square w-full object-cover" loading="lazy" />
             )
           ) : null}
           <div className="flex items-center justify-between px-2 py-1 text-xs">
             <span className="text-ink-3">
-              {m.type === "PROBLEM_PHOTO" ? t.problem.addPhoto : m.type === "SEND_VIDEO" ? t.problem.sendVideo : t.problem.attemptVideo}
+              {m.type === "PROBLEM_PHOTO" ? photo : m.type === "SEND_VIDEO" ? t.problem.sendVideo : t.problem.attemptVideo}
             </span>
             <button
               type="button"

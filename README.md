@@ -31,12 +31,14 @@ Five people: Olivier (admin), Thomas, Marc, Houssem, David. There is no open sig
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
 - Outdoor sites without a topo, such as Dampierre Maincourt, logged by Font grade — [docs/integrations.md](docs/integrations.md)
 - Fontainebleau outdoor sessions: 90 areas and ~19,000 problems from Boolder's open data (© Boolder, CC BY 4.0), picked by name or circuit number, closure warnings shown; bleau.info is linked, never copied
+- Outdoor details on boulders and routes, editable afterwards: name, grade, sector, notes, beta, topo reference and link (a citation, never a copied diagram), photos and videos; climbers can add a crag that has no topo
 - Live session for chalky fingers: native-grade grid, one-tap **TRY · TOP · FLASH**, undo, flash suggestion, optional wall angle and style tags
 - Session summary, problem pages, Font estimate kept separate from the native grade, private photos/videos, projects
 - Progress: send/flash rate with counts, attempts per send, weekly activity, working level per native system, Font working grade (only when reliable), trend, road-to-target dimensions, cross-gym native and normalised views, style / wall-angle / gym breakdowns
-- Patrick: streaming chat on the OpenAI Responses API with 8 quick actions and bounded structured context
+- Patrick: streaming chat with 8 quick actions and bounded structured context, on OpenAI or any OpenAI-compatible provider (production: OpenRouter) — [docs/ai-coach.md](docs/ai-coach.md)
 - Alter ego: a private, fictional partner who follows a signed copy of your plan, trains alongside you during a session and on the days you skip — [docs/alter-ego.md](docs/alter-ego.md)
-- Wearables: FIT import for any watch, COROS/Suunto/Garmin OAuth adapters with truthful status, activity ↔ session linking, cross-source de-duplication
+- Wearables: FIT import for any watch, COROS/Suunto/Garmin OAuth adapters with truthful status, activity ↔ session linking with the watch's start time and duration applied after confirmation, cross-source de-duplication — [docs/wearables.md](docs/wearables.md)
+- Durations entered in hours and minutes everywhere (stored in minutes)
 - PWA (installable), French and English
 
 ### Arkose grading
@@ -87,7 +89,7 @@ More in [docs/architecture.md](docs/architecture.md).
 
 ## Tech stack
 
-Next.js 16 (App Router, `proxy.ts`), React 19.2, TypeScript (strict), Tailwind CSS 4, Supabase (`@supabase/ssr`, Postgres, Auth, Storage, RLS), OpenAI Node SDK (Responses API, or Chat Completions for open-weight models), Zod 4, Garmin FIT JavaScript SDK, Vitest, Playwright, GitHub Actions.
+Next.js 16 (App Router, `proxy.ts`), React 19.2, TypeScript (strict), Tailwind CSS 4, Supabase (`@supabase/ssr`, Postgres, Auth, Storage, RLS), OpenAI Node SDK (Responses API, or Chat Completions for OpenRouter and open-weight models), Zod 4, Garmin FIT JavaScript SDK, Vitest, Playwright, GitHub Actions.
 
 ## Local setup
 
@@ -119,7 +121,7 @@ The local seed creates a fictional admin `alex@leblond.local` and three demo gym
 
 ## Patrick's model
 
-Patrick runs on either the **OpenAI Responses API** (`COACH_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_MODEL`) or **any OpenAI-compatible server running an open-weight model** (`COACH_PROVIDER=openai-compatible`, `COACH_BASE_URL`, `COACH_MODEL`, optional `COACH_API_KEY`) — e.g. Ollama locally with no key (`COACH_BASE_URL=http://localhost:11434/v1`), or a hosted open-model API. No model is hard-coded. Without configuration Patrick shows an honest “not configured” state; everything else works. Trade-offs: [docs/hosting.md](docs/hosting.md#choosing-patricks-model).
+Patrick runs on either the **OpenAI Responses API** (`COACH_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_MODEL`) or **any OpenAI-compatible server running an open-weight model** (`COACH_PROVIDER=openai-compatible`, `COACH_BASE_URL`, `COACH_MODEL`, optional `COACH_API_KEY`) — e.g. Ollama locally with no key (`COACH_BASE_URL=http://localhost:11434/v1`), or a hosted API such as OpenRouter (used in production). No model is hard-coded. Without configuration Patrick shows an honest “not configured” state; everything else works. Trade-offs: [docs/hosting.md](docs/hosting.md#choosing-patricks-model).
 
 ## Environment variables
 
