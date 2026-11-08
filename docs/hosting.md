@@ -37,7 +37,7 @@ Repository → Settings → Secrets and variables → Actions → *New repositor
 | `SUPABASE_DB_PASSWORD` | database password |
 | `NEXT_PUBLIC_SUPABASE_URL` | API URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
-| `BETA_OLIVIER_EMAIL` … `BETA_DAVID_EMAIL` | the five testers' emails |
+| `BETA_OLIVIER_EMAIL`, `BETA_FLAVIO_EMAIL`, `BETA_DAVID_EMAIL`, `BETA_THOMAS_EMAIL`, `BETA_JEROME_EMAIL` | the five testers' emails |
 
 Secrets are never shown in the public repo or in workflow logs.
 
