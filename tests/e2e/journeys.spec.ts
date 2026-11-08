@@ -292,6 +292,19 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   await expect(list.getByRole("listitem").filter({ hasText: "Enrouleur" })).toContainText("6a");
   await expect(list.getByRole("listitem").filter({ hasText: "Moulinette" })).toContainText("6c");
 
+  // Every detail of a route can be completed afterwards, on its own page.
+  await list.getByRole("listitem").filter({ hasText: "Moulinette" }).getByRole("link", { name: /Détails/ }).click();
+  await expect(page).toHaveURL(/\/route\/[0-9a-f-]{36}$/);
+  const ascent = page.getByRole("form", { name: "Modifier la voie" });
+  await ascent.getByLabel("Nom de la voie").fill("Le dièdre gris");
+  await ascent.getByLabel("Secteur").fill("Mur du fond");
+  await ascent.getByLabel("Commentaire").fill("Sortie à revoir");
+  await ascent.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(ascent.getByText("Enregistré.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("form", { name: "Modifier la voie" }).getByLabel("Nom de la voie")).toHaveValue("Le dièdre gris");
+  await expect(page.getByRole("form", { name: "Modifier la voie" }).getByLabel("Secteur")).toHaveValue("Mur du fond");
+
   // Delete the bouldering session.
   await page.goto(editUrl);
   page.once("dialog", (d) => d.accept());

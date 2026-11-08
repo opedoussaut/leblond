@@ -347,7 +347,7 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await signIn(page, ALEX);
   await page.goto("/session/new");
   await expect(page.getByRole("tab", { name: "Extérieur" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("link", { name: /Dampierre Maincourt sur bleau.info/ })).toHaveAttribute("href", "https://bleau.info/maincourt");
+  await expect(page.getByRole("link", { name: /Fiche de Dampierre Maincourt/ })).toHaveAttribute("href", "https://bleau.info/maincourt");
   await page.getByRole("button", { name: /Dampierre Maincourt/ }).click();
   await expect(page.getByRole("heading", { name: "Dampierre Maincourt" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Quel bloc ?" })).toHaveCount(0);
@@ -365,4 +365,24 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await expect(page.getByRole("tab", { name: "Salle" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: /Dampierre Maincourt/ })).toHaveCount(0);
   await expect(page.getByRole("option", { name: /Dampierre Maincourt/ })).toHaveCount(0);
+
+  // A crag no topo covers, added by the climber (the link is optional), then a named boulder in a sector.
+  await page.goto("/session/new");
+  await page.getByRole("tab", { name: "Extérieur" }).click();
+  await page.getByRole("button", { name: "+ Ajouter un site extérieur" }).click();
+  const siteForm = page.getByRole("form", { name: "Nouveau site extérieur" });
+  await siteForm.getByLabel("Nom du site").fill("Saffres E2E");
+  await siteForm.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByRole("heading", { name: "Saffres E2E" })).toBeVisible();
+  await page.getByLabel("Nom (facultatif)").fill("La Fissure");
+  await page.getByLabel("Secteur").fill("Secteur Nord");
+  await page.getByRole("button", { name: "6B", exact: true }).click();
+  await page.getByRole("region", { name: "Bloc en cours" }).getByRole("button", { name: "Top", exact: true }).click();
+  await expect(page.getByText(/noté./)).toBeVisible();
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await page.getByRole("link", { name: /La Fissure/ }).click();
+  await expect(page.getByRole("heading", { name: "La Fissure" })).toBeVisible();
+  await expect(page.getByText("Secteur Nord").first()).toBeVisible();
 });

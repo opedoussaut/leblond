@@ -33,7 +33,8 @@ export async function createGym(input: z.input<typeof createGymSchema>): Promise
     .insert({
       name, brand, city, country: "FR", grading_system: gradingSystem,
       has_bouldering: parsed.data.hasBouldering, has_routes: parsed.data.hasRoutes, created_by: viewer.userId,
-      source_url: brand === "OUTDOOR" ? parsed.data.sourceUrl : null,
+      // The link is optional: an empty field is stored as no link (the column only accepts web addresses).
+      source_url: brand === "OUTDOOR" && parsed.data.sourceUrl ? parsed.data.sourceUrl : null,
     })
     .select()
     .single();
