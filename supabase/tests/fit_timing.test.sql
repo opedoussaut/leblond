@@ -19,27 +19,27 @@ insert into public.beta_users (email, display_name) values
   ('fit-b@fit.test', 'Fit B')
 on conflict (email) do nothing;
 insert into auth.users (id, email) values
-  ('f1000000-0000-0000-0000-00000000000a', 'fit-a@fit.test'),
-  ('f1000000-0000-0000-0000-00000000000b', 'fit-b@fit.test');
+  ('f3000000-0000-0000-0000-00000000000a', 'fit-a@fit.test'),
+  ('f3000000-0000-0000-0000-00000000000b', 'fit-b@fit.test');
 insert into public.gyms (id, name, brand, grading_system, has_bouldering, has_routes)
 values ('e5000000-0000-0000-0000-000000000001', 'FIT Test Gym', 'ARKOSE', 'ARKOSE_COLOR', true, true);
 
 set role authenticated;
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-0000-0000-00000000000a","email":"fit-a@fit.test","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"f3000000-0000-0000-0000-00000000000a","email":"fit-a@fit.test","role":"authenticated"}', false);
 
 -- 1. A session entered afterwards (synthetic attempt times), wrong day: the watch is right.
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
-values ('e6000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
+values ('e6000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
   '2026-09-20 16:00+00', '2026-09-20 18:00+00', 120);
 insert into public.problems (id, gym_id, created_by, native_grade, native_grade_system)
-values ('e7000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-00000000000a', 'BLUE', 'ARKOSE_COLOR');
+values ('e7000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'BLUE', 'ARKOSE_COLOR');
 select public.log_attempt('e6000000-0000-0000-0000-000000000001', 'e7000000-0000-0000-0000-000000000001', 'ATTEMPT');
 select public.log_attempt('e6000000-0000-0000-0000-000000000001', 'e7000000-0000-0000-0000-000000000001', 'TOP');
 insert into public.route_ascents (user_id, session_id, client_id, grade, style, result, tries)
-values ('f1000000-0000-0000-0000-00000000000a', 'e6000000-0000-0000-0000-000000000001', gen_random_uuid(), '6a', 'LEAD', 'REDPOINT', 2);
+values ('f3000000-0000-0000-0000-00000000000a', 'e6000000-0000-0000-0000-000000000001', gen_random_uuid(), '6a', 'LEAD', 'REDPOINT', 2);
 
 insert into public.wearable_activities (id, user_id, provider, provider_activity_id, started_at, duration_seconds, dedup_key)
-values ('e8000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:1', '2026-09-21 09:00:27+00', 5400, 'k1');
+values ('e8000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:1', '2026-09-21 09:00:27+00', 5400, 'k1');
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001')$$,
   'no linked activity, nothing to apply');
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000001', 'e6000000-0000-0000-0000-000000000001');
@@ -73,7 +73,7 @@ select pg_temp.expect((select timing_source = 'MANUAL' from public.sessions wher
 
 -- One activity per session: a second one replaces the first.
 insert into public.wearable_activities (id, user_id, provider, provider_activity_id, started_at, duration_seconds, dedup_key)
-values ('e8000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-00000000000a', 'GARMIN', 'g-2', '2026-09-21 09:01+00', 5300, 'k2');
+values ('e8000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-00000000000a', 'GARMIN', 'g-2', '2026-09-21 09:01+00', 5300, 'k2');
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000002', 'e6000000-0000-0000-0000-000000000001');
 select pg_temp.expect((select session_id is null from public.wearable_activities where id = 'e8000000-0000-0000-0000-000000000001'),
   'the previous activity is detached');
@@ -86,16 +86,16 @@ select pg_temp.expect((select timing_source = 'MANUAL' and wearable_activity_id 
 
 -- 2. A session logged live: attempts carry real times and stay where they are.
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
-values ('e6000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
+values ('e6000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
   '2026-09-22 16:05+00', '2026-09-22 17:50+00', 105);
 select public.log_attempt('e6000000-0000-0000-0000-000000000002', 'e7000000-0000-0000-0000-000000000001', 'TOP');
 reset role;
 update public.attempts set created_at = '2026-09-22 16:40+00' where session_id = 'e6000000-0000-0000-0000-000000000002';
 insert into public.wearable_activities (id, user_id, provider, provider_activity_id, started_at, duration_seconds, dedup_key)
-values ('e8000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:3', '2026-09-22 16:00+00', 7200, 'k3'),
-       ('e8000000-0000-0000-0000-000000000004', 'f1000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:4', '2026-09-23 16:00+00', 20, 'k4');
+values ('e8000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:3', '2026-09-22 16:00+00', 7200, 'k3'),
+       ('e8000000-0000-0000-0000-000000000004', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:4', '2026-09-23 16:00+00', 20, 'k4');
 set role authenticated;
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-0000-0000-00000000000a","email":"fit-a@fit.test","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"f3000000-0000-0000-0000-00000000000a","email":"fit-a@fit.test","role":"authenticated"}', false);
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-000000000002');
 select public.apply_activity_timing('e6000000-0000-0000-0000-000000000002');
 select pg_temp.expect((select created_at = '2026-09-22 16:40+00' from public.attempts where session_id = 'e6000000-0000-0000-0000-000000000002'),
@@ -103,7 +103,7 @@ select pg_temp.expect((select created_at = '2026-09-22 16:40+00' from public.att
 
 -- 3. Refusals: a 20-second recording has no usable timing; live sessions; other climbers.
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
-values ('e6000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
+values ('e6000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
   '2026-09-23 16:00+00', '2026-09-23 17:00+00', 60);
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000004', 'e6000000-0000-0000-0000-000000000003');
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000003')$$,
@@ -112,7 +112,7 @@ update public.sessions set ended_at = null, duration_minutes = null where id = '
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000003')$$,
   'a live session keeps its live times');
 
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-0000-0000-00000000000b","email":"fit-b@fit.test","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"f3000000-0000-0000-0000-00000000000b","email":"fit-b@fit.test","role":"authenticated"}', false);
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000002')$$,
   'cannot apply timing to another climber''s session');
 select pg_temp.expect_error($$select public.link_wearable_activity('e8000000-0000-0000-0000-000000000003', null)$$,
