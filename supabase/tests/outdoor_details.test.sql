@@ -27,7 +27,7 @@ select set_config('request.jwt.claims', '{"sub":"f2000000-0000-0000-0000-0000000
 
 -- A climber adds a crag (boulders + routes) with a link to its guide page.
 insert into public.gyms (id, name, brand, city, country, grading_system, has_bouldering, has_routes, source_url, created_by)
-values ('e9000000-0000-0000-0000-000000000001', 'Falaise Test Details', 'OUTDOOR', 'Saffres', 'FR', 'FONT', true, true,
+values ('e9000000-0000-0000-0000-000000000001', 'Falaise Test Gym', 'OUTDOOR', 'Saffres', 'FR', 'FONT', true, true,
   'https://example.org/topo/saffres', 'f2000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_error($$insert into public.gyms (name, brand, country, grading_system, source_url, created_by)
   values ('Lien douteux', 'OUTDOOR', 'FR', 'FONT', 'javascript:alert(1)', 'f2000000-0000-0000-0000-00000000000a')$$,
