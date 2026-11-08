@@ -115,7 +115,7 @@ The local seed creates a fictional admin `alex@leblond.local` and three demo gym
    BETA_OLIVIER_EMAIL=… BETA_FLAVIO_EMAIL=… BETA_DAVID_EMAIL=… BETA_THOMAS_EMAIL=… BETA_JEROME_EMAIL=… \
    NEXT_PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run beta:bootstrap
    ```
-   The admin can later deactivate/reactivate testers in *Profile → Beta administration*. Load the whitelist **before** applying migrations: `20261103000000_close_registration.sql` stops without changes if accounts exist but no active admin is on it. To check a hosted project without printing any email, run the *Deploy database* workflow with mode `access` (counts only).
+   The admin can later deactivate/reactivate testers in *Profile → Beta administration*. Load the whitelist **before** applying migrations: `20261109000000_close_registration.sql` stops without changes if accounts exist but no active admin is on it. To check a hosted project without printing any email, run the *Deploy database* workflow with mode `access` (counts only).
 
 ## Patrick's model
 
