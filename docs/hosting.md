@@ -49,7 +49,7 @@ Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever 
 Actions → **Update beta whitelist** → Run workflow. The log shows names and roles only.
 
 ### 4b. Load the Fontainebleau topo (optional)
-Actions → **Import Boolder (Fontainebleau)** → Run workflow. It downloads Boolder's open data (© Boolder, CC BY 4.0) and loads the Fontainebleau areas, circuits and problems; the log shows the counts. Re-run it from time to time to pick up Boolder's updates (new problems, closures). Settings → Connections shows the date of the last import.
+Actions → **Import Boolder (Fontainebleau)** → Run workflow. It downloads Boolder's open data (© Boolder, CC BY 4.0) and loads the Fontainebleau areas, circuits and problems; the log shows the counts. Re-run it from time to time to pick up Boolder's updates (new problems, closures). Settings → Connections shows the date of the last import. The workflow turns the data into SQL batches and runs them through the Supabase Management API with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID`, the secrets the database deploy already uses; no service-role key is needed. Tick *dry run* to parse and count without writing.
 
 ### 5. Configure Supabase Auth (dashboard)
 - Authentication → **SMTP**: enter your SMTP provider's settings.
@@ -104,6 +104,12 @@ Patrick works with two kinds of provider (`lib/coach/config.ts`):
   on and reachable from Vercel: a rented server, or a home computer exposed
   through a tunnel. Speed depends heavily on hardware: in this project's test, a
   1.7-billion-parameter model on 2 CPU cores took about 2 minutes per answer.
+
+### Production setup: OpenRouter
+
+Production runs on OpenRouter: `COACH_PROVIDER=openai-compatible`, `COACH_BASE_URL=https://openrouter.ai/api/v1`, `COACH_MODEL` (an OpenRouter model id) and `COACH_API_KEY`, all set in Vercel. LEBLOND sends OpenRouter's optional `X-Title` and `HTTP-Referer` attribution headers. When OpenRouter refuses a request, the climber sees “Patrick is very busy” (HTTP 429, e.g. a free model's rate limit) or “the provider's credit or quota has run out” (HTTP 402); an error in the middle of an answer stops it, and the part already shown stays.
+
+Data handling: OpenRouter does not keep prompts unless you opt in, but the provider that serves the model has its own policy, and free models may log or train on requests. In OpenRouter → Settings → Privacy, turn off providers that may train on inputs, or require Zero Data Retention. Patrick's context holds climbing statistics, not email addresses.
 
 ### Recommended free setup: Groq
 

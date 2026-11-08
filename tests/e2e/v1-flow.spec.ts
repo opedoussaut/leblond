@@ -216,11 +216,23 @@ test("connections: truthful statuses, FIT import, link to session", async ({ pag
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Activité importée.")).toBeVisible();
   await page.getByRole("button", { name: "Associer à une séance" }).first().click();
-  await expect(page.getByText(/Activité de montre associée/)).toBeVisible();
+  const linkedNote = page.getByText(/Associée\. Ouvre la séance pour comparer/);
+  await expect(linkedNote).toBeVisible();
 
   // Re-importing the same file is detected as a duplicate.
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Cette activité semble déjà importée.")).toBeVisible();
+
+  // On the session: imported file marked as such, times still the typed ones until confirmed.
+  await page.goto("/session");
+  await page.getByRole("link", { name: /Demo Climbing District/ }).first().click();
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+  await expect(page.getByText("Horaires saisis à la main")).toBeVisible();
+  const table = page.getByRole("definition").filter({ hasText: "→" });
+  await expect(table).toHaveCount(2);
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "Reprendre les horaires de la montre" }).click();
+  await expect(page.getByText("Horaires repris de la montre")).toBeVisible();
 });
 
 test("Patrick analyses the persisted session (with wearable context), streamed", async ({ page }) => {

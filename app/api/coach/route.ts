@@ -4,8 +4,9 @@ import { assembleCoachContext } from "@/lib/coach/assemble";
 import { QUICK_ACTIONS, serializeContext } from "@/lib/coach/context";
 import { loadPatrickPrompt } from "@/lib/coach/prompt";
 import { trimHistory } from "@/lib/coach/history";
+import { classifyProviderError } from "@/lib/coach/errors";
 import { createCoachProvider, type CoachMessage } from "@/lib/coach/provider";
-import { coachConfig } from "@/lib/env";
+import { coachConfig, siteUrl } from "@/lib/env";
 
 export const runtime = "nodejs";
 // Vercel Hobby allows up to 300 s; open models on modest hardware can be slow to answer.
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   if (!viewer.active) return json(403, { error: "forbidden" });
 
   const config = coachConfig();
-  const coach = createCoachProvider(config);
+  const coach = createCoachProvider(config, { appUrl: siteUrl() });
   if (!coach) return json(503, { error: "not_configured" });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -124,10 +125,11 @@ export async function POST(request: Request) {
     stream = await coach.chat({ instructions, context: serializeContext(context), messages, signal: request.signal });
   } catch (e) {
     await recordUsage({ inputTokens: null, outputTokens: null }, false);
-    // The model provider's own quota (e.g. a free tier's tokens per minute) — not the climber's daily limit.
-    const status = (e as { status?: number }).status;
-    if (status === 429 || status === 413) return json(503, { error: "provider_busy" });
-    return json(502, { error: "coach_unavailable" });
+    // The model provider's own limits (a free model's requests per minute, no credit left) —
+    // not the climber's daily limit. Only the status is logged, never the question or the context.
+    const failure = classifyProviderError(e);
+    console.error("coach provider refused", { status: (e as { status?: number }).status ?? null, failure });
+    return json(failure === "coach_unavailable" ? 502 : 503, { error: failure });
   }
 
   const encoder = new TextEncoder();
@@ -148,8 +150,9 @@ export async function POST(request: Request) {
         });
         await recordUsage(usage, true);
         controller.close();
-      } catch {
+      } catch (e) {
         await recordUsage({ inputTokens: null, outputTokens: null }, false);
+        console.error("coach stream failed", { code: (e as { code?: string }).code ?? null, status: (e as { status?: number }).status ?? null });
         controller.error(new Error("coach_stream_failed"));
       }
     },

@@ -19,6 +19,7 @@ import {
   type CatalogueItem,
 } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
+import { fieldClass } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -79,7 +80,7 @@ export function LiveSession({
 }: {
   sessionId: string;
   userId: string;
-  gym: { id: string; name: string; system: GradeSystem };
+  gym: { id: string; name: string; system: GradeSystem; outdoor?: boolean };
   startedAt: string;
   initialProblems: LiveProblemItem[];
   initialAttempts: Attempt[];
@@ -141,12 +142,14 @@ export function LiveSession({
     return [...problems].sort((a, b) => (lastTouch.get(b.id) ?? 0) - (lastTouch.get(a.id) ?? 0));
   }, [problems, sessionAttempts]);
 
+  // Outdoor boulder outside the topo: optional name and sector, typed before the grade (the sector is kept for the next one).
+  const [manual, setManual] = useState({ name: "", sector: "" });
   const current = problems.find((p) => p.id === currentId) ?? null;
   const say = (tone: "ok" | "error", text: string) => setStatus({ tone, text });
 
   function addProblem(grade: string) {
     start(async () => {
-      const res = await createProblem({ gymId: gym.id, nativeGrade: grade });
+      const res = await createProblem({ gymId: gym.id, nativeGrade: grade, ...(gym.outdoor ? manual : {}) });
       if (!res.ok || !res.data) return say("error", t.common.unknownError);
       const p = res.data;
       setProblems((list) => [
@@ -165,6 +168,7 @@ export function LiveSession({
       setCurrentId(p.id);
       setAdding(false);
       setFlashPrompt(null);
+      setManual({ name: "", sector: manual.sector });
     });
   }
 
@@ -487,6 +491,18 @@ export function LiveSession({
         />
       ) : adding ? (
         <div className="space-y-2">
+          {gym.outdoor ? (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-sm font-semibold">{t.problem.name}
+                <input className={fieldClass} maxLength={120} value={manual.name} placeholder={t.common.optional}
+                  onChange={(e) => setManual({ ...manual, name: e.target.value })} />
+              </label>
+              <label className="text-sm font-semibold">{t.problem.sector}
+                <input className={fieldClass} maxLength={80} value={manual.sector} placeholder={t.common.optional}
+                  onChange={(e) => setManual({ ...manual, sector: e.target.value })} />
+              </label>
+            </div>
+          ) : null}
           <GradeGrid system={gym.system} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
           {outdoor && outdoor.problems.length > 0 ? (
             <button type="button" onClick={() => setGradeFallback(false)} className="text-sm text-accent underline-offset-2 hover:underline">

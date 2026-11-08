@@ -19,7 +19,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return <input {...props} className={cn(control, className)} />;
 }
 
-export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { ref?: React.Ref<HTMLSelectElement> }) {
   return <select {...props} className={cn(control, className)} />;
 }
 

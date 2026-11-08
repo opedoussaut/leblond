@@ -38,7 +38,7 @@ export const logRouteAscentSchema = z.object({
   /** Goes it took (each line). Onsight / flash are single-try by definition. */
   tries: z.number().int().min(1).max(100).default(1),
   /** Comment on the climb. */
-  notes: z.string().trim().max(500).default(""),
+  notes: z.string().trim().max(2000).default(""),
   /** Extra lines of the same grade/style/result logged in one tap (one id each, for idempotency). */
   extraClientIds: z.array(z.guid()).max(29).default([]),
   /** Keep this route as a project (creates it from the name, or "Projet <grade>"). Single line only. */
@@ -48,6 +48,27 @@ export const logRouteAscentSchema = z.object({
   .refine((v) => !isFirstGoOnly(v.result) || v.tries === 1, "Onsight and flash are first-go results")
   .refine((v) => !v.asProject || v.extraClientIds.length === 0, "A project is a single route");
 export type LogRouteAscentInput = z.infer<typeof logRouteAscentSchema>;
+
+/** Everything about a logged route line that can be corrected afterwards. */
+export const updateRouteAscentSchema = z.object({
+  id: z.guid(),
+  notes: z.string().trim().max(2000).optional(),
+  tries: z.number().int().min(1).max(100).optional(),
+  routeName: z.string().trim().max(120).optional(),
+  grade: z.enum(FRENCH_ROUTE_GRADES).optional(),
+  style: z.enum(ROUTE_STYLES).optional(),
+  result: z.enum(ROUTE_RESULTS).optional(),
+  falls: z.number().int().min(0).max(50).nullable().optional(),
+  wallAngle: z.enum(WALL_ANGLES).optional(),
+  sector: z.string().trim().max(120).optional(),
+  beta: z.string().trim().max(2000).optional(),
+  topoRef: z.string().trim().max(160).optional(),
+  /** Link to the original topo / guide page (https), never a copy of it. */
+  topoUrl: z.union([z.string().trim().max(500).regex(/^https:\/\/\S+$/), z.literal("")]).optional(),
+}).strict()
+  .refine((v) => !v.result || !isClean(v.result) || !v.falls, "A clean ascent has no falls")
+  .refine((v) => !v.result || !isFirstGoOnly(v.result) || v.tries === undefined || v.tries === 1, "Onsight and flash are first-go results");
+export type UpdateRouteAscentInput = z.input<typeof updateRouteAscentSchema>;
 
 /** Case- and accent-insensitive key used to recognise the same named route. */
 export function routeKey(name: string): string {

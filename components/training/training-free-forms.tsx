@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { buttonClass } from "@/components/ui/button";
+import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
@@ -48,9 +49,8 @@ export function PastTrainingForm({ locale, today }: { locale: Locale; today: str
       <label className="text-sm font-semibold">{t.time}
         <input className={field} type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
-      <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.totalMinutes}
-        <input className={field} type="number" required min={5} max={480} step={5} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} />
-      </label>
+      <DurationField className="col-span-2 sm:col-span-1" label={t.totalMinutes} value={minutes}
+        onChange={(v) => setMinutes(v ?? 0)} min={5} max={480} step={5} />
     </div>
     <label className="block text-sm font-semibold">{t.rpeShort}
       <input className={field} type="number" min={1} max={10} value={rpe} onChange={(e) => setRpe(e.target.value)} />
@@ -104,9 +104,8 @@ export function EditTrainingForm({ locale, session, today }: {
         <label className="text-sm font-semibold">{t.time}
           <input className={field} type="time" required value={v.time} onChange={(e) => set("time", e.target.value)} />
         </label>
-        <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.totalMinutes}
-          <input className={field} type="number" required min={5} max={480} value={v.minutes} onChange={(e) => set("minutes", Number(e.target.value))} />
-        </label>
+        <DurationField className="col-span-2 sm:col-span-1" label={t.totalMinutes} value={v.minutes}
+          onChange={(m) => set("minutes", m ?? 0)} min={5} max={480} step={5} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm font-semibold">{t.rpeShort}

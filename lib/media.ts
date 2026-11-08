@@ -27,6 +27,6 @@ export function extensionFor(mime: string): string {
 }
 
 /** Objects are always stored under "<userId>/…" — the RLS policy relies on it. */
-export function mediaPath(userId: string, problemId: string, id: string, mime: string): string {
-  return `${userId}/${problemId}/${id}.${extensionFor(mime)}`;
+export function mediaPath(userId: string, subjectId: string, id: string, mime: string): string {
+  return `${userId}/${subjectId}/${id}.${extensionFor(mime)}`;
 }

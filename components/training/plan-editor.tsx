@@ -10,6 +10,7 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { PlanSessionControls } from "./session-actions";
 import { DEFAULT_PLAN, type PlanSession, type SavedTrainingPlan, type TrainingPlanInput } from "@/lib/training/plans";
 import { buttonClass } from "@/components/ui/button";
+import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
 function blankPlan(locale: Locale): TrainingPlanInput {
@@ -128,12 +129,8 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
                   {t.days.map((day, d) => <option key={d} value={d}>{day}</option>)}
                 </select>
               </label>
-              <label className="text-sm font-semibold">
-                {t.planMinutes}
-                <input type="number" min={10} max={240} step={5} value={session.minutes}
-                  onChange={(e) => updateSession(index, { minutes: Number(e.target.value) })}
-                  className={field} />
-              </label>
+              <DurationField label={t.planMinutes} value={session.minutes}
+                onChange={(v) => updateSession(index, { minutes: v ?? 0 })} min={10} max={240} step={5} />
             </div>
             <label className="mt-3 block text-sm font-semibold">
               {t.planMethod}

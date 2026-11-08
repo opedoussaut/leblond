@@ -207,6 +207,10 @@ export type Database = {
       };
       route_ascents: {
         Row: {
+          beta: string | null;
+          sector: string | null;
+          topo_ref: string | null;
+          topo_url: string | null;
           id: string;
           user_id: string;
           session_id: string;
@@ -226,6 +230,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          beta?: string | null;
+          sector?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           id?: string;
           user_id?: string;
           session_id: string;
@@ -245,6 +253,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          beta?: string | null;
+          sector?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           id?: string;
           user_id?: string;
           session_id?: string;
@@ -893,6 +905,7 @@ export type Database = {
       };
       media: {
         Row: {
+          route_ascent_id: string | null;
           attempt_id: string | null;
           created_at: string;
           duration_seconds: number | null;
@@ -909,6 +922,7 @@ export type Database = {
           width: number | null;
         };
         Insert: {
+          route_ascent_id?: string | null;
           attempt_id?: string | null;
           created_at?: string;
           duration_seconds?: number | null;
@@ -925,6 +939,7 @@ export type Database = {
           width?: number | null;
         };
         Update: {
+          route_ascent_id?: string | null;
           attempt_id?: string | null;
           created_at?: string;
           duration_seconds?: number | null;
@@ -1208,6 +1223,9 @@ export type Database = {
       };
       problems: {
         Row: {
+          beta: string | null;
+          topo_ref: string | null;
+          topo_url: string | null;
           created_at: string;
           created_by: string;
           external_problem_id: string | null;
@@ -1231,6 +1249,9 @@ export type Database = {
           wall_zone: string | null;
         };
         Insert: {
+          beta?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           created_at?: string;
           created_by?: string;
           external_problem_id?: string | null;
@@ -1254,6 +1275,9 @@ export type Database = {
           wall_zone?: string | null;
         };
         Update: {
+          beta?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           created_at?: string;
           created_by?: string;
           external_problem_id?: string | null;
@@ -1420,6 +1444,7 @@ export type Database = {
           session_type: Database["public"]["Enums"]["session_type"];
           source: Database["public"]["Enums"]["session_source"];
           started_at: string;
+          timing_source: Database["public"]["Enums"]["session_timing_source"];
           updated_at: string;
           user_id: string;
           wearable_activity_id: string | null;
@@ -1440,6 +1465,7 @@ export type Database = {
           session_type?: Database["public"]["Enums"]["session_type"];
           source?: Database["public"]["Enums"]["session_source"];
           started_at?: string;
+          timing_source?: Database["public"]["Enums"]["session_timing_source"];
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
@@ -1460,6 +1486,7 @@ export type Database = {
           session_type?: Database["public"]["Enums"]["session_type"];
           source?: Database["public"]["Enums"]["session_source"];
           started_at?: string;
+          timing_source?: Database["public"]["Enums"]["session_timing_source"];
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
@@ -1678,6 +1705,7 @@ export type Database = {
         Returns: boolean;
       };
       link_wearable_activity: { Args: { p_activity_id: string; p_session_id: string }; Returns: undefined };
+      apply_activity_timing: { Args: { p_session_id: string }; Returns: Database["public"]["Tables"]["sessions"]["Row"] };
       reschedule_session: {
         Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };
         Returns: Database["public"]["Tables"]["sessions"]["Row"];
@@ -1721,6 +1749,7 @@ export type Database = {
       normalization_source: "FONT_NATIVE" | "USER_ESTIMATE" | "GYM_PUBLISHED";
       project_status: "ACTIVE" | "SENT" | "ABANDONED" | "RETIRED";
       session_source: "MANUAL" | "ARKOSE" | "CLIMBING_DISTRICT" | "COROS" | "SUUNTO" | "GARMIN" | "STRAVA" | "IMPORT";
+      session_timing_source: "MANUAL" | "ACTIVITY";
       session_type: "BOULDERING" | "TRAINING" | "PROJECTING" | "TECHNIQUE" | "OTHER";
       wall_angle: "SLAB" | "VERTICAL" | "SLIGHT_OVERHANG" | "OVERHANG" | "STEEP" | "ROOF" | "UNKNOWN";
       wearable_provider: "COROS" | "SUUNTO" | "GARMIN" | "STRAVA" | "FIT_IMPORT";
@@ -1842,6 +1871,7 @@ export const Constants = {
       normalization_source: ["FONT_NATIVE", "USER_ESTIMATE", "GYM_PUBLISHED"],
       project_status: ["ACTIVE", "SENT", "ABANDONED", "RETIRED"],
       session_source: ["MANUAL", "ARKOSE", "CLIMBING_DISTRICT", "COROS", "SUUNTO", "GARMIN", "STRAVA", "IMPORT"],
+      session_timing_source: ["MANUAL", "ACTIVITY"],
       session_type: ["BOULDERING", "TRAINING", "PROJECTING", "TECHNIQUE", "OTHER"],
       wall_angle: ["SLAB", "VERTICAL", "SLIGHT_OVERHANG", "OVERHANG", "STEEP", "ROOF", "UNKNOWN"],
       wearable_provider: ["COROS", "SUUNTO", "GARMIN", "STRAVA", "FIT_IMPORT"],

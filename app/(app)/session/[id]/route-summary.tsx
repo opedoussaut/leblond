@@ -60,7 +60,10 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
                 <strong className="text-base tabular-nums">{a.grade}</strong> <ResultBadge tone={routeTone(a.result)} label={r.results[a.result]} className="ml-1" />
                 {a.route_project_id ? <ResultBadge tone="project" label="★" className="ml-1" /> : null}
                 {a.notes ? <span className="mt-1 block text-xs italic text-ink-2">“{a.notes}”</span> : null}</span>
-              <span className="text-xs text-ink-2">{r.styles[a.style]}{a.tries > 1 ? ` · ×${a.tries}` : ""}{a.falls ? ` · ${a.falls}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
+              <span className="flex flex-col items-end gap-1 text-right text-xs text-ink-2">
+                <span>{r.styles[a.style]}{a.tries > 1 ? ` · ×${a.tries}` : ""}{a.falls ? ` · ${a.falls}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
+                <Link href={`/route/${a.id}`} className="min-h-11 content-center font-bold text-accent">{r.details} ›</Link>
+              </span>
             </li>)}
         </ul>}
       <p className="text-xs text-ink-3">{r.separateScales}</p>

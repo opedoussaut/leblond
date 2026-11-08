@@ -4,6 +4,8 @@
  *   npx tsx scripts/import-boolder.ts --db path/to/boolder.db [--source-version <git sha>] [--source-date <ISO>]
  *   npx tsx scripts/import-boolder.ts --json tests/fixtures/boolder-sample.json     # small sample (tests, local dev)
  *   add --dry-run to only print what would be imported.
+ *   add --sql-dir <dir> to write the import as numbered SQL batches instead of
+ *   calling the API (run them in order, e.g. through the Supabase Management API).
  *
  * Data: https://github.com/boolder-org/boolder-data — © Boolder, CC BY 4.0.
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (service role:
@@ -12,7 +14,8 @@
  * removed from the catalogue (climbers' own problems and attempts are kept,
  * only their link to the catalogue is cleared) and their gyms are deactivated.
  */
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -21,6 +24,7 @@ import {
   type BoolderDataset,
   type CatalogueImport,
 } from "../lib/integrations/outdoor/boolder";
+import { catalogueSql } from "../lib/integrations/outdoor/catalogue-sql";
 
 const { values: args } = parseArgs({
   options: {
@@ -29,6 +33,7 @@ const { values: args } = parseArgs({
     "source-version": { type: "string" },
     "source-date": { type: "string" },
     "dry-run": { type: "boolean", default: false },
+    "sql-dir": { type: "string" },
   },
 });
 
@@ -93,6 +98,14 @@ async function main() {
   console.log("Boolder data (© Boolder, CC BY 4.0)", sourceVersion ? `@ ${sourceVersion}` : "");
   console.log(JSON.stringify(summary(catalogue), null, 2));
   if (args["dry-run"]) return;
+  if (args["sql-dir"]) {
+    const dir = args["sql-dir"];
+    mkdirSync(dir, { recursive: true });
+    const batches = catalogueSql(catalogue, { version: sourceVersion, date: sourceDate });
+    batches.forEach((sql, i) => writeFileSync(join(dir, `${String(i + 1).padStart(4, "0")}.sql`), `${sql}\n`));
+    console.log(`✓ wrote ${batches.length} SQL batches to ${dir}`);
+    return;
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

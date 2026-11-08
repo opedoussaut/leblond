@@ -112,7 +112,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
         </Card>
       ) : null}
 
-      <SessionWearable sessionId={view.session.id} activity={view.activity} candidates={candidates} />
+      <SessionWearable session={view.session} activity={view.activity} candidates={candidates} />
 
       <LinkButton
         href={`/patrick?session=${view.session.id}&q=lastSession`}
