@@ -114,7 +114,10 @@ function ProblemForm({ gymId, row, logged = 0, onSaved, onDeleted, onCancel }: {
   const [grade, setGrade] = useState<FontGrade>(row?.grade ?? "5a");
   const [color, setColor] = useState<CircuitColor | "">(row?.circuit_color ?? "");
   const [number, setNumber] = useState(row?.circuit_number ?? "");
-  const [steepness, setSteepness] = useState<Steepness>((STEEPNESS as readonly string[]).includes(row?.steepness ?? "") ? (row?.steepness as Steepness) : "");
+  const [steepness, setSteepness] = useState<Steepness>(() => {
+    const s = row?.steepness ?? "";
+    return (STEEPNESS as readonly string[]).includes(s) ? (s as Steepness) : "";
+  });
   const [sitStart, setSitStart] = useState(row?.sit_start ?? false);
   const [lat, setLat] = useState(row?.latitude?.toString() ?? "");
   const [lon, setLon] = useState(row?.longitude?.toString() ?? "");
