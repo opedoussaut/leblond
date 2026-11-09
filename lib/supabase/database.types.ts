@@ -1745,6 +1745,7 @@ export type Database = {
       is_active_beta_user: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       redeem_beta_invite: { Args: { p_code: string; p_email: string }; Returns: boolean };
+      admin_set_beta_user_active: { Args: { p_email: string; p_active: boolean }; Returns: boolean };
       is_valid_native_grade: {
         Args: { p_grade: string; p_system: Database["public"]["Enums"]["grade_system"] };
         Returns: boolean;

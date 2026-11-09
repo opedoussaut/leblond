@@ -734,7 +734,6 @@ export const fr = {
     coach30d: "Questions à Patrick (30 j)",
     activate: "Réactiver",
     deactivate: "Désactiver",
-    notConfigured: "Clé service Supabase absente : gestion indisponible.",
     invitesTitle: "Inviter quelqu’un",
     invitesIntro:
       "Crée un lien et envoie-le par WhatsApp, Telegram ou SMS. Ton ami l’ouvre et crée son compte avec son adresse e-mail. Un lien sert une seule fois et expire au bout de 30 jours.",
