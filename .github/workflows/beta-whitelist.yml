@@ -1,12 +1,16 @@
 name: Update beta whitelist
 
-# Writes the five closed-beta identities into the hosted beta_users table.
-# Emails live ONLY in repository secrets — never in the code or the logs
-# (the script prints names and roles only; GitHub also masks secret values).
+# Writes the closed-beta invitations into the hosted beta_users table.
+# Emails live ONLY in repository secrets, never in the code or the logs: the log
+# shows names, roles and counts only (each email is also masked explicitly).
+# A BETA_* secret that is not set is skipped, so testers can be added one at a
+# time: add their secret, run the workflow again.
+# Runs through the Supabase Management API with the secrets the database deploy
+# already uses; no service-role key is needed.
 #
-# Repository secrets required:
-#   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-#   BETA_OLIVIER_EMAIL, BETA_FLAVIO_EMAIL, BETA_DAVID_EMAIL, BETA_THOMAS_EMAIL, BETA_JEROME_EMAIL
+# Repository secrets:
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_ID
+#   BETA_OLIVIER_EMAIL (admin), BETA_FLAVIO_EMAIL, BETA_DAVID_EMAIL, BETA_THOMAS_EMAIL, BETA_JEROME_EMAIL
 
 on:
   workflow_dispatch:
@@ -18,19 +22,51 @@ jobs:
   whitelist:
     runs-on: ubuntu-latest
     environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      BETA_OLIVIER_EMAIL: ${{ secrets.BETA_OLIVIER_EMAIL }}
+      BETA_FLAVIO_EMAIL: ${{ secrets.BETA_FLAVIO_EMAIL }}
+      BETA_DAVID_EMAIL: ${{ secrets.BETA_DAVID_EMAIL }}
+      BETA_THOMAS_EMAIL: ${{ secrets.BETA_THOMAS_EMAIL }}
+      BETA_JEROME_EMAIL: ${{ secrets.BETA_JEROME_EMAIL }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: node --experimental-strip-types scripts/bootstrap-beta-users.ts
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BETA_OLIVIER_EMAIL: ${{ secrets.BETA_OLIVIER_EMAIL }}
-          BETA_FLAVIO_EMAIL: ${{ secrets.BETA_FLAVIO_EMAIL }}
-          BETA_DAVID_EMAIL: ${{ secrets.BETA_DAVID_EMAIL }}
-          BETA_THOMAS_EMAIL: ${{ secrets.BETA_THOMAS_EMAIL }}
-          BETA_JEROME_EMAIL: ${{ secrets.BETA_JEROME_EMAIL }}
+      - name: Write the invitations (names and roles only in the log)
+        run: |
+          set -euo pipefail
+          roster=(
+            "BETA_OLIVIER_EMAIL|Olivier|admin"
+            "BETA_FLAVIO_EMAIL|Flavio|beta_tester"
+            "BETA_DAVID_EMAIL|David|beta_tester"
+            "BETA_THOMAS_EMAIL|Thomas|beta_tester"
+            "BETA_JEROME_EMAIL|Jérôme|beta_tester"
+          )
+          values=()
+          for entry in "${roster[@]}"; do
+            IFS='|' read -r var name role <<<"$entry"
+            email="$(printf '%s' "${!var:-}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+            if [ -z "$email" ]; then echo "- $name: $var not set, skipped"; continue; fi
+            echo "::add-mask::$email"
+            # Strict pattern: no quote, space or dollar sign can reach the SQL below.
+            if ! [[ "$email" =~ ^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$ ]]; then
+              echo "- $name: $var is not a valid email, skipped"; continue
+            fi
+            values+=("('$email', '$name', '$role'::public.beta_role)")
+            echo "✓ $name ($role)"
+          done
+          [ "${#values[@]}" -gt 0 ] || { echo "No BETA_* secret is set. Nothing to do."; exit 1; }
+          sql="insert into public.beta_users (email, display_name, role) values $(IFS=,; echo "${values[*]}")
+            on conflict (email) do update set display_name = excluded.display_name, role = excluded.role, active = true;"
+          # The API's error text could quote an email, so it is never printed.
+          jq -n --arg q "$sql" '{query: $q}' \
+            | curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+                --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query" \
+            || { echo "Writing the whitelist failed (details hidden: they may contain an email)."; exit 1; }
+      - name: Closed-beta access (counts only)
+        run: |
+          set -euo pipefail
+          jq -n --rawfile q scripts/closed-beta-access.sql '{query: $q}' \
+            | curl -sS --fail-with-body -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+                --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query" \
+            | jq '.[0]'

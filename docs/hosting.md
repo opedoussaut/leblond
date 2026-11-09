@@ -35,9 +35,7 @@ Repository → Settings → Secrets and variables → Actions → *New repositor
 | `SUPABASE_ACCESS_TOKEN` | personal access token |
 | `SUPABASE_PROJECT_ID` | project ref |
 | `SUPABASE_DB_PASSWORD` | database password |
-| `NEXT_PUBLIC_SUPABASE_URL` | API URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
-| `BETA_OLIVIER_EMAIL`, `BETA_FLAVIO_EMAIL`, `BETA_DAVID_EMAIL`, `BETA_THOMAS_EMAIL`, `BETA_JEROME_EMAIL` | the five testers' emails |
+| `BETA_OLIVIER_EMAIL` (admin), `BETA_FLAVIO_EMAIL`, `BETA_DAVID_EMAIL`, `BETA_THOMAS_EMAIL`, `BETA_JEROME_EMAIL` | the testers' emails; only the admin's is needed to start, the others can be added later |
 
 Secrets are never shown in the public repo or in workflow logs.
 
@@ -46,7 +44,7 @@ Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever 
 (Alternative: Supabase → SQL editor → paste each file of `supabase/migrations/` in name order → Run.)
 
 ### 4. Load the whitelist
-Actions → **Update beta whitelist** → Run workflow. The log shows names and roles only.
+Actions → **Update beta whitelist** → Run workflow. It writes one invitation per `BETA_*` secret that is set and skips the others, so a tester is added later by creating their secret and running it again. It goes through the Supabase Management API with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` (no service-role key), and the log shows names, roles and counts only.
 
 Sign-up is by invitation: an email that is not on the active whitelist cannot create an account, and an existing account outside it lands on "Accès désactivé" with its data kept. To check the hosted whitelist without showing any email, run **Deploy database (Supabase)** with mode `access`: it prints counts only (accounts, active invitations, active admin, accounts outside the whitelist, invitations with no account yet).
 
