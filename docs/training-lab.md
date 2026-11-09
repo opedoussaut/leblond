@@ -50,6 +50,29 @@ Building a validated predictive model would require consented longitudinal data,
 
 The public routes need no backend credentials. The private tracker requires migration `20261019000001_training_assessments.sql` **after** the earlier plan migration; confirm local PostgreSQL RLS tests and two distinct tester accounts before enabling private saving. Public visitor ratings are not persisted.
 
+## Atlas detail pages (`/atlas/[id]`)
+
+Each of the 19 catalogue entries has an enriched, bilingual detail page. Content lives in typed TypeScript, not in the page:
+
+| File | Role |
+| --- | --- |
+| `lib/training/atlas-types.ts` | `AtlasDetail` shape, protocol keys, source kinds and the 13 diagram spec kinds |
+| `lib/training/atlas-content/methods.ts` | the 11 methods |
+| `lib/training/atlas-content/coaching.ts` | Lattice, Power Company, Crimpd, Hooper's Beta |
+| `lib/training/atlas-content/tools.ts` | hangboard, training board, force sensor, video |
+| `lib/training/atlas-content/sources.ts` | shared, verified references (citation, URL, FR/EN finding) |
+| `lib/training/atlas-diagram.ts` | pure diagram geometry (timelines, ticks, ladders, label wrapping) |
+| `components/training/atlas-diagram.tsx` | SVG renderer (server component) |
+| `lib/i18n/atlas.ts` | page headings, diagram labels and the diagram's text alternative |
+
+Every entry gives what it trains, who it suits, prerequisites (level, age, injury history), a protocol table (methods fill intensity, effort, rest, reps, sets, session length and frequency), setup and steps, progression, common mistakes, safety, variants, what to track, a plain-language strength-of-evidence note and its sources.
+
+**Writing rules.** Text is LEBLOND's own summary: no copied provider text, figures or photos. No medical claims or promised results; state how strong the evidence is (small trials, mostly experienced climbers). Prices and plan names of coaching providers change: say "at the time of writing" and send users to the official site.
+
+**Diagrams.** Each diagram is drawn from the numbers in its spec: counts are exact and time axes are to scale. Where a method has an executable session template (`lib/training/session-templates.ts`), `tests/unit/atlas-content.test.ts` fails if the diagram and the template disagree, so change both together. Colours come only from theme tokens (`fill-accent`, `stroke-ink-3`…); meaning is carried by labels, patterns (hatching, stripes, dashes) and shapes as well, never by colour alone. The same numbers are listed as text under each drawing and referenced by `aria-describedby`. The force-test curve is an illustrative shape, labelled as such.
+
+**Adding an entry.** Add the catalogue entry, its scores in `lib/training/atlas.ts`, an `AtlasDetail` in the right content file and any new references in `sources.ts` (https only, verified). Run `npm test`: the content test checks coverage, FR/EN completeness, protocol rows, source format and that every diagram renders in both languages.
+
 ## MongoDB decision
 
 **The existing repository does not use MongoDB**. Identity, security policies and climbing data already live in Supabase/PostgreSQL. This milestone deliberately stores private plans there instead of introducing a second source of identity, secret configuration, database driver, migration path and user-access-control implementation. This keeps the change deployable without additional secrets.
