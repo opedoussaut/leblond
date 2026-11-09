@@ -650,4 +650,29 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" }).filter({ hasText: "Projet" })).toHaveCount(0);
   await page.goto("/projects");
   await expect(page.getByText("Variante E2E")).toHaveCount(0);
+
+  // The admin corrects one boulder of the team topo, then adds one without a position.
+  await page.goto("/settings/admin");
+  await page.getByRole("listitem").filter({ hasText: "Saffres E2E" }).getByRole("link", { name: "Modifier les blocs" }).click();
+  await expect(page).toHaveURL(/\/settings\/admin\/topos\/[0-9a-f-]{36}$/);
+  await expect(page.getByText("5 sur 5 blocs")).toBeVisible();
+  await page.getByRole("button", { name: "Modifier Premier E2E" }).click();
+  const editForm = page.getByRole("form", { name: "Modifier Premier E2E" });
+  await editForm.getByLabel("Nom").fill("Premier corrigé E2E");
+  await editForm.getByLabel("Cotation").selectOption("3b");
+  await editForm.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Bloc enregistré.")).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Premier corrigé E2E" })).toContainText("3b");
+
+  await page.getByRole("button", { name: "+ Ajouter un bloc" }).click();
+  const addForm = page.getByRole("form", { name: "Nouveau bloc" });
+  await addForm.getByLabel("Nom").fill("Ajouté E2E");
+  await addForm.getByLabel("Cotation").selectOption("5c");
+  await addForm.getByLabel("Circuit").selectOption("orange");
+  await addForm.getByLabel(/Numéro/).fill("9");
+  await addForm.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Bloc ajouté.")).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Ajouté E2E" })).toContainText("pas sur la carte");
+  await page.reload();
+  await expect(page.getByText("6 sur 6 blocs")).toBeVisible();
 });

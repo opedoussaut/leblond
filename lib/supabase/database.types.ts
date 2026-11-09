@@ -1863,6 +1863,18 @@ export type Database = {
         Args: { p_session_id: string; p_problem_id: string };
         Returns: Json;
       };
+      admin_save_topo_problem: {
+        Args: { p_gym_id: string; p_id: number; p_problem: Json };
+        Returns: number;
+      };
+      admin_delete_topo_problem: {
+        Args: { p_gym_id: string; p_id: number };
+        Returns: Json;
+      };
+      admin_topo_link_counts: {
+        Args: { p_gym_id: string };
+        Returns: { outdoor_problem_id: number; logged: number }[];
+      };
       remove_problems_from_session: {
         Args: { p_session_id: string; p_problem_ids: string[] };
         Returns: Json;
