@@ -17,6 +17,11 @@ name: Deploy database (Supabase)
 #            Counts only: this repository and its logs are public.
 #   smtp     configure the hosted Auth email sender from the SMTP_* secrets
 #            (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SENDER_EMAIL); never prints them.
+#   topo-list  replace ONE team topo (source LEBLOND) with a written list:
+#            topo_site = part of the site name, topo_list = the list (bleau.info
+#            style). Boulders the list does not mention are removed; climbers'
+#            logs keep their tries. Runs scripts/apply-topo-list.ts, which reads
+#            the inputs from the event file and prints counts only.
 #   repair   align the migration HISTORY table only (no schema change), then push.
 #            Use when migrations were applied by another tool under different
 #            version numbers and `inspect` showed the schemas already match.
@@ -25,17 +30,25 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "push | inspect | access | repair | smtp"
+        description: "push | inspect | access | repair | smtp | topo-list"
         required: true
         default: push
         type: choice
-        options: [push, inspect, access, repair, smtp]
+        options: [push, inspect, access, repair, smtp, topo-list]
       revert_versions:
         description: "repair only: remote-only versions to mark reverted (space-separated)"
         required: false
         default: ""
       applied_versions:
         description: "repair only: local versions already present in the schema (space-separated)"
+        required: false
+        default: ""
+      topo_site:
+        description: "topo-list only: part of the team-topo site name"
+        required: false
+        default: ""
+      topo_list:
+        description: "topo-list only: the written list (the whole topo)"
         required: false
         default: ""
 
@@ -82,6 +95,18 @@ jobs:
             | curl -sS --fail-with-body -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
                 --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query" \
             | jq '.[0]'
+      - name: Node (topo-list)
+        if: ${{ inputs.mode == 'topo-list' }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Replace a team topo with a written list
+        if: ${{ inputs.mode == 'topo-list' }}
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsx scripts/apply-topo-list.ts
       - name: Repair migration history
         if: ${{ inputs.mode == 'repair' }}
         run: |
