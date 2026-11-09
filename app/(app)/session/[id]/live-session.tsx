@@ -484,6 +484,8 @@ export function LiveSession({
       {adding && outdoor && outdoor.problems.length > 0 && !gradeFallback ? (
         <BoolderProblemPicker
           problems={outdoor.problems}
+          source={outdoor.area.source}
+          credit={outdoor.area.credit}
           pending={pending}
           onPick={pickFromTopo}
           onCancel={problems.length ? () => setAdding(false) : undefined}

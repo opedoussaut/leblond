@@ -27,7 +27,13 @@ export interface AreaItem {
   warning_fr: string | null;
   warning_en: string | null;
   problems_count: number;
+  /** BOOLDER (Fontainebleau catalogue) or LEBLOND (a topo made by the beta team). */
+  source?: string;
+  credit?: string | null;
 }
+
+/** An outdoor site outside the Boolder catalogue; topo_problems is set when it has a team topo. */
+export type OutdoorSite = Tables<"gyms"> & { topo_problems?: number | null };
 
 export interface CatalogueItem {
   id: number;
@@ -59,6 +65,13 @@ export function BoolderAttribution({ className }: { className?: string }) {
   );
 }
 
+/** Who the topo comes from: Boolder's licence notice, or the credit of a topo made by the beta team. */
+export function TopoAttribution({ source, credit, className }: { source?: string | null; credit?: string | null; className?: string }) {
+  const { t } = useI18n();
+  if (source !== "LEBLOND") return <BoolderAttribution className={className} />;
+  return <p className={cn("text-xs text-ink-3", className)}>{credit ? fmt(t.outdoor.teamTopoCredit, { credit }) : t.outdoor.teamTopo}</p>;
+}
+
 export function circuitColorName(t: Dictionary, color: string | null) {
   if (!color) return "";
   return isCircuitColor(color) ? t.outdoor.colors[color] : color;
@@ -86,7 +99,8 @@ export function areaWarning(area: Pick<AreaItem, "warning_fr" | "warning_en">, l
   return locale === "en" ? (area.warning_en ?? area.warning_fr) : (area.warning_fr ?? area.warning_en);
 }
 
-function siteHint(t: Dictionary, site: Pick<Tables<"gyms">, "has_bouldering" | "has_routes">) {
+function siteHint(t: Dictionary, site: Pick<OutdoorSite, "has_bouldering" | "has_routes" | "topo_problems">) {
+  if (site.topo_problems) return fmt(t.outdoor.siteHintTopo, { n: site.topo_problems });
   if (site.has_bouldering && site.has_routes) return t.outdoor.siteHintBoth;
   return site.has_routes ? t.outdoor.siteHintRoutes : t.outdoor.siteHint;
 }
@@ -160,7 +174,7 @@ function NewOutdoorSiteForm({ onCreated, onCancel }: { onCreated: (site: Tables<
 
 /** Sites without a topo (with a form to add one), then the Fontainebleau areas. Each list works without the other. */
 export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSite, onPickArea }: {
-  sites: Tables<"gyms">[];
+  sites: OutdoorSite[];
   areas: AreaItem[];
   favouriteGymIds: string[];
   pending?: boolean;
@@ -310,15 +324,20 @@ export function AreaPicker({
 
 const MAX_RESULTS = 60;
 
-/** Picks a boulder from the area's Boolder topo; falls back to a plain grade grid. */
+/** Picks a boulder from the area's topo (Boolder or the team's); falls back to a plain grade grid. */
 export function BoolderProblemPicker({
   problems,
   pending,
   onPick,
   onCancel,
   onNotInTopo,
+  source,
+  credit,
 }: {
   problems: CatalogueItem[];
+  /** The area's source (BOOLDER by default) and, for a team topo, its credit. */
+  source?: string;
+  credit?: string | null;
   pending: boolean;
   onPick: (p: CatalogueItem) => void;
   onCancel?: () => void;
@@ -429,7 +448,7 @@ export function BoolderProblemPicker({
         <button type="button" onClick={onNotInTopo} className="inline-flex min-h-11 items-center text-sm text-accent underline-offset-2 hover:underline">
           {t.outdoor.notInTopo}
         </button>
-        <BoolderAttribution />
+        <TopoAttribution source={source} credit={credit} />
       </div>
     </section>
   );

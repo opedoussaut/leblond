@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GymPicker } from "@/components/climbing/gym-picker";
-import { OutdoorPicker, type AreaItem } from "@/components/climbing/outdoor";
+import { OutdoorPicker, type AreaItem, type OutdoorSite } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -23,7 +23,7 @@ export function StartSession({
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
   areas: AreaItem[];
-  sites: Tables<"gyms">[];
+  sites: OutdoorSite[];
   initialTab: "gym" | "outdoor" | "past";
 }) {
   const { t, locale } = useI18n();

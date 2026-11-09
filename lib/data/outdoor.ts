@@ -3,7 +3,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import type { ServerSupabase } from "@/lib/supabase/server";
 
 export const OUTDOOR_AREA_COLUMNS =
-  "id, gym_id, name, cluster_name, tags, warning_fr, warning_en, problems_count, priority" as const;
+  "id, gym_id, name, cluster_name, tags, warning_fr, warning_en, problems_count, priority, source, credit" as const;
 export const OUTDOOR_PROBLEM_COLUMNS =
   "id, name, name_searchable, grade, circuit_color, circuit_number, steepness, sit_start, popularity, parent_id, bleau_info_id" as const;
 
@@ -17,6 +17,9 @@ export interface OutdoorAreaItem {
   warning_en: string | null;
   problems_count: number;
   priority: number;
+  /** BOOLDER (Fontainebleau catalogue) or LEBLOND (a topo made by the beta team). */
+  source: string;
+  credit: string | null;
 }
 
 export interface OutdoorProblemItem {
@@ -33,16 +36,26 @@ export interface OutdoorProblemItem {
   bleau_info_id: string | null;
 }
 
-/** Outdoor sites added by migration: no topo, the climber logs by grade. */
+/** Outdoor sites added by migration (the climber logs by grade, or picks from a team topo). */
 export const OUTDOOR_SITE_PROVIDER = "LEBLOND";
+/** Topos made by the beta team (Google My Maps imports) share the catalogue tables with Boolder. */
+export const TEAM_TOPO_SOURCE = "LEBLOND";
+export const BOOLDER_SOURCE = "BOOLDER";
 
-/** Crags without a topo catalogue: sites added by migration and those added by climbers. */
-export async function listOutdoorSites(supabase: ServerSupabase): Promise<Tables<"gyms">[]> {
-  const { data, error } = await supabase.from("gyms").select("*")
-    .or(`external_provider.eq.${OUTDOOR_SITE_PROVIDER},and(external_provider.is.null,brand.eq.OUTDOOR)`)
-    .eq("active", true).order("name");
+/**
+ * Outdoor sites outside the Boolder catalogue: sites added by migration and those
+ * added by climbers. topo_problems is the size of the team topo, when one was imported.
+ */
+export async function listOutdoorSites(supabase: ServerSupabase): Promise<Array<Tables<"gyms"> & { topo_problems: number | null }>> {
+  const [{ data, error }, { data: topos }] = await Promise.all([
+    supabase.from("gyms").select("*")
+      .or(`external_provider.eq.${OUTDOOR_SITE_PROVIDER},and(external_provider.is.null,brand.eq.OUTDOOR)`)
+      .eq("active", true).order("name"),
+    supabase.from("outdoor_areas").select("gym_id, problems_count").eq("source", TEAM_TOPO_SOURCE),
+  ]);
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const sizes = new Map((topos ?? []).map((a) => [a.gym_id, a.problems_count]));
+  return (data ?? []).map((g) => ({ ...g, topo_problems: sizes.get(g.id) ?? null }));
 }
 
 /** Fontainebleau areas (Boolder catalogue), most prominent first. Empty if never imported. */
@@ -50,6 +63,7 @@ export async function listOutdoorAreas(supabase: ServerSupabase): Promise<Outdoo
   const { data, error } = await supabase
     .from("outdoor_areas")
     .select(OUTDOOR_AREA_COLUMNS)
+    .eq("source", BOOLDER_SOURCE)
     .order("priority")
     .order("name");
   if (error) throw new Error(error.message);
@@ -78,7 +92,7 @@ export async function loadOutdoorAreaForGym(supabase: ServerSupabase, gymId: str
 export async function loadOutdoorProblem(supabase: ServerSupabase, id: number) {
   const { data } = await supabase
     .from("outdoor_problems")
-    .select(`${OUTDOOR_PROBLEM_COLUMNS}, area_id, outdoor_areas(name)`)
+    .select(`${OUTDOOR_PROBLEM_COLUMNS}, area_id, source, outdoor_areas(name, credit)`)
     .eq("id", id)
     .maybeSingle();
   return data;
@@ -88,8 +102,20 @@ export async function latestOutdoorImport(supabase: ServerSupabase) {
   const { data } = await supabase
     .from("outdoor_data_imports")
     .select("imported_at, source_version, areas, problems")
+    .eq("source", BOOLDER_SOURCE)
     .order("imported_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   return data;
+}
+
+/** Team topos already imported (Beta administration): one per site. */
+export async function listTeamTopos(supabase: ServerSupabase) {
+  const { data, error } = await supabase
+    .from("outdoor_areas")
+    .select("gym_id, name, credit, problems_count, updated_at")
+    .eq("source", TEAM_TOPO_SOURCE)
+    .order("name");
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
