@@ -24,3 +24,5 @@ The admin can manage the whitelist and see aggregate counts (account created, Pa
 ## Personal data
 
 Height/weight optional. Wearable data is shown as personal context, never as medical data. Demo/seed data is synthetic (`@leblond.local`).
+
+Third-party requests from the browser: the boulder map loads OpenStreetMap tiles from `tile.openstreetmap.org` only after the climber opens a map. The OpenStreetMap Foundation then sees the climber's IP address and the area shown, and the request carries the app's origin as Referer, never a path or user data. Nothing is sent before that action. See [integrations.md](integrations.md#boulder-map--openstreetmap-componentsclimbingtopo-maptsx).
