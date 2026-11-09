@@ -593,7 +593,7 @@ function SwatchIcon({ swatch, uid }: { swatch: Swatch; uid: string }) {
   </svg>;
 }
 
-export function AtlasDiagramFigure({ spec, locale, uid }: { spec: AtlasDiagram; locale: Locale; uid: string }) {
+export function AtlasDiagramFigure({ spec, locale, uid, title }: { spec: AtlasDiagram; locale: Locale; uid: string; title: string }) {
   const safeUid = uid.replace(/[^a-z0-9-]/gi, "");
   const t = atlasDictionary(locale);
   const ctx: Ctx = { locale, uid: safeUid, t };
@@ -603,7 +603,7 @@ export function AtlasDiagramFigure({ spec, locale, uid }: { spec: AtlasDiagram; 
   return <figure className="leblond-premium-surface p-4 sm:p-5" aria-labelledby={titleId}>
     <h2 id={titleId} className="text-lg font-extrabold">{t.diagram}</h2>
     <div className="mx-auto mt-4 max-w-[560px] text-ink">
-      <svg viewBox={`0 0 ${W} ${drawing.height}`} role="img" aria-labelledby={titleId} aria-describedby={descId}
+      <svg viewBox={`0 0 ${W} ${drawing.height}`} role="img" aria-label={t.diagramFor.replace("{title}", title)} aria-describedby={descId}
         className="h-auto w-full overflow-visible" style={{ fontFamily: "inherit" }}>
         <Defs uid={safeUid}/>
         {drawing.body}

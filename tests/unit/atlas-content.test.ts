@@ -236,8 +236,9 @@ describe("atlas diagram rendering", () => {
   it("renders every diagram in both languages with accessible text and theme colours only", () => {
     for (const [id, detail] of Object.entries(ATLAS_DETAILS)) {
       for (const locale of LOCALES) {
-        const html = renderToStaticMarkup(createElement(AtlasDiagramFigure, { spec: detail.diagram, locale, uid: id }));
+        const html = renderToStaticMarkup(createElement(AtlasDiagramFigure, { spec: detail.diagram, locale, uid: id, title: id }));
         expect(html, id).toContain('role="img"');
+        expect(html, id).toContain(escapeHtml(atlasDictionary(locale).diagramFor.replace("{title}", id)));
         expect(html, id).toContain("aria-describedby");
         expect(html, id).not.toMatch(/NaN|undefined|Infinity/);
         expect(html, id + " hard-coded colour").not.toMatch(/(fill|stroke)="#|(fill|stroke)="(rgb|hsl)/);

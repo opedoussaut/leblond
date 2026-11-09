@@ -65,7 +65,7 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
 
     {entry.caution ? <p className="rounded-xl border border-warn p-4 text-sm text-ink-2">{entry.caution[locale]}</p> : null}
 
-    <AtlasDiagramFigure spec={info.diagram} locale={locale} uid={entry.id}/>
+    <AtlasDiagramFigure spec={info.diagram} locale={locale} uid={entry.id} title={entry.title}/>
 
     <Card id="atlas-protocol" title={a.protocol}>
       <table className="mt-3 w-full border-collapse text-sm">

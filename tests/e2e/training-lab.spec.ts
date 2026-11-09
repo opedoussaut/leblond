@@ -71,7 +71,10 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await expect(page).toHaveURL(/\/atlas\/max-hangs/);
   await expect(page.getByRole("heading", { name: "Max hangs", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Comment pratiquer" })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Schéma de prise et de suspension/ })).toBeVisible();
+  // Method-specific diagram, drawn from the protocol's own numbers (5 sets of 10 s, 3 min apart).
+  const diagram = page.getByRole("img", { name: "Schéma du protocole : Max hangs" });
+  await expect(diagram).toBeVisible();
+  await expect(diagram).toHaveAccessibleDescription(/Séries\s*:?\s*5[\s\S]*10 s[\s\S]*3 min/);
   await page.getByRole("link", { name: /Planifier dans mon calendrier/ }).click();
   await expect(page).toHaveURL(/\/calendar\?method=max-hangs/);
   await expect(page.getByLabel("Méthode de l’Atlas (facultatif)")).toHaveValue("max-hangs");
