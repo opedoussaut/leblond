@@ -426,22 +426,40 @@ const removeSchema = z.object({ sessionId: id, problemId: id }).strict();
  * tries in another session, not an active project) the boulder is deleted
  * too, with its photos and videos.
  */
-export async function removeProblemFromSession(input: unknown): Promise<ActionResult<{ problemDeleted: boolean }>> {
-  const viewer = await requireViewer();
+export async function removeProblemFromSession(input: unknown): Promise<ActionResult<{ problemDeleted: boolean; projectDeleted: boolean }>> {
   const parsed = removeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { sessionId, problemId } = parsed.data;
+  const res = await removeProblemsFromSession({ sessionId: parsed.data.sessionId, problemIds: [parsed.data.problemId] });
+  if (!res.ok || !res.data) return { ok: false, error: res.ok ? "unknownError" : res.error };
+  const pid = parsed.data.problemId;
+  return { ok: true, data: { problemDeleted: res.data.problemsDeleted.includes(pid), projectDeleted: res.data.projectsDeleted.includes(pid) } };
+}
+
+const removeManySchema = z.object({ sessionId: id, problemIds: z.array(id).min(1).max(200) }).strict();
+
+/**
+ * Takes several boulders out of a session in one transaction (all or nothing).
+ * Same rules as one at a time; returns which boulders and projects were deleted.
+ */
+export async function removeProblemsFromSession(
+  input: unknown,
+): Promise<ActionResult<{ removed: number; problemsDeleted: string[]; projectsDeleted: string[] }>> {
+  const viewer = await requireViewer();
+  const parsed = removeManySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { sessionId, problemIds } = parsed.data;
   // Read first: the media rows go with the boulder (on delete cascade), the stored files do not.
-  const { data: media } = await viewer.supabase.from("media").select("storage_path, thumbnail_path").eq("problem_id", problemId);
-  const { data, error } = await viewer.supabase.rpc("remove_problem_from_session", { p_session_id: sessionId, p_problem_id: problemId });
+  const { data: media } = await viewer.supabase.from("media").select("problem_id, storage_path, thumbnail_path").in("problem_id", problemIds);
+  const { data, error } = await viewer.supabase.rpc("remove_problems_from_session", { p_session_id: sessionId, p_problem_ids: problemIds });
   if (error) return { ok: false, error: error.code === "P0002" ? "notFound" : "unknownError" };
-  const problemDeleted = (data as { problem_deleted?: boolean } | null)?.problem_deleted === true;
-  if (problemDeleted && media?.length) {
-    const paths = media.flatMap((m) => [m.storage_path, m.thumbnail_path]).filter((p): p is string => Boolean(p));
-    await viewer.supabase.storage.from("media").remove(paths);
-  }
+  const r = (data ?? {}) as { removed?: number; problems_deleted?: string[]; projects_deleted?: string[] };
+  const problemsDeleted = r.problems_deleted ?? [];
+  const gone = new Set(problemsDeleted);
+  const paths = (media ?? []).filter((m) => m.problem_id && gone.has(m.problem_id))
+    .flatMap((m) => [m.storage_path, m.thumbnail_path]).filter((p): p is string => Boolean(p));
+  if (paths.length) await viewer.supabase.storage.from("media").remove(paths);
   revalidatePath("/", "layout");
-  return { ok: true, data: { problemDeleted } };
+  return { ok: true, data: { removed: r.removed ?? 0, problemsDeleted, projectsDeleted: r.projects_deleted ?? [] } };
 }
 
 /** Remove the most recent attempt on a problem (undo). Older attempts are kept to preserve history. */

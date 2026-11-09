@@ -14,6 +14,7 @@ import { MediaUploader } from "@/components/climbing/media-uploader";
 import {
   BoolderProblemPicker,
   CircuitBadge,
+  CircuitTag,
   areaWarning,
   type AreaItem,
   type CatalogueItem,
@@ -30,6 +31,7 @@ import {
   endSession,
   logAttempt,
   removeProblemFromSession,
+  removeProblemsFromSession,
   updateProblem,
 } from "@/lib/actions/sessions";
 import { logTopoBoulder, pickOutdoorProblem } from "@/lib/actions/outdoor";
@@ -129,6 +131,10 @@ export function LiveSession({
   const [picked, setPicked] = useState<CatalogueItem | null>(null);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  // Several boulders taken out at once.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [confirmMany, setConfirmMany] = useState(false);
   const L = loggingDictionary(locale);
 
   useEffect(() => {
@@ -159,6 +165,25 @@ export function LiveSession({
     for (const a of sessionAttempts) lastTouch.set(a.problem_id, Math.max(lastTouch.get(a.problem_id) ?? 0, new Date(a.created_at).getTime()));
     return [...problems].sort((a, b) => (lastTouch.get(b.id) ?? 0) - (lastTouch.get(a.id) ?? 0));
   }, [problems, sessionAttempts]);
+
+  // What this session holds, apart from the projects opened elsewhere and not tried here yet.
+  const touchedHere = useMemo(() => new Set(sessionAttempts.map((a) => a.problem_id)), [sessionAttempts]);
+  const inSession = useMemo(
+    () => ordered.filter((p) => touchedHere.has(p.id) || !projectIds.includes(p.id) || openedHere.includes(p.id)),
+    [ordered, touchedHere, projectIds, openedHere],
+  );
+  const otherProjects = useMemo(() => ordered.filter((p) => !inSession.includes(p)), [ordered, inSession]);
+  /** Topo boulders already in this session → tries logged here (marked in the topo list). */
+  const inSessionTopo = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of inSession) if (p.outdoor_problem_id != null) m.set(p.outdoor_problem_id, sessionAttempts.filter((a) => a.problem_id === p.id).length);
+    return m;
+  }, [inSession, sessionAttempts]);
+  const tagOf = (p: LiveProblemItem) => {
+    if (!gym.outdoor) return null;
+    const item = p.outdoor_problem_id != null ? catalogue.get(p.outdoor_problem_id) : undefined;
+    return <CircuitTag color={item?.circuit_color ?? null} number={item?.circuit_number ?? null} inTopo={item !== undefined} />;
+  };
 
   // Outdoor boulder outside the topo: optional name and sector, typed before the grade (the sector is kept for the next one).
   const [manual, setManual] = useState({ name: "", sector: "" });
@@ -368,26 +393,54 @@ export function LiveSession({
     });
   }
 
+  /** Mirrors the database after boulders were taken out of this session. */
+  function applyRemoval(ids: string[], problemsDeleted: string[], projectsDeleted: string[]) {
+    const out = new Set(ids);
+    // Same renumbering as the database: the remaining tries count from 1 again.
+    setAttempts((list) => {
+      const rest = list.filter((a) => !(out.has(a.problem_id) && a.session_id === sessionId));
+      const numbers = new Map<string, number>();
+      for (const pid of out) {
+        rest.filter((a) => a.problem_id === pid).sort((a, b) => a.attempt_number - b.attempt_number)
+          .forEach((a, i) => numbers.set(a.id, i + 1));
+      }
+      return rest.map((a) => (numbers.has(a.id) ? { ...a, attempt_number: numbers.get(a.id)! } : a));
+    });
+    const projectGone = new Set(projectsDeleted);
+    const stillProject = (pid: string) => projectIds.includes(pid) && !projectGone.has(pid);
+    setProblems((list) => list.filter((p) => !problemsDeleted.includes(p.id) && !(out.has(p.id) && !stillProject(p.id))));
+    setProjectIds((list) => list.filter((pid) => !projectGone.has(pid) && !problemsDeleted.includes(pid)));
+    setOpenedHere((list) => list.filter((pid) => !projectGone.has(pid) && !problemsDeleted.includes(pid)));
+    if (currentId && out.has(currentId)) setCurrentId(null);
+    setFlashPrompt(null);
+  }
+
   /** Takes the current boulder out of this session (logged by mistake). */
   function removeCurrent() {
     if (!current) return;
     const problemId = current.id;
-    const keep = projectIds.includes(problemId);
     start(async () => {
       const res = await removeProblemFromSession({ sessionId, problemId });
       if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      // Same renumbering as the database: the remaining tries count from 1 again.
-      setAttempts((list) => {
-        const rest = list.filter((a) => !(a.problem_id === problemId && a.session_id === sessionId));
-        const order = rest.filter((a) => a.problem_id === problemId).sort((a, b) => a.attempt_number - b.attempt_number);
-        const numbers = new Map(order.map((a, i) => [a.id, i + 1]));
-        return rest.map((a) => (numbers.has(a.id) ? { ...a, attempt_number: numbers.get(a.id)! } : a));
-      });
-      if (!keep) setProblems((list) => list.filter((p) => p.id !== problemId));
-      setCurrentId(null);
+      const { problemDeleted, projectDeleted } = res.data;
+      applyRemoval([problemId], problemDeleted ? [problemId] : [], projectDeleted ? [problemId] : []);
       setConfirmRemoveId(null);
-      setFlashPrompt(null);
-      say("ok", res.data.problemDeleted ? L.removedDeleted : L.removed);
+      say("ok", projectDeleted ? L.removedWithProject : problemDeleted ? L.removedDeleted : L.removed);
+    });
+  }
+
+  /** Takes the selected boulders out of this session, all or nothing. */
+  function removeSelected() {
+    const ids = selected.filter((pid) => inSession.some((p) => p.id === pid));
+    if (!ids.length) return;
+    start(async () => {
+      const res = await removeProblemsFromSession({ sessionId, problemIds: ids });
+      if (!res.ok || !res.data) return say("error", t.common.unknownError);
+      applyRemoval(ids, res.data.problemsDeleted, res.data.projectsDeleted);
+      setSelected([]);
+      setSelecting(false);
+      setConfirmMany(false);
+      say("ok", fmt(plural(locale, ids.length, { one: L.removedManyOne, other: L.removedManyOther }), { n: ids.length }));
     });
   }
 
@@ -411,6 +464,36 @@ export function LiveSession({
       if (!res.ok) return say("error", t.common.unknownError);
       router.refresh();
     });
+  }
+
+  function openProblem(problemId: string) {
+    setCurrentId(problemId);
+    setAdding(false);
+    setPicked(null);
+    setLastAdded(null);
+  }
+
+  /** One boulder in the lists: grade, circuit (outdoor), name, this session's tries and badges. */
+  function problemRow(p: LiveProblemItem) {
+    const pa = sessionAttempts.filter((a) => a.problem_id === p.id);
+    const sent = pa.find((a) => isSend(a.result));
+    const flashed = pa.some((a) => a.result === "FLASH");
+    return <>
+      <span className={cn("shrink-0", gym.outdoor ? "w-12" : "w-32")}>
+        <GradeChip t={t} system={p.native_grade_system ?? gym.system} grade={p.native_grade} size="sm" showFont />
+      </span>
+      {gym.outdoor ? (
+        <span className="flex min-w-0 items-center gap-2">
+          {tagOf(p)}
+          {p.name ? <span className="truncate text-sm">{p.name}</span> : null}
+        </span>
+      ) : null}
+      <AttemptDots attempts={pa} />
+      <span className="ml-auto text-xs font-bold uppercase tracking-[0.12em]">
+        {sent ? <ResultBadge tone={flashed ? "flash" : "top"} label={t.results[flashed ? "FLASH" : "TOP"]} /> : null}
+        {projectIds.includes(p.id) ? <ResultBadge tone="project" label={projectLabel(p.id)} className="ml-1" /> : null}
+      </span>
+    </>;
   }
 
   const currentAttempts = current ? attempts.filter((a) => a.problem_id === current.id) : [];
@@ -465,8 +548,11 @@ export function LiveSession({
           </div>
           {current.outdoor_problem_id != null ? (
             <TopoLine item={catalogue.get(current.outdoor_problem_id)} fallbackName={current.name} />
-          ) : current.name ? (
-            <p className="mt-1 truncate text-sm font-semibold">{current.name}</p>
+          ) : current.name || gym.outdoor ? (
+            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
+              {tagOf(current)}
+              {current.name ? <span className="truncate font-semibold">{current.name}</span> : null}
+            </p>
           ) : null}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <Button size="xl" variant="secondary" onClick={() => log("ATTEMPT")} aria-label={t.results.ATTEMPT}>
@@ -544,11 +630,13 @@ export function LiveSession({
                 {currentSessionAttempts.length === 0
                   ? L.removeNoTries
                   : plural(locale, currentSessionAttempts.length, { one: L.removeTriesOne, other: L.removeTriesOther })}{" "}
-                {projectIds.includes(current.id)
-                  ? L.removeKeepsProject
-                  : currentAttempts.length > currentSessionAttempts.length
-                    ? L.removeKeepsOthers
-                    : L.removeDeletes}
+                {currentAttempts.length > currentSessionAttempts.length
+                  ? L.removeKeepsOthers
+                  : openedHere.includes(current.id)
+                    ? L.removeDeletesProject
+                    : projectIds.includes(current.id)
+                      ? L.removeKeepsProject
+                      : L.removeDeletes}
               </p>
               <div className="flex gap-2">
                 <Button variant="danger" onClick={removeCurrent} disabled={pending}>
@@ -615,6 +703,7 @@ export function LiveSession({
             credit={outdoor.area.credit}
             pending={pending}
             onPick={pickFromTopo}
+            inSession={inSessionTopo}
             onCancel={problems.length ? () => { setAdding(false); setLastAdded(null); } : undefined}
             onNotInTopo={() => setGradeFallback(true)}
           />
@@ -653,50 +742,59 @@ export function LiveSession({
         </Button>
       )}
 
-      {ordered.length > 0 ? (
-        <section className="space-y-2">
-          <SectionTitle>{t.session.recent}</SectionTitle>
+      {inSession.length > 0 ? (
+        <section className="space-y-2" aria-labelledby="in-session-title">
+          <div className="flex items-center justify-between gap-2">
+            <SectionTitle><span id="in-session-title">{L.inSessionTitle} · {inSession.length}</span></SectionTitle>
+            <button type="button" aria-pressed={selecting}
+              onClick={() => { setSelecting((on) => !on); setSelected([]); setConfirmMany(false); }}
+              className="min-h-11 rounded-full px-3 text-sm font-bold text-accent underline underline-offset-2">
+              {selecting ? L.selectDone : L.select}
+            </button>
+          </div>
+          {selecting ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2 p-2 text-sm">
+              <span className="font-semibold" aria-live="polite">
+                {fmt(plural(locale, selected.length, { one: L.selectedOne, other: L.selectedOther }), { n: selected.length })}
+              </span>
+              <button type="button" onClick={() => setSelected(inSession.map((p) => p.id))}
+                className="min-h-11 px-2 font-bold text-accent underline underline-offset-2">{L.selectAll}</button>
+              <Button variant="danger" className="ml-auto" disabled={pending || selected.length === 0} onClick={() => setConfirmMany(true)}>
+                {fmt(L.removeSelected, { n: selected.length })}
+              </Button>
+            </div>
+          ) : null}
+          {selecting && confirmMany ? (
+            <div role="alertdialog" aria-labelledby="remove-many-title" className="space-y-2 rounded-xl border border-danger p-3">
+              <p id="remove-many-title" className="text-sm font-semibold">
+                {fmt(plural(locale, selected.length, { one: L.removeManyOne, other: L.removeManyOther }), { n: selected.length })}
+              </p>
+              <p className="text-sm text-ink-2">{L.removeManyBody}</p>
+              <div className="flex gap-2">
+                <Button variant="danger" onClick={removeSelected} disabled={pending}>{L.removeConfirm}</Button>
+                <Button variant="ghost" onClick={() => setConfirmMany(false)}>{t.common.cancel}</Button>
+              </div>
+            </div>
+          ) : null}
           <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
-            {ordered.map((p) => {
-              const pa = attempts.filter((a) => a.problem_id === p.id && a.session_id === sessionId);
-              const sent = pa.find((a) => isSend(a.result));
+            {inSession.map((p) => {
+              const content = problemRow(p);
+              const isOn = selected.includes(p.id);
               return (
                 <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentId(p.id);
-                      setAdding(false);
-                      setPicked(null);
-                      setLastAdded(null);
-                    }}
-                    aria-current={p.id === currentId ? "true" : undefined}
-                    className={cn(
-                      "flex min-h-14 w-full items-center gap-3 px-4 text-left",
-                      p.id === currentId && "bg-surface-2",
-                    )}
-                  >
-                    <span className={cn("shrink-0", outdoor ? "w-12" : "w-32")}>
-                      <GradeChip t={t} system={p.native_grade_system ?? gym.system} grade={p.native_grade} size="sm" showFont />
-                    </span>
-                    {outdoor ? (
-                      <span className="flex min-w-0 items-center gap-2">
-                        {p.outdoor_problem_id != null ? (
-                          <CircuitBadge
-                            color={catalogue.get(p.outdoor_problem_id)?.circuit_color ?? null}
-                            number={catalogue.get(p.outdoor_problem_id)?.circuit_number ?? null}
-                          />
-                        ) : null}
-                        <span className="truncate text-sm">{p.name}</span>
-                      </span>
-                    ) : null}
-                    <AttemptDots attempts={pa} />
-                    <span className="ml-auto text-xs font-bold uppercase tracking-[0.12em]">
-                      {sent ? <ResultBadge tone={pa.some((a) => a.result === "FLASH") ? "flash" : "top"}
-                        label={t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"]} /> : null}
-                      {projectIds.includes(p.id) ? <ResultBadge tone="project" label={projectLabel(p.id)} className="ml-1" /> : null}
-                    </span>
-                  </button>
+                  {selecting ? (
+                    <label className={cn("flex min-h-14 w-full cursor-pointer items-center gap-3 px-4", isOn && "bg-surface-2")}>
+                      <input type="checkbox" checked={isOn} className="h-5 w-5 shrink-0 accent-accent"
+                        onChange={() => setSelected((list) => (list.includes(p.id) ? list.filter((x) => x !== p.id) : [...list, p.id]))} />
+                      {content}
+                    </label>
+                  ) : (
+                    <button type="button" onClick={() => openProblem(p.id)}
+                      aria-current={p.id === currentId ? "true" : undefined}
+                      className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left", p.id === currentId && "bg-surface-2")}>
+                      {content}
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -705,6 +803,23 @@ export function LiveSession({
       ) : (
         <p className="text-sm text-ink-2">{t.session.emptyLive}</p>
       )}
+
+      {otherProjects.length > 0 && !selecting ? (
+        <section className="space-y-2" aria-labelledby="other-projects-title">
+          <SectionTitle><span id="other-projects-title">★ {L.otherProjectsTitle}</span></SectionTitle>
+          <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
+            {otherProjects.map((p) => (
+              <li key={p.id}>
+                <button type="button" onClick={() => openProblem(p.id)}
+                  aria-current={p.id === currentId ? "true" : undefined}
+                  className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left", p.id === currentId && "bg-surface-2")}>
+                  {problemRow(p)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {mode === "live" ? <div className="pt-4">
         {confirmEnd ? (
@@ -870,10 +985,15 @@ function TopoQuickAdd({
 
 function TopoLine({ item, fallbackName }: { item: CatalogueItem | undefined; fallbackName: string | null }) {
   const { t } = useI18n();
-  if (!item) return fallbackName ? <p className="mt-1 truncate text-sm font-semibold">{fallbackName}</p> : null;
+  if (!item) return (
+    <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
+      <CircuitTag color={null} number={null} inTopo={false} />
+      {fallbackName ? <span className="truncate font-semibold">{fallbackName}</span> : null}
+    </p>
+  );
   return (
     <p className="mt-2 flex min-w-0 items-center gap-2 text-sm">
-      <CircuitBadge color={item.circuit_color} number={item.circuit_number} />
+      <CircuitTag color={item.circuit_color} number={item.circuit_number} inTopo />
       <span className="truncate font-semibold">{item.name}</span>
       <span className="shrink-0 text-xs text-ink-3">
         {(t.outdoor.steepness as Record<string, string>)[item.steepness] ?? item.steepness}

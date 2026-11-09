@@ -15,6 +15,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import type { StyleTag } from "@/lib/climbing/types";
+import { CircuitTag } from "@/components/climbing/outdoor";
 import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
@@ -72,6 +73,18 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
     .filter((a) => overlapsSession({ startedAt: new Date(a.started_at), durationSeconds: a.duration_seconds }, sessionWindow))
     .map((a) => ({ id: a.id, startedAt: a.started_at, durationSeconds: a.duration_seconds, device: a.device_name }));
   const sessionProblemIds = new Set(view.attempts.filter((a) => a.session_id === view.session.id).map((a) => a.problem_id));
+  // Outdoor: each boulder's circuit (or off-circuit / not in the topo).
+  const outdoorIds = view.gym.brand === "OUTDOOR"
+    ? [...new Set(view.problems.map((p) => p.outdoor_problem_id).filter((x): x is number => x != null))] : [];
+  const { data: circuits } = outdoorIds.length
+    ? await viewer.supabase.from("outdoor_problems").select("id, circuit_color, circuit_number").in("id", outdoorIds)
+    : { data: [] as Array<{ id: number; circuit_color: string | null; circuit_number: string | null }> };
+  const circuitOf = new Map((circuits ?? []).map((c) => [c.id, c]));
+  const tagFor = (p: View["problems"][number]) => {
+    if (view.gym.brand !== "OUTDOOR") return null;
+    const c = p.outdoor_problem_id != null ? circuitOf.get(p.outdoor_problem_id) : undefined;
+    return <CircuitTag color={c?.circuit_color ?? null} number={c?.circuit_number ?? null} inTopo={c !== undefined} />;
+  };
   const rows: Array<[string, React.ReactNode]> = [];
   if (summary.highestSent.length) rows.push([t.session.highestSend, <HighestRow key="hs" t={t} items={summary.highestSent} />]);
   if (summary.highestFlashed.length)
@@ -133,7 +146,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
 
       {sessionProblemIds.size ? (
         <section className="space-y-2">
-          <SectionTitle>{t.session.recent}</SectionTitle>
+          <SectionTitle>{L.inSessionTitle} · {sessionProblemIds.size}</SectionTitle>
           <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
             {view.problems
               .filter((p) => sessionProblemIds.has(p.id))
@@ -144,6 +157,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
                   <li key={p.id}>
                     <Link href={`/problem/${p.id}`} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 hover:bg-surface-2">
                       <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" showFont />
+                      {tagFor(p)}
                       {p.name ? <span className="min-w-0 truncate text-sm font-semibold">{p.name}</span> : null}
                       <span className="shrink-0 text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
                       <span className="ml-auto flex gap-1">
@@ -168,6 +182,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
               <li key={projectId}>
                 <Link href={`/projects/${projectId}`} className="flex min-h-12 items-center gap-3 px-4 py-2 hover:bg-surface-2">
                   <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" showFont />
+                  {tagFor(p)}
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{p.name || t.problem.unnamed}</span>
                   <span className="shrink-0 text-xs font-bold text-ink-3">{here ? L.projectOpenedHere : L.projectTriedHere} ›</span>
                 </Link>

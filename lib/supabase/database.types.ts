@@ -1863,6 +1863,10 @@ export type Database = {
         Args: { p_session_id: string; p_problem_id: string };
         Returns: Json;
       };
+      remove_problems_from_session: {
+        Args: { p_session_id: string; p_problem_ids: string[] };
+        Returns: Json;
+      };
       log_problem_tries: {
         Args: { p_session_id: string; p_problem_id: string; p_tries: number; p_outcome: string };
         Returns: {
