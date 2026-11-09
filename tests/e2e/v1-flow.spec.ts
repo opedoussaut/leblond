@@ -242,23 +242,21 @@ test("connections: truthful statuses, FIT import, link to session", async ({ pag
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Activité importée.")).toBeVisible();
   await page.getByRole("button", { name: "Associer à une séance" }).first().click();
-  const linkedNote = page.getByText(/Associée\. Ouvre la séance pour comparer/);
+  const linkedNote = page.getByText("Associée : la séance a pris les horaires de la montre.");
   await expect(linkedNote).toBeVisible();
 
   // Re-importing the same file is detected as a duplicate.
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByText("Cette activité semble déjà importée.")).toBeVisible();
 
-  // On the session: imported file marked as such, times still the typed ones until confirmed.
+  // On the session: imported file marked as such; the watch's times replaced the typed ones,
+  // with nothing to compare or confirm.
   await page.goto("/session");
   await page.getByRole("link", { name: /Demo Climbing District/ }).first().click();
   await expect(page.getByText("Fichier FIT importé")).toBeVisible();
-  await expect(page.getByText("Horaires saisis à la main")).toBeVisible();
-  const table = page.getByRole("definition").filter({ hasText: "→" });
-  await expect(table).toHaveCount(2);
-  page.once("dialog", (d) => void d.accept());
-  await page.getByRole("button", { name: "Reprendre les horaires de la montre" }).click();
   await expect(page.getByText("Horaires repris de la montre")).toBeVisible();
+  await expect(page.getByText("Horaires corrigés à la main")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Revenir aux horaires de la montre" })).toHaveCount(0);
 });
 
 test("Patrick analyses the persisted session (with wearable context), streamed", async ({ page }) => {
@@ -499,6 +497,8 @@ const TEAM_TOPO_KML = `<?xml version="1.0" encoding="UTF-8"?>
 </Document></kml>`;
 
 test("a team topo from Google My Maps: imported in Beta administration, picked in a session", async ({ page }) => {
+  // The map's OpenStreetMap tiles are never fetched from CI.
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.abort());
   await signIn(page, ALEX);
   await page.goto("/settings/admin");
   const form = page.getByRole("form", { name: "Topos de l’équipe" });
@@ -526,7 +526,12 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(picker.getByText("Topo : © Boolder")).toHaveCount(0);
   await picker.getByRole("button", { name: "orange", exact: true }).click();
   await picker.getByLabel("Nom ou numéro de circuit").fill("2");
-  await picker.getByRole("button", { name: /Dalle E2E/ }).click();
+  // Map view: tap the boulder's pin, then choose it.
+  await picker.getByRole("button", { name: "Carte", exact: true }).click();
+  const map = picker.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" });
+  await expect(picker.getByText(/^\d+ blocs sur la carte$/)).toBeVisible();
+  await map.getByRole("button", { name: /Dalle E2E · 4c/ }).click();
+  await picker.getByRole("button", { name: "Choisir ce bloc" }).click();
   const current = page.getByRole("region", { name: "Bloc en cours" });
   await expect(current.getByText("Dalle E2E")).toBeVisible();
   await expect(current.getByText("4c", { exact: true })).toBeVisible();
@@ -540,4 +545,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(page.getByRole("heading", { name: "Dalle E2E" })).toBeVisible();
   await expect(page.getByText("Topo : Topo E2E")).toBeVisible();
   await expect(page.getByRole("link", { name: /Voir sur Boolder/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Ouvrir dans OpenStreetMap/ })).toHaveAttribute("href", /openstreetmap\.org\/\?mlat=/);
+  await page.getByRole("button", { name: "Voir sur la carte" }).click();
+  await expect(page.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" }).getByRole("button", { name: /Dalle E2E/ })).toBeVisible();
 });

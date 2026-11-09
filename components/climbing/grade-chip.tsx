@@ -34,7 +34,9 @@ export function GradeChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-bold tracking-[0.12em]",
+        // align-middle: an inline chip whose first child is the (empty) swatch would
+        // otherwise sit on the swatch's baseline, a few pixels above the text around it.
+        "inline-flex items-center gap-1.5 align-middle font-bold leading-none tracking-[0.12em]",
         // Font grades are case-sensitive (4b ≠ 4B-style notation): never upper-case them.
         system !== "FONT" && system !== "BLOCKOUT_LEVEL" && "uppercase",
         text,

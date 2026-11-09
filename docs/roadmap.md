@@ -11,6 +11,7 @@ Status as of November 2026. "Delivered" means live on https://leblond.vercel.app
 - **Outdoor**
   - Fontainebleau topo from Boolder open data (CC BY 4.0, attributed): searchable areas and problems, picked while logging, links to Boolder and bleau.info.
   - Team topos drawn in Google My Maps (e.g. Dampierre Maincourt), uploaded by the admin, picked while logging like Boolder's, re-importable without losing climbers' links.
+  - Boulder map on OpenStreetMap: a Liste / Carte switch in the boulder picker (tap a pin to log it) and a map on each catalogue boulder, loaded only when asked for.
   - Crags without a topo, added by climbers and shared with the other testers, with a link to their source page.
   - Problems and route lines logged outside a topo, then completed afterwards: name, grade, sector, notes, beta, topo reference and link, photos and videos.
   - Topo references are citations; guidebook diagrams and photos are never copied.

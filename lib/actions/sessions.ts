@@ -104,7 +104,8 @@ export async function rescheduleSession(input: unknown): Promise<ActionResult> {
 export async function endSession(sessionId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!id.safeParse(sessionId).success) return { ok: false, error: "invalid" };
-  const { data: s } = await viewer.supabase.from("sessions").select("started_at, ended_at").eq("id", sessionId).single();
+  const { data: s } = await viewer.supabase
+    .from("sessions").select("started_at, ended_at, wearable_activity_id").eq("id", sessionId).single();
   if (!s) return { ok: false, error: "notFound" };
   if (s.ended_at) return { ok: true };
   const end = new Date();
@@ -114,6 +115,9 @@ export async function endSession(sessionId: string): Promise<ActionResult> {
     .update({ ended_at: end.toISOString(), duration_minutes: Math.min(minutes, 1440) })
     .eq("id", sessionId);
   if (error) return { ok: false, error: "unknownError" };
+  // The watch wins: a watch activity linked during the session gives it its times.
+  // Without usable watch timing, the clock times above stay (the call fails quietly).
+  if (s.wearable_activity_id) await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
   revalidatePath("/", "layout");
   return { ok: true };
 }

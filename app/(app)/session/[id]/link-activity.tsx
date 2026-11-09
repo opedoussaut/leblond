@@ -8,7 +8,8 @@ import { Notice } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
 import { applyActivityTiming, linkActivityToSession } from "@/lib/actions/wearables";
 import { formatDate, formatDuration } from "@/lib/format";
-import { compareTiming, type TimingComparison, type TimingSide } from "@/lib/integrations/wearables/timing";
+import { fmt } from "@/lib/i18n";
+import { compareTiming, type TimingComparison } from "@/lib/integrations/wearables/timing";
 
 type SessionTiming = { startedAt: string; endedAt: string | null; durationMinutes: number | null };
 type ActivityTimingInput = { startedAt: string; durationSeconds: number };
@@ -21,31 +22,23 @@ function useErrorText() {
         : code === "invalidDate" ? t.session.timingFuture : t.common.unknownError;
 }
 
-/** Watch vs session, side by side, in the climber's time zone (Europe/Paris). */
-function TimingTable({ cmp }: { cmp: TimingComparison }) {
-  const { t, locale } = useI18n();
-  const line = (s: TimingSide) =>
-    `${formatDate(`${s.date}T12:00:00Z`, locale, { weekday: "short", day: "numeric", month: "short" })} · ${s.start}${s.end ? ` → ${s.end}` : ""} · ${formatDuration(s.minutes)}`;
-  return (
-    <dl aria-label={t.session.timingTitle} className="divide-y divide-line rounded-xl border border-line bg-surface-2 px-3 text-sm">
-      {([[t.session.timingWatch, cmp.activity], [t.session.timingSession, cmp.session]] as const).map(([label, side]) => (
-        <div key={label} className="flex flex-wrap justify-between gap-x-3 py-2">
-          <dt className="font-semibold text-ink-2">{label}</dt>
-          <dd className="font-semibold tabular-nums">{line(side)}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+/** "sam. 7 nov. · 10:34 → 14:19 · 3h45": the watch's times, in the climber's time zone (Europe/Paris). */
+function useWatchLine() {
+  const { locale } = useI18n();
+  return (cmp: TimingComparison) => {
+    const s = cmp.activity;
+    return `${formatDate(`${s.date}T12:00:00Z`, locale, { weekday: "short", day: "numeric", month: "short" })} · ${s.start}${s.end ? ` → ${s.end}` : ""} · ${formatDuration(s.minutes)}`;
+  };
 }
 
 function reasonText(cmp: TimingComparison, t: ReturnType<typeof useI18n>["t"]): string | null {
   if (cmp.reason === "live") return t.session.timingLive;
   if (cmp.reason === "noTiming") return t.session.timingUnusable;
   if (cmp.reason === "future") return t.session.timingFuture;
-  return cmp.differs ? null : t.session.timingSame;
+  return null;
 }
 
-/** Pick an imported activity, compare its times with the session's, then link — with or without its times. */
+/** Pick an imported activity and link it: the session takes the watch's times (the watch wins). */
 export function LinkActivity({ options, sessionId, session }: {
   options: Array<{ id: string; label: string } & ActivityTimingInput>;
   sessionId: string;
@@ -53,18 +46,19 @@ export function LinkActivity({ options, sessionId, session }: {
 }) {
   const { t } = useI18n();
   const errorText = useErrorText();
+  const watchLine = useWatchLine();
   const router = useRouter();
   const [value, setValue] = useState(options[0]?.id ?? "");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const chosen = options.find((o) => o.id === value);
   const cmp = chosen ? compareTiming(chosen, session) : null;
-  const note = cmp ? reasonText(cmp, t) : null;
+  const note = cmp ? (reasonText(cmp, t) ?? (cmp.differs ? fmt(t.session.timingWillApply, { when: watchLine(cmp) }) : null)) : null;
 
-  function link(useActivityTiming: boolean) {
+  function link() {
     setError("");
     start(async () => {
-      const r = await linkActivityToSession(value, sessionId, { useActivityTiming });
+      const r = await linkActivityToSession(value, sessionId);
       if (!r.ok) setError(errorText(r.error));
       router.refresh();
     });
@@ -82,22 +76,17 @@ export function LinkActivity({ options, sessionId, session }: {
           ))}
         </Select>
       </label>
-      {cmp ? <TimingTable cmp={cmp} /> : null}
       {note ? <p className="text-sm text-ink-2">{note}</p> : null}
-      {cmp?.differs && cmp.usable ? (
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button disabled={pending || !value} onClick={() => link(true)}>{t.session.timingUseWatch}</Button>
-          <Button variant="secondary" disabled={pending || !value} onClick={() => link(false)}>{t.session.timingKeep}</Button>
-        </div>
-      ) : (
-        <Button disabled={pending || !value} onClick={() => link(false)}>{t.connections.linkTo}</Button>
-      )}
+      <Button disabled={pending || !value} onClick={link}>{t.connections.linkTo}</Button>
       {error ? <Notice tone="error">{error}</Notice> : null}
     </div>
   );
 }
 
-/** For a linked activity: where the session's times come from, and the option to take the watch's. */
+/**
+ * For a linked activity: the session's times are the watch's. Only when they
+ * were corrected by hand afterwards is there a way back to the watch's.
+ */
 export function ActivityTiming({ sessionId, activity, session, timingSource }: {
   sessionId: string;
   activity: ActivityTimingInput;
@@ -109,22 +98,20 @@ export function ActivityTiming({ sessionId, activity, session, timingSource }: {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
-  if (timingSource === "ACTIVITY") {
+  const cmp = compareTiming(activity, session);
+  if (timingSource === "ACTIVITY" || !cmp.differs) {
     return <p className="mt-3 text-sm font-semibold text-ink-2">⌚ {t.session.timingFromWatch}</p>;
   }
-  const cmp = compareTiming(activity, session);
   const note = reasonText(cmp, t);
   return (
     <div className="mt-3 space-y-2">
       <p className="text-sm font-semibold text-ink-2">✎ {t.session.timingManual}</p>
-      {cmp.differs ? <TimingTable cmp={cmp} /> : null}
-      {note && cmp.differs ? <p className="text-sm text-ink-2">{note}</p> : null}
-      {cmp.differs && cmp.usable ? (
+      {note ? <p className="text-sm text-ink-2">{note}</p> : null}
+      {cmp.usable ? (
         <Button
-          variant="secondary"
+          variant="ghost"
           disabled={pending}
           onClick={() => {
-            if (!window.confirm(t.session.timingConfirm)) return;
             setError("");
             start(async () => {
               const r = await applyActivityTiming(sessionId);

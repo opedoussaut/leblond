@@ -77,7 +77,8 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: resolving "latest" calls the GitHub API, which has been timing out (HTTP 504).
+          version: 3.0.0
       - run: npm ci
       - name: Start local Supabase (Postgres, Auth, Storage, Mailpit)
         run: supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta
