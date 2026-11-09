@@ -3,12 +3,23 @@ import { METHODS_FOR_PLANS } from "./catalogue";
 
 const methodIds = new Set(METHODS_FOR_PLANS.map((method) => method.id));
 
+/** Where a planned session happens. HOME = off-wall training (hangboard, bar, weights, mobility). */
+export const PLAN_PLACES = ["BOULDER_GYM", "ROUTE_GYM", "CRAG", "HOME"] as const;
+export type PlanPlace = (typeof PLAN_PLACES)[number];
+
+/**
+ * One session of the repeating weekly template. `methodId` is an Atlas method,
+ * or null for a session outside the Atlas (mobility), named by `title`.
+ * `place` and `title` are optional so plans saved before them still parse.
+ */
 export const planSessionSchema = z.object({
   day: z.number().int().min(0).max(6),
-  methodId: z.string().refine((id) => methodIds.has(id), "Unknown training method"),
+  methodId: z.string().refine((id) => methodIds.has(id), "Unknown training method").nullable(),
   minutes: z.number().int().min(10).max(240),
   notes: z.string().max(500),
-}).strict();
+  place: z.enum(PLAN_PLACES).optional(),
+  title: z.string().trim().min(1).max(80).optional(),
+}).strict().refine((s) => s.methodId !== null || !!s.title, "A session outside the Atlas needs a title");
 
 export const trainingPlanSchema = z.object({
   id: z.guid().optional(),
@@ -21,6 +32,11 @@ export const trainingPlanSchema = z.object({
 export type TrainingPlanInput = z.infer<typeof trainingPlanSchema>;
 export type PlanSession = z.infer<typeof planSessionSchema>;
 export type SavedTrainingPlan = TrainingPlanInput & { id: string; updatedAt: string };
+
+/** The editable part of a saved plan: the strict save schema rejects row metadata such as updatedAt. */
+export function editablePlan(plan: SavedTrainingPlan): TrainingPlanInput {
+  return { id: plan.id, name: plan.name, goal: plan.goal, weeks: plan.weeks, sessions: plan.sessions.map((s) => ({ ...s })) };
+}
 
 export const DEFAULT_PLAN: TrainingPlanInput = {
   name: "My climbing week",

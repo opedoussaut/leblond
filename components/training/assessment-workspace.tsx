@@ -224,7 +224,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     <CurrentLevelPanel locale={locale} levels={levels} cadence={assessmentCadence(assessments, today)}/>
     <div className="space-y-3">
       <button type="button" onClick={startNew}
-        className={buttonClass("primary", "md")}>{assessments.length ? (locale==="fr"?"Nouveau bilan (réévaluation)":"New assessment (reassess)") : a.add} +</button>
+        className={buttonClass("primary", "md")}>{assessments.length ? a.reassess : a.add} +</button>
       {assessments.length ? <nav className="leblond-scroll-row -mx-1 flex gap-2 overflow-x-auto px-1" aria-label={a.history}>
         {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
           aria-pressed={!formMode && selectedId===item.id}
@@ -236,10 +236,11 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     {!formMode && assessments.length ? <FitnessCharts locale={locale} measured={measuredHistory(assessments)}
       selfRated={selfRatedHistory(assessments, checkins)}/> : null}
     {formMode ? <StructuredAssessment locale={locale} today={today} observed={observedEvidence} defaults={defaults}
+      previous={assessments[0] ?? null}
       onCancel={assessments.length ? () => setFormMode(false) : undefined}
-      onSaved={(record) => {
+      onSaved={(record, info) => {
         setAssessments(curr=>[record,...curr]);setSelectedId(record.id);setFormMode(false);
-        setWorking({...record.ratings});setWeek(1);setNotes("");setNotice(a.saved);router.refresh();
+        setWorking({...record.ratings});setWeek(1);setNotes("");setNotice(info.planSaved ? a.savedWithProgramme : a.programmeLimit);router.refresh();
       }}/>
     : chosen && scenario ? <>
       <EvidencePanel locale={locale} record={chosen} baseline={assessments[assessments.length-1]}/>

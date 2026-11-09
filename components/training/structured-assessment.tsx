@@ -4,19 +4,23 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { addCalendarEntry } from "@/lib/actions/calendar";
 import { createTrainingAssessment } from "@/lib/actions/training-assessments";
-import type { Locale } from "@/lib/i18n";
+import { fmt, type Locale } from "@/lib/i18n";
 import { trainingDictionary } from "@/lib/i18n/training";
-import { DEFAULT_SKILLS, methodMatches, type SavedAssessment, type SkillRatings } from "@/lib/training/assessment";
+import { journeyDictionary, type JourneyDictionary } from "@/lib/i18n/training-journey";
+import { DEFAULT_SKILLS, type SavedAssessment, type SkillRatings } from "@/lib/training/assessment";
 import {
-  EVIDENCE_LABELS, OBSERVED_LABELS, PROTOCOL_TESTS, PROTOCOL_VERSION, measurementQuality, reassessmentDate, testAllowed,
-  type AssessmentContext, type EvidenceLevel, type Measurement, type ObservedEvidence,
+  EVIDENCE_LABELS, HOME_EQUIPMENT, OBSERVED_LABELS, PROTOCOL_TESTS, PROTOCOL_VERSION, measurementQuality, parseContext, reassessmentDate, testStatus,
+  type AssessmentContext, type Availability, type EvidenceLevel, type Measurement, type ObservedEvidence,
 } from "@/lib/training/assessment-protocol";
 import { METHODS_FOR_PLANS, TRAINING_AXES } from "@/lib/training/catalogue";
+import { BODY_AREAS, PAIN_LEVELS, healthFromContext, needsProfessional, type BodyArea, type Health, type Injury, type Verdict } from "@/lib/training/health";
+import { methodSuggestions, proposeProgramme, sessionTitle } from "@/lib/training/programme";
 import { SkillSliders } from "./assessment-workspace";
 import { buttonClass } from "@/components/ui/button";
 import { fieldClass as field } from "@/components/ui/field";
 
-const OPTIONS = [4, 8, 12, 16, 24];
+const HORIZONS = [4, 6, 8, 12, 16, 24];
+const FINGER_METHODS = new Set(["max-hangs", "repeaters", "campus"]);
 
 export function EvidenceBadge({ level, locale }: { level: EvidenceLevel; locale: Locale }) {
   const tone = level === "measured" ? "bg-accent text-accent-ink" : level === "observed" ? "bg-accent-soft text-accent"
@@ -26,28 +30,68 @@ export function EvidenceBadge({ level, locale }: { level: EvidenceLevel; locale:
   </span>;
 }
 
+/** "épaule (gêne), doigts (douleur)" — the areas behind a health verdict. */
+export function verdictAreas(verdict: Verdict, j: JourneyDictionary): string {
+  const seen = new Set<BodyArea>();
+  return verdict.because.filter((b) => !seen.has(b.area) && seen.add(b.area))
+    .map((b) => `${j.areas[b.area].toLowerCase()} (${j.levels[b.level].label.toLowerCase()})`).join(", ");
+}
+
+type SavedInfo = { planSaved: boolean };
 type Props = {
   locale: Locale; today: string; observed: ObservedEvidence[];
   defaults: { discipline: "BOULDER" | "ROUTE" | "BOTH"; sessionsPerWeekNow: number };
-  onSaved: (record: SavedAssessment) => void; onCancel?: () => void;
+  /** Latest assessment, used to pre-fill a reassessment (goal, availability, health). */
+  previous?: SavedAssessment | null;
+  onSaved: (record: SavedAssessment, info: SavedInfo) => void; onCancel?: () => void;
 };
 
-export function StructuredAssessment({ locale, today, observed, defaults, onSaved, onCancel }: Props) {
-  const fr = locale === "fr";
+/** Choice buttons rendered as a radio group (large touch targets). */
+export function Choice<T extends string | number | boolean>({ name, legend, value, options, onChange, hint, layout }: {
+  name: string; legend: string; value: T; options: Array<{ value: T; label: string; hint?: string }>;
+  onChange: (v: T) => void; hint?: string; layout?: string;
+}) {
+  return <fieldset className="rounded-xl border border-line bg-surface p-3">
+    <legend className="px-1 text-sm font-semibold">{legend}</legend>
+    {hint ? <p className="px-1 text-xs text-ink-3">{hint}</p> : null}
+    <div className={"mt-2 grid gap-2 " + (layout ?? "grid-cols-1 sm:grid-flow-col sm:auto-cols-fr")}>
+      {options.map((o) => <label key={String(o.value)} className={"flex min-h-11 cursor-pointer flex-col justify-center rounded-xl border px-3 py-2 text-sm " +
+        (value === o.value ? "border-accent bg-accent-soft" : "border-line")}>
+        <input type="radio" className="sr-only" name={name} checked={value === o.value} onChange={() => onChange(o.value)} />
+        <span className={"font-bold " + (value === o.value ? "text-accent" : "")}>{o.label}</span>
+        {o.hint ? <span className="text-xs text-ink-2">{o.hint}</span> : null}
+      </label>)}
+    </div>
+  </fieldset>;
+}
+
+export function StructuredAssessment({ locale, today, observed, defaults, previous, onSaved, onCancel }: Props) {
   const t = trainingDictionary(locale);
+  const j = journeyDictionary(locale);
+  const f = j.full;
+  const prevCtx: AssessmentContext | null = previous ? parseContext(previous.context) : null;
+  const prevHealth = healthFromContext(prevCtx);
   const [step, setStep] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
-  const [ctx, setCtx] = useState<Omit<AssessmentContext, "observed">>({
-    discipline: defaults.discipline, experienceMonths: 24, sessionsPerWeekNow: defaults.sessionsPerWeekNow,
-    currentPain: false, rested24h: true, warmedUp: false, venue: "", notes: "",
+
+  const [discipline, setDiscipline] = useState<AssessmentContext["discipline"]>(prevCtx?.discipline ?? defaults.discipline);
+  const [goal, setGoal] = useState(previous?.goal ?? "");
+  const [horizon, setHorizon] = useState(HORIZONS.includes(previous?.horizonWeeks ?? 0) ? previous!.horizonWeeks : 8);
+  const [experienceMonths, setExperience] = useState(prevCtx?.experienceMonths ?? 24);
+  const [availability, setAvailability] = useState<Availability>(prevCtx?.availability ?? {
+    climbingPerWeek: Math.max(1, Math.min(6, defaults.sessionsPerWeekNow || 2)), offWallPerWeek: 0, homeEquipment: [],
   });
-  const [goal, setGoal] = useState("");
-  const [horizon, setHorizon] = useState(12);
-  const [frequency, setFrequency] = useState(Math.max(1, Math.min(5, defaults.sessionsPerWeekNow || 2)));
+  const [hasIssue, setHasIssue] = useState(prevHealth.injuries.length > 0);
+  const [injuries, setInjuries] = useState<Injury[]>(prevHealth.injuries);
+  const [testDay, setTestDay] = useState(false);
+  const [rested24h, setRested] = useState(true);
+  const [warmedUp, setWarmed] = useState(false);
+  const [venue, setVenue] = useState(prevCtx?.venue ?? "");
+  const [notes, setNotes] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [conditions, setConditions] = useState<Record<string, string>>({});
-  const [ratings, setRatings] = useState<SkillRatings>({ ...DEFAULT_SKILLS });
+  const [ratings, setRatings] = useState<SkillRatings>(previous ? { ...previous.ratings } : { ...DEFAULT_SKILLS });
   const [methodId, setMethodId] = useState("");
   const [addReassessment, setAddReassessment] = useState(true);
   const [confirmed, setConfirmed] = useState(false);
@@ -59,200 +103,202 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
     heading.current?.focus();
   }, [step]);
 
-  const set = <K extends keyof typeof ctx>(k: K, v: (typeof ctx)[K]) => setCtx((c) => ({ ...c, [k]: v }));
-  const measurements: Measurement[] = PROTOCOL_TESTS.flatMap((test) => {
+  const health: Health = { injuries: hasIssue ? injuries : [], unspecifiedPain: false };
+  const screening = { experienceMonths, warmedUp, injuries: health.injuries };
+  const statuses = Object.fromEntries(PROTOCOL_TESTS.map((test) => [test.id, testStatus(test, screening)]));
+  const measurements: Measurement[] = testDay ? PROTOCOL_TESTS.flatMap((test) => {
     const raw = values[test.id];
-    if (!testAllowed(test, ctx) || raw === undefined || raw.trim() === "" || !Number.isFinite(Number(raw))) return [];
+    if (!statuses[test.id].allowed || raw === undefined || raw.trim() === "" || !Number.isFinite(Number(raw))) return [];
     const value = Math.max(test.min, Math.min(test.max, Number(raw)));
     const cond = conditions[test.id] ?? "";
     return [{ id: test.id, value, unit: test.unit, evidence: "measured" as const, protocolVersion: PROTOCOL_VERSION,
-      date: today, conditions: cond, quality: measurementQuality(cond, ctx) }];
-  });
-  const matches = methodMatches(ratings);
-  const chosen = methodId || matches[0]?.method.id || "technique";
+      date: today, conditions: cond, quality: measurementQuality(cond, { warmedUp, rested24h }, statuses[test.id].verdict.status === "adapt") }];
+  }) : [];
+  const { suggested, setAside } = methodSuggestions(ratings, health);
+  const chosen = methodId || suggested[0]?.method.id || "technique";
+  const programme = proposeProgramme({ methodId: chosen, discipline, availability, health, experienceMonths, locale });
   const nextCheck = reassessmentDate(today, horizon);
+  const acute = needsProfessional(health);
 
-  const steps = [
-    fr ? "Préparation et sécurité" : "Preparation and safety",
-    fr ? "Objectif et temps disponible" : "Goal and available time",
-    fr ? "Conditions de référence" : "Reference conditions",
-    fr ? "Tests mesurés" : "Measured tests",
-    fr ? "Auto-évaluation" : "Self-evaluation",
-    fr ? "Résultats et qualité des données" : "Results and data quality",
-    fr ? "Priorités de progression" : "Development priorities",
-    fr ? "Options d’entraînement" : "Training options",
-    fr ? "Prochain bilan" : "Reassessment",
-  ];
+  function toggleArea(area: BodyArea, on: boolean) {
+    setInjuries((list) => on ? [...list.filter((i) => i.area !== area), { area, level: "DISCOMFORT" }] : list.filter((i) => i.area !== area));
+  }
+  function toggleEquipment(item: Availability["homeEquipment"][number], on: boolean) {
+    setAvailability((a) => ({ ...a, homeEquipment: on ? [...new Set([...a.homeEquipment, item])] : a.homeEquipment.filter((e) => e !== item) }));
+  }
 
   function save() {
     if (!confirmed) return;
     setError("");
     start(async () => {
-      const context: AssessmentContext = { ...ctx, observed };
+      const context: AssessmentContext = {
+        discipline, experienceMonths, sessionsPerWeekNow: defaults.sessionsPerWeekNow,
+        injuries: health.injuries, availability, testDay,
+        rested24h: testDay ? rested24h : false, warmedUp: testDay ? warmedUp : false,
+        venue: testDay ? venue : "", notes: testDay ? notes : "", observed,
+      };
       const input = {
-        methodId: chosen, ratings, horizonWeeks: horizon, sessionsPerWeek: frequency, goal,
+        methodId: chosen, ratings, horizonWeeks: horizon,
+        sessionsPerWeek: Math.max(1, Math.min(5, availability.climbingPerWeek + availability.offWallPerWeek)), goal,
         kind: measurements.length ? "STRUCTURED" as const : "BASIC" as const, measurements, context,
+        ...(programme.length ? { programme: { sessions: programme } } : {}),
       };
       const r = await createTrainingAssessment(input);
-      if (!r.ok) { setError(fr ? "Impossible d’enregistrer le bilan." : "Could not save the assessment."); return; }
+      if (!r.ok) { setError(f.saveError); return; }
       if (addReassessment) {
         await addCalendarEntry({
-          eventDate: nextCheck, startTime: "", title: fr ? "Bilan de suivi LEBLOND" : "LEBLOND follow-up assessment",
-          kind: "ASSESS", discipline: ctx.discipline, minutes: 60, methodId: null,
-          notes: fr ? "Reprendre le même protocole et les mêmes conditions." : "Repeat the same protocol and conditions.",
+          eventDate: nextCheck, startTime: "", title: f.calendarTitle,
+          kind: "ASSESS", discipline, minutes: 60, methodId: null, notes: f.calendarNotes,
         });
       }
-      onSaved({ id: r.id, ...input, createdAt: new Date().toISOString() });
+      onSaved({ id: r.id, ...input, createdAt: new Date().toISOString() }, { planSaved: !programme.length || r.planId !== null });
     });
   }
 
-  const yesNo = (name: string, value: boolean, onChange: (v: boolean) => void, label: string) =>
-    <fieldset className="rounded-xl border border-line bg-surface p-3">
-      <legend className="px-1 text-sm font-semibold">{label}</legend>
-      <div className="mt-1 flex gap-2">
-        {[true, false].map((v) => <label key={String(v)} className={"flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border text-sm font-bold " +
-          (value === v ? "border-accent bg-accent-soft text-accent" : "border-line")}>
-          <input type="radio" className="sr-only" name={name} checked={value === v} onChange={() => onChange(v)} />
-          {v ? (fr ? "Oui" : "Yes") : (fr ? "Non" : "No")}
-        </label>)}
-      </div>
-    </fieldset>;
+  const yesNo = (name: string, value: boolean, onChange: (v: boolean) => void, legend: string) =>
+    <Choice name={name} legend={legend} value={value} onChange={onChange} options={[{ value: true, label: f.yes }, { value: false, label: f.no }]} />;
+
+  const number = (label: string, value: number, max: number, onChange: (n: number) => void) =>
+    <label className="block text-sm font-semibold">{label}
+      <select className={field} value={value} onChange={(e) => onChange(Number(e.target.value))}>
+        {Array.from({ length: max + 1 }, (_, n) => <option key={n} value={n}>{n}</option>)}
+      </select>
+    </label>;
 
   return <section aria-labelledby="protocol-step" className="space-y-5">
     <div className="rounded-2xl border border-accent/25 bg-accent-soft p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">
-        {fr ? `Protocole LEBLOND v${PROTOCOL_VERSION} · étape ${step + 1} sur ${steps.length}` : `LEBLOND protocol v${PROTOCOL_VERSION} · step ${step + 1} of ${steps.length}`}
-      </p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">{fmt(f.progress, { n: step + 1, total: f.steps.length })}</p>
       <ol className="mt-3 flex gap-1" aria-hidden="true">
-        {steps.map((_, i) => <li key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-accent" : "bg-accent/15")} />)}
+        {f.steps.map((_, i) => <li key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-accent" : "bg-accent/15")} />)}
       </ol>
     </div>
-    <h2 id="protocol-step" ref={heading} tabIndex={-1} className="text-2xl font-black tracking-tight focus:outline-none">{steps[step]}</h2>
+    <h2 id="protocol-step" ref={heading} tabIndex={-1} className="text-2xl font-black tracking-tight focus:outline-none">{f.steps[step]}</h2>
 
     {step === 0 ? <div className="space-y-4">
-      <p className="text-sm leading-relaxed text-ink-2">{fr
-        ? "Ce bilan combine trois sources clairement séparées : quelques tests simples et sûrs (mesurés), tes séances enregistrées (observées) et ton auto-évaluation (déclarative). Aucun test maximal n’est demandé ; chaque test est facultatif."
-        : "This assessment combines three clearly separated sources: a few simple, safe tests (measured), your logged sessions (observed) and your self-evaluation (self-reported). No maximal test is required; every test is optional."}</p>
-      <label className="block text-sm font-semibold">{fr ? "Depuis combien de mois grimpes-tu régulièrement ?" : "How many months have you climbed regularly?"}
-        <input className={field} type="number" min={0} max={900} value={ctx.experienceMonths} onChange={(e) => set("experienceMonths", Math.max(0, Math.round(Number(e.target.value))))} />
-      </label>
-      {yesNo("pain", ctx.currentPain, (v) => set("currentPain", v), fr ? "As-tu actuellement une douleur ou une blessure (doigts, coudes, épaules) ?" : "Do you currently have pain or an injury (fingers, elbows, shoulders)?")}
-      {ctx.currentPain ? <p role="note" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">{fr
-        ? "Les tests sollicitant les doigts et les tractions sont désactivés. Consulte un professionnel de santé si la douleur persiste."
-        : "Finger-loading and pulling tests are disabled. See a health professional if the pain persists."}</p> : null}
-      {yesNo("rested", ctx.rested24h, (v) => set("rested24h", v), fr ? "Es-tu reposé (pas d’entraînement intense depuis 24 h) ?" : "Are you rested (no hard training in the last 24 h)?")}
-      {yesNo("warm", ctx.warmedUp, (v) => set("warmedUp", v), fr ? "As-tu fait un échauffement complet (général + doigts) ?" : "Have you completed a full warm-up (general + fingers)?")}
-    </div> : null}
-
-    {step === 1 ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <label className="block text-sm font-semibold">{fr ? "Discipline" : "Discipline"}
-        <select className={field} value={ctx.discipline} onChange={(e) => set("discipline", e.target.value as AssessmentContext["discipline"])}>
-          <option value="BOULDER">{fr ? "Bloc" : "Bouldering"}</option>
-          <option value="ROUTE">{fr ? "Voie" : "Sport climbing"}</option>
-          <option value="BOTH">{fr ? "Les deux" : "Both"}</option>
-        </select>
-      </label>
-      <label className="block text-sm font-semibold">{fr ? "Séances de grimpe par semaine actuellement" : "Climbing sessions per week now"}
-        <input className={field} type="number" min={0} max={14} value={ctx.sessionsPerWeekNow} onChange={(e) => set("sessionsPerWeekNow", Math.max(0, Math.min(14, Math.round(Number(e.target.value)))))} />
-      </label>
-      <label className="block text-sm font-semibold sm:col-span-2">{fr ? "Objectif (ex. réussir un 7A en bloc)" : "Goal (e.g. send a 7A boulder)"}
+      <p className="text-sm leading-relaxed text-ink-2">{f.intro}</p>
+      <Choice name="discipline" legend={f.disciplineLegend} value={discipline} onChange={setDiscipline}
+        options={(["BOULDER", "ROUTE", "BOTH"] as const).map((d) => ({ value: d, label: j.disciplines[d].label, hint: j.disciplines[d].hint }))} />
+      <label className="block text-sm font-semibold">{f.goalLabel}
         <input className={field} maxLength={300} value={goal} onChange={(e) => setGoal(e.target.value)} />
       </label>
-      <label className="block text-sm font-semibold">{fr ? "Séances d’entraînement possibles / semaine" : "Training sessions available / week"}
-        <select className={field} value={frequency} onChange={(e) => setFrequency(Number(e.target.value))}>{[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}</select>
-      </label>
-      <label className="block text-sm font-semibold">{fr ? "Période (semaines)" : "Period (weeks)"}
-        <select className={field} value={horizon} onChange={(e) => setHorizon(Number(e.target.value))}>{OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}</select>
-      </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-semibold">{f.horizonLabel}
+          <select className={field} value={horizon} onChange={(e) => setHorizon(Number(e.target.value))}>
+            {HORIZONS.map((n) => <option key={n} value={n}>{fmt(f.weeksOption, { n })}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">{f.experienceLabel}
+          <input className={field} type="number" min={0} max={900} value={experienceMonths}
+            onChange={(e) => setExperience(Math.max(0, Math.min(900, Math.round(Number(e.target.value)) || 0)))} />
+        </label>
+      </div>
+    </div> : null}
+
+    {step === 1 ? <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {number(f.climbingLabel, availability.climbingPerWeek, 6, (n) => setAvailability((a) => ({ ...a, climbingPerWeek: n })))}
+        {number(f.offWallLabel, availability.offWallPerWeek, 6, (n) => setAvailability((a) => ({ ...a, offWallPerWeek: n })))}
+      </div>
+      <p className="text-xs text-ink-3">{fmt(f.observedNow, { n: defaults.sessionsPerWeekNow })}</p>
+      <fieldset className="rounded-xl border border-line bg-surface p-3">
+        <legend className="px-1 text-sm font-semibold">{f.equipmentLegend}</legend>
+        <p className="px-1 text-xs text-ink-3">{f.equipmentHint}</p>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {HOME_EQUIPMENT.map((item) => <label key={item} className="flex min-h-11 items-center gap-3 rounded-xl border border-line px-3 text-sm">
+            <input type="checkbox" className="h-4 w-4 accent-accent" checked={availability.homeEquipment.includes(item)}
+              onChange={(e) => toggleEquipment(item, e.target.checked)} />
+            {j.equipment[item]}
+          </label>)}
+        </div>
+      </fieldset>
     </div> : null}
 
     {step === 2 ? <div className="space-y-4">
-      <p className="text-sm text-ink-2">{fr
-        ? "Pour comparer deux bilans, garde les mêmes conditions : lieu, matériel, moment de la journée, état de repos. Note-les ici."
-        : "To compare two assessments, keep the same conditions: venue, equipment, time of day, rest. Record them here."}</p>
-      <label className="block text-sm font-semibold">{fr ? "Lieu" : "Venue"}
-        <input className={field} maxLength={120} value={ctx.venue} onChange={(e) => set("venue", e.target.value)} />
-      </label>
-      <label className="block text-sm font-semibold">{fr ? "Conditions (matériel, heure, ressenti)" : "Conditions (equipment, time, how you feel)"}
-        <textarea className={field} rows={3} maxLength={500} value={ctx.notes} onChange={(e) => set("notes", e.target.value)} />
-      </label>
-      <p className="text-xs text-ink-3">{fr ? "Date du bilan" : "Assessment date"} : {today}</p>
+      <Choice name="health" legend={f.healthLegend} value={hasIssue} onChange={setHasIssue}
+        options={[{ value: false, label: f.healthNone }, { value: true, label: f.healthSome }]} />
+      {hasIssue ? <>
+        <fieldset className="rounded-xl border border-line bg-surface p-3">
+          <legend className="px-1 text-sm font-semibold">{f.areasLegend}</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {BODY_AREAS.map((area) => <label key={area} className={"flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold " +
+              (injuries.some((i) => i.area === area) ? "border-accent bg-accent-soft" : "border-line")}>
+              <input type="checkbox" className="h-4 w-4 accent-accent" checked={injuries.some((i) => i.area === area)}
+                onChange={(e) => toggleArea(area, e.target.checked)} />
+              {j.areas[area]}
+            </label>)}
+          </div>
+        </fieldset>
+        {injuries.map((injury) => <Choice key={injury.area} name={"level-" + injury.area}
+          legend={fmt(f.levelLegend, { area: j.areas[injury.area] })} value={injury.level}
+          onChange={(level) => setInjuries((list) => list.map((i) => i.area === injury.area ? { ...i, level } : i))}
+          options={PAIN_LEVELS.map((l) => ({ value: l, label: j.levels[l].label, hint: j.levels[l].hint }))} />)}
+        {acute ? <p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm font-semibold">{f.acuteWarning}</p> : null}
+        {injuries.length ? <p className="text-sm text-ink-2">{f.healthEffect}</p> : null}
+      </> : null}
+      <p role="note" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed">{j.safety}</p>
     </div> : null}
 
     {step === 3 ? <div className="space-y-4">
-      <p className="text-sm text-ink-2">{fr
-        ? "Tests facultatifs. Laisse vide pour ne pas tester. Seuls les tests adaptés à ton expérience et à ton état sont proposés."
-        : "Optional tests. Leave blank to skip. Only tests suited to your experience and condition are offered."}</p>
-      {PROTOCOL_TESTS.map((test) => {
-        const allowed = testAllowed(test, ctx);
-        return <article key={test.id} className={"rounded-2xl border p-4 " + (allowed ? "border-line bg-surface" : "border-dashed border-line bg-surface-2")}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-extrabold">{test.name[locale]}</h3>
-            <span className="text-xs font-semibold text-ink-3">{t.axis[test.dimension]} · {test.unit}</span>
+      <p className="text-sm text-ink-2">{f.testIntro}</p>
+      <Choice name="test-day" legend={f.doTestsLegend} value={testDay} onChange={setTestDay}
+        options={[{ value: true, label: f.doTestsYes }, { value: false, label: f.doTestsNo }]} />
+      {testDay ? <>
+        <section aria-labelledby="readiness-heading" className="space-y-3 rounded-2xl border border-line bg-surface-2 p-4">
+          <h3 id="readiness-heading" className="text-base font-extrabold">{f.readinessTitle}</h3>
+          {yesNo("rested", rested24h, setRested, f.rested)}
+          {yesNo("warm", warmedUp, setWarmed, f.warmed)}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">{f.venue}
+              <input className={field} maxLength={120} value={venue} onChange={(e) => setVenue(e.target.value)} />
+            </label>
+            <label className="block text-sm font-semibold">{f.conditions}
+              <input className={field} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </label>
           </div>
-          <p className="mt-1 text-sm text-ink-2">{test.rationale[locale]}</p>
-          <details className="mt-2"><summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{fr ? "Procédure" : "Procedure"}</summary>
-            <p className="mt-1 text-xs text-ink-2"><strong>{fr ? "Matériel" : "Equipment"} :</strong> {test.equipment[locale]}</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-2">{test.procedure.map((p, i) => <li key={i}>{p[locale]}</li>)}</ol>
-            <p className="mt-2 text-sm"><strong>{fr ? "Arrêt / contre-indications" : "Stop rules"} :</strong> {test.stopRules[locale]}</p>
-            {test.reference ? <a className="mt-2 inline-block text-xs font-semibold text-accent underline" href={test.reference.url} target="_blank" rel="noopener noreferrer">{test.reference.label} ↗</a> : null}
-          </details>
-          {allowed ? <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="text-sm font-semibold">{fr ? "Résultat" : "Result"} ({test.unit}, {test.min}–{test.max})
-              <input className={field} type="number" inputMode="decimal" min={test.min} max={test.max} value={values[test.id] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [test.id]: e.target.value }))} />
-            </label>
-            <label className="text-sm font-semibold">{fr ? "Conditions du test" : "Test conditions"}
-              <input className={field} maxLength={300} value={conditions[test.id] ?? ""} placeholder={fr ? "ex. Beastmaker 20 mm, 18 h" : "e.g. Beastmaker 20 mm, 6 pm"}
-                onChange={(e) => setConditions((c) => ({ ...c, [test.id]: e.target.value }))} />
-            </label>
-          </div> : <p className="mt-3 text-sm font-semibold text-ink-3">{test.stopRules[locale]}</p>}
-        </article>;
-      })}
+          <p className="text-xs text-ink-3">{f.comparableHint}</p>
+        </section>
+        {PROTOCOL_TESTS.map((test) => {
+          const status = statuses[test.id];
+          return <article key={test.id} className={"rounded-2xl border p-4 " + (status.allowed ? "border-line bg-surface" : "border-dashed border-line bg-surface-2")}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-extrabold">{test.name[locale]}</h3>
+              <span className="text-xs font-semibold text-ink-3">{t.axis[test.dimension]} · {test.unit}</span>
+            </div>
+            <p className="mt-1 text-sm text-ink-2">{test.rationale[locale]}</p>
+            <details className="mt-2"><summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{f.procedure}</summary>
+              <p className="mt-1 text-xs text-ink-2"><strong>{f.equipment} :</strong> {test.equipment[locale]}</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-2">{test.procedure.map((p, i) => <li key={i}>{p[locale]}</li>)}</ol>
+              <p className="mt-2 text-sm"><strong>{f.stopRules} :</strong> {test.stopRules[locale]}</p>
+              {test.reference ? <a className="mt-2 inline-block text-xs font-semibold text-accent underline" href={test.reference.url} target="_blank" rel="noopener noreferrer">{test.reference.label} ↗</a> : null}
+            </details>
+            {status.allowed ? <>
+              {status.verdict.status === "adapt" ? <p className="mt-2 rounded-xl border border-warn/40 bg-warn/10 p-2 text-sm">{fmt(f.adapted, { areas: verdictAreas(status.verdict, j) })}</p> : null}
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold">{f.result} ({test.unit}, {test.min}–{test.max})
+                  <input className={field} type="number" inputMode="decimal" min={test.min} max={test.max} value={values[test.id] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [test.id]: e.target.value }))} />
+                </label>
+                <label className="text-sm font-semibold">{f.testConditions}
+                  <input className={field} maxLength={300} value={conditions[test.id] ?? ""} placeholder={f.testConditionsPlaceholder}
+                    onChange={(e) => setConditions((c) => ({ ...c, [test.id]: e.target.value }))} />
+                </label>
+              </div>
+            </> : <p className="mt-3 text-sm font-semibold text-ink-2">{
+              status.blockedBy === "health" ? fmt(f.blockedHealth, { areas: verdictAreas(status.verdict, j) })
+                : status.blockedBy === "experience" ? fmt(f.blockedExperience, { n: test.minExperienceMonths })
+                : f.blockedWarmup}</p>}
+          </article>;
+        })}
+      </> : null}
     </div> : null}
 
     {step === 4 ? <div className="space-y-3">
-      <p className="text-sm text-ink-2">{fr
-        ? "Pour les qualités qui ne sont pas mesurées ici (lecture, gestion de l’engagement, régularité), ton ressenti reste utile. Il est enregistré comme déclaratif, jamais comme une mesure."
-        : "For qualities not measured here (reading, commitment, consistency), your own judgement is useful. It is stored as self-reported, never as a measurement."}</p>
+      <p className="text-sm text-ink-2">{f.selfIntro}</p>
       <SkillSliders locale={locale} ratings={ratings} onChange={setRatings} />
     </div> : null}
 
     {step === 5 ? <div className="space-y-4">
-      <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-        <table className="w-full min-w-[560px] text-left text-sm">
-          <caption className="sr-only">{steps[5]}</caption>
-          <thead className="text-xs uppercase tracking-[0.12em] text-ink-3"><tr>
-            <th className="px-4 py-3">{fr ? "Dimension" : "Dimension"}</th><th className="px-4 py-3">{fr ? "Valeur" : "Value"}</th>
-            <th className="px-4 py-3">{fr ? "Source" : "Source"}</th><th className="px-4 py-3">{fr ? "Qualité" : "Quality"}</th></tr></thead>
-          <tbody>
-            {measurements.map((m) => { const def = PROTOCOL_TESTS.find((d) => d.id === m.id)!; return <tr key={m.id} className="border-t border-line">
-              <td className="px-4 py-3 font-semibold">{def.name[locale]}</td><td className="px-4 py-3 tabular-nums">{m.value} {m.unit}</td>
-              <td className="px-4 py-3"><EvidenceBadge level="measured" locale={locale} /></td>
-              <td className="px-4 py-3 text-xs">{m.quality === "complete" ? (fr ? "Conditions complètes" : "Complete conditions") : (fr ? "Conditions partielles" : "Partial conditions")}</td>
-            </tr>; })}
-            {observed.map((o) => <tr key={o.id} className="border-t border-line">
-              <td className="px-4 py-3 font-semibold">{OBSERVED_LABELS[o.id]?.[locale] ?? o.id}</td><td className="px-4 py-3 tabular-nums">{o.value}</td>
-              <td className="px-4 py-3"><EvidenceBadge level={o.evidence} locale={locale} /></td>
-              <td className="px-4 py-3 text-xs">n = {o.sample}</td>
-            </tr>)}
-            {TRAINING_AXES.map((axis) => <tr key={axis} className="border-t border-line">
-              <td className="px-4 py-3 font-semibold">{t.axis[axis]}</td><td className="px-4 py-3 tabular-nums">{ratings[axis].toFixed(1)} / 5</td>
-              <td className="px-4 py-3"><EvidenceBadge level="self" locale={locale} /></td><td className="px-4 py-3 text-xs">{fr ? "Échelle ancrée 1–5" : "Anchored 1–5 scale"}</td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>
-      {measurements.length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucun test mesuré : ce bilan sera enregistré comme bilan de base." : "No measured test: this will be saved as a basic assessment."}</p> : null}
-      <p className="text-xs text-ink-3">{fr
-        ? "Les valeurs ne sont pas additionnées en un score unique : chaque source garde son niveau de preuve."
-        : "Values are not combined into a single score: each source keeps its own evidence level."}</p>
-    </div> : null}
-
-    {step === 6 ? <div className="space-y-3">
-      <p className="text-sm text-ink-2">{fr
-        ? "Priorités proposées à partir de tes écarts déclarés (plus la note est basse, plus la qualité ressort). C’est une heuristique d’orientation, pas un diagnostic."
-        : "Priorities suggested from your self-reported gaps (lower ratings stand out more). This is a guidance heuristic, not a diagnosis."}</p>
+      <p className="text-sm text-ink-2">{f.prioritiesIntro}</p>
       <ul className="space-y-2">
         {[...TRAINING_AXES].sort((a, b) => ratings[a] - ratings[b]).slice(0, 3).map((axis) => <li key={axis} className="rounded-xl border border-line bg-surface p-3 text-sm">
           <strong>{t.axis[axis]}</strong> — {ratings[axis].toFixed(1)} / 5
@@ -260,60 +306,96 @@ export function StructuredAssessment({ locale, today, observed, defaults, onSave
             <span key={m.id} className="ml-2 text-xs text-ink-2">· {PROTOCOL_TESTS.find((d) => d.id === m.id)!.name[locale]} : {m.value} {m.unit}</span>)}
         </li>)}
       </ul>
+      <details className="rounded-2xl border border-line bg-surface p-3" open>
+        <summary className="min-h-11 cursor-pointer text-sm font-bold text-accent">{f.dataDetails}</summary>
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <caption className="sr-only">{f.dataDetails}</caption>
+            <thead className="text-xs uppercase tracking-[0.12em] text-ink-3"><tr>
+              <th className="px-3 py-2">{f.dimension}</th><th className="px-3 py-2">{f.value}</th>
+              <th className="px-3 py-2">{f.source}</th><th className="px-3 py-2">{f.quality}</th></tr></thead>
+            <tbody>
+              {measurements.map((m) => { const def = PROTOCOL_TESTS.find((d) => d.id === m.id)!; return <tr key={m.id} className="border-t border-line">
+                <td className="px-3 py-2 font-semibold">{def.name[locale]}</td><td className="px-3 py-2 tabular-nums">{m.value} {m.unit}</td>
+                <td className="px-3 py-2"><EvidenceBadge level="measured" locale={locale} /></td>
+                <td className="px-3 py-2 text-xs">{m.quality === "complete" ? f.complete : f.partial}</td>
+              </tr>; })}
+              {observed.map((o) => <tr key={o.id} className="border-t border-line">
+                <td className="px-3 py-2 font-semibold">{OBSERVED_LABELS[o.id]?.[locale] ?? o.id}</td><td className="px-3 py-2 tabular-nums">{o.value}</td>
+                <td className="px-3 py-2"><EvidenceBadge level={o.evidence} locale={locale} /></td>
+                <td className="px-3 py-2 text-xs">n = {o.sample}</td>
+              </tr>)}
+              {TRAINING_AXES.map((axis) => <tr key={axis} className="border-t border-line">
+                <td className="px-3 py-2 font-semibold">{t.axis[axis]}</td><td className="px-3 py-2 tabular-nums">{ratings[axis].toFixed(1)} / 5</td>
+                <td className="px-3 py-2"><EvidenceBadge level="self" locale={locale} /></td><td className="px-3 py-2 text-xs">{f.anchored}</td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>
+        {measurements.length === 0 ? <p className="mt-2 text-sm text-ink-2">{f.noTests}</p> : null}
+        <p className="mt-2 text-xs text-ink-3">{f.notCombined}</p>
+      </details>
     </div> : null}
 
-    {step === 7 ? <div className="space-y-3">
-      <p className="text-sm text-ink-2">{fr
-        ? `Méthodes qui correspondent à tes priorités, compte tenu de ${frequency} séance(s) par semaine. Choisis celle qui servira de scénario.`
-        : `Methods matching your priorities, given ${frequency} session(s) per week. Choose the one used for the scenario.`}</p>
+    {step === 6 ? <div className="space-y-4">
+      {acute ? <p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm font-semibold">{f.acuteWarning}</p> : null}
+      <p className="text-sm text-ink-2">{f.methodsIntro}</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {matches.map(({ method, priority }) => {
-          const finger = ["max-hangs", "repeaters", "campus"].includes(method.id);
-          const caution = finger && (ctx.experienceMonths < 24 || ctx.currentPain);
+        {suggested.map(({ method, priority, verdict }) => {
+          const caution = FINGER_METHODS.has(method.id) && experienceMonths < 24;
           return <button type="button" key={method.id} onClick={() => setMethodId(method.id)} aria-pressed={chosen === method.id}
             className={"rounded-2xl border p-4 text-left " + (chosen === method.id ? "border-accent bg-accent-soft" : "border-line bg-surface")}>
             <strong className="block">{method.title}</strong>
-            <span className="mt-1 block text-xs text-ink-2">{fr ? "Cible" : "Targets"} : {t.axis[priority]}</span>
-            {caution ? <span className="mt-1 block text-xs font-semibold text-danger">{fr ? "Prudence : peu adapté à ton expérience ou ton état actuel." : "Caution: not well suited to your experience or current condition."}</span> : null}
+            <span className="mt-1 block text-xs text-ink-2">{f.targets} : {t.axis[priority]}</span>
+            {verdict.status === "adapt" ? <span className="mt-1 block text-xs font-semibold text-ink-2">{fmt(f.adaptBadge, { areas: verdictAreas(verdict, j) })}</span> : null}
+            {caution ? <span className="mt-1 block text-xs font-semibold text-danger">{f.caution}</span> : null}
           </button>;
         })}
       </div>
-      <label className="block text-sm font-semibold">{fr ? "Ou une autre méthode" : "Or another method"}
+      {setAside.length ? <p className="text-xs text-ink-2">{fmt(f.setAside, { list: setAside.map((s) => s.method.title).join(", ") })}</p> : null}
+      <label className="block text-sm font-semibold">{f.otherMethod}
         <select className={field} value={chosen} onChange={(e) => setMethodId(e.target.value)}>
           {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
         </select>
       </label>
-      <Link href={"/atlas/" + chosen} className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Lire la fiche Atlas" : "Read the Atlas sheet"} ↗</Link>
-    </div> : null}
+      <Link href={"/atlas/" + chosen} className="inline-block text-sm font-bold text-accent underline underline-offset-4">{f.readAtlas} ↗</Link>
 
-    {step === 8 ? <div className="space-y-4">
-      <p className="text-sm text-ink-2">{fr
-        ? `Prochain bilan conseillé : ${nextCheck}. Reprends le même protocole, les mêmes tests et des conditions similaires pour que la comparaison ait un sens.`
-        : `Suggested next assessment: ${nextCheck}. Repeat the same protocol, tests and similar conditions so the comparison is meaningful.`}</p>
+      <section aria-labelledby="week-heading" className="rounded-2xl border border-line bg-surface p-4">
+        <h3 id="week-heading" className="text-base font-extrabold">{f.weekTitle}</h3>
+        {programme.length ? <>
+          <ul className="mt-3 space-y-2">
+            {programme.map((s, i) => <li key={i} className="rounded-xl bg-surface-2 px-3 py-2 text-sm">
+              <span className="font-bold">{j.days[s.day]}</span> · {sessionTitle(s)} · {s.place ? j.places[s.place] + " · " : ""}{s.minutes} min
+              {s.notes ? <span className="mt-0.5 block text-xs text-ink-2">{s.notes}</span> : null}
+            </li>)}
+          </ul>
+          <p className="mt-2 text-xs text-ink-3">{fmt(f.weekHint, { weeks: horizon })}</p>
+        </> : <p className="mt-2 text-sm text-ink-2">{f.noSession}</p>}
+      </section>
+
+      <p className="text-sm text-ink-2">{fmt(f.reassess, { date: nextCheck })}</p>
       <label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-3 text-sm">
         <input type="checkbox" className="mt-1 h-4 w-4 accent-accent" checked={addReassessment} onChange={(e) => setAddReassessment(e.target.checked)} />
-        <span>{fr ? "Ajouter ce bilan de suivi à mon calendrier" : "Add this follow-up assessment to my calendar"}</span>
+        <span>{f.addCalendar}</span>
       </label>
       <label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-3 text-sm">
         <input type="checkbox" className="mt-1 h-4 w-4 accent-accent" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-        <span>{fr ? "J’ai suivi le protocole. Je comprends que le scénario affiché ensuite est illustratif et ne prédit pas une cotation."
-          : "I followed the protocol. I understand the scenario shown next is illustrative and does not predict a grade."}</span>
+        <span>{f.confirm}</span>
       </label>
       {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
-      <button type="button" disabled={!confirmed || pending} onClick={save}
-        className={buttonClass("primary", "md", "w-full sm:w-auto")}>
-        {pending ? "…" : fr ? "Enregistrer mon bilan" : "Save my assessment"}
+      <button type="button" disabled={!confirmed || pending} onClick={save} className={buttonClass("primary", "md", "w-full sm:w-auto")}>
+        {pending ? "…" : f.save}
       </button>
     </div> : null}
 
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
       <div className="flex gap-2">
         <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}
-          className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold disabled:opacity-40">← {fr ? "Précédent" : "Back"}</button>
-        {onCancel ? <button type="button" onClick={onCancel} className="min-h-12 rounded-full px-4 text-sm font-bold text-ink-2">{fr ? "Annuler" : "Cancel"}</button> : null}
+          className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold disabled:opacity-40">← {f.back}</button>
+        {onCancel ? <button type="button" onClick={onCancel} className="min-h-12 rounded-full px-4 text-sm font-bold text-ink-2">{f.cancel}</button> : null}
       </div>
-      {step < steps.length - 1 ? <button type="button" onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
-        className={buttonClass("primary", "md")}>{fr ? "Suivant" : "Next"} →</button> : null}
+      {step < f.steps.length - 1 ? <button type="button" onClick={() => setStep((s) => Math.min(f.steps.length - 1, s + 1))}
+        className={buttonClass("primary", "md")}>{f.next} →</button> : null}
     </div>
   </section>;
 }

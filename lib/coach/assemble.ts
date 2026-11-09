@@ -7,6 +7,7 @@ import { loadRouteAscents } from "@/lib/data/routes";
 import { routeAscentsInLastDays, routeWorkingGrade, summarizeRoutes } from "@/lib/analytics/routes";
 import { coachSummary, pactProgress } from "@/lib/analytics/alter-ego";
 import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadProgramme } from "@/lib/data/programme";
 import { resolveNormalized } from "@/lib/grading";
 import { localDate_ } from "@/lib/training/sessions";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
@@ -197,6 +198,7 @@ export async function assembleCoachContext(
   const pact = await loadOpenPact(viewer.supabase);
   const today = localDate_(now);
   const pactState = pact ? pactProgress(pact, await loadClimberWork(viewer.supabase), today) : null;
+  const programme = await loadProgramme(viewer.supabase, today);
 
   return buildCoachContext({
     climber: {
@@ -222,6 +224,7 @@ export async function assembleCoachContext(
     activeRouteProjects,
     quickAction: opts.quickAction ?? null,
     alterEgo: pact && pactState ? coachSummary(pact, today, pactState.standing, pactState.easeOff) : null,
+    training: { view: programme.view, lastCheck: programme.recentChecks[0] ?? null, replanSuggested: programme.replan.suggested },
     now,
   });
 }
