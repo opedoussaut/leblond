@@ -600,4 +600,20 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await page.getByRole("button", { name: /Saffres E2E/ }).click();
   await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
   await expect(picker.getByRole("button", { name: /Variante E2E/ })).toBeVisible();
+
+  // Filling in a past session: a listed boulder without a pin, added in one step.
+  await page.goto("/session/new?where=past");
+  await page.getByRole("button", { name: "Dehors", exact: true }).click();
+  await page.getByRole("button", { name: /Saffres E2E/ }).click();
+  const pastForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await pastForm.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  await picker.getByLabel("Nom ou numéro de circuit").fill("nouveau toit");
+  await picker.getByRole("button", { name: /Nouveau Toit E2E/ }).click();
+  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (7A)" })).toHaveAttribute("aria-pressed", "true");
+  await quickAdd.getByRole("button", { name: "Top", exact: true }).click();
+  await quickAdd.getByRole("button", { name: "Essais +" }).click();
+  await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText("Ajouté : Nouveau Toit E2E · Top en 2 essais.").first()).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Nouveau Toit E2E" }).getByRole("img", { name: "Essai, Top" })).toBeVisible();
 });
