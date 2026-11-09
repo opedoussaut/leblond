@@ -105,7 +105,7 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
     const ps = parsedPlan?.success ? parsedPlan.data.sessions[v.planSessionIndex] : undefined;
     if (!plan || !ps) return { ok: false, error: "not_found" };
     result = await insertSession(viewer, {
-      title: (methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
+      title: (ps.title ?? methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
       objective: [plan.goal, ps.notes].filter(Boolean).join(" — "), methodId: ps.methodId,
       planId: plan.id, planSessionIndex: v.planSessionIndex,
       date: v.date, time: v.time, minutes: ps.minutes, startNow: v.startNow,
@@ -150,7 +150,7 @@ export async function schedulePlanWeek(planId: string, monday: string): Promise<
   for (const [index, ps] of parsed.data.sessions.entries()) {
     if (taken.has(index + "@" + dates[index])) continue;
     const r = await insertSession(viewer, {
-      title: (methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
+      title: (ps.title ?? methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
       objective: [plan.goal, ps.notes].filter(Boolean).join(" — "), methodId: ps.methodId,
       planId, planSessionIndex: index, date: dates[index], time: null, minutes: ps.minutes, startNow: false,
     });

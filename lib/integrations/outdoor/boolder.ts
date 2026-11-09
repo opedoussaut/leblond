@@ -370,8 +370,8 @@ export function filterProblems<T extends PickerProblem>(
     if (opts.circuitColor || (a.circuit_color && b.circuit_color)) {
       const c = (a.circuit_color ?? "").localeCompare(b.circuit_color ?? "");
       if (c !== 0) return c;
-      const n = num(a.circuit_number) - num(b.circuit_number);
-      if (n !== 0) return n;
+      const n = num(a.circuit_number) - num(b.circuit_number) || (a.circuit_number ?? "").localeCompare(b.circuit_number ?? "");
+      if (n !== 0) return n; // 2, then 2b (bis), then 2c (ter)
     } else if (a.circuit_color || b.circuit_color) {
       return a.circuit_color ? -1 : 1;
     }

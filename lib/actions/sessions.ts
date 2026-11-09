@@ -104,7 +104,8 @@ export async function rescheduleSession(input: unknown): Promise<ActionResult> {
 export async function endSession(sessionId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!id.safeParse(sessionId).success) return { ok: false, error: "invalid" };
-  const { data: s } = await viewer.supabase.from("sessions").select("started_at, ended_at").eq("id", sessionId).single();
+  const { data: s } = await viewer.supabase
+    .from("sessions").select("started_at, ended_at, wearable_activity_id").eq("id", sessionId).single();
   if (!s) return { ok: false, error: "notFound" };
   if (s.ended_at) return { ok: true };
   const end = new Date();
@@ -114,6 +115,9 @@ export async function endSession(sessionId: string): Promise<ActionResult> {
     .update({ ended_at: end.toISOString(), duration_minutes: Math.min(minutes, 1440) })
     .eq("id", sessionId);
   if (error) return { ok: false, error: "unknownError" };
+  // The watch wins: a watch activity linked during the session gives it its times.
+  // Without usable watch timing, the clock times above stay (the call fails quietly).
+  if (s.wearable_activity_id) await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -249,7 +253,7 @@ export async function updateProblem(input: z.input<typeof updateProblemSchema>):
   if (v.topoRef !== undefined) patch.topo_ref = v.topoRef || null;
   if (v.topoUrl !== undefined) patch.topo_url = v.topoUrl || null;
   if (v.nativeGrade !== undefined) {
-    if (problem.outdoor_problem_id !== null) return { ok: false, error: "invalid" };
+    // Topo boulders too: the climber may disagree with the topo's grade.
     if (!isValidGrade(problem.native_grade_system as GradeSystem, v.nativeGrade)) return { ok: false, error: "invalidGrade" };
     patch.native_grade = v.nativeGrade;
   }
@@ -403,6 +407,32 @@ export async function correctAttempt(input: z.input<typeof correctSchema>): Prom
   if (error) return { ok: false, error: error.code === "23514" ? "flashOnlyFirst" : "unknownError" };
   revalidatePath(`/problem/${data.problem_id}`);
   return { ok: true, data };
+}
+
+const removeSchema = z.object({ sessionId: id, problemId: id }).strict();
+
+/**
+ * Takes a boulder out of a session (logged by mistake): its tries there are
+ * deleted and its other tries renumbered. When nothing else is left of it (no
+ * tries in another session, not an active project) the boulder is deleted
+ * too, with its photos and videos.
+ */
+export async function removeProblemFromSession(input: unknown): Promise<ActionResult<{ problemDeleted: boolean }>> {
+  const viewer = await requireViewer();
+  const parsed = removeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { sessionId, problemId } = parsed.data;
+  // Read first: the media rows go with the boulder (on delete cascade), the stored files do not.
+  const { data: media } = await viewer.supabase.from("media").select("storage_path, thumbnail_path").eq("problem_id", problemId);
+  const { data, error } = await viewer.supabase.rpc("remove_problem_from_session", { p_session_id: sessionId, p_problem_id: problemId });
+  if (error) return { ok: false, error: error.code === "P0002" ? "notFound" : "unknownError" };
+  const problemDeleted = (data as { problem_deleted?: boolean } | null)?.problem_deleted === true;
+  if (problemDeleted && media?.length) {
+    const paths = media.flatMap((m) => [m.storage_path, m.thumbnail_path]).filter((p): p is string => Boolean(p));
+    await viewer.supabase.storage.from("media").remove(paths);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true, data: { problemDeleted } };
 }
 
 /** Remove the most recent attempt on a problem (undo). Older attempts are kept to preserve history. */

@@ -73,18 +73,29 @@ async function logGrade(page: Page, grade: string, results: Array<"Essai" | "Top
   }
 }
 
-/** Runs the 9-step structured protocol with two measured tests. */
+/**
+ * Runs the 7-step full assessment (bilan complet) with two measured tests:
+ * goal → availability → health → tests (readiness right before them) → self-ratings → priorities → programme.
+ */
 async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
   const next = () => page.getByRole("button", { name: /^Suivant/ }).click();
-  await expect(page.getByRole("heading", { name: "Préparation et sécurité" })).toBeVisible();
-  await page.getByLabel("Depuis combien de mois grimpes-tu régulièrement ?").fill("36");
-  await page.getByRole("group", { name: /échauffement complet/ }).getByText("Oui").click();
-  await next();
-  await expect(page.getByRole("heading", { name: "Objectif et temps disponible" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Objectif", exact: true })).toBeVisible();
+  await page.getByRole("group", { name: "Ce que tu veux travailler" }).getByText("Bloc", { exact: true }).click();
   await page.getByLabel(/Objectif \(ex\./).fill("Réussir un 7A en bloc");
+  await page.getByLabel("Depuis combien de mois grimpes-tu régulièrement ?").fill("36");
   await next();
-  await page.getByLabel("Lieu").fill("Salle de test");
+  await expect(page.getByRole("heading", { name: "Disponibilités" })).toBeFocused();
+  await page.getByLabel("Séances de grimpe par semaine (salle ou dehors)").selectOption("2");
+  await page.getByLabel(/Séances hors mur par semaine/).selectOption("0");
   await next();
+  await expect(page.getByRole("heading", { name: "Santé" })).toBeVisible();
+  await expect(page.getByText(/LEBLOND n’est pas un médecin/)).toBeVisible();
+  await next();
+  await expect(page.getByRole("heading", { name: "Tests (facultatifs)" })).toBeVisible();
+  await page.getByRole("group", { name: "Fais-tu les tests aujourd’hui ?" }).getByText("Oui, je fais les tests").click();
+  const readiness = page.getByRole("region", { name: "Juste avant les tests" });
+  await readiness.getByRole("group", { name: /échauffement complet/ }).getByText("Oui", { exact: true }).click();
+  await readiness.getByLabel("Lieu des tests").fill("Salle de test");
   const hang = page.locator("article").filter({ hasText: "Suspension 20 mm" });
   await hang.getByLabel(/Résultat/).fill(String(hangSeconds));
   await hang.getByLabel("Conditions du test").fill("Poutre 20 mm, 18 h");
@@ -94,15 +105,15 @@ async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
   await next();
   await expect(page.getByRole("slider", { name: "Technique" })).toBeVisible();
   await next();
-  const results = page.getByRole("table", { name: "Résultats et qualité des données" });
+  const results = page.getByRole("table", { name: "Détail des données et niveaux de preuve" });
   await expect(results.getByText("Mesuré").first()).toBeVisible();
   await expect(results.getByText("Déclaratif").first()).toBeVisible();
   await expect(results.getByText(`${hangSeconds} s`)).toBeVisible();
   await next();
-  await next();
-  await next();
-  await page.getByRole("checkbox", { name: /J’ai suivi le protocole/ }).check();
-  await page.getByRole("button", { name: "Enregistrer mon bilan" }).click();
+  await expect(page.getByRole("heading", { name: "Programme proposé" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ta semaine type" }).getByRole("listitem")).toHaveCount(2);
+  await page.getByRole("checkbox", { name: /Je comprends que ce programme/ }).check();
+  await page.getByRole("button", { name: "Enregistrer mon bilan et mon programme" }).click();
   await expect(page.getByRole("heading", { name: "Profil par niveau de preuve" })).toBeVisible();
 }
 
@@ -459,10 +470,31 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
 
   await page.getByRole("link", { name: /Commencer mon parcours d’entraînement/ }).click();
   await expect(page).toHaveURL(/\/train$/);
-  await page.getByRole("link", { name: /Faire mon bilan de départ/ }).click();
+  await page.getByRole("link", { name: /Faire mon bilan complet/ }).first().click();
   await expect(page).toHaveURL(/\/train\/assess/);
   await runProtocol(page, 25, 8);
   await expect(page.getByRole("region", { name: "Profil par niveau de preuve" }).getByText("25 s")).toBeVisible();
+
+  // The full assessment created the programme: S'entraîner shows it, and step 03 is done.
+  await page.goto("/train");
+  const programme = page.getByRole("region", { name: "Programme en cours" });
+  await expect(programme.getByText("Semaine 1 sur 8")).toBeVisible();
+  await expect(programme.getByText("Prochain bilan complet")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Choisir mon programme \(fait\)/ })).toBeVisible();
+
+  // Daily check-in (bilan du jour): adapts today's session only.
+  await page.getByRole("link", { name: /Faire mon bilan du jour/ }).click();
+  await expect(page).toHaveURL(/\/train\/today$/);
+  await page.getByRole("group", { name: "Ta nuit" }).getByText("Mauvaise").click();
+  await page.getByRole("group", { name: "Ta fatigue" }).getByText("Très fatigué").click();
+  await page.getByRole("button", { name: "Voir ma séance du jour" }).click();
+  const day = page.getByRole("region", { name: "Ta séance idéale aujourd’hui" });
+  await expect(day.getByText("De la mobilité douce à la place")).toBeVisible();
+  await expect(day.getByText(/Très fatigué : récupérer/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/Bilan du jour déjà fait/)).toBeVisible();
+  await page.goto("/train");
+  await expect(page.getByText("Fait aujourd’hui : de la mobilité douce à la place.")).toBeVisible();
 
   // Recommended Atlas method → add to a plan → schedule this week.
   await page.goto("/atlas/max-hangs");
@@ -536,7 +568,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
 
   // Controlled reassessment: improved hang → compared with the baseline.
   await page.goto("/training-assessment");
-  await page.getByRole("button", { name: /Nouveau bilan \(réévaluation\)/ }).click();
+  await page.getByRole("button", { name: /Nouveau bilan complet \(réévaluation\)/ }).click();
   await runProtocol(page, 31, 9);
   await expect(page.getByText(/\+6 vs initial/)).toBeVisible();
   await expect(page.getByText(/\+1 vs initial/)).toBeVisible();
@@ -653,7 +685,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   await signInWithPassword(page, "guided@leblond.local");
   for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
-    for (const p of ["/home", "/climbing", "/session", "/session/new", "/projects", "/train", "/train/sessions", "/training-plans",
+    for (const p of ["/home", "/climbing", "/session", "/session/new", "/projects", "/train", "/train/today", "/train/assess", "/train/sessions", "/training-plans",
       "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
       "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
@@ -741,6 +773,8 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   // Leaving asks twice, then the page offers a new pact.
   await page.goto("/train/alter-ego");
   await page.getByRole("button", { name: "Reprendre le pacte" }).click();
+  // Wait for the resumed pact: a refresh landing mid-confirmation would reset it.
+  await expect(page.getByRole("button", { name: "Mettre le pacte en pause" })).toBeVisible();
   await page.getByRole("button", { name: "Abandonner le pacte" }).click();
   await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();

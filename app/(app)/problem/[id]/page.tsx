@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GradeChip } from "@/components/climbing/grade-chip";
-import { CircuitBadge, TopoAttribution } from "@/components/climbing/outdoor";
+import { CircuitBadge, ProblemOnMap, TopoAttribution } from "@/components/climbing/outdoor";
 import { MediaUploader } from "@/components/climbing/media-uploader";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
@@ -114,6 +114,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
                 </a>
               ) : null}
             </p>
+            <ProblemOnMap problem={topo} />
             <TopoAttribution source={topo.source} credit={topo.outdoor_areas?.credit} />
           </div>
         </Card>

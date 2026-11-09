@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireViewer } from "@/lib/auth/viewer";
+import { requireViewer, type Viewer } from "@/lib/auth/viewer";
+import { isValidGrade } from "@/lib/grading";
+import type { Tables } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/common";
 import type { LiveProblem } from "./sessions";
 
@@ -16,8 +19,11 @@ export async function pickOutdoorProblem(input: z.input<typeof schema>): Promise
   const viewer = await requireViewer();
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { gymId, outdoorProblemId } = parsed.data;
+  return findOrCreate(viewer, parsed.data.gymId, parsed.data.outdoorProblemId);
+}
 
+/** The climber's problem for a topo boulder, created on first pick. */
+async function findOrCreate(viewer: Viewer, gymId: string, outdoorProblemId: number): Promise<ActionResult<LiveProblem>> {
   const { data: op } = await viewer.supabase
     .from("outdoor_problems")
     .select("id, name, grade, wall_angle, outdoor_areas!inner(gym_id)")
@@ -63,4 +69,57 @@ export async function pickOutdoorProblem(input: z.input<typeof schema>): Promise
     return { ok: false, error: "unknownError" };
   }
   return { ok: true, data: { ...data, tags: [] } };
+}
+
+const logSchema = z
+  .object({
+    sessionId: z.guid(),
+    gymId: z.guid(),
+    outdoorProblemId: z.number().int().positive(),
+    /** The topo's grade or the climber's own (Font). */
+    grade: z.string().trim().min(1).max(10),
+    tries: z.number().int().min(1).max(50),
+    outcome: z.enum(["FLASH", "TOP", "ATTEMPT", "PROJECT"]),
+  })
+  .strict()
+  .refine((v) => v.outcome !== "FLASH" || v.tries === 1, "A flash is a first try");
+
+/**
+ * Picks a topo boulder and logs it in one step: its grade (the topo's or the
+ * climber's), the number of tries and how it ended (flash, top, not sent,
+ * project). Live or when filling in a past session.
+ */
+export async function logTopoBoulder(
+  input: unknown,
+): Promise<ActionResult<{ problem: LiveProblem; attempts: Tables<"attempts">[] }>> {
+  const viewer = await requireViewer();
+  const parsed = logSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+
+  const picked = await findOrCreate(viewer, v.gymId, v.outdoorProblemId);
+  if (!picked.ok) return picked;
+  if (!picked.data) return { ok: false, error: "unknownError" };
+  let problem = picked.data;
+  if (problem.native_grade !== v.grade) {
+    if (!isValidGrade("FONT", v.grade)) return { ok: false, error: "invalidGrade" };
+    const { data, error } = await viewer.supabase
+      .from("problems")
+      .update({ native_grade: v.grade })
+      .eq("id", problem.id)
+      .select()
+      .single();
+    if (error || !data) return { ok: false, error: "unknownError" };
+    problem = { ...data, tags: problem.tags };
+  }
+
+  const { data: attempts, error } = await viewer.supabase.rpc("log_problem_tries", {
+    p_session_id: v.sessionId,
+    p_problem_id: problem.id,
+    p_tries: v.tries,
+    p_outcome: v.outcome,
+  });
+  if (error) return { ok: false, error: error.message === "FLASH_NOT_FIRST_ATTEMPT" ? "flashOnlyFirst" : "unknownError" };
+  revalidatePath("/", "layout");
+  return { ok: true, data: { problem, attempts: attempts ?? [] } };
 }

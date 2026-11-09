@@ -124,6 +124,7 @@ export type Database = {
           goal: string;
           weeks: number;
           sessions: Json;
+          assessment_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -134,6 +135,7 @@ export type Database = {
           goal?: string;
           weeks?: number;
           sessions: Json;
+          assessment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -144,10 +146,78 @@ export type Database = {
           goal?: string;
           weeks?: number;
           sessions?: Json;
+          assessment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "training_plans_assessment_fk";
+            columns: ["user_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "training_assessments";
+            referencedColumns: ["user_id", "id"];
+          },
+        ];
+      };
+      training_day_checks: {
+        Row: {
+          id: string;
+          user_id: string;
+          check_date: string;
+          sleep: number;
+          fatigue: number;
+          soreness: number;
+          pain: Json;
+          minutes_available: number;
+          place: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id: string | null;
+          recommended_minutes: number;
+          reasons: Json;
+          assessment_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          check_date: string;
+          sleep: number;
+          fatigue: number;
+          soreness: number;
+          pain?: Json;
+          minutes_available: number;
+          place: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id?: string | null;
+          recommended_minutes?: number;
+          reasons?: Json;
+          assessment_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          sleep?: number;
+          fatigue?: number;
+          soreness?: number;
+          pain?: Json;
+          minutes_available?: number;
+          place?: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome?: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id?: string | null;
+          recommended_minutes?: number;
+          reasons?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_day_checks_user_id_assessment_id_fkey";
+            columns: ["user_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "training_assessments";
+            referencedColumns: ["user_id", "id"];
+          },
+        ];
       };
       route_projects: {
         Row: {
@@ -1187,8 +1257,8 @@ export type Database = {
           featured: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en: string | null;
           name_searchable: string;
@@ -1210,8 +1280,8 @@ export type Database = {
           featured?: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en?: string | null;
           name_searchable?: string;
@@ -1233,8 +1303,8 @@ export type Database = {
           featured?: boolean;
           grade?: string;
           id?: number;
-          latitude?: number;
-          longitude?: number;
+          latitude?: number | null;
+          longitude?: number | null;
           name?: string;
           name_en?: string | null;
           name_searchable?: string;
@@ -1785,6 +1855,31 @@ export type Database = {
       reschedule_session: {
         Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };
         Returns: Database["public"]["Tables"]["sessions"]["Row"];
+      };
+      remove_problem_from_session: {
+        Args: { p_session_id: string; p_problem_id: string };
+        Returns: Json;
+      };
+      log_problem_tries: {
+        Args: { p_session_id: string; p_problem_id: string; p_tries: number; p_outcome: string };
+        Returns: {
+          attempt_number: number;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          perceived_difficulty: number | null;
+          problem_id: string;
+          result: Database["public"]["Enums"]["attempt_result"];
+          session_id: string;
+          started_at: string | null;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "attempts";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       log_boulder_batch: {
         Args: { p_session_id: string; p_grade: string; p_count: number; p_tries: number; p_outcome: string; p_notes?: string | null };

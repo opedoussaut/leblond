@@ -5,7 +5,7 @@ export type SectionId = (typeof SECTION_IDS)[number];
 /** i18n keys under `t.nav` used for sub-pages. */
 export type SubPageKey =
   | "overview" | "session" | "projects"
-  | "trainingSessions" | "calendar" | "atlas" | "trainingPlans" | "baseline" | "patrick"
+  | "dayCheck" | "trainingSessions" | "calendar" | "atlas" | "trainingPlans" | "baseline" | "patrick"
   | "progress" | "trainingHistory" | "assessment"
   | "myProfile" | "connections";
 
@@ -31,6 +31,7 @@ export const AREAS: readonly Area[] = [
     id: "training", href: "/train",
     children: [
       { href: "/train", key: "overview" },
+      { href: "/train/today", key: "dayCheck" },
       { href: "/train/sessions", key: "trainingSessions" },
       { href: "/calendar", key: "calendar" },
       { href: "/atlas", key: "atlas" },

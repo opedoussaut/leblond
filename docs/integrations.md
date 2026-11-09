@@ -54,6 +54,20 @@ A beta tester can draw a site's topo in Google My Maps; the admin uploads its ex
 - **Boolder is untouched:** the Boolder import deletes and counts `source = 'BOOLDER'` rows only, and a team topo cannot be imported into a Boolder area.
 - **Credit:** the live picker and problem page show "Topo : <credit>" instead of Boolder's attribution, and no Boolder link.
 
+## Boulder map — OpenStreetMap (`components/climbing/topo-map.tsx`)
+
+The boulder picker has a *Liste / Carte* switch, and a catalogue boulder's page has *Voir sur la carte* and *Ouvrir dans OpenStreetMap*. Both work for Boolder areas and team topos (`outdoor_problems.latitude/longitude`).
+
+- **Loaded on demand.** Leaflet (`leaflet` 1.9) and its CSS are code-split with `next/dynamic` (`ssr: false`). Neither they nor any tile are fetched until the climber opens a map.
+- **Pins.** Each pin shows the circuit colour and number, or the grade off-circuit. It is a keyboard-focusable button labelled "orange 12 · La Roseline · 4c". Pins are built with DOM nodes, never HTML strings, because topo names come from uploaded files. Tapping a pin shows the boulder, then *Choisir ce bloc*. The filters (circuit, grade, search) apply to the map too, capped at 1,500 pins.
+- **Tiles.** `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, following the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/):
+  - "© OpenStreetMap" attribution on the map;
+  - the browser's Referer is sent (`strict-origin-when-cross-origin`);
+  - no prefetching or offline download (`public/sw.js` only handles navigations, so tiles stay in the browser cache);
+  - max zoom 19.
+  If usage outgrows a small beta, switch to a tile provider with a key. The URL is `OSM_TILES` in `lib/integrations/outdoor/osm.ts`.
+- **Tests.** The E2E topo test opens the map and picks a boulder from its pin. Tile requests are aborted, so CI never calls OSM.
+
 ## Policy
 
 - Official/authorised APIs only. No scraping, no reverse engineering.

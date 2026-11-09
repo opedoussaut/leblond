@@ -50,6 +50,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const [tries, setTries] = useState(1);
   const [notes, setNotes] = useState("");
   const [editing, setEditing] = useState<{ id: string; notes: string } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const L = loggingDictionary(locale);
   const [projects, setProjects] = useState(initialProjects);
   const [project, setProject] = useState<ActiveRouteProject | null>(null);
@@ -292,7 +293,15 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
                 className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
               <Link href={`/route/${a.id}`} className="mt-1 inline-block text-xs font-bold text-accent underline underline-offset-2">{r.details} ›</Link>
             </span>
-            <button type="button" onClick={() => remove(a.id)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{r.remove}</button>
+            {confirmRemove === a.id ? <span className="flex shrink-0 flex-col items-end gap-1">
+              <span className="text-xs font-semibold">{L.routeRemoveTitle}</span>
+              <span className="flex gap-1">
+                <button type="button" disabled={pending} onClick={() => { setConfirmRemove(null); remove(a.id); }}
+                  className={buttonClass("danger", "sm")}>{r.remove}</button>
+                <button type="button" onClick={() => setConfirmRemove(null)} className={buttonClass("ghost", "sm")}>{t.common.cancel}</button>
+              </span>
+            </span> : <button type="button" onClick={() => setConfirmRemove(a.id)}
+              className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{r.remove}</button>}
           </li>)}
         </ul>}
     </section>

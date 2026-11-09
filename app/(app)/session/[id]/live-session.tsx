@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { isColorSystem } from "@/lib/grading/systems";
 import { QuickBoulderEntry } from "./quick-boulder-entry";
 import { ResultBadge, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
@@ -19,7 +19,7 @@ import {
   type CatalogueItem,
 } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
-import { fieldClass } from "@/components/ui/field";
+import { Select, fieldClass } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -29,9 +29,10 @@ import {
   deleteLatestAttempt,
   endSession,
   logAttempt,
+  removeProblemFromSession,
   updateProblem,
 } from "@/lib/actions/sessions";
-import { pickOutdoorProblem } from "@/lib/actions/outdoor";
+import { logTopoBoulder, pickOutdoorProblem } from "@/lib/actions/outdoor";
 import { countActivity, type AttemptFact } from "@/lib/analytics";
 import {
   STYLE_TAGS,
@@ -43,10 +44,11 @@ import {
   type WallAngle,
 } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
-import { fmt } from "@/lib/i18n";
+import { fmt, plural } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type Attempt = Tables<"attempts">;
+type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
 export type LiveProblemItem = {
   id: string;
   native_grade: string;
@@ -111,6 +113,10 @@ export function LiveSession({
   const [projectIds, setProjectIds] = useState(projectProblemIds);
   const [bulkTries, setBulkTries] = useState(2);
   const [commentDraft, setCommentDraft] = useState<string | null>(null);
+  // A topo boulder being added in one step, and what was added last.
+  const [picked, setPicked] = useState<CatalogueItem | null>(null);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const L = loggingDictionary(locale);
 
   useEffect(() => {
@@ -172,7 +178,59 @@ export function LiveSession({
     });
   }
 
+  /** A topo boulder was chosen: ask for its grade, tries and result. */
   function pickFromTopo(item: CatalogueItem) {
+    setPicked(item);
+    setLastAdded(null);
+  }
+
+  const asItem = (p: LiveProblem): LiveProblemItem => ({
+    id: p.id,
+    native_grade: p.native_grade,
+    native_grade_system: p.native_grade_system,
+    notes: p.notes,
+    wall_angle: p.wall_angle as WallAngle,
+    tags: p.tags as StyleTag[],
+    created_at: p.created_at,
+    name: p.name,
+    outdoor_problem_id: p.outdoor_problem_id,
+  });
+
+  /** Adds the topo boulder with its tries and result in one go; the topo stays open for the next one. */
+  function addFromTopo(item: CatalogueItem, choice: { grade: string; outcome: Outcome; tries: number }) {
+    start(async () => {
+      const res = await logTopoBoulder({ sessionId, gymId: gym.id, outdoorProblemId: item.id, ...choice });
+      if (!res.ok || !res.data) {
+        return say("error", !res.ok && res.error === "flashOnlyFirst" ? t.session.flashOnlyFirst : t.common.unknownError);
+      }
+      const { problem: p, attempts: added } = res.data;
+      setProblems((list) =>
+        list.some((x) => x.id === p.id)
+          ? list.map((x) => (x.id === p.id ? { ...x, native_grade: p.native_grade } : x))
+          : [...list, asItem(p)],
+      );
+      setAttempts((list) => [...list, ...added]);
+      if (choice.outcome === "PROJECT") setProjectIds((ids) => (ids.includes(p.id) ? ids : [...ids, p.id]));
+      setCurrentId(p.id);
+      setPicked(null);
+      setFlashPrompt(null);
+      const what =
+        choice.outcome === "FLASH"
+          ? L.flash
+          : choice.outcome === "TOP"
+            ? choice.tries === 1 ? L.top : fmt(L.topIn, { n: choice.tries })
+            : plural(locale, choice.tries, choice.outcome === "PROJECT"
+              ? { one: L.projectTriesOne, other: L.projectTriesOther }
+              : { one: L.notSentOne, other: L.notSentOther });
+      const text = fmt(L.topoAdded, { name: item.name, what });
+      setLastAdded(text);
+      say("ok", text);
+    });
+  }
+
+  /** The former behaviour: select the boulder and log it try by try. */
+  function selectFromTopo(item: CatalogueItem) {
+    setPicked(null);
     const known = problems.find((p) => p.outdoor_problem_id === item.id);
     if (known) {
       setCurrentId(known.id);
@@ -184,22 +242,7 @@ export function LiveSession({
       const res = await pickOutdoorProblem({ gymId: gym.id, outdoorProblemId: item.id });
       if (!res.ok || !res.data) return say("error", t.common.unknownError);
       const p = res.data;
-      setProblems((list) =>
-        list.some((x) => x.id === p.id)
-          ? list
-          : [
-              ...list,
-              {
-                id: p.id,
-                native_grade: p.native_grade,
-                wall_angle: p.wall_angle,
-                tags: p.tags as StyleTag[],
-                created_at: p.created_at,
-                name: p.name,
-                outdoor_problem_id: p.outdoor_problem_id,
-              },
-            ],
-      );
+      setProblems((list) => (list.some((x) => x.id === p.id) ? list : [...list, asItem(p)]));
       setCurrentId(p.id);
       setAdding(false);
       setFlashPrompt(null);
@@ -312,6 +355,29 @@ export function LiveSession({
     });
   }
 
+  /** Takes the current boulder out of this session (logged by mistake). */
+  function removeCurrent() {
+    if (!current) return;
+    const problemId = current.id;
+    const keep = projectIds.includes(problemId);
+    start(async () => {
+      const res = await removeProblemFromSession({ sessionId, problemId });
+      if (!res.ok || !res.data) return say("error", t.common.unknownError);
+      // Same renumbering as the database: the remaining tries count from 1 again.
+      setAttempts((list) => {
+        const rest = list.filter((a) => !(a.problem_id === problemId && a.session_id === sessionId));
+        const order = rest.filter((a) => a.problem_id === problemId).sort((a, b) => a.attempt_number - b.attempt_number);
+        const numbers = new Map(order.map((a, i) => [a.id, i + 1]));
+        return rest.map((a) => (numbers.has(a.id) ? { ...a, attempt_number: numbers.get(a.id)! } : a));
+      });
+      if (!keep) setProblems((list) => list.filter((p) => p.id !== problemId));
+      setCurrentId(null);
+      setConfirmRemoveId(null);
+      setFlashPrompt(null);
+      say("ok", res.data.problemDeleted ? L.removedDeleted : L.removed);
+    });
+  }
+
   function patchCurrent(patch: { wallAngle?: WallAngle; tags?: StyleTag[] }) {
     if (!current) return;
     const id = current.id;
@@ -337,6 +403,7 @@ export function LiveSession({
   const currentAttempts = current ? attempts.filter((a) => a.problem_id === current.id) : [];
   const currentSessionAttempts = currentAttempts.filter((a) => a.session_id === sessionId);
   const canFlash = current !== null && currentAttempts.length === 0;
+  const pickedKnown = picked ? problems.find((p) => p.outdoor_problem_id === picked.id) ?? null : null;
 
   return (
     <div className="space-y-5">
@@ -455,6 +522,34 @@ export function LiveSession({
               {t.session.viewProblem}
             </Link>
           </div>
+          {confirmRemoveId === current.id ? (
+            <div className="mt-3 space-y-2 rounded-xl border border-danger p-3">
+              <p className="text-sm font-semibold">{L.removeTitle}</p>
+              <p className="text-sm text-ink-2">
+                {currentSessionAttempts.length === 0
+                  ? L.removeNoTries
+                  : plural(locale, currentSessionAttempts.length, { one: L.removeTriesOne, other: L.removeTriesOther })}{" "}
+                {projectIds.includes(current.id)
+                  ? L.removeKeepsProject
+                  : currentAttempts.length > currentSessionAttempts.length
+                    ? L.removeKeepsOthers
+                    : L.removeDeletes}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="danger" onClick={removeCurrent} disabled={pending}>
+                  {L.removeConfirm}
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmRemoveId(null)}>
+                  {t.common.cancel}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmRemoveId(current.id)}
+              className="mt-3 min-h-11 text-sm font-bold text-danger underline underline-offset-2">
+              {L.removeFromSession}
+            </button>
+          )}
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-semibold text-ink-2">{t.session.optionalDetails}</summary>
             <div className="mt-3 space-y-3">
@@ -481,16 +576,34 @@ export function LiveSession({
         </section>
       ) : null}
 
-      {adding && outdoor && outdoor.problems.length > 0 && !gradeFallback ? (
-        <BoolderProblemPicker
-          problems={outdoor.problems}
-          source={outdoor.area.source}
-          credit={outdoor.area.credit}
+      {picked ? (
+        <TopoQuickAdd
+          key={picked.id}
+          item={picked}
+          currentGrade={pickedKnown?.native_grade ?? null}
+          priorTries={pickedKnown ? attempts.filter((a) => a.problem_id === pickedKnown.id).length : 0}
           pending={pending}
-          onPick={pickFromTopo}
-          onCancel={problems.length ? () => setAdding(false) : undefined}
-          onNotInTopo={() => setGradeFallback(true)}
+          onAdd={(choice) => addFromTopo(picked, choice)}
+          onOneByOne={() => selectFromTopo(picked)}
+          onCancel={() => setPicked(null)}
         />
+      ) : null}
+      {adding && outdoor && outdoor.problems.length > 0 && !gradeFallback ? (
+        // Kept mounted under the form so the search, filters and map stay as they were.
+        <div hidden={picked !== null} className="space-y-2">
+          {lastAdded ? (
+            <p className="rounded-xl bg-accent-soft px-3 py-2 text-sm font-semibold">✓ {lastAdded}</p>
+          ) : null}
+          <BoolderProblemPicker
+            problems={outdoor.problems}
+            source={outdoor.area.source}
+            credit={outdoor.area.credit}
+            pending={pending}
+            onPick={pickFromTopo}
+            onCancel={problems.length ? () => { setAdding(false); setLastAdded(null); } : undefined}
+            onNotInTopo={() => setGradeFallback(true)}
+          />
+        </div>
       ) : adding ? (
         <div className="space-y-2">
           {gym.outdoor ? (
@@ -539,6 +652,8 @@ export function LiveSession({
                     onClick={() => {
                       setCurrentId(p.id);
                       setAdding(false);
+                      setPicked(null);
+                      setLastAdded(null);
                     }}
                     aria-current={p.id === currentId ? "true" : undefined}
                     className={cn(
@@ -596,6 +711,145 @@ export function LiveSession({
         )}
       </div> : null}
     </div>
+  );
+}
+
+/**
+ * A topo boulder in one step: the topo's grade or the climber's own, how it
+ * ended and the number of tries. "Log try by try" keeps the former flow.
+ */
+function TopoQuickAdd({
+  item,
+  currentGrade,
+  priorTries,
+  pending,
+  onAdd,
+  onOneByOne,
+  onCancel,
+}: {
+  item: CatalogueItem;
+  /** The grade this boulder already has, when it was logged before. */
+  currentGrade: string | null;
+  /** Tries already logged on it (a flash is then impossible). */
+  priorTries: number;
+  pending: boolean;
+  onAdd: (choice: { grade: string; outcome: Outcome; tries: number }) => void;
+  onOneByOne: () => void;
+  onCancel: () => void;
+}) {
+  const { t, locale } = useI18n();
+  const L = loggingDictionary(locale);
+  const fontGrades = useMemo(() => listGrades("FONT").map((g) => g.id), []);
+  const [own, setOwn] = useState(currentGrade !== null && currentGrade !== item.grade);
+  const [ownGrade, setOwnGrade] = useState(currentGrade ?? (fontGrades.includes(item.grade) ? item.grade : "5a"));
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [tries, setTries] = useState(1);
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    box.current?.scrollIntoView({ block: "nearest" });
+  }, []);
+  const canFlash = priorTries === 0;
+  const n = outcome === "FLASH" ? 1 : tries;
+  const outcomes: Array<{ value: Outcome; tone: "flash" | "top" | "attempt" | "project"; label: string }> = [
+    { value: "FLASH", tone: "flash", label: L.flash },
+    { value: "TOP", tone: "top", label: L.top },
+    { value: "ATTEMPT", tone: "attempt", label: L.notSent },
+    { value: "PROJECT", tone: "project", label: L.project },
+  ];
+  const choiceClass = (on: boolean) =>
+    cn("min-h-11 rounded-full border px-3 text-sm", on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2");
+
+  return (
+    <section ref={box} aria-label={L.topoAddTitle} className="space-y-4 rounded-2xl border-2 border-accent bg-surface p-4">
+      <div className="flex items-center gap-3">
+        <span className="w-10 shrink-0">
+          <CircuitBadge color={item.circuit_color} number={item.circuit_number} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-bold">{item.name}</span>
+          <span className="block text-xs text-ink-3">
+            {(t.outdoor.steepness as Record<string, string>)[item.steepness] ?? item.steepness}
+            {item.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
+          </span>
+        </span>
+        <span className="shrink-0 font-black tabular-nums">{item.grade}</span>
+      </div>
+      {priorTries > 0 ? (
+        <p className="text-xs text-ink-2">{plural(locale, priorTries, { one: L.priorOne, other: L.priorOther })}</p>
+      ) : null}
+
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-semibold">{L.grade}</legend>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" aria-pressed={!own} onClick={() => setOwn(false)} className={choiceClass(!own)}>
+            {fmt(L.gradeTopo, { grade: item.grade })}
+          </button>
+          <button type="button" aria-pressed={own} onClick={() => setOwn(true)} className={choiceClass(own)}>
+            {L.gradeMine}
+          </button>
+          {own ? (
+            <Select aria-label={L.gradeMine} value={ownGrade} onChange={(e) => setOwnGrade(e.target.value)} className="w-28">
+              {fontGrades.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </Select>
+          ) : null}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-semibold">{L.outcome}</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {outcomes.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={outcome === o.value}
+              disabled={o.value === "FLASH" && !canFlash}
+              onClick={() => setOutcome(o.value)}
+              style={outcome === o.value ? toneButtonStyle(o.tone) : undefined}
+              className={cn(
+                "min-h-12 rounded-2xl border px-3 font-bold disabled:opacity-40",
+                outcome === o.value ? "" : "border-line",
+              )}
+            >
+              <span aria-hidden>{RESULT_TONES[o.tone].symbol} </span>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        {!canFlash ? <p className="mt-1 text-xs text-ink-3">{L.flashOnlyOne}</p> : null}
+      </fieldset>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">{L.tries}</span>
+        <button type="button" aria-label={L.tries + " −"} disabled={n <= 1 || outcome === "FLASH"} onClick={() => setTries((x) => Math.max(1, x - 1))}
+          className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">−</button>
+        <span className="w-8 text-center font-black tabular-nums" aria-live="polite">{n}</span>
+        <button type="button" aria-label={L.tries + " +"} disabled={n >= 50 || outcome === "FLASH"} onClick={() => setTries((x) => Math.min(50, x + 1))}
+          className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
+        <span className="text-xs text-ink-3">{L.topoTriesHint}</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="lg"
+          className="flex-1"
+          disabled={pending || outcome === null}
+          onClick={() => outcome && onAdd({ grade: own ? ownGrade : item.grade, outcome, tries: n })}
+        >
+          {L.add}
+        </Button>
+        <Button size="lg" variant="secondary" disabled={pending} onClick={onOneByOne}>
+          {L.oneByOne}
+        </Button>
+        <Button size="lg" variant="ghost" onClick={onCancel}>
+          {t.common.cancel}
+        </Button>
+      </div>
+    </section>
   );
 }
 

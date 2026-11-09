@@ -22,6 +22,15 @@ export function fmt(template: string, vars: Record<string, string | number>): st
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 }
 
+/**
+ * "{n} séance" / "{n} séances" with the language's plural rule (in French 0 and 1
+ * are singular). `forms.other` is used for every non-"one" category.
+ */
+export function plural(locale: Locale, n: number, forms: { one: string; other: string }): string {
+  const rule = new Intl.PluralRules(intlLocale(locale)).select(n);
+  return fmt(rule === "one" ? forms.one : forms.other, { n });
+}
+
 export function intlLocale(locale: Locale): string {
   return locale === "fr" ? "fr-FR" : "en-GB";
 }

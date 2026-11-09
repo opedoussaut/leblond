@@ -2,14 +2,19 @@ import Link from "next/link";
 import { AreaCard } from "@/components/layout/area-card";
 import { AtlasIcon, CalendarIcon, PatrickIcon } from "@/components/layout/nav-icons";
 import { AlterEgoScore } from "@/components/training/alter-ego-score";
+import { ProgrammeCard, ReplanBanner } from "@/components/training/programme-card";
 import { PageHeader } from "@/components/ui/card";
 import { pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadProgramme } from "@/lib/data/programme";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
+import { fmt } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { getI18n } from "@/lib/i18n/server";
+import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_ } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
 
@@ -20,38 +25,43 @@ export default async function TrainingHome() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   const ego = alterEgoDictionary(locale);
-  const [sessions, { count: assessments }, { count: plans }, pact, work] = await Promise.all([
+  const j = journeyDictionary(locale);
+  const h = j.hub;
+  const today = localDate_(new Date());
+  const [sessions, { count: assessments }, { count: plans }, pact, work, programme] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
     viewer.supabase.from("training_assessments").select("id", { count: "exact", head: true }),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
     loadOpenPact(viewer.supabase),
     loadClimberWork(viewer.supabase),
+    loadProgramme(viewer.supabase, today),
   ]);
-  const today = localDate_(new Date());
+  const view = programme.view;
   const live = sessions?.find((s) => s.status === "IN_PROGRESS");
   const next = sessions?.filter((s) => s.status === "PLANNED" && (s.scheduledDate ?? today) >= today)
     .sort((a, b) => (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? ""))[0];
   const featured = live ?? next;
+  const dateLabel = (date: string) => formatDate(date + "T12:00:00", locale, { day: "numeric", month: "long" });
+  const methodTitle = view ? METHODS_FOR_PLANS.find((m) => m.id === view.methodId)?.title ?? view.methodId : "";
 
   const steps = [
     { no: "01", href: "/profile", done: !!viewer.profile.target_grade,
       title: fr ? "Définir mon objectif" : "Set my goal",
       detail: fr ? "Discipline, niveau actuel et niveau visé — sans date de réussite garantie." : "Discipline, current and target level — no guaranteed deadline." },
     { no: "02", href: "/train/assess", done: (assessments ?? 0) > 0,
-      title: fr ? "Faire mon bilan de départ" : "Complete a baseline assessment",
-      detail: fr ? "Protocole guidé : tests sûrs mesurés, observations de ton carnet et auto-évaluation, clairement séparés." : "Guided protocol: safe measured tests, journal observations and self-ratings, kept separate." },
-    { no: "03", href: "/training-plans", done: (plans ?? 0) > 0,
-      title: fr ? "Choisir mon programme" : "Choose my training plan",
-      detail: fr ? "Sélectionne des méthodes de l’Atlas selon tes priorités et ton temps." : "Pick Atlas methods for your priorities and available time." },
+      title: h.stepFullTitle, detail: h.stepFullDetail },
+    { no: "03", href: "/training-plans", done: !!view?.plan || (plans ?? 0) > 0,
+      title: h.stepProgrammeTitle,
+      detail: view ? fmt(h.stepProgrammeDone, { method: methodTitle }) + " " + h.stepProgrammeDetail : h.stepProgrammeDetail },
     { no: "04", href: "/calendar", done: (sessions ?? []).some((s) => s.scheduledDate),
       title: fr ? "Planifier mes séances" : "Schedule my sessions",
-      detail: fr ? "Place les séances du programme dans ton calendrier." : "Place plan sessions in your calendar." },
+      detail: fr ? "Place les séances de ta semaine type dans ton calendrier." : "Place your weekly template's sessions in your calendar." },
     { no: "05", href: "/train/sessions", done: (sessions ?? []).some((s) => s.status === "COMPLETED"),
       title: fr ? "Réaliser et enregistrer mes séances" : "Run and record my sessions",
       detail: fr ? "Lecteur de séance : exercices, séries, repos, effort et bilan." : "Session player: exercises, sets, rest, effort and summary." },
     { no: "06", href: "/follow-up/training", done: false,
       title: fr ? "Observer et réévaluer" : "Review and reassess",
-      detail: fr ? "Prévu vs réalisé, puis nouveau bilan pour comparer." : "Planned vs completed, then reassess to compare." },
+      detail: fr ? "Prévu vs réalisé, puis nouveau bilan complet pour comparer." : "Planned vs completed, then a new full assessment to compare." },
   ];
 
   return <div className="space-y-8">
@@ -59,10 +69,47 @@ export default async function TrainingHome() {
       title={fr ? "S’entraîner" : "Training"}
       subtitle={fr ? "Évaluer, préparer, réaliser et planifier ton entraînement." : "Assess, prepare, execute and schedule your training."}/>
 
+    {programme.replan.suggested ? <ReplanBanner locale={locale} replan={programme.replan} /> : null}
+
+    <section aria-label={h.entriesTitle} className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
+          <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-lg font-extrabold text-ink">{h.dayTitle}</h3>
+              <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-accent">{h.dayBadge}</span>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.dayText}</p>
+            {programme.todayCheck ? <p className="mt-2 text-sm font-bold text-ink">{fmt(h.dayDone, { outcome: j.outcomes[programme.todayCheck.outcome].toLowerCase() })}</p> : null}
+          </div>
+          <Link href="/train/today" className={buttonClass(programme.todayCheck ? "secondary" : "primary", "md")}>
+            {programme.todayCheck ? h.dayRedo : h.dayCta} →
+          </Link>
+        </div>
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-lg font-extrabold text-ink">{h.fullTitle}</h3>
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
+            {view ? <p className={"mt-2 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
+              {fmt(view.reassessmentDue ? h.fullDue : h.fullNext, { date: dateLabel(view.nextReassessment) })}
+            </p> : null}
+          </div>
+          <Link href="/train/assess" className={buttonClass(view && !view.reassessmentDue ? "secondary" : "primary", "md")}>
+            {view ? h.fullAgain : h.fullCta} →
+          </Link>
+        </div>
+      </div>
+    </section>
+
+    <ProgrammeCard locale={locale} view={view} today={today} />
+
     <section aria-labelledby="today-heading" className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
+      <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
         <h2 id="today-heading" className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">
-          {live ? (fr ? "Séance en cours" : "Session in progress") : (fr ? "Prochaine séance" : "Next session")}
+          {live ? (fr ? "Séance en cours" : "Session in progress") : (fr ? "Prochaine séance au calendrier" : "Next session in the calendar")}
         </h2>
         {featured ? <>
           <p className="mt-2 text-2xl font-extrabold tracking-tight text-ink">{featured.title}</p>
@@ -89,6 +136,11 @@ export default async function TrainingHome() {
         </Link>
       </div>
     </section>
+
+    <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
+      <summary className="cursor-pointer font-bold">{h.howTitle}</summary>
+      <p className="mt-2 leading-relaxed text-ink-2">{h.howText}</p>
+    </details>
 
     {pact ? <AlterEgoScore locale={locale} pact={pact} progress={pactProgress(pact, work, today)} href="/train/alter-ego" />
       : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">

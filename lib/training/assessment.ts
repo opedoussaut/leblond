@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRAINING_AXES, METHODS_FOR_PLANS, type TrainingAxis, type TrainingEntry } from "./catalogue";
 import { assessmentContextSchema, measurementSchema } from "./assessment-protocol";
+import { planSessionSchema } from "./plans";
 
 /**
  * These are self-reported, anchored 1–5 SKILL ratings, not grade-equivalents.
@@ -56,6 +57,8 @@ export const assessmentInputSchema = z.object({
   kind: z.enum(["BASIC", "STRUCTURED"]).optional(),
   measurements: z.array(measurementSchema).max(8).optional(),
   context: assessmentContextSchema.optional(),
+  // Weekly template proposed by the full assessment; saved as a training plan linked to it.
+  programme: z.object({ sessions: z.array(planSessionSchema).min(1).max(14) }).strict().optional(),
 }).strict();
 export type AssessmentInput = z.infer<typeof assessmentInputSchema>;
 export type SavedAssessment = AssessmentInput & { id: string; createdAt: string };

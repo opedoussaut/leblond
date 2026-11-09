@@ -35,7 +35,7 @@ export function ProblemEditor({
     nativeGrade: string;
     /** Outdoor: sector instead of wall zone, topo reference and link. */
     outdoor: boolean;
-    /** Picked from the topo catalogue: its grade comes from the topo. */
+    /** Picked from the topo catalogue: its grade starts as the topo's, and may be changed. */
     catalogue: boolean;
     tags: StyleTag[];
     estimate: { grade: string; confidence: number } | null;
@@ -52,7 +52,7 @@ export function ProblemEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const canEstimate = problem.system !== "FONT";
-  const canRegrade = problem.system === "FONT" && !problem.catalogue;
+  const canRegrade = problem.system === "FONT";
 
   return (
     <Card>

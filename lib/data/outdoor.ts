@@ -5,7 +5,7 @@ import type { ServerSupabase } from "@/lib/supabase/server";
 export const OUTDOOR_AREA_COLUMNS =
   "id, gym_id, name, cluster_name, tags, warning_fr, warning_en, problems_count, priority, source, credit" as const;
 export const OUTDOOR_PROBLEM_COLUMNS =
-  "id, name, name_searchable, grade, circuit_color, circuit_number, steepness, sit_start, popularity, parent_id, bleau_info_id" as const;
+  "id, name, name_searchable, grade, circuit_color, circuit_number, steepness, sit_start, popularity, parent_id, bleau_info_id, latitude, longitude" as const;
 
 export interface OutdoorAreaItem {
   id: number;
@@ -34,6 +34,9 @@ export interface OutdoorProblemItem {
   popularity: number | null;
   parent_id: number | null;
   bleau_info_id: string | null;
+  /** Null for a team-topo boulder known from the written list only (not on the map). */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /** Outdoor sites added by migration (the climber logs by grade, or picks from a team topo). */

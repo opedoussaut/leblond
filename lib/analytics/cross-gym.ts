@@ -10,6 +10,11 @@ export interface GymBreakdown {
   attempts: number;
   sendRate: Ratio;
   flashRate: Ratio;
+  /**
+   * Attempted/sent per native grade at this gym. A send rate means little on its
+   * own: 80 % on yellows is not 75 % on reds, so the split is shown with it.
+   */
+  distributions: NativeDistribution[];
 }
 
 /** Activity and rates per gym. */
@@ -28,6 +33,10 @@ export function calculateGymBreakdown(data: ClimbingDataset, attempts: AttemptFa
         attempts: gymAttempts.length,
         sendRate: calculateSendRate(outcomes.values()),
         flashRate: calculateFlashRate(outcomes.values()),
+        distributions: calculateNativeDistribution(
+          data.problems.filter((p) => p.gymId === gym.id),
+          outcomes,
+        ),
       };
     })
     .filter((g) => g.sessions > 0 || g.attempts > 0);
