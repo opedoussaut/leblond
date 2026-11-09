@@ -33,6 +33,11 @@ export type TrainingPlanInput = z.infer<typeof trainingPlanSchema>;
 export type PlanSession = z.infer<typeof planSessionSchema>;
 export type SavedTrainingPlan = TrainingPlanInput & { id: string; updatedAt: string };
 
+/** The editable part of a saved plan: the strict save schema rejects row metadata such as updatedAt. */
+export function editablePlan(plan: SavedTrainingPlan): TrainingPlanInput {
+  return { id: plan.id, name: plan.name, goal: plan.goal, weeks: plan.weeks, sessions: plan.sessions.map((s) => ({ ...s })) };
+}
+
 export const DEFAULT_PLAN: TrainingPlanInput = {
   name: "My climbing week",
   goal: "",
