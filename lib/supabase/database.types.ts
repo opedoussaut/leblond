@@ -124,6 +124,7 @@ export type Database = {
           goal: string;
           weeks: number;
           sessions: Json;
+          assessment_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -134,6 +135,7 @@ export type Database = {
           goal?: string;
           weeks?: number;
           sessions: Json;
+          assessment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -144,10 +146,78 @@ export type Database = {
           goal?: string;
           weeks?: number;
           sessions?: Json;
+          assessment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "training_plans_assessment_fk";
+            columns: ["user_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "training_assessments";
+            referencedColumns: ["user_id", "id"];
+          },
+        ];
+      };
+      training_day_checks: {
+        Row: {
+          id: string;
+          user_id: string;
+          check_date: string;
+          sleep: number;
+          fatigue: number;
+          soreness: number;
+          pain: Json;
+          minutes_available: number;
+          place: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id: string | null;
+          recommended_minutes: number;
+          reasons: Json;
+          assessment_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          check_date: string;
+          sleep: number;
+          fatigue: number;
+          soreness: number;
+          pain?: Json;
+          minutes_available: number;
+          place: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id?: string | null;
+          recommended_minutes?: number;
+          reasons?: Json;
+          assessment_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          sleep?: number;
+          fatigue?: number;
+          soreness?: number;
+          pain?: Json;
+          minutes_available?: number;
+          place?: "BOULDER_GYM" | "ROUTE_GYM" | "CRAG" | "HOME" | "NONE";
+          outcome?: "AS_PLANNED" | "REDUCED" | "TECHNIQUE" | "MOBILITY" | "REST";
+          method_id?: string | null;
+          recommended_minutes?: number;
+          reasons?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_day_checks_user_id_assessment_id_fkey";
+            columns: ["user_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "training_assessments";
+            referencedColumns: ["user_id", "id"];
+          },
+        ];
       };
       route_projects: {
         Row: {

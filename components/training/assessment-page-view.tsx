@@ -6,6 +6,7 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { getI18n } from "@/lib/i18n/server";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
+import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { MAX_ASSESSMENTS, skillRatingsSchema, type SavedAssessment, type SavedCheckin } from "@/lib/training/assessment";
 import { workingGradeHistory } from "@/lib/training/grade-history";
 import { gradeToScore } from "@/lib/grading";
@@ -19,6 +20,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const a = assessmentDictionary(locale);
+  const j = journeyDictionary(locale);
 
   const [{ data: assessments, error: assessmentError }, { data: checkins, error: checkinsError }, dataset, routes] = await Promise.all([
     viewer.supabase.from("training_assessments")
@@ -97,12 +99,10 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
         <Link href={backHref} className="text-sm font-bold text-accent underline underline-offset-4">← {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Suivi" : "Follow-up")}</Link>
         <Link href="/progress" className="text-sm font-bold text-accent underline underline-offset-4">{locale==="fr"?"Mes résultats":"My results"} →</Link>
       </div>
-      <h1 className="mt-6 text-2xl font-black tracking-tight md:text-3xl">{doing
-        ? (locale === "fr" ? "Bilan d’entraînement" : "Training assessment")
+      <h1 className="mt-6 text-2xl font-black tracking-tight md:text-3xl">{doing ? j.hub.fullTitle
         : (locale === "fr" ? "Bilans et évolution" : "Assessments and progress")}</h1>
-      <p className="mt-3 text-sm leading-relaxed text-ink-2">{doing
-        ? (locale === "fr" ? "Un protocole guidé et reproductible : préparation, tests sûrs, observations de ton carnet et auto-évaluation, puis priorités." : "A guided, repeatable protocol: preparation, safe tests, journal observations and self-evaluation, then priorities.")
-        : a.subtitle}</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-2">{doing ? j.full.intro : a.subtitle}</p>
+      {doing ? <Link href="/train/today" className="mt-2 inline-block text-sm font-bold text-accent underline underline-offset-4">{j.hub.dayTitle} · {j.hub.dayBadge} →</Link> : null}
       {viewer.profile.target_discipline !== "BOULDER" ? (
         <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink-2">
           {viewer.profile.target_discipline === "BOTH"

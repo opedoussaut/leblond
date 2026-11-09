@@ -11,6 +11,8 @@ import type { RouteSummary } from "@/lib/analytics/routes";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
+import type { Injury } from "@/lib/training/health";
+import type { DayOutcome, ProgrammeView } from "@/lib/training/programme";
 
 /**
  * The real grade scales for the systems this climber uses, easiest first, so
@@ -140,6 +142,60 @@ export interface FocusRouteProjectInput {
   sessionsCount: number;
 }
 
+/** The programme in progress and the latest daily check-in (bilan du jour), as loaded by lib/data/programme. */
+export interface CoachTrainingInput {
+  view: ProgrammeView | null;
+  lastCheck: {
+    date: string; outcome: DayOutcome; reasons: readonly string[];
+    input: { sleep: number; fatigue: number; soreness: number; pain: readonly Injury[]; minutes: number; place: string };
+  } | null;
+  replanSuggested: boolean;
+}
+
+/**
+ * Bounded summary of the climber's training programme for Patrick: method,
+ * week X of N, availability, the next session, declared body areas (self-reported,
+ * not a diagnosis) and the last daily check-in. Null when there is nothing to say.
+ */
+export function trainingContext(input: CoachTrainingInput | null | undefined) {
+  if (!input || (!input.view && !input.lastCheck)) return null;
+  const v = input.view;
+  const c = input.lastCheck;
+  return {
+    programme: v ? {
+      methodId: v.methodId,
+      goal: v.goal.slice(0, 120),
+      discipline: v.discipline,
+      week: v.week,
+      horizonWeeks: v.horizonWeeks,
+      finished: v.finished,
+      nextFullAssessment: v.nextReassessment,
+      fullAssessmentDue: v.reassessmentDue,
+      climbingSessionsPerWeek: v.availability.climbingPerWeek,
+      offWallSessionsPerWeek: v.availability.offWallPerWeek,
+      homeEquipment: v.availability.homeEquipment,
+      weeklyTemplate: (v.plan?.sessions ?? []).slice(0, 14).map((s) => ({
+        weekday: s.day, methodId: s.methodId, title: s.title ?? null, minutes: s.minutes, place: s.place ?? null,
+      })),
+      nextSession: v.next ? { date: v.next.date, title: v.next.title, minutes: v.next.minutes, place: v.next.place } : null,
+    } : null,
+    declaredBodyAreas: v ? v.health.injuries.map((i) => ({ area: i.area, level: i.level })) : [],
+    unlocalisedPainDeclared: v?.health.unspecifiedPain ?? false,
+    lastDailyCheck: c ? {
+      date: c.date,
+      sleep: c.input.sleep,
+      fatigue: c.input.fatigue,
+      soreness: c.input.soreness,
+      pain: c.input.pain.map((p) => ({ area: p.area, level: p.level })),
+      minutesAvailable: c.input.minutes,
+      place: c.input.place,
+      outcome: c.outcome,
+      reasons: c.reasons.slice(0, 8),
+    } : null,
+    replanSuggested: input.replanSuggested,
+  };
+}
+
 export interface CoachContextInput {
   climber: { name: string; language: "fr" | "en"; target: { grade: string; system: string } };
   snapshot30: Snapshot;
@@ -154,6 +210,7 @@ export interface CoachContextInput {
   activeRouteProjects?: Array<{ name: string; grade: string; goalStyle: string; gymName: string; goes: number }>;
   quickAction?: QuickAction | null;
   alterEgo?: ReturnType<typeof coachSummary> | null;
+  training?: CoachTrainingInput | null;
   now: Date;
 }
 
@@ -240,6 +297,9 @@ export function buildCoachContext(input: CoachContextInput) {
       routeResults: "Route (sport/roped) ascents: ONSIGHT = first go without beta, FLASH = first go with beta, REDPOINT = no fall after working it (these three are 'clean'); TOP_WITH_REST = reached the top with falls/rests on the rope; ATTEMPT = did not reach the anchor. Styles: LEAD, TOPROPE, AUTOBELAY.",
       routeLeadWorkingGrade: "Hardest French route grade climbed clean on LEAD at least twice in the last 60 days; null unless ≥6 routes were logged in that window. Top-rope and auto-belay never count toward it.",
       routeVsBoulder: "Route grades (French sport scale, lower-case, e.g. 6b+) and boulder grades (Font, colours) are separate scales. Never convert one into the other.",
+      trainingProgramme: "Programme set by the climber's latest full assessment: one main method and a weekly template (weekday 0 = Monday) repeated for horizonWeeks, until the next full assessment.",
+      declaredBodyAreas: "Self-reported by the climber, NOT a diagnosis. DISCOMFORT = train at reduced load; PAIN = avoid loading that area; ACUTE = stop loading it and see a health professional.",
+      dailyCheck: "Daily check-in (self-reported): sleep 1 = poor … 3 = good; fatigue 1 = fresh … 3 = very tired; soreness 0 = none … 2 = marked. outcome is what LEBLOND recommended for that day: AS_PLANNED, REDUCED, TECHNIQUE, MOBILITY or REST.",
     },
     last30Days: period(s30),
     last90Days: period(s90),
@@ -332,6 +392,7 @@ export function buildCoachContext(input: CoachContextInput) {
       : null,
     quickAction: input.quickAction ?? null,
     alterEgo: input.alterEgo ?? null,
+    training: trainingContext(input.training),
   };
   return enforceBudget(ctx);
 }
