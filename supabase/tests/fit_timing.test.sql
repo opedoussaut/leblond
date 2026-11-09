@@ -40,14 +40,15 @@ insert into public.wearable_activities (id, user_id, provider, provider_activity
 values ('e8000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000a', 'FIT_IMPORT', 'fit:1', '2026-09-21 09:00:27+00', 5400, 'k1');
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001')$$,
   'no linked activity, nothing to apply');
+-- Linking a finished session takes the watch's times at once: the watch wins.
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000001', 'e6000000-0000-0000-0000-000000000001');
-select pg_temp.expect((select timing_source = 'MANUAL' and started_at = '2026-09-20 16:00+00' from public.sessions
-  where id = 'e6000000-0000-0000-0000-000000000001'), 'linking alone does not touch the times');
-
-select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001');
 select pg_temp.expect((select timing_source = 'ACTIVITY' and started_at = '2026-09-21 09:00:27+00'
     and ended_at = '2026-09-21 10:30:27+00' and duration_minutes = 90
-  from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'watch start and duration applied');
+  from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'linking applies the watch start and duration');
+-- Applying again changes nothing.
+select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001');
+select pg_temp.expect((select timing_source = 'ACTIVITY' and started_at = '2026-09-21 09:00:27+00' and duration_minutes = 90
+  from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'applying again is a no-op');
 select pg_temp.expect((select bool_and(created_at between '2026-09-21 09:00:27+00' and '2026-09-21 10:30:27+00') and count(distinct created_at) = 2
   from public.attempts where session_id = 'e6000000-0000-0000-0000-000000000001'), 'attempts moved into the new window, order kept');
 select pg_temp.expect((select count(*) = 2 from public.attempts where session_id = 'e6000000-0000-0000-0000-000000000001'),
@@ -73,6 +74,8 @@ values ('e8000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-0000000
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000002', 'e6000000-0000-0000-0000-000000000001');
 select pg_temp.expect((select session_id is null from public.wearable_activities where id = 'e8000000-0000-0000-0000-000000000001'),
   'the previous activity is detached');
+select pg_temp.expect((select timing_source = 'ACTIVITY' and started_at = '2026-09-21 09:01+00' and duration_minutes = 88
+  from public.sessions where id = 'e6000000-0000-0000-0000-000000000001'), 'the new activity''s times replace the manual ones');
 select pg_temp.expect((select count(*) = 1 from public.wearable_activities where session_id = 'e6000000-0000-0000-0000-000000000001'),
   'a session has at most one activity');
 select public.apply_activity_timing('e6000000-0000-0000-0000-000000000001');
@@ -115,6 +118,8 @@ insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration
 values ('e6000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-00000000000a', 'e5000000-0000-0000-0000-000000000001',
   '2026-09-23 16:00+00', '2026-09-23 17:00+00', 60);
 select public.link_wearable_activity('e8000000-0000-0000-0000-000000000004', 'e6000000-0000-0000-0000-000000000003');
+select pg_temp.expect((select timing_source = 'MANUAL' and started_at = '2026-09-23 16:00+00' and wearable_activity_id = 'e8000000-0000-0000-0000-000000000004'
+  from public.sessions where id = 'e6000000-0000-0000-0000-000000000003'), 'an unusable activity links but the typed times stay');
 select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000-0000-0000-000000000003')$$,
   'an activity without a usable duration is refused');
 update public.sessions set ended_at = null, duration_minutes = null where id = 'e6000000-0000-0000-0000-000000000003';
@@ -126,6 +131,8 @@ select pg_temp.expect_error($$select public.apply_activity_timing('e6000000-0000
   'cannot apply timing to another climber''s session');
 select pg_temp.expect_error($$select public.link_wearable_activity('e8000000-0000-0000-0000-000000000003', null)$$,
   'cannot unlink another climber''s activity');
+select pg_temp.expect_error($$select public.apply_activity_timing_as('e6000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-00000000000a')$$,
+  'the internal timing copy is not callable by climbers');
 reset role;
 update public.sessions set ended_at = now() where id = 'e6000000-0000-0000-0000-000000000003';
 \echo 'fit_timing.test.sql: all assertions passed'
