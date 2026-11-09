@@ -62,15 +62,11 @@ export async function syncProvider(provider: string): Promise<ActionResult<{ ins
 }
 
 /**
- * Links (or unlinks) a watch activity and a climbing session. With
- * `useActivityTiming`, the session then takes the activity's start time and
- * duration — only after the climber has seen and confirmed both.
+ * Links (or unlinks) a watch activity and a climbing session. Linking a
+ * finished session gives it the activity's start time and duration (done by
+ * link_wearable_activity in the database): the watch wins over typed times.
  */
-export async function linkActivityToSession(
-  activityId: string,
-  sessionId: string | null,
-  options: { useActivityTiming?: boolean } = {},
-): Promise<ActionResult> {
+export async function linkActivityToSession(activityId: string, sessionId: string | null): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!z.guid().safeParse(activityId).success || (sessionId !== null && !z.guid().safeParse(sessionId).success)) {
     return { ok: false, error: "invalid" };
@@ -79,18 +75,11 @@ export async function linkActivityToSession(
     ? await viewer.supabase.rpc("link_wearable_activity", { p_activity_id: activityId, p_session_id: sessionId })
     : await viewer.supabase.rpc("unlink_wearable_activity", { p_activity_id: activityId });
   if (error) return { ok: false, error: "unknownError" };
-  if (sessionId && options.useActivityTiming) {
-    const { error: timingError } = await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
-    if (timingError) {
-      revalidatePath("/", "layout");
-      return { ok: false, error: timingErrorCode(timingError.message) };
-    }
-  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-/** Copies the linked activity's start time and duration onto a finished session. */
+/** Goes back to the linked activity's start time and duration after the times were edited by hand. */
 export async function applyActivityTiming(sessionId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!z.guid().safeParse(sessionId).success) return { ok: false, error: "invalid" };

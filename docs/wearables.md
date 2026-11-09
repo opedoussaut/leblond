@@ -8,10 +8,13 @@ Every source becomes a `NormalizedWorkout` (`lib/integrations/wearables/types.ts
 
 `/api/uploads/fit` → Garmin's official FIT JavaScript SDK → integrity check → session/record parsing → de-duplication → raw file kept in the user's private `wearable-files` folder → suggestion of the overlapping climbing session. Max 4 MB. Works with exports from COROS, Suunto, Garmin and most watches.
 
-### Session times from the watch (`20261108000000_fit_timing.sql`)
+### Session times from the watch (`20261108000000_fit_timing.sql`, `20261109000004_watch_timing_wins.sql`)
 
-- **Side by side.** When an activity is linked to a session (after a FIT import, or from the session page), the watch's and the session's date, start, end and duration are shown together, in Europe/Paris time.
-- **The climber decides.** They take the watch's times or keep their own. Taking them later from the session page asks for confirmation first.
+- **The watch wins.** Linking an activity to a finished session (after a FIT import, from Connections or from the session page) gives the session the watch's start time and duration at once: `link_wearable_activity` calls `apply_activity_timing`. There is no side-by-side comparison and nothing to confirm. Before linking, the session page says which times the session will take (Europe/Paris time).
+- **Sessions still running.** An activity linked to a live session gives its times when the session is ended (`endSession`).
+- **No usable timing.** If the activity has no usable duration or starts in the future, the link is kept and the typed times stay; the session page says why.
+- **Correcting by hand.** Editing the times afterwards marks them `MANUAL` ("Horaires corrigés à la main"); a single button goes back to the watch's.
+- **Older links.** `20261109000004` switched sessions that were linked with typed times to the watch's times (internal `apply_activity_timing_as`, not callable by climbers).
 - **What `apply_activity_timing` does.**
   - Sets `started_at`, `ended_at` and `duration_minutes` from the activity.
   - Refuses a live session, an activity without a usable duration (under 1 minute or over 24 hours), or a start in the future.
