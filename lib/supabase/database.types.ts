@@ -1187,8 +1187,8 @@ export type Database = {
           featured: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en: string | null;
           name_searchable: string;
@@ -1210,8 +1210,8 @@ export type Database = {
           featured?: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en?: string | null;
           name_searchable?: string;
@@ -1233,8 +1233,8 @@ export type Database = {
           featured?: boolean;
           grade?: string;
           id?: number;
-          latitude?: number;
-          longitude?: number;
+          latitude?: number | null;
+          longitude?: number | null;
           name?: string;
           name_en?: string | null;
           name_searchable?: string;

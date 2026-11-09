@@ -579,4 +579,32 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(page.getByRole("link", { name: /Ouvrir dans OpenStreetMap/ })).toHaveAttribute("href", /openstreetmap\.org\/\?mlat=/);
   await page.getByRole("button", { name: "Voir sur la carte" }).click();
   await expect(page.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" }).getByRole("button", { name: /Dalle E2E/ })).toBeVisible();
+
+  // The written topo list, pasted without a file: it fixes the circuits and adds the boulders the map lacks.
+  await page.goto("/settings/admin");
+  await form.getByLabel("Site", { exact: true }).selectOption({ label: "Saffres E2E (topo actuel : 3 blocs)" });
+  await form.getByLabel(/Liste écrite du topo/).fill(
+    "Orange AD Saffres E2E
+3
+4+
+1Premier E2E 3  mur
+2Dalle E2E 4+  dalle
+2 bisVariante E2E 5  mur
+" +
+    "Toit E2E 6b  surplomb
+Nouveau Toit E2E 7a  dévers, départ assis
+Dalle E2E 4+  dalle
+",
+  );
+  await form.getByRole("button", { name: "Importer le topo" }).click();
+  await expect(form.getByText(/Topo importé : 5 blocs, 1 circuits \(2 ajoutés, 3 mis à jour, 0 retirés\)/)).toBeVisible();
+  await expect(form.getByText("Liste : 3 blocs placés sur la carte.")).toBeVisible();
+  await form.getByText(/2 blocs de la liste sans repère/).click();
+  await expect(form.getByText("orange 2b · Variante E2E")).toBeVisible();
+  await page.goto("/session/new");
+  await page.getByRole("tab", { name: "Extérieur" }).click();
+  await expect(page.getByRole("button", { name: /Saffres E2E/ })).toContainText("topo intégré (5 blocs)");
+  await page.getByRole("button", { name: /Saffres E2E/ }).click();
+  await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
+  await expect(picker.getByRole("button", { name: /Variante E2E/ })).toBeVisible();
 });

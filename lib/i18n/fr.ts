@@ -776,6 +776,14 @@ export const fr = {
     topoSite: "Site",
     topoSiteWithTopo: "{name} (topo actuel : {n} blocs)",
     topoFile: "Fichier KMZ ou KML",
+    topoFileHint: "Facultatif avec une liste : sans fichier, les positions du topo actuel sont gardées.",
+    topoListLabel: "Liste écrite du topo",
+    topoListHint:
+      "Colle la liste des circuits telle qu’elle est publiée (ex. « Bleu TD- … » puis « 1La Roselière 4+ … », « 2 bisLa Sittelle 6a … »), et la liste complète des blocs : ceux qui ne sont sur aucun circuit deviennent les hors-circuits. La liste fait foi pour les circuits, numéros, noms et cotations ; les repères de la carte donnent les positions. Un bloc sans repère est proposé dans la liste, pas sur la carte.",
+    topoListDone: "Liste : {placed} blocs placés sur la carte.",
+    topoNoPosition: "{n} blocs de la liste sans repère sur la carte (proposés dans la liste seulement)",
+    topoUnmatched: "{n} repères d’un circuit absents de la liste (gardés, hors circuit)",
+    topoUnreadable: "{n} lignes non lues",
     topoCredit: "Crédit affiché",
     topoCreditHint: "Qui a fait le topo. Affiché sous la liste des blocs.",
     topoImport: "Importer le topo",
@@ -793,7 +801,9 @@ export const fr = {
     topoErrors: {
       forbidden: "Réservé à l’administrateur.",
       site: "Ce site ne peut pas recevoir de topo (Fontainebleau utilise Boolder).",
-      noFile: "Choisis un fichier KMZ ou KML.",
+      noFile: "Choisis un fichier KMZ ou KML, ou colle la liste du topo.",
+      emptyList: "Aucun bloc lu dans la liste (il faut un nom suivi de sa cotation).",
+      noTopoYet: "Ce site n’a pas encore de topo : importe d’abord le fichier de la carte avec la liste.",
       tooLarge: "Fichier trop gros (900 Ko maximum).",
       notKml: "Ce n’est pas un export KMZ/KML de Google My Maps.",
       linkOnly:
