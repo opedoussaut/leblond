@@ -34,8 +34,9 @@ export interface OutdoorProblemItem {
   popularity: number | null;
   parent_id: number | null;
   bleau_info_id: string | null;
-  latitude: number;
-  longitude: number;
+  /** Null for a team-topo boulder known from the written list only (not on the map). */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /** Outdoor sites added by migration (the climber logs by grade, or picks from a team topo). */

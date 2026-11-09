@@ -5,7 +5,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/field";
-import { importTeamTopo } from "@/lib/actions/team-topo";
+import { importTeamTopo, type TopoImportState } from "@/lib/actions/team-topo";
 import { fmt } from "@/lib/i18n";
 
 /** Admin: upload a Google My Maps export (KMZ/KML) as the topo of an outdoor site. */
@@ -37,9 +37,15 @@ export function TopoImport({
           id="topo-file"
           name="file"
           type="file"
-          required
           accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml"
         />
+      </div>
+      <p className="-mt-2 text-xs text-ink-3">{t.admin.topoFileHint}</p>
+      <div>
+        <Label htmlFor="topo-list" hint={t.common.optional}>{t.admin.topoListLabel}</Label>
+        <textarea id="topo-list" name="list" rows={8} maxLength={200000} spellCheck={false}
+          className="mt-1 w-full rounded-xl border border-line bg-surface p-3 font-mono text-xs" />
+        <p className="mt-1 text-xs text-ink-3">{t.admin.topoListHint}</p>
       </div>
       <div>
         <Label htmlFor="topo-credit" hint={t.common.optional}>{t.admin.topoCredit}</Label>
@@ -61,6 +67,7 @@ export function TopoImport({
               removed: state.removed,
             })}
           </Notice>
+          {state.list ? <TopoListReport report={state.list} /> : null}
           {state.unlinked > 0 ? <Notice tone="warn">{fmt(t.admin.topoUnlinked, { n: state.unlinked })}</Notice> : null}
           {state.skipped.length > 0 ? (
             <details className="text-sm text-ink-2">
@@ -78,5 +85,25 @@ export function TopoImport({
         </div>
       ) : null}
     </form>
+  );
+}
+
+function TopoListReport({ report }: { report: NonNullable<Extract<NonNullable<TopoImportState>, { ok: true }>["list"]> }) {
+  const { t } = useI18n();
+  const groups: Array<[string, string[]]> = [
+    [fmt(t.admin.topoNoPosition, { n: report.withoutPosition.length }), report.withoutPosition],
+    [fmt(t.admin.topoUnmatched, { n: report.unmatchedPins.length }), report.unmatchedPins],
+    [fmt(t.admin.topoUnreadable, { n: report.unreadable.length }), report.unreadable],
+  ];
+  return (
+    <div className="space-y-1 text-sm text-ink-2">
+      <p>{fmt(t.admin.topoListDone, { placed: report.placed })}</p>
+      {groups.filter(([, items]) => items.length > 0).map(([title, items]) => (
+        <details key={title}>
+          <summary className="min-h-11 cursor-pointer py-2">{title}</summary>
+          <ul className="list-disc space-y-1 pl-5">{items.map((item, i) => <li key={i}>{item}</li>)}</ul>
+        </details>
+      ))}
+    </div>
   );
 }

@@ -130,6 +130,15 @@ select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-
                  {"key": "hc:x", "name": "X bis", "grade": "5b", "latitude": 48.4, "longitude": 2.6}]}')$$, 'duplicate keys are refused');
 select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001',
   '{"problems": [{"key": "hc:x", "name": "X", "grade": "4+", "latitude": 48.4, "longitude": 2.6}]}')$$, 'grades off the Font scale are refused');
+-- A boulder from the written list without a map pin: listed, no position (20261109000006).
+select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
+  {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
+  {"key": "hc:sansrepere", "name": "Sans Repère", "name_searchable": "sansrepere", "grade": "5a", "latitude": null, "longitude": null}
+]}$j$::jsonb);
+select pg_temp.expect((select latitude is null and longitude is null from public.outdoor_problems where id = pg_temp.topo_id('hc:sansrepere')),
+  'a listed boulder can have no position');
+select pg_temp.expect((select south_west_lat = 48.72 and north_east_lon = 2.02 from public.outdoor_areas a
+  where a.gym_id = 'f6000000-0000-0000-0000-000000000001'), 'the site''s bounds come from the positioned boulders only');
 reset role;
 select pg_temp.expect((select outdoor_problem_id is null from public.problems where id = 'f6000000-0000-0000-0000-0000000000c1'),
   'the removed boulder''s link is cleared');
@@ -139,6 +148,10 @@ select pg_temp.expect(pg_temp.topo_id('hc:lagrotte') = (select grotte from topo_
   and (select count(*) = 0 from public.outdoor_circuits c join public.outdoor_areas a on a.id = c.area_id
        where a.gym_id = 'f6000000-0000-0000-0000-000000000001'), 'refused imports changed nothing; unused circuits are gone');
 select pg_temp.expect((select count(*) = 1 from public.outdoor_problems where id = 990100), 'team imports never touch Boolder rows');
+select pg_temp.expect_error($$update public.outdoor_problems set latitude = null, longitude = null where id = 990100$$,
+  'a Boolder boulder always has a position');
+select pg_temp.expect_error($$update public.outdoor_problems set longitude = null where id = pg_temp.topo_id('hc:lagrotte')$$,
+  'a position is a latitude and a longitude');
 
 -- ── The Boolder import (catalogue-sql.ts) never removes team topos ────────
 begin;

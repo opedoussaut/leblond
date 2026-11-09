@@ -1257,8 +1257,8 @@ export type Database = {
           featured: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en: string | null;
           name_searchable: string;
@@ -1280,8 +1280,8 @@ export type Database = {
           featured?: boolean;
           grade: string;
           id: number;
-          latitude: number;
-          longitude: number;
+          latitude: number | null;
+          longitude: number | null;
           name: string;
           name_en?: string | null;
           name_searchable?: string;
@@ -1303,8 +1303,8 @@ export type Database = {
           featured?: boolean;
           grade?: string;
           id?: number;
-          latitude?: number;
-          longitude?: number;
+          latitude?: number | null;
+          longitude?: number | null;
           name?: string;
           name_en?: string | null;
           name_searchable?: string;
@@ -1855,6 +1855,31 @@ export type Database = {
       reschedule_session: {
         Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };
         Returns: Database["public"]["Tables"]["sessions"]["Row"];
+      };
+      remove_problem_from_session: {
+        Args: { p_session_id: string; p_problem_id: string };
+        Returns: Json;
+      };
+      log_problem_tries: {
+        Args: { p_session_id: string; p_problem_id: string; p_tries: number; p_outcome: string };
+        Returns: {
+          attempt_number: number;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          perceived_difficulty: number | null;
+          problem_id: string;
+          result: Database["public"]["Enums"]["attempt_result"];
+          session_id: string;
+          started_at: string | null;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "attempts";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       log_boulder_batch: {
         Args: { p_session_id: string; p_grade: string; p_count: number; p_tries: number; p_outcome: string; p_notes?: string | null };

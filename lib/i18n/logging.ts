@@ -15,6 +15,21 @@ const fr = {
   triesShort: "{n} essais", sessionName: "Nom de la séance (facultatif)", sessionNamePlaceholder: "ex. Sortie avec Thomas",
   routeProjectName: "Le projet prend le nom de la voie, ou « Projet {grade} » sans nom.",
   logTries: "Ajouter {n} essais",
+  // Taking a boulder or a route out of a session.
+  removeFromSession: "Retirer de la séance", removeTitle: "Retirer ce bloc de la séance ?",
+  removeTriesOne: "Son essai de cette séance sera effacé.", removeTriesOther: "Ses {n} essais de cette séance seront effacés.",
+  removeNoTries: "Aucun essai noté dans cette séance.",
+  removeDeletes: "Il n’a pas d’essai dans une autre séance : le bloc sera supprimé, avec ses photos et vidéos.",
+  removeKeepsOthers: "Ses essais des autres séances sont gardés.", removeKeepsProject: "Il reste dans tes projets.",
+  removeConfirm: "Retirer", removed: "Bloc retiré de la séance.", removedDeleted: "Bloc retiré et supprimé.",
+  routeRemoveTitle: "Retirer cette voie ?",
+  // A topo boulder in one step.
+  topoAddTitle: "Ajouter ce bloc", grade: "Cotation", gradeTopo: "Cotation du topo ({grade})", gradeMine: "Ma cotation",
+  topoTriesHint: "réussite comprise", add: "Ajouter",
+  priorOne: "Déjà 1 essai noté sur ce bloc.", priorOther: "Déjà {n} essais notés sur ce bloc.",
+  topoAdded: "Ajouté : {name} · {what}.", topIn: "Top en {n} essais",
+  notSentOne: "1 essai, pas réussi", notSentOther: "{n} essais, pas réussi",
+  projectTriesOne: "projet, 1 essai", projectTriesOther: "projet, {n} essais",
 };
 type Dict = typeof fr;
 
@@ -33,6 +48,19 @@ const en: Dict = {
   triesShort: "{n} tries", sessionName: "Session name (optional)", sessionNamePlaceholder: "e.g. Session with Thomas",
   routeProjectName: "The project takes the route’s name, or “Project {grade}” if unnamed.",
   logTries: "Add {n} tries",
+  removeFromSession: "Remove from session", removeTitle: "Remove this problem from the session?",
+  removeTriesOne: "Its try in this session will be deleted.", removeTriesOther: "Its {n} tries in this session will be deleted.",
+  removeNoTries: "No tries logged in this session.",
+  removeDeletes: "It has no tries in another session: the problem will be deleted, with its photos and videos.",
+  removeKeepsOthers: "Its tries in other sessions are kept.", removeKeepsProject: "It stays in your projects.",
+  removeConfirm: "Remove", removed: "Problem removed from the session.", removedDeleted: "Problem removed and deleted.",
+  routeRemoveTitle: "Remove this route?",
+  topoAddTitle: "Add this problem", grade: "Grade", gradeTopo: "Topo grade ({grade})", gradeMine: "My grade",
+  topoTriesHint: "including the send", add: "Add",
+  priorOne: "Already 1 try logged on this problem.", priorOther: "Already {n} tries logged on this problem.",
+  topoAdded: "Added: {name} · {what}.", topIn: "Top in {n} tries",
+  notSentOne: "1 try, not sent", notSentOther: "{n} tries, not sent",
+  projectTriesOne: "project, 1 try", projectTriesOther: "project, {n} tries",
 };
 
 export const loggingDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);
