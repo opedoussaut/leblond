@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { circuitsOf, mergeTopoList, parseTopoList, type ListedProblem } from "@/lib/integrations/outdoor/topo-list";
+import { circuitsOf, cleanTopoName, mergeTopoList, parseTopoList, type ListedProblem } from "@/lib/integrations/outdoor/topo-list";
 
 // Fictional names, in the layout of a guide page copy.
 const LIST = `Bleu TD- Site Test
@@ -76,5 +76,20 @@ describe("mergeTopoList", () => {
   });
   it("recomputes each circuit's median grade", () => {
     expect(circuitsOf(problems).find((c) => c.color === "blue")?.average_grade).toBe("4c");
+  });
+  it("in replace mode, keeps only the list: the pins it does not mention are dropped", () => {
+    const replaced = mergeTopoList(pins, list, { replace: true });
+    expect(replaced.problems).toHaveLength(list.entries.length);
+    expect(replaced.problems.map((p) => p.name)).not.toContain("Ancien Bloc");
+    expect(replaced.problems.map((p) => p.name)).not.toContain("Hors Liste");
+    expect(replaced.report.droppedPins).toEqual(["blue 9 · Ancien Bloc", "Hors Liste"]);
+    expect(replaced.report.unmatchedPins).toEqual([]);
+    expect(replaced.problems.find((p) => p.name === "La Première")).toMatchObject({ key: "hc:lapremiere", latitude: 48.7 });
+  });
+  it("never keeps an em dash in a name", () => {
+    expect(cleanTopoName("Le Toit — gauche")).toBe("Le Toit gauche");
+    expect(parseTopoList("Rouge TD+\n1La Vicieuse — 6a").entries[0]).toMatchObject({ name: "La Vicieuse", number: "1", grade: "6A" });
+    const kept = mergeTopoList([pin({ key: "hc:x", name: "Le Bloc — perdu" })], list).problems;
+    expect(kept.find((p) => p.key === "hc:x")?.name).toBe("Le Bloc perdu");
   });
 });

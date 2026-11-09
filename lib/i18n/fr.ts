@@ -632,6 +632,7 @@ export const fr = {
     anyGrade: "Toutes cotations",
     gradeFilter: "Cotation",
     results: "{shown} sur {total}",
+    showMore: "Afficher {n} blocs de plus",
     noProblems: "Aucun bloc ne correspond.",
     notInTopo: "Bloc absent du topo ? Choisir une cotation",
     backToTopo: "Retour au topo",

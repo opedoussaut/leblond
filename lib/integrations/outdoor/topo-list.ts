@@ -30,12 +30,17 @@ const SUFFIX: Record<string, string> = { bis: "b", ter: "c", quater: "d" };
 /** "2 bisLa Sittelle 6a  Jean Pillot" → number 2b. The name is glued to the number in copies of bleau.info. */
 const CIRCUIT_LINE = /^(\d{1,3})(?:\s*([Bb]is|[Tt]er|[Qq]uater)(?=[\p{Lu}\d\s"'’«])\s*|\t\s*|(?=[^\s\d]))(.+)$/u;
 
+/** Dashes copied from guide pages ("Le Toit — 6a") never belong to a boulder's name. */
+export function cleanTopoName(name: string): string {
+  return name.replace(/\s*—\s*/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** "Le GR 11 4+  Philippe Andrieux † mur" → name "Le GR 11", grade 4+. The first grade-like word ends the name. */
 function nameAndGrade(rest: string): { name: string; grade: FontGrade } | null {
   const m = GRADE.exec(rest);
   if (!m || m.index === 0) return null;
   const grade = myMapsGrade(m[1]);
-  const name = rest.slice(0, m.index).replace(/\s+/g, " ").trim();
+  const name = cleanTopoName(rest.slice(0, m.index));
   return grade && name ? { name: name.slice(0, 160), grade } : null;
 }
 
@@ -106,6 +111,8 @@ export interface MergeReport {
   withoutPosition: string[];
   /** Pins of a listed circuit that match no boulder of the list: kept, off-circuit. */
   unmatchedPins: string[];
+  /** Replace mode: pins the list does not mention, removed from the topo. */
+  droppedPins: string[];
 }
 
 const label = (e: { color: CircuitColor | null; number: string | null; name: string }) =>
@@ -115,8 +122,13 @@ const label = (e: { color: CircuitColor | null; number: string | null; name: str
  * Merges the written list into the pins. A pin is matched by name first
  * (same circuit preferred), then by circuit and number. A matched pin keeps
  * its key, so the climbers' logged problems stay linked across imports.
+ * With `replace`, the list is the whole topo: pins it does not mention are dropped.
  */
-export function mergeTopoList(pins: ListedProblem[], list: TopoList): { problems: ListedProblem[]; report: MergeReport } {
+export function mergeTopoList(
+  pins: ListedProblem[],
+  list: TopoList,
+  options: { replace?: boolean } = {},
+): { problems: ListedProblem[]; report: MergeReport } {
   const used = new Set<number>();
   const byName = new Map<string, number[]>();
   pins.forEach((p, i) => byName.set(p.name_searchable, [...(byName.get(p.name_searchable) ?? []), i]));
@@ -163,17 +175,20 @@ export function mergeTopoList(pins: ListedProblem[], list: TopoList): { problems
   // Pins the list does not mention: kept. On a listed circuit they leave it (the list is the reference).
   const listed = new Set(list.circuits);
   const unmatchedPins: string[] = [];
+  const droppedPins: string[] = [];
   pins.forEach((p, i) => {
     if (used.has(i)) return;
-    if (p.circuit_color && listed.has(p.circuit_color)) {
+    if (options.replace) {
+      droppedPins.push(label({ color: p.circuit_color, number: p.circuit_number, name: p.name }));
+    } else if (p.circuit_color && listed.has(p.circuit_color)) {
       unmatchedPins.push(label({ color: p.circuit_color, number: p.circuit_number, name: p.name }));
-      problems.push({ ...p, circuit_color: null, circuit_number: null });
+      problems.push({ ...p, name: cleanTopoName(p.name), circuit_color: null, circuit_number: null });
     } else {
-      problems.push(p);
+      problems.push({ ...p, name: cleanTopoName(p.name) });
     }
   });
 
-  return { problems, report: { placed: list.entries.length - withoutPosition.length, withoutPosition, unmatchedPins } };
+  return { problems, report: { placed: list.entries.length - withoutPosition.length, withoutPosition, unmatchedPins, droppedPins } };
 }
 
 /** One circuit per colour, its average grade being the median of its boulders. */
