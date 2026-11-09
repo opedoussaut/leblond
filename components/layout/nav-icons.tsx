@@ -34,6 +34,13 @@ export const PatrickIcon = () => (
     <path d="M9 10h6" />
   </svg>
 );
+export const SignOutIcon = () => (
+  <svg {...common}>
+    <path d="M10 4H5v16h5" />
+    <path d="M15 8l4 4-4 4" />
+    <path d="M19 12H9" />
+  </svg>
+);
 export const ProfileIcon = () => (
   <svg {...common}>
     <circle cx="12" cy="8" r="4" />

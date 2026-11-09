@@ -635,6 +635,12 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/climbing$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
+
+  // Sign-out sits at the foot of the sidebar, on every page.
+  const signOut = nav.getByRole("button", { name: "Se déconnecter" });
+  await expect(signOut).toBeVisible();
+  await signOut.click();
+  await expect(page).toHaveURL(/\/login/);
 });
 
 test("C — mobile: bottom bar + one sub-navigation per area", async ({ page }) => {
