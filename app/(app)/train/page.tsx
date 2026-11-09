@@ -71,8 +71,7 @@ export default async function TrainingHome() {
 
     {programme.replan.suggested ? <ReplanBanner locale={locale} replan={programme.replan} /> : null}
 
-    <section aria-labelledby="entries-heading" className="space-y-3">
-      <h2 id="entries-heading" className="sr-only">{h.entriesTitle}</h2>
+    <section aria-label={h.entriesTitle} className="space-y-3">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col justify-between gap-4 rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
           <div>
