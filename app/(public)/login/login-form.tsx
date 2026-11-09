@@ -5,6 +5,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/field";
+import { formatInviteCode } from "@/lib/auth/invite-code";
 import { fmt } from "@/lib/i18n";
 import { getBrowserClient } from "@/lib/supabase/client";
 import { registerWithEmail, resetLogin, sendCode, signInPassword, verifyCode, type LoginState } from "./actions";
@@ -36,7 +37,7 @@ function PasswordSignIn({ next }: { next: string }) {
   );
 }
 
-function RegisterForm({ next }: { next: string }) {
+function RegisterForm({ next, invite }: { next: string; invite: string | null }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(registerWithEmail, {});
   if (state.sentConfirmation) return (
@@ -45,6 +46,12 @@ function RegisterForm({ next }: { next: string }) {
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
+      <div>
+        <Label htmlFor="register-invite">{t.auth.inviteCodeLabel}</Label>
+        <Input id="register-invite" name="invite" autoComplete="off" autoCapitalize="characters" spellCheck={false}
+          maxLength={24} defaultValue={invite ? formatInviteCode(invite) : ""} placeholder="ABCDE-FGHJK"
+          className="font-mono tracking-[0.12em]" />
+      </div>
       <div>
         <Label htmlFor="register-name">{t.auth.displayName}</Label>
         <Input id="register-name" name="displayName" required maxLength={60} autoComplete="nickname" placeholder={t.auth.namePlaceholder} />
@@ -70,12 +77,13 @@ function RegisterForm({ next }: { next: string }) {
   );
 }
 
-function EmailCodeForm({ next }: { next: string }) {
+function EmailCodeForm({ next, invite }: { next: string; invite: string | null }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(codeReducer, { step: "email" } as LoginState);
   if (state.step === "email") return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
+      {invite ? <input type="hidden" name="invite" value={invite} /> : null}
       <div>
         <Label htmlFor="otp-email">{t.auth.emailLabel}</Label>
         <Input id="otp-email" name="email" type="email" autoComplete="email" placeholder={t.auth.emailPlaceholder} required />
@@ -104,9 +112,10 @@ function EmailCodeForm({ next }: { next: string }) {
   );
 }
 
-export function LoginForm({ next, googleEnabled }: { next: string; googleEnabled: boolean }) {
+export function LoginForm({ next, googleEnabled, invite = null }: { next: string; googleEnabled: boolean; invite?: string | null }) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<"signin" | "register" | "code">("signin");
+  // An invitation link opens straight on account creation.
+  const [mode, setMode] = useState<"signin" | "register" | "code">(invite ? "register" : "signin");
   const [oauthError, setOauthError] = useState(false);
   const [oauthPending, setOauthPending] = useState(false);
 
@@ -128,6 +137,7 @@ export function LoginForm({ next, googleEnabled }: { next: string; googleEnabled
 
   return (
     <div className="space-y-5">
+      {invite ? <Notice tone="ok">{fmt(t.auth.inviteWelcome, { code: formatInviteCode(invite) })}</Notice> : null}
       <div role="tablist" aria-label={t.auth.authMode} className="flex rounded-xl border border-line bg-surface-2 p-1">
         {(["signin", "register"] as const).map(item => (
           <button key={item} type="button" role="tab" aria-selected={mode === item}
@@ -138,16 +148,21 @@ export function LoginForm({ next, googleEnabled }: { next: string; googleEnabled
         ))}
       </div>
       {mode === "signin" ? <PasswordSignIn next={next} /> : null}
-      {mode === "register" ? <RegisterForm next={next} /> : null}
-      {mode === "code" ? <EmailCodeForm next={next} /> : null}
-      <div className="flex items-center gap-3 text-xs text-ink-3"><span className="h-px flex-1 bg-line"/>{t.auth.or}<span className="h-px flex-1 bg-line"/></div>
-      <button type="button" onClick={startGoogle} disabled={!googleEnabled || oauthPending}
-        className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-55">
-        <span aria-hidden="true" className="font-black text-lg">G</span>
-        {t.auth.continueGoogle}
-      </button>
-      {!googleEnabled ? <p className="text-center text-xs text-ink-3">{t.auth.googlePending}</p> : null}
-      {oauthError ? <Notice tone="error">{t.auth.unknownError}</Notice> : null}
+      {mode === "register" ? <RegisterForm next={next} invite={invite} /> : null}
+      {mode === "code" ? <EmailCodeForm next={next} invite={invite} /> : null}
+      {/* Google gives the email only after sign-up, too late for an invitation: invited friends use their email. */}
+      {invite ? null : (
+        <>
+          <div className="flex items-center gap-3 text-xs text-ink-3"><span className="h-px flex-1 bg-line"/>{t.auth.or}<span className="h-px flex-1 bg-line"/></div>
+          <button type="button" onClick={startGoogle} disabled={!googleEnabled || oauthPending}
+            className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-55">
+            <span aria-hidden="true" className="font-black text-lg">G</span>
+            {t.auth.continueGoogle}
+          </button>
+          {!googleEnabled ? <p className="text-center text-xs text-ink-3">{t.auth.googlePending}</p> : null}
+          {oauthError ? <Notice tone="error">{t.auth.unknownError}</Notice> : null}
+        </>
+      )}
       <button type="button" className="min-h-11 w-full text-center text-sm font-semibold text-accent underline underline-offset-4"
         onClick={() => setMode(mode === "code" ? "signin" : "code")}>
         {mode === "code" ? t.auth.backToPassword : t.auth.useEmailCode}

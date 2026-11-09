@@ -44,7 +44,7 @@ flowchart TB
 
 - `proxy.ts` refreshes the Supabase session cookie and redirects anonymous visitors to `/login`.
 - `requireViewer()` (server) re-validates the user, checks the whitelist is still active and that onboarding is complete.
-- All reads/writes use the **user's** Supabase client so RLS applies. The service-role client is limited to: whitelist pre-check, encrypted token storage, admin roster.
+- All reads/writes use the **user's** Supabase client so RLS applies. The service-role client is limited to: encrypted token storage, admin roster.
 - Media goes straight from the device to Storage (no server hop), then a server action validates and records it.
 
 ## Key decisions

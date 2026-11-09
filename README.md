@@ -22,11 +22,11 @@ Numbers alone don't tell a climber what to do next. Patrick reads the statistics
 
 ## Closed beta
 
-Five people: Olivier (admin), Thomas, Marc, Houssem, David. There is no open sign-up — see [Supabase setup](#supabase-setup) for the whitelist. Real tester emails are never committed.
+By invitation: Olivier (admin) creates a single-use link in *Beta administration* and sends it by WhatsApp, Telegram or text; the friend signs up with their own email. There is no open sign-up — see [Supabase setup](#supabase-setup) for the whitelist. Real tester emails are never committed.
 
 ## Features (V1 “FIRST CLIMB + CONNECT”)
 
-- Passwordless sign-in (6-digit code or magic link), five-person whitelist enforced in the app **and** in the database
+- Sign-in by password, 6-digit code, magic link or Google; sign-up by invitation only (single-use links or codes the admin shares, or the admin's whitelist), enforced in the app **and** in the database
 - Two-minute onboarding (name, language, level, target, gyms, Patrick intro)
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
 - Outdoor sites without a topo, such as Dampierre Maincourt, logged by Font grade — [docs/integrations.md](docs/integrations.md)
@@ -114,10 +114,10 @@ The local seed creates a fictional admin `alex@leblond.local` and three demo gym
 6. **Authentication → URL configuration**: Site URL = your deployment URL; add `https://<your-domain>/auth/callback` to redirect URLs.
 7. Seed the whitelist from your machine (emails stay out of git):
    ```bash
-   BETA_OLIVIER_EMAIL=… BETA_THOMAS_EMAIL=… BETA_MARC_EMAIL=… BETA_HOUSSEM_EMAIL=… BETA_DAVID_EMAIL=… \
+   BETA_OLIVIER_EMAIL=… BETA_FLAVIO_EMAIL=… BETA_DAVID_EMAIL=… BETA_THOMAS_EMAIL=… BETA_JEROME_EMAIL=… \
    NEXT_PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run beta:bootstrap
    ```
-   The admin can later deactivate/reactivate testers in *Profile → Beta administration*.
+   The admin can later deactivate/reactivate testers in *Profile → Beta administration*. Load the whitelist **before** applying migrations: `20261109000000_close_registration.sql` stops without changes if accounts exist but no active admin is on it. To check a hosted project without printing any email, run the *Deploy database* workflow with mode `access` (counts only).
 
 ## Patrick's model
 

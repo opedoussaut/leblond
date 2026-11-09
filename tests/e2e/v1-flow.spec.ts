@@ -11,7 +11,20 @@ test.describe.configure({ mode: "serial" });
 
 const ALEX = "alex@leblond.local";
 const SAM = "sam@leblond.local";
+const GONE = "gone@leblond.local";
+const PASSWORD = "ReasonablyStrongTestingPassword123!";
+const NOT_INVITED = "Cette adresse ne fait pas partie de la bêta fermée.";
 let arkoseSessionUrl = "";
+
+async function registerWithPassword(page: Page, name: string, email: string) {
+  await page.goto("/login");
+  await page.getByRole("tab", { name: "Créer un compte" }).click();
+  await page.getByLabel("Prénom ou pseudo").fill(name);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+}
 
 async function logGrade(page: Page, grade: string, results: Array<"ESSAI" | "TOP" | "FLASH">) {
   const addButton = page.getByRole("button", { name: /AJOUTER UN BLOC/ });
@@ -34,15 +47,28 @@ async function chooseGym(page: Page, name: string) {
   await picker.selectOption(id);
 }
 
-test("any climber may register a private account with a basic profile", async ({ page }) => {
+test("sign-up is by invitation: a stranger is refused on every route", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login/);
-  await page.getByRole("tab", { name: "Créer un compte" }).click();
-  await page.getByLabel("Prénom ou pseudo").fill("New Climber");
+  await expect(page.getByText(/Bêta fermée, sur invitation/)).toBeVisible();
+  await registerWithPassword(page, "Stranger", "stranger@leblond.local");
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
+  await page.getByRole("button", { name: "Recevoir un code par e-mail à la place" }).click();
   await page.getByLabel("Adresse e-mail").fill("stranger@leblond.local");
-  await page.getByLabel("Mot de passe", { exact: true }).fill("ReasonablyStrongTestingPassword123!");
-  await page.getByLabel("Confirmer le mot de passe").fill("ReasonablyStrongTestingPassword123!");
-  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await page.getByRole("button", { name: "Recevoir mon code" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+  await expect(page.getByLabel("Code reçu par e-mail")).toHaveCount(0);
+
+  // A refused Google account comes back to the callback with an error description.
+  await page.goto("/auth/callback?error=server_error&error_code=unexpected_failure&error_description=Database+error+saving+new+user");
+  await expect(page).toHaveURL(/\/login\?error=invite/);
+  await expect(page.getByRole("alert").filter({ hasText: NOT_INVITED })).toBeVisible();
+});
+
+test("an invited climber registers a private account with a basic profile", async ({ page }) => {
+  await registerWithPassword(page, "New Climber", "newcomer@leblond.local");
   await expect(page).toHaveURL(/\/onboarding/);
   await expect(page.getByRole("heading", { name: "Choisis ta langue" })).toBeVisible();
   await expect(page.getByText("L’expérience LeBlond en français")).toBeVisible();
@@ -264,6 +290,76 @@ test("history is preserved and private: another tester sees nothing", async ({ p
   await expect(page.getByText("Aucune séance pour l’instant.")).toBeVisible();
   const res = await page.goto(new URL(arkoseSessionUrl).pathname);
   expect(res?.status()).toBe(404);
+});
+
+test("a tester deactivated in Beta administration lands on Accès désactivé", async ({ page }) => {
+  await registerWithPassword(page, "Gone", GONE);
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  await page.context().clearCookies();
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  const row = page.getByRole("listitem").filter({ hasText: GONE });
+  await row.getByRole("button", { name: "Désactiver" }).click();
+  await expect(row.getByRole("button", { name: "Réactiver" })).toBeVisible();
+
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.getByLabel("Adresse e-mail").fill(GONE);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await expect(page).toHaveURL(/\/revoked/);
+  await expect(page.getByRole("heading", { name: "Accès désactivé" })).toBeVisible();
+  await page.goto("/session");
+  await expect(page).toHaveURL(/\/revoked/);
+});
+
+test("an invitation link lets a friend in, once", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  await page.getByLabel("Pour qui ? (facultatif)").fill("Invitee");
+  await page.getByRole("button", { name: "Créer un lien d’invitation" }).click();
+  const invite = page.getByRole("list", { name: "Invitations" }).getByRole("listitem").filter({ hasText: "Invitee" }).first();
+  await expect(invite.getByText(/En attente · expire le/)).toBeVisible();
+  const link = await invite.getByRole("textbox", { name: "Lien d’invitation" }).inputValue();
+  expect(link).toMatch(/\/login\?invite=[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/);
+  await expect(invite.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=/);
+  await expect(invite.getByRole("link", { name: "Telegram" })).toHaveAttribute("href", /^https:\/\/t\.me\/share\/url\?url=/);
+  const { pathname, search } = new URL(link);
+
+  // The friend opens the link: account creation, code filled in, no Google button.
+  await page.context().clearCookies();
+  await page.goto(pathname + search);
+  await expect(page.getByText(/Tu as reçu une invitation/)).toBeVisible();
+  await expect(page.getByLabel("Code d’invitation (si tu en as reçu un)")).toHaveValue(new URLSearchParams(search).get("invite") ?? "");
+  await expect(page.getByRole("button", { name: "Continuer avec Google" })).toHaveCount(0);
+  await page.getByLabel("Prénom ou pseudo").fill("Invitee");
+  await page.getByLabel("Adresse e-mail").fill("invitee@leblond.local");
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  // The link has served: someone else is refused, and the admin sees it used.
+  await page.context().clearCookies();
+  await page.goto(pathname + search);
+  await page.getByLabel("Prénom ou pseudo").fill("Second");
+  await page.getByLabel("Adresse e-mail").fill("second-invitee@leblond.local");
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Ce code d’invitation ne marche pas" })).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  await expect(page.getByRole("list", { name: "Invitations" }).getByRole("listitem").filter({ hasText: "Invitee" }).first()
+    .getByText(/Utilisée le/)).toBeVisible();
+
+  // A mistyped code on the link is flagged before anything is sent.
+  await page.context().clearCookies();
+  await page.goto("/login?invite=nope");
+  await expect(page.getByRole("alert").filter({ hasText: "Ce code d’invitation ne marche pas" })).toBeVisible();
 });
 
 test("PWA manifest is installable", async ({ request }) => {
