@@ -3,22 +3,41 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isNotInvitedError } from "@/lib/auth/closed-beta";
+import { normalizeInviteCode } from "@/lib/auth/invite-code";
 import { siteUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { publicSupabaseEnv } from "@/lib/supabase/public-env";
 import { email as emailSchema, otpCode, safeNext } from "@/lib/validation/common";
 
 export type LoginState =
-  | { step: "email"; error?: "invalidEmail" | "notInvited" | "rateLimited" | "unknownError" | "notConfigured" }
+  | { step: "email"; error?: "invalidEmail" | "notInvited" | "inviteInvalid" | "rateLimited" | "unknownError" | "notConfigured" }
   | { step: "code"; email: string; error?: "invalidCode" | "rateLimited" | "unknownError" };
 
 export type PasswordState = {
   error?: "invalidCredentials" | "invalidEmail" | "weakPassword" | "passwordMismatch" |
-    "notInvited" | "rateLimited" | "unknownError" | "notConfigured" | "invalidName";
+    "notInvited" | "inviteInvalid" | "rateLimited" | "unknownError" | "notConfigured" | "invalidName";
   sentConfirmation?: boolean;
 };
 const passwordSchema = z.string().min(8).max(72);
 const nameSchema = z.string().trim().min(1).max(60);
+
+/**
+ * With an invitation code, the email joins the closed-beta whitelist before
+ * the account is created (redeem_beta_invite), so the whitelist trigger on
+ * auth.users lets it in. No code: nothing to do, the whitelist decides alone.
+ */
+async function redeemInvite(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  raw: FormDataEntryValue | null,
+  email: string,
+): Promise<"inviteInvalid" | "unknownError" | null> {
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const code = normalizeInviteCode(raw);
+  if (!code) return "inviteInvalid";
+  const { data, error } = await supabase.rpc("redeem_beta_invite", { p_code: code, p_email: email });
+  if (error) return "unknownError";
+  return data ? null : "inviteInvalid";
+}
 
 export async function signInPassword(_state: PasswordState, formData: FormData): Promise<PasswordState> {
   if (!publicSupabaseEnv()) return { error: "notConfigured" };
@@ -43,6 +62,8 @@ export async function registerWithEmail(_state: PasswordState, formData: FormDat
   if (password.data !== formData.get("confirmPassword")) return { error: "passwordMismatch" };
 
   const supabase = await createClient();
+  const inviteError = await redeemInvite(supabase, formData.get("invite"), address.data);
+  if (inviteError) return { error: inviteError };
   const { data, error } = await supabase.auth.signUp({
     email: address.data, password: password.data,
     options: {
@@ -67,6 +88,8 @@ export async function sendCode(_prev: LoginState, formData: FormData): Promise<L
   const address = emailSchema.safeParse(formData.get("email"));
   if (!address.success) return { step: "email", error: "invalidEmail" };
   const supabase = await createClient();
+  const inviteError = await redeemInvite(supabase, formData.get("invite"), address.data);
+  if (inviteError) return { step: "email", error: inviteError };
   const { error } = await supabase.auth.signInWithOtp({
     email: address.data,
     options: {

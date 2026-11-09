@@ -701,6 +701,39 @@ export type Database = {
           },
         ];
       };
+      beta_invites: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          id: string;
+          label: string;
+          redeemed_at: string | null;
+          revoked_at: string | null;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          label?: string;
+          redeemed_at?: string | null;
+          revoked_at?: string | null;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          label?: string;
+          redeemed_at?: string | null;
+          revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
       beta_users: {
         Row: {
           active: boolean;
@@ -708,6 +741,7 @@ export type Database = {
           display_name: string;
           email: string;
           id: string;
+          invite_id: string | null;
           role: Database["public"]["Enums"]["beta_role"];
           updated_at: string;
         };
@@ -717,6 +751,7 @@ export type Database = {
           display_name: string;
           email: string;
           id?: string;
+          invite_id?: string | null;
           role?: Database["public"]["Enums"]["beta_role"];
           updated_at?: string;
         };
@@ -726,10 +761,19 @@ export type Database = {
           display_name?: string;
           email?: string;
           id?: string;
+          invite_id?: string | null;
           role?: Database["public"]["Enums"]["beta_role"];
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "beta_users_invite_id_fkey";
+            columns: ["invite_id"];
+            isOneToOne: false;
+            referencedRelation: "beta_invites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       coach_conversations: {
         Row: {
@@ -1700,6 +1744,7 @@ export type Database = {
       font_grades: { Args: Record<PropertyKey, never>; Returns: string[] };
       is_active_beta_user: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      redeem_beta_invite: { Args: { p_code: string; p_email: string }; Returns: boolean };
       is_valid_native_grade: {
         Args: { p_grade: string; p_system: Database["public"]["Enums"]["grade_system"] };
         Returns: boolean;

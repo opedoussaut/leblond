@@ -25,5 +25,6 @@ export default async function globalSetup() {
     ],
     { onConflict: "email" },
   );
-  await admin.from("beta_users").delete().eq("email", "stranger@leblond.local");
+  // Not invited at the start; the invitees join through a link during the run.
+  await admin.from("beta_users").delete().in("email", ["stranger@leblond.local", "invitee@leblond.local", "second-invitee@leblond.local"]);
 }

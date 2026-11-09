@@ -23,7 +23,7 @@ Status as of November 2026. "Delivered" means live on https://leblond.vercel.app
 
 ## Pending release
 
-- **Closed beta.** Sign-up restricted to the invitation whitelist (built and tested). It ships once the invitations are loaded in production, so that nobody is locked out.
+- **Closed beta.** Sign-up restricted to the whitelist, which friends join through single-use invitation links the admin sends by WhatsApp or Telegram (built and tested). It ships once the admin is on the production whitelist, so that nobody is locked out.
 
 ## Next — ROAD TO TARGET
 

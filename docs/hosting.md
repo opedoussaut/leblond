@@ -44,7 +44,7 @@ Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever 
 (Alternative: Supabase → SQL editor → paste each file of `supabase/migrations/` in name order → Run.)
 
 ### 4. Load the whitelist
-Actions → **Update beta whitelist** → Run workflow. It writes one invitation per `BETA_*` secret that is set and skips the others, so a tester is added later by creating their secret and running it again. It goes through the Supabase Management API with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` (no service-role key), and the log shows names, roles and counts only.
+Actions → **Update beta whitelist** → Run workflow. It writes one invitation per `BETA_*` secret that is set and skips the others, so a tester is added later by creating their secret and running it again. It goes through the Supabase Management API with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` (no service-role key), and the log shows names, roles and counts only. Only the admin's secret is needed: friends are then invited from the app (Profile → Beta administration → *Create an invitation link*, sent by WhatsApp, Telegram or text). Each link works once, for 30 days; the friend signs up with their own email, which joins the whitelist at that moment.
 
 Sign-up is by invitation: an email that is not on the active whitelist cannot create an account, and an existing account outside it lands on "Accès désactivé" with its data kept. To check the hosted whitelist without showing any email, run **Deploy database (Supabase)** with mode `access`: it prints counts only (accounts, active invitations, active admin, accounts outside the whitelist, invitations with no account yet).
 
