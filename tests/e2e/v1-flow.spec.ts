@@ -390,6 +390,10 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
   await picker.getByRole("button", { name: "rouge", exact: true }).click();
   await picker.getByLabel("Nom ou numéro de circuit").fill("3");
   await picker.getByRole("button", { name: /Le Talon d'Achille/ }).first().click();
+  // A topo boulder opens the one-step form; "Noter essai par essai" keeps the try-by-try logger.
+  const quickAdd = page.getByRole("region", { name: "Ajouter ce bloc" });
+  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (5c)" })).toHaveAttribute("aria-pressed", "true");
+  await quickAdd.getByRole("button", { name: "Noter essai par essai" }).click();
   const current = page.getByRole("region", { name: "Bloc en cours" });
   await expect(current.getByText("Le Talon d'Achille")).toBeVisible();
   await expect(current.getByText("5c", { exact: true })).toBeVisible();
@@ -398,17 +402,20 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
     await expect(page.getByText(/noté\./)).toBeVisible();
   }
 
-  // Off-circuit problem found by name, flashed.
+  // Off-circuit problem found by name, flashed in one step.
   await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
   await picker.getByLabel("Nom ou numéro de circuit").fill("free hug");
   await picker.getByRole("button", { name: /Free Hug/ }).click();
-  await current.getByRole("button", { name: "Flash", exact: true }).click();
-  await expect(page.getByText(/Flash noté\./)).toBeVisible();
+  await quickAdd.getByRole("button", { name: "Flash", exact: true }).click();
+  await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText("Ajouté : Free Hug · Flash.").first()).toBeVisible();
 
-  // Picking the same boulder again reuses it: its two attempts are still there.
-  await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
+  // The topo stays open. Picking the same boulder again reuses it: its two attempts are still there.
   await picker.getByLabel("Nom ou numéro de circuit").fill("talon");
   await picker.getByRole("button", { name: /Le Talon d'Achille/ }).click();
+  await expect(quickAdd.getByText("Déjà 2 essais notés sur ce bloc.")).toBeVisible();
+  await expect(quickAdd.getByRole("button", { name: "Flash", exact: true })).toBeDisabled();
+  await quickAdd.getByRole("button", { name: "Noter essai par essai" }).click();
   await expect(current.getByRole("img", { name: "Essai, Top" })).toBeVisible();
   await expect(current.getByRole("button", { name: "Flash", exact: true })).toBeDisabled();
 
@@ -532,11 +539,35 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(picker.getByText(/^\d+ blocs sur la carte$/)).toBeVisible();
   await map.getByRole("button", { name: /Dalle E2E · 4c/ }).click();
   await picker.getByRole("button", { name: "Choisir ce bloc" }).click();
+  // One step: my own grade, the result and the number of tries.
+  const quickAdd = page.getByRole("region", { name: "Ajouter ce bloc" });
+  await expect(quickAdd.getByText("Dalle E2E")).toBeVisible();
+  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (4c)" })).toHaveAttribute("aria-pressed", "true");
+  await quickAdd.getByRole("button", { name: "Ma cotation" }).click();
+  await quickAdd.getByRole("combobox", { name: "Ma cotation" }).selectOption("5a");
+  await quickAdd.getByRole("button", { name: "Top", exact: true }).click();
+  await quickAdd.getByRole("button", { name: "Essais +" }).click();
+  await quickAdd.getByRole("button", { name: "Essais +" }).click();
+  await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText("Ajouté : Dalle E2E · Top en 3 essais.").first()).toBeVisible();
+  const dalleRow = page.getByRole("listitem").filter({ hasText: "Dalle E2E" });
+  await expect(dalleRow).toContainText("5a");
+  await expect(dalleRow.getByRole("img", { name: "Essai, Essai, Top" })).toBeVisible();
+
+  // Logged by mistake, then taken out of the session: with no other tries, the boulder goes.
+  await map.getByRole("button", { name: /Premier E2E/ }).click();
+  await picker.getByRole("button", { name: "Choisir ce bloc" }).click();
+  await quickAdd.getByRole("button", { name: "Pas réussi", exact: true }).click();
+  await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText("Ajouté : Premier E2E · 1 essai, pas réussi.").first()).toBeVisible();
+  await page.getByRole("listitem").filter({ hasText: "Premier E2E" }).getByRole("button").click();
   const current = page.getByRole("region", { name: "Bloc en cours" });
-  await expect(current.getByText("Dalle E2E")).toBeVisible();
-  await expect(current.getByText("4c", { exact: true })).toBeVisible();
-  await current.getByRole("button", { name: "Top", exact: true }).click();
-  await expect(page.getByText(/noté\./)).toBeVisible();
+  await current.getByRole("button", { name: "Retirer de la séance" }).click();
+  await expect(current.getByText(/le bloc sera supprimé/)).toBeVisible();
+  await current.getByRole("button", { name: "Retirer", exact: true }).click();
+  await expect(page.getByText("Bloc retiré et supprimé.")).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Premier E2E" })).toHaveCount(0);
+  await expect(dalleRow).toBeVisible();
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
   await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();

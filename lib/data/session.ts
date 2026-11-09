@@ -60,11 +60,20 @@ export async function loadSessionView(supabase: ServerSupabase, sessionId: strin
         .order("attempt_number")
     : { data: [] as Tables<"attempts">[] };
 
+  // A boulder created during the session but tried only in other sessions
+  // (e.g. taken out of this one) does not belong here; one not tried yet does.
+  const touchedHere = new Set((sessionAttempts ?? []).map((a) => a.problem_id));
+  const triedAnywhere = new Set((attempts ?? []).map((a) => a.problem_id));
+  const shown = problemList.filter(
+    (p) => touchedHere.has(p.id) || projectProblemIds.includes(p.id) || !triedAnywhere.has(p.id),
+  );
+  const shownIds = new Set(shown.map((p) => p.id));
+
   return {
     session,
     gym,
-    problems: problemList,
-    attempts: attempts ?? [],
+    problems: shown,
+    attempts: (attempts ?? []).filter((a) => shownIds.has(a.problem_id)),
     activeProjectProblemIds: projectProblemIds,
     activity: (activity ?? null) as Tables<"wearable_activities"> | null,
   };
