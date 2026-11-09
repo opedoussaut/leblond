@@ -60,7 +60,7 @@ select pg_temp.expect((select source = 'LEBLOND' and credit = 'Topo test' and pr
   from public.outdoor_areas where gym_id = 'f6000000-0000-0000-0000-000000000001'), 'the site gets its own team-topo area');
 select pg_temp.expect((select count(*) = 1 from public.outdoor_circuits c join public.outdoor_areas a on a.id = c.area_id
   where a.gym_id = 'f6000000-0000-0000-0000-000000000001' and c.source = 'LEBLOND' and c.color = 'orange'), 'one circuit per colour');
-select pg_temp.expect((select count(*) filter (where circuit_id is not null) = 2 and count(*) = 3 and bool_and(source = 'LEBLOND')
+select pg_temp.expect((select count(*) filter (where circuit_id is not null) = 2 and count(*) = 3 and bool_and(op.source = 'LEBLOND')
   from public.outdoor_problems op join public.outdoor_areas a on a.id = op.area_id
   where a.gym_id = 'f6000000-0000-0000-0000-000000000001'), 'circuit boulders point to their circuit, off-circuit ones do not');
 select pg_temp.expect((select count(*) = 1 from public.outdoor_data_imports where source = 'LEBLOND' and problems = 3 and skipped = 2),
