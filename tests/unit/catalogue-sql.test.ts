@@ -15,8 +15,14 @@ describe("catalogueSql", () => {
     const firstIndex = order.map((t) => kinds.indexOf(t));
     expect(firstIndex.every((i) => i >= 0)).toBe(true);
     expect([...firstIndex].sort((a, b) => a - b)).toEqual(firstIndex);
-    expect(batches.at(-1)).toMatch(/^delete from public\.outdoor_problems/);
+    expect(batches.at(-1)).toMatch(/^delete from public\.outdoor_problems where source = 'BOOLDER' and /);
     expect(batches.at(-1)).toContain("insert into public.outdoor_data_imports");
+  });
+
+  it("never removes team topos that share the catalogue tables", () => {
+    const deletes = batches.at(-1)!.split("\n").filter((l) => l.startsWith("delete from"));
+    expect(deletes).toHaveLength(3);
+    for (const d of deletes) expect(d).toContain("where source = 'BOOLDER' and not (id = any");
   });
 
   it("splits large tables into batches", () => {

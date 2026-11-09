@@ -482,3 +482,62 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await expect(page.getByRole("heading", { name: "La Fissure" })).toBeVisible();
   await expect(page.getByText("Secteur Nord").first()).toBeVisible();
 });
+
+// Follows the Dampierre test, which created the climber crag "Saffres E2E". Made-up boulders.
+const TEAM_TOPO_KML = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Topo E2E</name>
+  <Folder><name>Orange</name>
+    <Placemark><name>Premier E2E 3</name><description>O1</description><Point><coordinates>4.70,47.30,0</coordinates></Point></Placemark>
+    <Placemark><name>Dalle E2E 4+</name><description>O2</description><Point><coordinates>4.71,47.31,0</coordinates></Point></Placemark>
+  </Folder>
+  <Folder><name>Hors circuit</name>
+    <Placemark><name>Toit E2E 6b</name><description></description><Point><coordinates>4.72,47.32,0</coordinates></Point></Placemark>
+  </Folder>
+  <Folder><name>Autres</name>
+    <Placemark><name>Parking</name><description></description><Point><coordinates>4.73,47.33,0</coordinates></Point></Placemark>
+  </Folder>
+</Document></kml>`;
+
+test("a team topo from Google My Maps: imported in Beta administration, picked in a session", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  const form = page.getByRole("form", { name: "Topos de l’équipe" });
+  await form.getByLabel("Site", { exact: true }).selectOption({ label: "Saffres E2E" });
+  await form.getByLabel("Fichier KMZ ou KML").setInputFiles({
+    name: "topo-e2e.kml",
+    mimeType: "application/vnd.google-earth.kml+xml",
+    buffer: Buffer.from(TEAM_TOPO_KML),
+  });
+  await form.getByLabel(/Crédit affiché/).fill("Topo E2E");
+  await form.getByRole("button", { name: "Importer le topo" }).click();
+  await expect(form.getByText(/Topo importé : 3 blocs, 1 circuits \(3 ajoutés/)).toBeVisible();
+  await form.getByText("1 repères ignorés").click();
+  await expect(form.getByText(/Parking \(Autres\) — pas de cotation/)).toBeVisible();
+
+  // The crag now offers its topo, credited to its author instead of Boolder.
+  await page.goto("/session/new");
+  await page.getByRole("tab", { name: "Extérieur" }).click();
+  const site = page.getByRole("button", { name: /Saffres E2E/ });
+  await expect(site).toContainText("topo intégré (3 blocs)");
+  await site.click();
+  const picker = page.getByRole("region", { name: "Quel bloc ?" });
+  await expect(picker).toBeVisible();
+  await expect(picker.getByText("Topo : Topo E2E")).toBeVisible();
+  await expect(picker.getByText("Topo : © Boolder")).toHaveCount(0);
+  await picker.getByRole("button", { name: "orange", exact: true }).click();
+  await picker.getByLabel("Nom ou numéro de circuit").fill("2");
+  await picker.getByRole("button", { name: /Dalle E2E/ }).click();
+  const current = page.getByRole("region", { name: "Bloc en cours" });
+  await expect(current.getByText("Dalle E2E")).toBeVisible();
+  await expect(current.getByText("4c", { exact: true })).toBeVisible();
+  await current.getByRole("button", { name: "Top", exact: true }).click();
+  await expect(page.getByText(/noté\./)).toBeVisible();
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+
+  await page.getByRole("link", { name: /Dalle E2E/ }).click();
+  await expect(page.getByRole("heading", { name: "Dalle E2E" })).toBeVisible();
+  await expect(page.getByText("Topo : Topo E2E")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Voir sur Boolder/ })).toHaveCount(0);
+});

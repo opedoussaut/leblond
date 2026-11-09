@@ -41,8 +41,8 @@ erDiagram
 | `wearable_connections` | Status + encrypted tokens. Clients can read status columns only. |
 | `wearable_activities` | Normalised workouts; unique per (user, provider, provider id) + `dedup_key`. |
 | `wearable_activity_samples` | Downsampled HR series kept out of the main row. |
-| `outdoor_areas`, `outdoor_circuits`, `outdoor_problems` | Fontainebleau catalogue imported from Boolder (CC BY 4.0). Read: active beta users; write: service role only. Each area owns one `gyms` row (`external_provider = 'BOOLDER'`, unique on `(external_provider, external_id)`). |
-| `outdoor_data_imports` | One row per import (source commit, date, counts, skipped). |
+| `outdoor_areas`, `outdoor_circuits`, `outdoor_problems` | Topo catalogue. `source = 'BOOLDER'`: Fontainebleau imported from Boolder (CC BY 4.0); each area owns one `gyms` row (`external_provider = 'BOOLDER'`, unique on `(external_provider, external_id)`). `source = 'LEBLOND'`: team topos (Google My Maps) on other outdoor sites, written only by `admin_import_leblond_topo()` (admin session); their circuits carry `area_id`, their circuits and problems a `source_key` unique per area. Read: active beta users; write: service role or that function only. |
+| `outdoor_data_imports` | One row per import, Boolder or team topo (source commit, date, counts, skipped). |
 
 `problems.outdoor_problem_id` links a climber's problem to a catalogue problem: unique per climber, must belong to the gym of that area (trigger), set to null if the problem disappears upstream.
 

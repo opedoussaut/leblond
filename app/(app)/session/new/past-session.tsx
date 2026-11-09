@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GymPicker } from "@/components/climbing/gym-picker";
-import { OutdoorPicker, type AreaItem } from "@/components/climbing/outdoor";
+import { OutdoorPicker, type AreaItem, type OutdoorSite } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -20,7 +20,7 @@ type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: bool
 
 /** Create a finished session after the fact, then fill it in on the edit page. */
 export function PastSession({ gyms, favouriteIds, areas, sites }: {
-  gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[]; sites: Tables<"gyms">[];
+  gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[]; sites: OutdoorSite[];
 }) {
   const { t, locale } = useI18n();
   const e = sessionEditDictionary(locale);
