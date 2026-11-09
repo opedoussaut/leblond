@@ -504,6 +504,7 @@ const TEAM_TOPO_KML = `<?xml version="1.0" encoding="UTF-8"?>
 </Document></kml>`;
 
 test("a team topo from Google My Maps: imported in Beta administration, picked in a session", async ({ page }) => {
+  test.setTimeout(120_000); // import, live session, list re-import, past session
   // The map's OpenStreetMap tiles are never fetched from CI.
   await page.route("https://tile.openstreetmap.org/**", (route) => route.abort());
   await signIn(page, ALEX);
@@ -597,9 +598,6 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await page.goto("/session/new");
   await page.getByRole("tab", { name: "Extérieur" }).click();
   await expect(page.getByRole("button", { name: /Saffres E2E/ })).toContainText("topo intégré (5 blocs)");
-  await page.getByRole("button", { name: /Saffres E2E/ }).click();
-  await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
-  await expect(picker.getByRole("button", { name: /Variante E2E/ })).toBeVisible();
 
   // Filling in a past session: a listed boulder without a pin, added in one step.
   await page.goto("/session/new?where=past");
@@ -608,6 +606,8 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   const pastForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
   await pastForm.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
+  await expect(picker.getByRole("button", { name: /Variante E2E/ })).toBeVisible();
   await picker.getByLabel("Nom ou numéro de circuit").fill("nouveau toit");
   await picker.getByRole("button", { name: /Nouveau Toit E2E/ }).click();
   await expect(quickAdd.getByRole("button", { name: "Cotation du topo (7A)" })).toHaveAttribute("aria-pressed", "true");
