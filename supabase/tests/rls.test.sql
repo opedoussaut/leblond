@@ -30,19 +30,24 @@ insert into public.beta_users (email, display_name, role) values
   ('inactive@example.test', 'Inactive', 'beta_tester');
 update public.beta_users set active = false where email = 'inactive@example.test';
 
---- Public accounts: neither an invitation nor an active legacy beta record is required.
-insert into auth.users(id,email) values
-  ('00000000-0000-0000-0000-00000000000c', 'stranger@example.test'),
-  ('00000000-0000-0000-0000-00000000000d', 'inactive@example.test');
-select pg_temp.expect((select count(*) from public.profiles where id in
- ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000d')) = 2,
- 'newly registered accounts receive profiles');
+-- Closed sign-up: only an active invitation creates an account, whatever the
+-- route (password, code, Google), because every route inserts into auth.users.
+select pg_temp.expect_error($$insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000c', 'stranger@example.test')$$, 'uninvited email cannot create an account');
+select pg_temp.expect_error($$insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'inactive@example.test')$$, 'deactivated invitation cannot create an account');
+select pg_temp.expect_error($$insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000e', null)$$, 'account without an email is refused');
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'olivier@example.test'),
   ('00000000-0000-0000-0000-00000000000b', 'Thomas@Example.test');
 
 select pg_temp.expect((select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a') = 'Olivier', 'profile auto-created with beta display name');
+
+-- Accounts created while sign-up was open stay in the database (locked out below).
+alter table auth.users disable trigger enforce_beta_whitelist;
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000000c', 'stranger@example.test'),
+  ('00000000-0000-0000-0000-00000000000d', 'inactive@example.test');
+alter table auth.users enable trigger enforce_beta_whitelist;
 select pg_temp.expect((select count(*) from public.profiles p join auth.users u on u.id = p.id where u.email ilike '%@example.test') = 4, 'four profiles');
 
 grant execute on function pg_temp.expect_error(text, text) to authenticated, anon;
@@ -266,6 +271,36 @@ select pg_temp.expect((select count(*) from public.training_assessments
   where id = '60000000-0000-0000-0000-000000000001') = 1, 'cannot delete another user assessment');
 select pg_temp.expect((select notes from public.training_checkins
   where id = '70000000-0000-0000-0000-000000000001') = 'test', 'cannot change another user checkin');
+
+-- ── Outside the active whitelist: the account and its rows stay, access goes ─
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","email":"stranger@example.test","role":"authenticated"}', false);
+select pg_temp.expect(not public.is_active_beta_user(), 'uninvited account is not an active beta user');
+select pg_temp.expect((select count(*) from public.profiles) = 1, 'uninvited account still sees its own profile');
+select pg_temp.expect((select count(*) from public.gyms) = 0, 'uninvited account cannot read the gym catalogue');
+select pg_temp.expect_error($$insert into public.sessions (gym_id) values ('10000000-0000-0000-0000-000000000001')$$, 'uninvited account cannot start a session');
+select pg_temp.expect_error($$insert into public.training_plans (user_id, name, sessions)
+  values ('00000000-0000-0000-0000-00000000000c', 'Mine', '[{"day":1}]')$$, 'uninvited account cannot create a training plan');
+
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d","email":"inactive@example.test","role":"authenticated"}', false);
+select pg_temp.expect(not public.is_active_beta_user(), 'deactivated account is not an active beta user');
+select pg_temp.expect_error($$insert into public.training_plans (user_id, name, sessions)
+  values ('00000000-0000-0000-0000-00000000000d', 'Mine', '[{"day":1}]')$$, 'deactivated account cannot create a training plan');
+reset role;
+
+-- Deactivating a tester takes effect at once, and reactivating restores access.
+update public.beta_users set active = false where email = 'thomas@example.test';
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","email":"thomas@example.test","role":"authenticated"}', false);
+select pg_temp.expect((select count(*) from public.gyms) = 0, 'deactivated tester loses the gym catalogue');
+select pg_temp.expect_error($$insert into public.training_plans (user_id, name, sessions)
+  values ('00000000-0000-0000-0000-00000000000b', 'Mine', '[{"day":1}]')$$, 'deactivated tester cannot write');
+reset role;
+update public.beta_users set active = true where email = 'thomas@example.test';
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","email":"thomas@example.test","role":"authenticated"}', false);
+select pg_temp.expect((select count(*) from public.gyms) > 0, 'reactivated tester reads the gym catalogue again');
+reset role;
 
 -- ── Anonymous ──────────────────────────────────────────────────────────────
 set role anon;

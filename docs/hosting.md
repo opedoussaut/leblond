@@ -37,7 +37,7 @@ Repository → Settings → Secrets and variables → Actions → *New repositor
 | `SUPABASE_DB_PASSWORD` | database password |
 | `NEXT_PUBLIC_SUPABASE_URL` | API URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
-| `BETA_OLIVIER_EMAIL` … `BETA_DAVID_EMAIL` | the five testers' emails |
+| `BETA_OLIVIER_EMAIL`, `BETA_FLAVIO_EMAIL`, `BETA_DAVID_EMAIL`, `BETA_THOMAS_EMAIL`, `BETA_JEROME_EMAIL` | the five testers' emails |
 
 Secrets are never shown in the public repo or in workflow logs.
 
@@ -47,6 +47,8 @@ Actions → **Deploy database (Supabase)** → Run workflow. Re-run it whenever 
 
 ### 4. Load the whitelist
 Actions → **Update beta whitelist** → Run workflow. The log shows names and roles only.
+
+Sign-up is by invitation: an email that is not on the active whitelist cannot create an account, and an existing account outside it lands on "Accès désactivé" with its data kept. To check the hosted whitelist without showing any email, run **Deploy database (Supabase)** with mode `access`: it prints counts only (accounts, active invitations, active admin, accounts outside the whitelist, invitations with no account yet).
 
 ### 4b. Load the Fontainebleau topo (optional)
 Actions → **Import Boolder (Fontainebleau)** → Run workflow. It downloads Boolder's open data (© Boolder, CC BY 4.0) and loads the Fontainebleau areas, circuits and problems; the log shows the counts. Re-run it from time to time to pick up Boolder's updates (new problems, closures). Settings → Connections shows the date of the last import. The workflow turns the data into SQL batches and runs them through the Supabase Management API with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID`, the secrets the database deploy already uses; no service-role key is needed. Tick *dry run* to parse and count without writing.

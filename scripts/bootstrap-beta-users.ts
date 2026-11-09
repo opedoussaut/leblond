@@ -12,10 +12,10 @@ import { createClient } from "@supabase/supabase-js";
 
 const ROSTER = [
   { env: "BETA_OLIVIER_EMAIL", display_name: "Olivier", role: "admin" },
-  { env: "BETA_THOMAS_EMAIL", display_name: "Thomas", role: "beta_tester" },
-  { env: "BETA_MARC_EMAIL", display_name: "Marc", role: "beta_tester" },
-  { env: "BETA_HOUSSEM_EMAIL", display_name: "Houssem", role: "beta_tester" },
+  { env: "BETA_FLAVIO_EMAIL", display_name: "Flavio", role: "beta_tester" },
   { env: "BETA_DAVID_EMAIL", display_name: "David", role: "beta_tester" },
+  { env: "BETA_THOMAS_EMAIL", display_name: "Thomas", role: "beta_tester" },
+  { env: "BETA_JEROME_EMAIL", display_name: "Jérôme", role: "beta_tester" },
 ] as const;
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -12,6 +12,9 @@ name: Deploy database (Supabase)
 #   push     apply pending migrations (default)
 #   inspect  READ-ONLY: list migration history and print the schema diff
 #            between the hosted database and supabase/migrations
+#   access   READ-ONLY: closed-beta counts from scripts/closed-beta-access.sql
+#            (accounts, invitations, admin, accounts outside the whitelist).
+#            Counts only: this repository and its logs are public.
 #   smtp     configure the hosted Auth email sender from the SMTP_* secrets
 #            (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SENDER_EMAIL); never prints them.
 #   repair   align the migration HISTORY table only (no schema change), then push.
@@ -22,11 +25,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "push | inspect | repair | smtp"
+        description: "push | inspect | access | repair | smtp"
         required: true
         default: push
         type: choice
-        options: [push, inspect, repair, smtp]
+        options: [push, inspect, access, repair, smtp]
       revert_versions:
         description: "repair only: remote-only versions to mark reverted (space-separated)"
         required: false
@@ -70,6 +73,14 @@ jobs:
               otp_template_has_code: ((.mailer_templates_magic_link_content // "") | contains(".Token")),
               confirmation_template_set: ((.mailer_templates_confirmation_content // "") != "")
             }'
+      - name: Closed-beta access (read-only, counts only)
+        if: ${{ inputs.mode == 'access' }}
+        run: |
+          set -euo pipefail
+          jq -n --rawfile q scripts/closed-beta-access.sql '{query: $q}' \
+            | curl -sS --fail-with-body -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+                --data @- "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query" \
+            | jq '.[0]'
       - name: Repair migration history
         if: ${{ inputs.mode == 'repair' }}
         run: |
