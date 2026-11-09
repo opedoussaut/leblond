@@ -1533,6 +1533,7 @@ export type Database = {
           id: string;
           notes: string | null;
           problem_id: string;
+          session_id: string | null;
           started_at: string;
           status: Database["public"]["Enums"]["project_status"];
           updated_at: string;
@@ -1544,6 +1545,7 @@ export type Database = {
           id?: string;
           notes?: string | null;
           problem_id: string;
+          session_id?: string | null;
           started_at?: string;
           status?: Database["public"]["Enums"]["project_status"];
           updated_at?: string;
@@ -1555,6 +1557,7 @@ export type Database = {
           id?: string;
           notes?: string | null;
           problem_id?: string;
+          session_id?: string | null;
           started_at?: string;
           status?: Database["public"]["Enums"]["project_status"];
           updated_at?: string;

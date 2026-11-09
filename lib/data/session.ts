@@ -28,7 +28,8 @@ export async function loadSessionView(supabase: ServerSupabase, sessionId: strin
         .eq("gym_id", session.gym_id)
         .gte("created_at", session.started_at)
         .lte("created_at", session.ended_at ?? new Date(Date.now() + 60_000).toISOString()),
-      supabase.from("projects").select("id, problem_id, status").eq("status", "ACTIVE"),
+      // Active projects, and any project opened in this session (whatever its status now).
+      supabase.from("projects").select("id, problem_id, status, session_id").or(`status.eq.ACTIVE,session_id.eq.${sessionId}`),
       session.wearable_activity_id
         ? supabase.from("wearable_activities").select("*").eq("id", session.wearable_activity_id).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -39,7 +40,8 @@ export async function loadSessionView(supabase: ServerSupabase, sessionId: strin
     ...(sessionAttempts ?? []).map((a) => a.problem_id),
     ...(createdDuring ?? []).map((p) => p.id),
   ]);
-  const projectProblemIds = (projects ?? []).map((p) => p.problem_id);
+  const projectProblemIds = (projects ?? []).filter((p) => p.status === "ACTIVE").map((p) => p.problem_id);
+  const openedHere = (projects ?? []).filter((p) => p.session_id === session.id);
 
   const { data: problems } = await supabase
     .from("problems")
@@ -75,6 +77,9 @@ export async function loadSessionView(supabase: ServerSupabase, sessionId: strin
     problems: shown,
     attempts: (attempts ?? []).filter((a) => shownIds.has(a.problem_id)),
     activeProjectProblemIds: projectProblemIds,
+    /** Projects opened in this session: problem id → project id and status. */
+    projectIdByProblem: Object.fromEntries((projects ?? []).map((p) => [p.problem_id, p.id])) as Record<string, string>,
+    projectsOpenedHere: openedHere.map((p) => ({ problemId: p.problem_id, projectId: p.id, status: p.status })),
     activity: (activity ?? null) as Tables<"wearable_activities"> | null,
   };
 }

@@ -13,6 +13,7 @@ import { formatDateTime, formatDuration } from "@/lib/format";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import type { StyleTag } from "@/lib/climbing/types";
 import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
@@ -38,6 +39,14 @@ function HighestRow({ t, items }: { t: Dictionary; items: HighestGrade[] }) {
 
 export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; view: View }) {
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
+  const L = loggingDictionary(locale);
+  // Projects opened in this session, then active projects worked on in it.
+  const openedHere = new Set(view.projectsOpenedHere.map((p) => p.problemId));
+  const triedHere = new Set(view.attempts.filter((a) => a.session_id === view.session.id).map((a) => a.problem_id));
+  const sessionProjects = view.problems
+    .filter((p) => view.projectIdByProblem[p.id] && (openedHere.has(p.id) || (triedHere.has(p.id) && view.activeProjectProblemIds.includes(p.id))))
+    .map((p) => ({ problem: p, projectId: view.projectIdByProblem[p.id], here: openedHere.has(p.id) }))
+    .sort((a, b) => Number(b.here) - Number(a.here));
   const problems = view.problems.map((p) => toProblemFact({ ...p, tags: tagSlugs(p) as StyleTag[] }));
   const summary = summarizeSession(
     toSessionFact(view.session, view.activity),
@@ -139,13 +148,31 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
                       <span className="shrink-0 text-sm text-ink-3">{fmt(t.session.attemptsShort, { n: pa.length })}</span>
                       <span className="ml-auto flex gap-1">
                         {best ? <ResultBadge tone={best === "FLASH" ? "flash" : "top"} label={t.results[best]} /> : null}
-                        {view.activeProjectProblemIds.includes(p.id) ? <ResultBadge tone="project" label="★" /> : null}
+                        {view.activeProjectProblemIds.includes(p.id) || openedHere.has(p.id)
+                          ? <ResultBadge tone="project" label={openedHere.has(p.id) ? L.projectHere : L.project} /> : null}
                       </span>
                       {p.notes ? <span className="basis-full text-xs italic text-ink-2">“{p.notes}”</span> : null}
                     </Link>
                   </li>
                 );
               })}
+          </ul>
+        </section>
+      ) : null}
+
+      {sessionProjects.length ? (
+        <section aria-labelledby="session-projects" className="space-y-2">
+          <SectionTitle><span id="session-projects">★ {L.projectsOfSession}</span></SectionTitle>
+          <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
+            {sessionProjects.map(({ problem: p, projectId, here }) => (
+              <li key={projectId}>
+                <Link href={`/projects/${projectId}`} className="flex min-h-12 items-center gap-3 px-4 py-2 hover:bg-surface-2">
+                  <GradeChip t={t} system={p.native_grade_system} grade={p.native_grade} size="sm" showFont />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{p.name || t.problem.unnamed}</span>
+                  <span className="shrink-0 text-xs font-bold text-ink-3">{here ? L.projectOpenedHere : L.projectTriedHere} ›</span>
+                </Link>
+              </li>
+            ))}
           </ul>
         </section>
       ) : null}

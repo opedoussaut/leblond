@@ -30,6 +30,12 @@ const fr = {
   topoAdded: "Ajouté : {name} · {what}.", topIn: "Top en {n} essais",
   notSentOne: "1 essai, pas réussi", notSentOther: "{n} essais, pas réussi",
   projectTriesOne: "projet, 1 essai", projectTriesOther: "projet, {n} essais",
+  // A project opened during a session is linked to it.
+  projectHere: "Projet de cette séance", projectLinked: "Projet lié à cette séance.",
+  projectSavedHere: "★ Projet ajouté et lié à cette séance. Tu le retrouves aussi dans Projets.",
+  seeProjects: "Voir mes projets", projectsOfSession: "Projets de cette séance",
+  projectOpenedHere: "ouvert ici", projectTriedHere: "travaillé ici",
+  openedIn: "Ouvert pendant la séance du {date}", openedInNone: "Ouvert hors séance",
 };
 type Dict = typeof fr;
 
@@ -61,6 +67,11 @@ const en: Dict = {
   topoAdded: "Added: {name} · {what}.", topIn: "Top in {n} tries",
   notSentOne: "1 try, not sent", notSentOther: "{n} tries, not sent",
   projectTriesOne: "project, 1 try", projectTriesOther: "project, {n} tries",
+  projectHere: "Project from this session", projectLinked: "Project linked to this session.",
+  projectSavedHere: "★ Project added and linked to this session. It is also in Projects.",
+  seeProjects: "See my projects", projectsOfSession: "Projects in this session",
+  projectOpenedHere: "opened here", projectTriedHere: "worked on here",
+  openedIn: "Opened during the session of {date}", openedInNone: "Opened outside a session",
 };
 
 export const loggingDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);

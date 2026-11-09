@@ -66,6 +66,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
       outdoor={outdoor}
       initialAttempts={view.attempts}
       projectProblemIds={view.activeProjectProblemIds}
+      projectsOpenedHere={view.projectsOpenedHere.map((p) => p.problemId)}
       mode={mode}
     />
   );

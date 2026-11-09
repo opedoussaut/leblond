@@ -616,4 +616,17 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
   await expect(page.getByText("Ajouté : Nouveau Toit E2E · Top en 2 essais.").first()).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Nouveau Toit E2E" }).getByRole("img", { name: "Essai, Top" })).toBeVisible();
+
+  // A project opened here is visibly linked to this session, and back (the topo stays open).
+  await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
+  await picker.getByRole("button", { name: /Variante E2E/ }).click();
+  await quickAdd.getByRole("button", { name: "Projet", exact: true }).click();
+  await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText(/Ajouté : Variante E2E · projet, 1 essai\. Projet lié à cette séance\./).first()).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" })).toContainText("Projet de cette séance");
+  await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
+  const sessionProjects = page.getByRole("region", { name: /Projets de cette séance/ });
+  await expect(sessionProjects.getByRole("link", { name: /Variante E2E.*ouvert ici/ })).toBeVisible();
+  await sessionProjects.getByRole("link", { name: /Variante E2E/ }).click();
+  await expect(page.getByRole("link", { name: /Ouvert pendant la séance du/ })).toBeVisible();
 });
