@@ -5,10 +5,12 @@ import { Input, Label } from "@/components/ui/field";
 import { createBetaInvite, revokeBetaInvite, setBetaUserActive } from "@/lib/actions/admin";
 import { inviteLink, inviteStatus, shareLinks } from "@/lib/auth/invite-code";
 import { requireViewer } from "@/lib/auth/viewer";
+import { listOutdoorSites, listTeamTopos } from "@/lib/data/outdoor";
 import { siteUrl } from "@/lib/env";
 import { fmt, intlLocale } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { InviteShare } from "./invite-share";
+import { TopoImport } from "./topo-import";
 
 export const metadata = { title: "Bêta" };
 
@@ -25,6 +27,8 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
     .select("id, code, label, expires_at, redeemed_at, revoked_at, created_at")
     .order("created_at", { ascending: false })
     .limit(20);
+  // Outdoor sites outside Fontainebleau and the team topos already imported there.
+  const [sites, topos] = await Promise.all([listOutdoorSites(viewer.supabase), listTeamTopos(viewer.supabase)]);
   const day = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", timeZone: "Europe/Paris" });
   const base = siteUrl();
 
@@ -95,6 +99,27 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
           })}
         </ul>
       ) : null}
+
+      <Card className="space-y-3">
+        <SectionTitle>{t.admin.topoTitle}</SectionTitle>
+        <p className="text-sm text-ink-2">{t.admin.topoIntro}</p>
+        {topos.length > 0 ? (
+          <ul aria-label={t.admin.topoList} className="space-y-1 text-sm">
+            {topos.map((topo) => (
+              <li key={topo.gym_id}>
+                <span className="font-semibold">{topo.name}</span>
+                {" · "}
+                {fmt(t.admin.topoListItem, { n: topo.problems_count, date: day.format(new Date(topo.updated_at)) })}
+                {topo.credit ? ` · ${topo.credit}` : ""}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <TopoImport
+          sites={sites.map((s) => ({ id: s.id, name: s.name, topo_problems: s.topo_problems }))}
+          defaultCredit={viewer.profile.display_name}
+        />
+      </Card>
 
       <ul className="space-y-2">
         {(rows ?? []).map((r) => (

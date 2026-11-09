@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GradeChip } from "@/components/climbing/grade-chip";
-import { BoolderAttribution, CircuitBadge } from "@/components/climbing/outdoor";
+import { CircuitBadge, TopoAttribution } from "@/components/climbing/outdoor";
 import { MediaUploader } from "@/components/climbing/media-uploader";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
@@ -39,6 +39,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
     problem.outdoor_problem_id != null ? loadOutdoorProblem(viewer.supabase, problem.outdoor_problem_id) : null,
   ]);
   const bleau = topo ? bleauInfoUrl(topo.bleau_info_id) : null;
+  const teamTopo = topo?.source === "LEBLOND";
   const signed = media?.length
     ? (await viewer.supabase.storage.from(MEDIA_BUCKET).createSignedUrls(media.map((m) => m.storage_path), 3600)).data
     : [];
@@ -97,19 +98,23 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
               </span>
             </p>
             {topo.grade !== problem.native_grade ? (
-              <p className="text-ink-2">{fmt(t.outdoor.topoGradeChanged, { grade: topo.grade })}</p>
+              <p className="text-ink-2">
+                {fmt(teamTopo ? t.outdoor.topoGradeChangedTeam : t.outdoor.topoGradeChanged, { grade: topo.grade })}
+              </p>
             ) : null}
             <p className="flex flex-wrap gap-4">
-              <a href={boolderProblemUrl(topo.id, locale)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
-                {t.outdoor.onBoolder} ↗
-              </a>
+              {teamTopo ? null : (
+                <a href={boolderProblemUrl(topo.id, locale)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
+                  {t.outdoor.onBoolder} ↗
+                </a>
+              )}
               {bleau ? (
                 <a href={bleau} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
                   {t.outdoor.onBleauInfo} ↗
                 </a>
               ) : null}
             </p>
-            <BoolderAttribution />
+            <TopoAttribution source={topo.source} credit={topo.outdoor_areas?.credit} />
           </div>
         </Card>
       ) : null}

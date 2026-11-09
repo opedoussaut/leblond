@@ -11,6 +11,7 @@
 | Garmin | Supported path | Official Developer Program when authorized + FIT fallback |
 | Strava | Planned next | Official OAuth/API |
 | Boolder (Fontainebleau) | Supported | Open data import (CC BY 4.0), read-only catalogue |
+| Google My Maps (team topos) | Supported | KMZ/KML export uploaded by the admin; the data stays out of the repository |
 | bleau.info | Link only | No licence to reuse its data: problems link to bleau.info, nothing is copied |
 
 ## Gym networks (`lib/integrations/gyms`)
@@ -39,8 +40,19 @@ Sites Boolder does not cover are single rows in `gyms`, added by migration with 
 
 Climbers can also add a crag from the outdoor picker (*+ Ajouter un site extérieur*): a shared `gyms` row with brand `OUTDOOR`, Font grading for boulders, the disciplines it offers and an optional link to its source page (a guide, a federation page). Boulders and routes logged there carry their own name, grade, sector, beta and topo reference (book, page, number) with an optional link. These are citations: guidebook diagrams and photos are never copied.
 
-- **Dampierre Maincourt:** bouldering on the Font scale. There is no topo, so the climber logs each problem by grade.
+- **Dampierre Maincourt:** bouldering on the Font scale. The climber logs by grade, or picks from the team topo once the admin has imported it.
 - **bleau.info:** link only, opened in a new tab. Nothing is copied or scraped.
+
+## Team topos — Google My Maps (`lib/integrations/outdoor/mymaps.ts`)
+
+A beta tester can draw a site's topo in Google My Maps; the admin uploads its export in *Profil → Bêta fermée → Topos de l’équipe*. The file is read on the server (`kmz.ts`: a .kmz zip holding `doc.kml`, or a plain .kml; 900 KB upload, 5 MB inflated at most) and never stored. Only the boulders reach the database, through `admin_import_leblond_topo()` in the admin's own session. Team topos are never committed to this repository: a map is its author's work, not open data.
+
+- **Map conventions:** one layer per circuit colour (`Orange`, `Rouge`, `Jaune`, `Bleu`, `Blanc`, `Noir`, `Vert`, `Violet`, `Saumon`, `Bleu ciel`, or the English names); other layers (`Hors circuit…`, `Autres`) are off-circuit. One pin per boulder named `<name> <grade>`, e.g. `La Roncerie 5` or `Sourire 7a`. On a circuit layer the description starts with the circuit code (`O12`, `B5b:`); off-circuit, a `O13b: ` name prefix puts the boulder on its circuit (the letter is learnt from the circuit layers).
+- **Grades:** lettered grades map one-to-one (`4c`, `6a+` → `6A+`). Grades without a letter use the app's convention (docs/grading.md): the lowest matching letter, `4-` and `4` → `4a`, `4+` → `4c`. From 6 a letter is required. Pins without a readable grade (parking, notes, sectors) are skipped and listed to the admin, never guessed.
+- **Storage:** the same tables as Boolder, with `source = 'LEBLOND'`: one `outdoor_areas` row for the site's gym (with a `credit`), one circuit per colour, one problem per pin. Ids come from `outdoor_leblond_id_seq` (from 1,000,000,000, far above Boolder's).
+- **Re-import:** replaces the site's topo. A boulder keeps its id when its key is unchanged (`<colour>:<number>`, or `hc:<name>` off-circuit), so climbers' logged problems stay linked; a boulder that leaves the topo is deleted and the climber's problem keeps its attempts, unlinked. The admin is told how many logged boulders lose their link.
+- **Boolder is untouched:** the Boolder import deletes and counts `source = 'BOOLDER'` rows only, and a team topo cannot be imported into a Boolder area.
+- **Credit:** the live picker and problem page show "Topo : <credit>" instead of Boolder's attribution, and no Boolder link.
 
 ## Policy
 

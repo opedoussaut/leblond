@@ -44,7 +44,8 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
       colourEquivalents={colourEquivalents} mode={mode} />;
   }
 
-  const outdoor = view.gym.external_provider === "BOOLDER" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;
+  // Boolder areas and outdoor sites with a team topo; null for a site without one.
+  const outdoor = view.gym.brand === "OUTDOOR" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;
   return (
     <LiveSession
       sessionId={view.session.id}

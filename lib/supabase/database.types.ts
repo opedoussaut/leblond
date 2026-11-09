@@ -1026,6 +1026,7 @@ export type Database = {
       outdoor_areas: {
         Row: {
           cluster_name: string | null;
+          credit: string | null;
           description_en: string | null;
           description_fr: string | null;
           gym_id: string;
@@ -1037,6 +1038,7 @@ export type Database = {
           priority: number;
           problems_count: number;
           south_west_lat: number | null;
+          source: string;
           south_west_lon: number | null;
           tags: string[];
           updated_at: string;
@@ -1045,6 +1047,7 @@ export type Database = {
         };
         Insert: {
           cluster_name?: string | null;
+          credit?: string | null;
           description_en?: string | null;
           description_fr?: string | null;
           gym_id: string;
@@ -1056,6 +1059,7 @@ export type Database = {
           priority?: number;
           problems_count?: number;
           south_west_lat?: number | null;
+          source?: string;
           south_west_lon?: number | null;
           tags?: string[];
           updated_at?: string;
@@ -1064,6 +1068,7 @@ export type Database = {
         };
         Update: {
           cluster_name?: string | null;
+          credit?: string | null;
           description_en?: string | null;
           description_fr?: string | null;
           gym_id?: string;
@@ -1075,6 +1080,7 @@ export type Database = {
           priority?: number;
           problems_count?: number;
           south_west_lat?: number | null;
+          source?: string;
           south_west_lon?: number | null;
           tags?: string[];
           updated_at?: string;
@@ -1093,30 +1099,47 @@ export type Database = {
       };
       outdoor_circuits: {
         Row: {
+          area_id: number | null;
           average_grade: string | null;
           beginner_friendly: boolean;
           color: string;
           dangerous: boolean;
           id: number;
+          source: string;
+          source_key: string | null;
           updated_at: string;
         };
         Insert: {
+          area_id?: number | null;
           average_grade?: string | null;
           beginner_friendly?: boolean;
           color: string;
           dangerous?: boolean;
           id: number;
+          source?: string;
+          source_key?: string | null;
           updated_at?: string;
         };
         Update: {
+          area_id?: number | null;
           average_grade?: string | null;
           beginner_friendly?: boolean;
           color?: string;
           dangerous?: boolean;
           id?: number;
+          source?: string;
+          source_key?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_circuits_area_id_fkey";
+            columns: ["area_id"];
+            isOneToOne: false;
+            referencedRelation: "outdoor_areas";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       outdoor_data_imports: {
         Row: {
@@ -1172,6 +1195,8 @@ export type Database = {
           parent_id: number | null;
           popularity: number | null;
           sit_start: boolean;
+          source: string;
+          source_key: string | null;
           steepness: string;
           updated_at: string;
           wall_angle: Database["public"]["Enums"]["wall_angle"];
@@ -1193,6 +1218,8 @@ export type Database = {
           parent_id?: number | null;
           popularity?: number | null;
           sit_start?: boolean;
+          source?: string;
+          source_key?: string | null;
           steepness: string;
           updated_at?: string;
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
@@ -1214,6 +1241,8 @@ export type Database = {
           parent_id?: number | null;
           popularity?: number | null;
           sit_start?: boolean;
+          source?: string;
+          source_key?: string | null;
           steepness?: string;
           updated_at?: string;
           wall_angle?: Database["public"]["Enums"]["wall_angle"];
@@ -1745,6 +1774,7 @@ export type Database = {
       is_active_beta_user: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       redeem_beta_invite: { Args: { p_code: string; p_email: string }; Returns: boolean };
+      admin_import_leblond_topo: { Args: { p_gym_id: string; p_topo: Json }; Returns: Json };
       admin_set_beta_user_active: { Args: { p_email: string; p_active: boolean }; Returns: boolean };
       is_valid_native_grade: {
         Args: { p_grade: string; p_system: Database["public"]["Enums"]["grade_system"] };

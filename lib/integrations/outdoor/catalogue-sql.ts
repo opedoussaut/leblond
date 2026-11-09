@@ -4,14 +4,16 @@ import { BOOLDER_PROVIDER, type CatalogueImport } from "./boolder";
  * The Boolder catalogue as plain SQL batches, for hosts where the import runs
  * through the database (Supabase Management API / psql) rather than the REST
  * API with a service-role key. Same effect as scripts/import-boolder.ts:
- * upserts gyms, areas, circuits and problems; removes what disappeared
- * upstream (climbers' own problems keep their attempts, only the catalogue link
+ * upserts gyms, areas, circuits and problems; removes the Boolder rows that
+ * disappeared upstream (climbers' own problems keep their attempts, only the catalogue link
  * is cleared by the foreign key); records the import. Each batch is a single
  * statement list that can be sent on its own; the last one only runs once all
  * upserts succeeded.
  */
 
 const TAG = "$boolder$";
+/** Team topos (source LEBLOND) share these tables; the Boolder import never removes them. */
+const BOOLDER_ONLY = `source = '${BOOLDER_PROVIDER}'`;
 
 function json(rows: unknown[]): string {
   const text = JSON.stringify(rows);
@@ -105,16 +107,17 @@ export function catalogueSql(
   const areaIds = catalogue.areas.map((a) => a.id);
   batches.push(
     [
-      `delete from public.outdoor_problems where not (id = any (${intArray(catalogue.problems.map((p) => p.id))}));`,
-      `delete from public.outdoor_circuits where not (id = any (${intArray(catalogue.circuits.map((c) => c.id))}));`,
-      `delete from public.outdoor_areas where not (id = any (${intArray(areaIds)}));`,
+      `delete from public.outdoor_problems where ${BOOLDER_ONLY} and not (id = any (${intArray(catalogue.problems.map((p) => p.id))}));`,
+      `delete from public.outdoor_circuits where ${BOOLDER_ONLY} and not (id = any (${intArray(catalogue.circuits.map((c) => c.id))}));`,
+      `delete from public.outdoor_areas where ${BOOLDER_ONLY} and not (id = any (${intArray(areaIds)}));`,
       `update public.gyms set active = false where external_provider = '${BOOLDER_PROVIDER}'`,
       `  and not (external_id = any (${intArray(areaIds)}::text[]));`,
       `insert into public.outdoor_data_imports (source, source_version, source_date, areas, circuits, problems, skipped)`,
       `values ('${BOOLDER_PROVIDER}', ${literal(source.version)}, ${source.date ? `${literal(source.date)}::timestamptz` : "null"},`,
       `  ${catalogue.areas.length}, ${catalogue.circuits.length}, ${catalogue.problems.length}, ${catalogue.skipped.length});`,
-      `select (select count(*) from public.outdoor_areas) as areas, (select count(*) from public.outdoor_circuits) as circuits,`,
-      `  (select count(*) from public.outdoor_problems) as problems,`,
+      `select (select count(*) from public.outdoor_areas where ${BOOLDER_ONLY}) as areas,`,
+      `  (select count(*) from public.outdoor_circuits where ${BOOLDER_ONLY}) as circuits,`,
+      `  (select count(*) from public.outdoor_problems where ${BOOLDER_ONLY}) as problems,`,
       `  (select count(*) from public.gyms where external_provider = '${BOOLDER_PROVIDER}' and active) as active_gyms;`,
     ].join("\n"),
   );

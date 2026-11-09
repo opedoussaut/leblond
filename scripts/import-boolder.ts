@@ -71,10 +71,12 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   return data;
 }
 
+/** Boolder rows only: team topos (source LEBLOND) live in the same tables and are never touched here. */
 async function existingIds(sb: SupabaseClient, table: string): Promise<number[]> {
   const ids: number[] = [];
   for (let from = 0; ; from += 1000) {
-    const rows = ((await must(sb.from(table).select("id").order("id").range(from, from + 999), `read ${table}`)) ??
+    const query = sb.from(table).select("id").eq("source", BOOLDER_PROVIDER).order("id").range(from, from + 999);
+    const rows = ((await must(query, `read ${table}`)) ??
       []) as Array<{ id: number }>;
     ids.push(...rows.map((r) => r.id));
     if (rows.length < 1000) return ids;

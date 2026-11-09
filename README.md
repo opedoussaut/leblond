@@ -29,7 +29,7 @@ By invitation: Olivier (admin) creates a single-use link in *Beta administration
 - Sign-in by password, 6-digit code, magic link or Google; sign-up by invitation only (single-use links or codes the admin shares, or the admin's whitelist), enforced in the app **and** in the database
 - Two-minute onboarding (name, language, level, target, gyms, Patrick intro)
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
-- Outdoor sites without a topo, such as Dampierre Maincourt, logged by Font grade — [docs/integrations.md](docs/integrations.md)
+- Outdoor sites outside Fontainebleau, such as Dampierre Maincourt: logged by Font grade, or picked from a team topo the admin imports from Google My Maps (KMZ/KML) — [docs/integrations.md](docs/integrations.md)
 - Fontainebleau outdoor sessions: 90 areas and ~19,000 problems from Boolder's open data (© Boolder, CC BY 4.0), picked by name or circuit number, closure warnings shown; bleau.info is linked, never copied
 - Outdoor details on boulders and routes, editable afterwards: name, grade, sector, notes, beta, topo reference and link (a citation, never a copied diagram), photos and videos; climbers can add a crag that has no topo
 - Live session for chalky fingers: native-grade grid, one-tap **TRY · TOP · FLASH**, undo, flash suggestion, optional wall angle and style tags
@@ -72,6 +72,7 @@ LEBLOND never shows “Connected” without a stored, successful authorisation. 
 | Garmin | Supported path | Official Developer Program when authorised + FIT fallback |
 | Strava | Planned next | Official OAuth/API |
 | Boolder (Fontainebleau) | Supported | Open data import (CC BY 4.0) — [docs/integrations.md](docs/integrations.md) |
+| Google My Maps (team topos) | Supported | KMZ/KML uploaded by the admin, never committed |
 | bleau.info | Link only | No reuse licence: links only |
 
 ## Architecture
