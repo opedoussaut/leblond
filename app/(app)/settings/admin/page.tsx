@@ -8,7 +8,6 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { siteUrl } from "@/lib/env";
 import { fmt, intlLocale } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { InviteShare } from "./invite-share";
 
 export const metadata = { title: "Bêta" };
@@ -26,7 +25,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
     .select("id, code, label, expires_at, redeemed_at, revoked_at, created_at")
     .order("created_at", { ascending: false })
     .limit(20);
-  const canManage = createAdminClient() !== null;
   const day = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", timeZone: "Europe/Paris" });
   const base = siteUrl();
 
@@ -98,7 +96,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
         </ul>
       ) : null}
 
-      {!canManage ? <Notice tone="warn">{t.admin.notConfigured}</Notice> : null}
       <ul className="space-y-2">
         {(rows ?? []).map((r) => (
           <li key={r.email}>
@@ -112,7 +109,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
                 {t.admin.active}: {r.active ? t.common.yes : t.common.no} · {t.admin.account}:{" "}
                 {r.has_account ? t.common.yes : t.common.no} · {t.admin.coach30d}: {r.coach_requests_30d}
               </p>
-              {canManage && r.role !== "admin" ? (
+              {r.role !== "admin" ? (
                 <form
                   action={async () => {
                     "use server";

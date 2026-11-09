@@ -19,7 +19,7 @@
 
 ## Admin
 
-The admin can manage the whitelist and see aggregate counts (account created, Patrick requests in 30 days) via `admin_beta_overview()`. Admin rights do **not** grant access to testers' climbing data.
+The admin can manage the whitelist and see aggregate counts (account created, Patrick requests in 30 days) via `admin_beta_overview()`. Deactivating / reactivating a tester goes through `admin_set_beta_user_active()` in the admin's own session (checks `is_admin()`; never the admin's own row or another admin), so the app needs no service-role key for it. Admin rights do **not** grant access to testers' climbing data.
 
 ## Personal data
 
