@@ -96,7 +96,8 @@ describe("templates and validation", () => {
       const t = templateFor(m.id, 60);
       expect(t.some((e) => e.block === "WARMUP")).toBe(true);
       expect(t.some((e) => e.block === "MAIN")).toBe(true);
-      expect(t.at(-1)?.block).toBe("COOLDOWN");
+      // The stretching routine is itself the cool-down; every other method ends with one.
+      expect(t.at(-1)?.block).toBe(m.id === "mobility" ? "MAIN" : "COOLDOWN");
       for (const e of t) expect(snapshotOf(e).steps.length).toBeGreaterThan(0);
     }
   });

@@ -42,6 +42,7 @@ export const ATLAS_SCORES: Readonly<Record<string,AtlasScores>> = {
   "four-by-four":[2,3,2,2,3,2,5,1,3,3,3,3],
   "campus":[1,2,4,4,5,0,1,2,2,5,3,3],
   "strength-conditioning":[1,1,3,5,3,1,2,4,1,4,4,3],
+  "mobility":[2,0,0,0,0,0,0,5,1,3,1,1],
   "mental":[2,5,0,0,1,1,2,1,5,3,3,4],
   "periodized":[4,4,4,4,4,4,4,4,4,5,5,5],
   "lattice":[3,3,5,4,4,4,4,4,3,5,5,5],

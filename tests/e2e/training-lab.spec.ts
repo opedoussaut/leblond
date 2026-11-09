@@ -92,4 +92,11 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await expect(page.getByRole("region", { name: `${month}-16` })).toBeFocused();
   await page.getByRole("button", { name: /Ajouter une date/ }).click();
   await expect(page.getByLabel("Titre", { exact: true })).toBeFocused();
+
+  // Stretching sheet: six held positions drawn from the session template, and the recommended video.
+  await page.goto("/atlas/mobility");
+  await expect(page.getByRole("heading", { name: "Mobility & stretching", exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Schéma du protocole : Mobility & stretching" })).toBeVisible();
+  const video = page.getByRole("region", { name: "Vidéo à suivre" }).getByRole("link", { name: /The Bare Minimum Flexibility Routine for Climbers/ });
+  await expect(video).toHaveAttribute("href", "https://www.youtube.com/watch?v=mKUle2yBYq0");
 });

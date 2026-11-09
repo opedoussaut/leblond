@@ -24,6 +24,11 @@ describe("climbing self-assessment and illustrative method scenario", () => {
     expect(recommendations.every(m => METHODS_FOR_PLANS.includes(m.method))).toBe(true);
   });
 
+  it("never ranks stretching as a programme's main method", () => {
+    for (const ratings of [DEFAULT_SKILLS, { ...DEFAULT_SKILLS, technique: 1 }, { ...DEFAULT_SKILLS, structure: 1, technique: 1 }])
+      expect(methodMatches(ratings, Infinity).map((m) => m.method.id)).not.toContain("mobility");
+  });
+
   it("requires the same complete six-axis scale for every follow-up", () => {
     expect(Object.keys(DEFAULT_SKILLS)).toHaveLength(TRAINING_AXES.length);
     expect(skillRatingsSchema.safeParse({ ...DEFAULT_SKILLS, technique: 0 }).success).toBe(false);
