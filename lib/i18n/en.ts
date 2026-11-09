@@ -727,7 +727,6 @@ export const en: Dictionary = {
     coach30d: "Questions to Patrick (30 d)",
     activate: "Reactivate",
     deactivate: "Deactivate",
-    notConfigured: "Supabase service key missing: management unavailable.",
     invitesTitle: "Invite someone",
     invitesIntro:
       "Create a link and send it by WhatsApp, Telegram or text message. Your friend opens it and creates an account with their email address. A link works once and expires after 30 days.",
