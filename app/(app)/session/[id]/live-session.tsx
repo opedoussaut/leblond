@@ -77,6 +77,7 @@ export function LiveSession({
   initialProblems,
   initialAttempts,
   projectProblemIds,
+  projectsOpenedHere = [],
   outdoor = null,
   mode = "live",
 }: {
@@ -87,6 +88,8 @@ export function LiveSession({
   initialProblems: LiveProblemItem[];
   initialAttempts: Attempt[];
   projectProblemIds: string[];
+  /** Boulders whose project was opened in this session. */
+  projectsOpenedHere?: string[];
   /** Set when the session is in a Fontainebleau area from the Boolder catalogue. */
   outdoor?: { area: AreaItem; problems: CatalogueItem[] } | null;
   /** "edit": filling in or correcting a finished session — no timer, no end button. */
@@ -111,6 +114,15 @@ export function LiveSession({
   const [now, setNow] = useState(() => Date.now());
   const [quick, setQuick] = useState(false);
   const [projectIds, setProjectIds] = useState(projectProblemIds);
+  const [openedHere, setOpenedHere] = useState(projectsOpenedHere);
+  /** A project created now is linked to this session; an existing one keeps its own session. */
+  const addProjects = (problemIds: string[]) => {
+    const fresh = problemIds.filter((pid) => !projectIds.includes(pid));
+    if (!fresh.length) return;
+    setProjectIds((ids) => [...ids, ...fresh.filter((pid) => !ids.includes(pid))]);
+    setOpenedHere((ids) => [...ids, ...fresh.filter((pid) => !ids.includes(pid))]);
+  };
+  const projectLabel = (problemId: string) => (openedHere.includes(problemId) ? L.projectHere : L.project);
   const [bulkTries, setBulkTries] = useState(2);
   const [commentDraft, setCommentDraft] = useState<string | null>(null);
   // A topo boulder being added in one step, and what was added last.
@@ -210,7 +222,8 @@ export function LiveSession({
           : [...list, asItem(p)],
       );
       setAttempts((list) => [...list, ...added]);
-      if (choice.outcome === "PROJECT") setProjectIds((ids) => (ids.includes(p.id) ? ids : [...ids, p.id]));
+      const newProject = choice.outcome === "PROJECT" && !projectIds.includes(p.id);
+      if (choice.outcome === "PROJECT") addProjects([p.id]);
       setCurrentId(p.id);
       setPicked(null);
       setFlashPrompt(null);
@@ -222,7 +235,7 @@ export function LiveSession({
             : plural(locale, choice.tries, choice.outcome === "PROJECT"
               ? { one: L.projectTriesOne, other: L.projectTriesOther }
               : { one: L.notSentOne, other: L.notSentOther });
-      const text = fmt(L.topoAdded, { name: item.name, what });
+      const text = fmt(L.topoAdded, { name: item.name, what }) + (newProject ? " " + L.projectLinked : "");
       setLastAdded(text);
       say("ok", text);
     });
@@ -300,10 +313,10 @@ export function LiveSession({
     if (!current) return;
     const problemId = current.id;
     start(async () => {
-      const res = await markProblemProject(problemId);
+      const res = await markProblemProject(problemId, sessionId);
       if (!res.ok) return say("error", t.common.unknownError);
-      setProjectIds((ids) => (ids.includes(problemId) ? ids : [...ids, problemId]));
-      say("ok", L.projectSaved);
+      addProjects([problemId]);
+      say("ok", L.projectSavedHere);
     });
   }
 
@@ -326,7 +339,7 @@ export function LiveSession({
       outdoor_problem_id: p.outdoor_problem_id,
     }))]);
     setAttempts((list) => [...list, ...newAttempts]);
-    if (outcome === "PROJECT") setProjectIds((ids) => [...ids, ...created.map((p) => p.id)]);
+    if (outcome === "PROJECT") addProjects(created.map((p) => p.id));
   }
 
   function markFlash(a: Attempt) {
@@ -489,7 +502,9 @@ export function LiveSession({
               className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
             <Button variant="secondary" disabled={pending} onClick={() => logTries(bulkTries)}>{fmt(L.logTries, { n: bulkTries })}</Button>
             {projectIds.includes(current.id)
-              ? <ResultBadge tone="project" label={L.project} className="ml-auto" />
+              ? <Link href="/projects" className="ml-auto" title={L.seeProjects}>
+                  <ResultBadge tone="project" label={projectLabel(current.id)} />
+                </Link>
               : <button type="button" disabled={pending} onClick={makeProject} style={toneButtonStyle("project")}
                   className="ml-auto min-h-11 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
           </div>
@@ -679,7 +694,7 @@ export function LiveSession({
                     <span className="ml-auto text-xs font-bold uppercase tracking-[0.12em]">
                       {sent ? <ResultBadge tone={pa.some((a) => a.result === "FLASH") ? "flash" : "top"}
                         label={t.results[pa.some((a) => a.result === "FLASH") ? "FLASH" : "TOP"]} /> : null}
-                      {projectIds.includes(p.id) ? <ResultBadge tone="project" label={L.project} className="ml-1" /> : null}
+                      {projectIds.includes(p.id) ? <ResultBadge tone="project" label={projectLabel(p.id)} className="ml-1" /> : null}
                     </span>
                   </button>
                 </li>
