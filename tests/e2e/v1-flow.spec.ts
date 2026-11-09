@@ -606,6 +606,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   const pastForm = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
   await pastForm.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  const editUrl = page.url();
   await picker.getByLabel("Nom ou numéro de circuit").fill("variante");
   await expect(picker.getByRole("button", { name: /Variante E2E/ })).toBeVisible();
   await picker.getByLabel("Nom ou numéro de circuit").fill("nouveau toit");
@@ -624,9 +625,29 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
   await expect(page.getByText(/Ajouté : Variante E2E · projet, 1 essai\. Projet lié à cette séance\./).first()).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" }).filter({ hasText: "Projet de cette séance" })).toBeVisible();
+  // What the session already holds: marked in the topo, with each boulder's circuit or "Hors circuit".
+  await picker.getByLabel("Nom ou numéro de circuit").fill("nouveau toit");
+  await expect(picker.getByRole("button", { name: /Nouveau Toit E2E/ })).toContainText("Dans la séance · 2 essais");
+  const held = page.getByRole("region", { name: /Dans cette séance · 2/ });
+  await expect(held.getByRole("listitem").filter({ hasText: "Nouveau Toit E2E" })).toContainText("Hors circuit");
+  await expect(held.getByRole("listitem").filter({ hasText: "Variante E2E" }).getByTitle("orange")).toHaveText(/2b/);
   await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
   const sessionProjects = page.getByRole("region", { name: /Projets de cette séance/ });
   await expect(sessionProjects.getByRole("link", { name: /Variante E2E.*ouvert ici/ })).toBeVisible();
   await sessionProjects.getByRole("link", { name: /Variante E2E/ }).click();
   await expect(page.getByRole("link", { name: /Ouvert pendant la séance du/ })).toBeVisible();
+
+  // Several boulders out of the session at once; the project opened here goes with its boulder.
+  await page.goto(editUrl);
+  const list = page.getByRole("region", { name: /Dans cette séance · 2/ });
+  await list.getByRole("button", { name: "Sélectionner" }).click();
+  await list.getByRole("checkbox", { name: /Nouveau Toit E2E/ }).check();
+  await list.getByRole("checkbox", { name: /Variante E2E/ }).check();
+  await list.getByRole("button", { name: "Retirer de la séance (2)" }).click();
+  const confirmMany = page.getByRole("alertdialog", { name: "Retirer 2 blocs de cette séance ?" });
+  await confirmMany.getByRole("button", { name: "Retirer", exact: true }).click();
+  await expect(page.getByText("2 blocs retirés de la séance.")).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" }).filter({ hasText: "Projet" })).toHaveCount(0);
+  await page.goto("/projects");
+  await expect(page.getByText("Variante E2E")).toHaveCount(0);
 });

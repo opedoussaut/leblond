@@ -71,12 +71,12 @@ select pg_temp.expect((select count(*) = 5 and bool_and(result = 'ATTEMPT') from
 -- ── remove_problem_from_session ────────────────────────────────────────────
 -- Boulder 1 was tried in both sessions: removing it from the first keeps it, renumbered from 1.
 select pg_temp.expect((select (public.remove_problem_from_session('af000000-0000-0000-0000-000000000001', 'af100000-0000-0000-0000-000000000001'))
-  = '{"removed": 3, "problem_deleted": false}'::jsonb), 'three tries removed, boulder kept');
+  = '{"removed": 3, "problem_deleted": false, "project_deleted": false}'::jsonb), 'three tries removed, boulder kept');
 select pg_temp.expect((select string_agg(attempt_number || ':' || result, ',' order by attempt_number) = '1:ATTEMPT,2:TOP'
   from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000001'), 'remaining tries renumbered from 1');
 -- Removing it from its last session deletes it.
 select pg_temp.expect((select (public.remove_problem_from_session('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000001'))
-  = '{"removed": 2, "problem_deleted": true}'::jsonb), 'nothing left: the boulder is deleted');
+  = '{"removed": 2, "problem_deleted": true, "project_deleted": false}'::jsonb), 'nothing left: the boulder is deleted');
 select pg_temp.expect((select count(*) = 0 from public.problems where id = 'af100000-0000-0000-0000-000000000001'), 'boulder gone');
 
 -- A flash stays try 1 when a later session is removed.
@@ -85,10 +85,42 @@ select public.remove_problem_from_session('af000000-0000-0000-0000-000000000002'
 select pg_temp.expect((select string_agg(attempt_number || ':' || result, ',' order by attempt_number) = '1:ATTEMPT,2:ATTEMPT'
   from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000002'), 'flash session removed: the other tries start at 1');
 
--- An active project stays (in Projets) even with no tries left.
-select public.remove_problem_from_session('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000004');
-select pg_temp.expect((select count(*) = 1 from public.problems where id = 'af100000-0000-0000-0000-000000000004')
-  and (select count(*) = 0 from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000004'), 'an active project is kept, without tries');
+-- A project opened in this session, with no try left anywhere, goes with the boulder (logged by mistake).
+select pg_temp.expect((select (public.remove_problem_from_session('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000004'))
+  = '{"removed": 5, "problem_deleted": true, "project_deleted": true}'::jsonb), 'project opened here: removed with the boulder');
+select pg_temp.expect((select count(*) = 0 from public.projects where problem_id = 'af100000-0000-0000-0000-000000000004')
+  and (select count(*) = 0 from public.problems where id = 'af100000-0000-0000-0000-000000000004'), 'project and boulder gone');
+
+-- A project opened in another session stays (in Projets) even with no tries left in this one.
+insert into public.problems (id, gym_id, created_by, native_grade, native_grade_system)
+values ('af100000-0000-0000-0000-000000000005', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '6B', 'FONT');
+insert into public.projects (user_id, problem_id, session_id)
+values ('ad000000-0000-0000-0000-00000000000a', 'af100000-0000-0000-0000-000000000005', 'af000000-0000-0000-0000-000000000001');
+select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000005', 2, 'ATTEMPT');
+select pg_temp.expect((select (public.remove_problem_from_session('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000005'))
+  = '{"removed": 2, "problem_deleted": false, "project_deleted": false}'::jsonb), 'project opened elsewhere: kept');
+select pg_temp.expect((select count(*) = 1 from public.projects where problem_id = 'af100000-0000-0000-0000-000000000005' and status = 'ACTIVE'),
+  'the other session''s project is still active');
+
+-- Several boulders at once, in one transaction.
+insert into public.problems (id, gym_id, created_by, native_grade, native_grade_system) values
+  ('af100000-0000-0000-0000-000000000006', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '5a', 'FONT'),
+  ('af100000-0000-0000-0000-000000000007', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '5b', 'FONT');
+select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000001', 'af100000-0000-0000-0000-000000000006', 2, 'TOP');
+select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000001', 'af100000-0000-0000-0000-000000000007', 3, 'PROJECT');
+select pg_temp.expect((select r ->> 'removed' = '5' and jsonb_array_length(r -> 'problems_deleted') = 2 and jsonb_array_length(r -> 'projects_deleted') = 1
+  from (select public.remove_problems_from_session('af000000-0000-0000-0000-000000000001',
+    array['af100000-0000-0000-0000-000000000006', 'af100000-0000-0000-0000-000000000007', 'af100000-0000-0000-0000-000000000006']::uuid[]) as r) x),
+  'bulk: duplicates ignored, both boulders and the project opened here removed');
+select pg_temp.expect((select count(*) = 0 from public.problems where id in ('af100000-0000-0000-0000-000000000006', 'af100000-0000-0000-0000-000000000007')),
+  'bulk: boulders gone');
+select pg_temp.expect_error($$select public.remove_problems_from_session('af000000-0000-0000-0000-000000000001', '{}'::uuid[])$$, 'bulk: empty list refused');
+-- All or nothing: an unknown boulder in the list rolls the whole call back.
+select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000001', 'af100000-0000-0000-0000-000000000002', 1, 'ATTEMPT');
+select pg_temp.expect_error($$select public.remove_problems_from_session('af000000-0000-0000-0000-000000000001',
+  array['af100000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-0000000000ff']::uuid[])$$, 'bulk: unknown boulder refused');
+select pg_temp.expect((select count(*) = 3 from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000002'),
+  'bulk: nothing removed when one boulder is refused');
 
 -- Other climbers can do neither.
 select set_config('request.jwt.claims', '{"sub":"ad000000-0000-0000-0000-00000000000b","email":"fix-b@fix.test","role":"authenticated"}', false);
@@ -96,10 +128,13 @@ select pg_temp.expect_error($$select public.remove_problem_from_session('af00000
   'cannot remove from another climber''s session');
 select pg_temp.expect_error($$select public.log_problem_tries('af000000-0000-0000-0000-000000000001', 'af100000-0000-0000-0000-000000000002', 1, 'TOP')$$,
   'cannot log on another climber''s session');
+select pg_temp.expect_error($$select public.remove_problems_from_session('af000000-0000-0000-0000-000000000001', array['af100000-0000-0000-0000-000000000002']::uuid[])$$,
+  'cannot bulk-remove from another climber''s session');
 reset role;
-select pg_temp.expect((select count(*) = 2 from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000002'),
+select pg_temp.expect((select count(*) = 3 from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000002'),
   'the other climber changed nothing');
 select pg_temp.expect(not has_function_privilege('anon', 'public.remove_problem_from_session(uuid, uuid)', 'execute')
-  and not has_function_privilege('anon', 'public.log_problem_tries(uuid, uuid, integer, text)', 'execute'),
+  and not has_function_privilege('anon', 'public.log_problem_tries(uuid, uuid, integer, text)', 'execute')
+  and not has_function_privilege('anon', 'public.remove_problems_from_session(uuid, uuid[])', 'execute'),
   'anonymous visitors cannot call either');
 \echo 'session_corrections.test.sql: all assertions passed'

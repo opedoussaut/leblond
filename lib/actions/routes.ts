@@ -158,6 +158,19 @@ export async function updateRouteAscent(input: unknown): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** Removes several routes of one session at once. */
+export async function deleteRouteAscents(input: unknown): Promise<ActionResult<{ removed: number }>> {
+  const viewer = await requireViewer();
+  const parsed = z.object({ sessionId: z.guid(), ids: z.array(z.guid()).min(1).max(200) }).strict().safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { sessionId, ids } = parsed.data;
+  const { data, error } = await viewer.supabase.from("route_ascents").delete()
+    .eq("session_id", sessionId).in("id", ids).select("id");
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/session/" + sessionId);
+  return { ok: true, data: { removed: data?.length ?? 0 } };
+}
+
 export async function deleteRouteAscent(ascentId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!z.guid().safeParse(ascentId).success) return { ok: false, error: "invalid" };
