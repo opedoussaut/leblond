@@ -627,6 +627,7 @@ export const en: Dictionary = {
     anyGrade: "Any grade",
     gradeFilter: "Grade",
     results: "{shown} of {total}",
+    showMore: "Show {n} more problems",
     noProblems: "No problem matches.",
     notInTopo: "Not in the topo? Pick a grade",
     backToTopo: "Back to the topo",

@@ -14,6 +14,7 @@ import { loggingDictionary } from "@/lib/i18n/logging";
 import {
   BOOLDER_ATTRIBUTION,
   CIRCUIT_SWATCHES,
+  circuitOrder,
   filterProblems,
   isCircuitColor,
   searchable,
@@ -372,6 +373,7 @@ export function AreaPicker({
   );
 }
 
+/** Rows listed at a time; "show more" adds as many again. */
 const MAX_RESULTS = 60;
 /** Enough for any Fontainebleau sector; beyond that, filter by circuit or grade. */
 const MAX_PINS = 1500;
@@ -410,10 +412,14 @@ export function BoolderProblemPicker({
   const [grade, setGrade] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  // How many rows are listed, for the current search and filters (back to one page when they change).
+  const filterKey = `${query}|${circuit}|${grade}`;
+  const [more, setMore] = useState({ key: "", count: MAX_RESULTS });
+  const limit = more.key === filterKey ? more.count : MAX_RESULTS;
   const hasMap = useMemo(() => problems.some(located), [problems]);
 
   const colors = useMemo(
-    () => [...new Set(problems.map((p) => p.circuit_color).filter((c): c is string => Boolean(c)))].sort(),
+    () => [...new Set(problems.map((p) => p.circuit_color).filter((c): c is string => Boolean(c)))].sort((a, b) => circuitOrder(a) - circuitOrder(b)),
     [problems],
   );
   const grades = useMemo(
@@ -531,10 +537,10 @@ export function BoolderProblemPicker({
       ) : (
         <>
           <p className="text-xs text-ink-3">
-            {fmt(t.outdoor.results, { shown: Math.min(results.length, MAX_RESULTS), total: results.length })}
+            {fmt(t.outdoor.results, { shown: Math.min(results.length, limit), total: results.length })}
           </p>
           <ul className="max-h-[26rem] divide-y divide-line overflow-y-auto rounded-2xl border border-line">
-            {results.slice(0, MAX_RESULTS).map((p) => (
+            {results.slice(0, limit).map((p) => (
               <li key={p.id}>
                 <button
                   type="button"
@@ -559,6 +565,11 @@ export function BoolderProblemPicker({
               </li>
             ))}
           </ul>
+          {results.length > limit ? (
+            <Button variant="secondary" className="w-full" onClick={() => setMore({ key: filterKey, count: limit + MAX_RESULTS })}>
+              {fmt(t.outdoor.showMore, { n: Math.min(MAX_RESULTS, results.length - limit) })}
+            </Button>
+          ) : null}
         </>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">

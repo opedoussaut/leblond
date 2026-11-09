@@ -4,6 +4,7 @@ import {
   bleauInfoUrl,
   boolderProblemUrl,
   buildCatalogue,
+  circuitOrder,
   filterProblems,
   mapBoolderGrade,
   mapSteepness,
@@ -123,6 +124,14 @@ describe("picker search", () => {
     expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
     const g = red[0].grade;
     expect(filterProblems(list, { grade: g }).every((p) => p.grade === g)).toBe(true);
+  });
+
+  it("lists circuits easiest first (white, yellow, orange, blue, red), then off-circuit", () => {
+    const row = (id: number, circuit_color: string | null, circuit_number: string | null) =>
+      ({ id, name: `B${id}`, name_searchable: `b${id}`, grade: "4a", circuit_color, circuit_number, popularity: null });
+    const mixed = [row(1, "red", "1"), row(2, null, null), row(3, "blue", "2"), row(4, "white", "1"), row(5, "yellow", "3"), row(6, "orange", "1")];
+    expect(filterProblems(mixed, {}).map((p) => p.circuit_color)).toEqual(["white", "yellow", "orange", "blue", "red", null]);
+    expect(["red", "white", "blue"].sort((a, b) => circuitOrder(a) - circuitOrder(b))).toEqual(["white", "blue", "red"]);
   });
 
   it("matches names regardless of accents and case", () => {
