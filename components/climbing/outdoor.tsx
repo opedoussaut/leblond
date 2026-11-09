@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,16 @@ import {
   isCircuitColor,
   searchable,
 } from "@/lib/integrations/outdoor/boolder";
+import { osmUrl } from "@/lib/integrations/outdoor/osm";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
+import type { MapPin } from "./topo-map";
+
+/** Leaflet and the OpenStreetMap tiles load only when a map is asked for. */
+const TopoMap = dynamic(() => import("./topo-map"), {
+  ssr: false,
+  loading: () => <div aria-hidden className="h-80 w-full animate-pulse rounded-2xl bg-surface-2" />,
+});
 
 export interface AreaItem {
   id: number;
@@ -47,6 +56,29 @@ export interface CatalogueItem {
   popularity: number | null;
   parent_id: number | null;
   bleau_info_id: string | null;
+  /** Position on the map; absent for lists loaded without it. */
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+type Located = CatalogueItem & { latitude: number; longitude: number };
+const located = (p: CatalogueItem): p is Located => p.latitude != null && p.longitude != null;
+
+/** A boulder as a map pin: circuit colour and number (grade off-circuit), with a spoken label. */
+function toPin(t: Dictionary, p: Located): MapPin {
+  const sw = p.circuit_color
+    ? isCircuitColor(p.circuit_color) ? CIRCUIT_SWATCHES[p.circuit_color] : { bg: "#8A8A8A", fg: "#111111" }
+    : { bg: "#3F3F46", fg: "#ffffff" };
+  const circuit = p.circuit_color ? `${circuitColorName(t, p.circuit_color)} ${p.circuit_number ?? ""}`.trim() : t.outdoor.offCircuit;
+  return {
+    id: p.id,
+    lat: p.latitude,
+    lon: p.longitude,
+    bg: sw.bg,
+    fg: sw.fg,
+    text: p.circuit_color && p.circuit_number ? p.circuit_number : p.grade,
+    label: `${circuit} · ${p.name} · ${p.grade}`,
+  };
 }
 
 /** "© Boolder, CC BY 4.0" — required wherever catalogue data is shown. */
@@ -323,6 +355,8 @@ export function AreaPicker({
 }
 
 const MAX_RESULTS = 60;
+/** Enough for any Fontainebleau sector; beyond that, filter by circuit or grade. */
+const MAX_PINS = 1500;
 
 /** Picks a boulder from the area's topo (Boolder or the team's); falls back to a plain grade grid. */
 export function BoolderProblemPicker({
@@ -347,6 +381,9 @@ export function BoolderProblemPicker({
   const [query, setQuery] = useState("");
   const [circuit, setCircuit] = useState<string | null>(null); // colour, "none", or null = all
   const [grade, setGrade] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "map">("list");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const hasMap = useMemo(() => problems.some(located), [problems]);
 
   const colors = useMemo(
     () => [...new Set(problems.map((p) => p.circuit_color).filter((c): c is string => Boolean(c)))].sort(),
@@ -360,6 +397,12 @@ export function BoolderProblemPicker({
     const base = circuit === "none" ? problems.filter((p) => !p.circuit_color) : problems;
     return filterProblems(base, { query, circuitColor: circuit === "none" ? null : circuit, grade });
   }, [problems, query, circuit, grade]);
+  const onMap = useMemo(
+    () => (view === "map" ? results.filter(located).slice(0, MAX_PINS) : []),
+    [view, results],
+  );
+  const pins = useMemo(() => onMap.map((p) => toPin(t, p)), [onMap, t]);
+  const chosen = onMap.find((p) => p.id === selectedId) ?? null;
 
   return (
     <section className="space-y-3 rounded-2xl border border-line bg-surface p-4" aria-label={t.outdoor.pickTitle}>
@@ -410,8 +453,53 @@ export function BoolderProblemPicker({
           </option>
         ))}
       </Select>
+      {hasMap ? (
+        <div className="inline-flex rounded-full border border-line p-0.5" role="group" aria-label={t.outdoor.viewAs}>
+          {(["list", "map"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={cn(
+                "min-h-10 rounded-full px-4 text-sm",
+                view === v ? "bg-accent font-semibold text-accent-ink" : "text-ink-2",
+              )}
+            >
+              {v === "list" ? t.outdoor.viewList : t.outdoor.viewMap}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {results.length === 0 ? (
         <p className="text-sm text-ink-2">{t.outdoor.noProblems}</p>
+      ) : view === "map" ? (
+        <div className="space-y-2">
+          <p className="text-xs text-ink-3">{fmt(t.outdoor.mapCount, { n: onMap.length })}</p>
+          <TopoMap pins={pins} selectedId={selectedId} onSelect={setSelectedId} label={t.outdoor.mapLabel} />
+          {chosen ? (
+            <div className="space-y-2 rounded-2xl border border-accent bg-accent-soft p-3">
+              <div className="flex items-center gap-3">
+                <span className="w-10 shrink-0">
+                  <CircuitBadge color={chosen.circuit_color} number={chosen.circuit_number} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{chosen.name}</span>
+                  <span className="block text-xs text-ink-3">
+                    {(t.outdoor.steepness as Record<string, string>)[chosen.steepness] ?? chosen.steepness}
+                    {chosen.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
+                  </span>
+                </span>
+                <span className="shrink-0 font-black tabular-nums">{chosen.grade}</span>
+              </div>
+              <Button className="w-full" disabled={pending} onClick={() => onPick(chosen)}>
+                {t.outdoor.mapPick}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-ink-2">{t.outdoor.mapHint}</p>
+          )}
+        </div>
       ) : (
         <>
           <p className="text-xs text-ink-3">
@@ -451,5 +539,29 @@ export function BoolderProblemPicker({
         <TopoAttribution source={source} credit={credit} />
       </div>
     </section>
+  );
+}
+
+/** On the boulder page: the map only when asked for, and a link to openstreetmap.org. */
+export function ProblemOnMap({ problem }: { problem: CatalogueItem }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  if (!located(problem)) return null;
+  return (
+    <div className="space-y-2">
+      {open ? (
+        <TopoMap pins={[toPin(t, problem)]} selectedId={problem.id} label={t.outdoor.mapLabel} className="h-56 w-full overflow-hidden rounded-2xl border border-line" />
+      ) : null}
+      <p className="flex flex-wrap items-center gap-4">
+        {open ? null : (
+          <Button variant="secondary" onClick={() => setOpen(true)}>
+            {t.outdoor.showMap}
+          </Button>
+        )}
+        <a href={osmUrl(problem.latitude, problem.longitude)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
+          {t.outdoor.openInOsm} ↗
+        </a>
+      </p>
+    </div>
   );
 }

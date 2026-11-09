@@ -497,6 +497,8 @@ const TEAM_TOPO_KML = `<?xml version="1.0" encoding="UTF-8"?>
 </Document></kml>`;
 
 test("a team topo from Google My Maps: imported in Beta administration, picked in a session", async ({ page }) => {
+  // The map's OpenStreetMap tiles are never fetched from CI.
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.abort());
   await signIn(page, ALEX);
   await page.goto("/settings/admin");
   const form = page.getByRole("form", { name: "Topos de l’équipe" });
@@ -524,7 +526,12 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(picker.getByText("Topo : © Boolder")).toHaveCount(0);
   await picker.getByRole("button", { name: "orange", exact: true }).click();
   await picker.getByLabel("Nom ou numéro de circuit").fill("2");
-  await picker.getByRole("button", { name: /Dalle E2E/ }).click();
+  // Map view: tap the boulder's pin, then choose it.
+  await picker.getByRole("button", { name: "Carte", exact: true }).click();
+  const map = picker.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" });
+  await expect(picker.getByText(/^\d+ blocs sur la carte$/)).toBeVisible();
+  await map.getByRole("button", { name: /Dalle E2E · 4c/ }).click();
+  await picker.getByRole("button", { name: "Choisir ce bloc" }).click();
   const current = page.getByRole("region", { name: "Bloc en cours" });
   await expect(current.getByText("Dalle E2E")).toBeVisible();
   await expect(current.getByText("4c", { exact: true })).toBeVisible();
@@ -538,4 +545,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(page.getByRole("heading", { name: "Dalle E2E" })).toBeVisible();
   await expect(page.getByText("Topo : Topo E2E")).toBeVisible();
   await expect(page.getByRole("link", { name: /Voir sur Boolder/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Ouvrir dans OpenStreetMap/ })).toHaveAttribute("href", /openstreetmap\.org\/\?mlat=/);
+  await page.getByRole("button", { name: "Voir sur la carte" }).click();
+  await expect(page.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" }).getByRole("button", { name: /Dalle E2E/ })).toBeVisible();
 });
