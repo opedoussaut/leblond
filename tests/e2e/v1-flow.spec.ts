@@ -623,7 +623,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await quickAdd.getByRole("button", { name: "Projet", exact: true }).click();
   await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
   await expect(page.getByText(/Ajouté : Variante E2E · projet, 1 essai\. Projet lié à cette séance\./).first()).toBeVisible();
-  await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" })).toContainText("Projet de cette séance");
+  await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" }).filter({ hasText: "Projet de cette séance" })).toBeVisible();
   await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
   const sessionProjects = page.getByRole("region", { name: /Projets de cette séance/ });
   await expect(sessionProjects.getByRole("link", { name: /Variante E2E.*ouvert ici/ })).toBeVisible();
