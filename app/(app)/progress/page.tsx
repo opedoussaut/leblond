@@ -12,7 +12,7 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { RouteStats } from "@/components/climbing/route-stats";
 import { formatDate, formatNumber, formatRatio } from "@/lib/format";
-import { fmt } from "@/lib/i18n";
+import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 
 export const metadata = { title: "Progrès" };
@@ -91,7 +91,15 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
             <div className="mt-3">
               <WeeklyBars
                 weeks={snap.weekly}
-                labels={{ tops: t.progress.weeklyTops, sessions: t.progress.weeklySessions, caption: t.progress.weekly }}
+                locale={locale}
+                labels={{
+                  tops: t.progress.weeklyTops,
+                  sessions: t.progress.weeklySessions,
+                  caption: t.progress.weekly,
+                  range: t.progress.weeklyRange,
+                  help: t.progress.weeklyHelp,
+                  weekOf: t.progress.weeklyWeekOf,
+                }}
               />
             </div>
           </Card>
@@ -102,12 +110,14 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
               {snap.workingLevels.map((w) => (
                 <li key={w.system}>
                   <p className="text-sm text-ink-2">{t.grades.systems[w.system as GradeSystem]}</p>
-                  <p className="font-bold">
+                  <p className="mt-0.5 font-bold">
                     {w.level ? <GradeChip t={t} system={w.system as GradeSystem} grade={w.level} showFont /> : t.home.notEnough}
                   </p>
-                  <p className="text-xs text-ink-3">
-                    {w.levels.map((l) => fmt(t.progress.levelRow, { grade: l.grade, sends: l.sends, problems: l.problems })).join(" · ")}
-                  </p>
+                  <GradeCounts
+                    t={t}
+                    system={w.system as GradeSystem}
+                    rows={w.levels.map((l) => ({ grade: l.grade, sent: l.sends, attempted: l.problems }))}
+                  />
                 </li>
               ))}
               <li>
@@ -118,18 +128,24 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
               </li>
             </ul>
             <div className="mt-4 grid grid-cols-2 gap-4 border-t border-line pt-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{t.progress.highestSent}</p>
-                {snap.highestSent.map((h) => (
-                  <GradeChip key={h.system} t={t} system={h.system} grade={h.grade} className="mt-1 flex" />
-                ))}
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{t.progress.highestFlashed}</p>
-                {snap.highestFlashed.map((h) => (
-                  <GradeChip key={h.system} t={t} system={h.system} grade={h.grade} className="mt-1 flex" />
-                ))}
-              </div>
+              {(
+                [
+                  [t.progress.highestSent, snap.highestSent],
+                  [t.progress.highestFlashed, snap.highestFlashed],
+                ] as const
+              ).map(([title, best]) => (
+                <div key={title}>
+                  <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{title}</p>
+                  <ul className="mt-2 space-y-2">
+                    {best.map((h) => (
+                      <li key={h.system}>
+                        <span className="block text-xs text-ink-3">{t.grades.systems[h.system]}</span>
+                        <GradeChip t={t} system={h.system} grade={h.grade} className="mt-0.5" />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
             <Explain summary={t.common.howCalculated}>{t.progress.workingRule}</Explain>
           </Card>
@@ -200,15 +216,24 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
             <SectionTitle>{t.progress.byGym}</SectionTitle>
             <ul className="mt-2 divide-y divide-line text-sm">
               {snap.gymBreakdown.map((g) => (
-                <li key={g.gym.id} className="py-2">
+                <li key={g.gym.id} className="space-y-1.5 py-3">
                   <div className="flex justify-between gap-2">
                     <span className="font-semibold">{gymName.get(g.gym.id)}</span>
                     <span className="text-ink-3">{t.brands[g.gym.brand]}</span>
                   </div>
                   <p className="tabular-nums text-ink-2">
-                    {g.sessions} {t.home.sessions} · {g.problems} {t.home.problems} · {t.progress.sendRate}{" "}
-                    {formatRatio(g.sendRate)}
+                    {plural(locale, g.sessions, t.progress.sessionCount)} · {plural(locale, g.problems, t.progress.problemCount)}
+                    {" · "}
+                    {t.progress.sendRate} {formatRatio(g.sendRate)}
                   </p>
+                  {g.distributions.map((d) => (
+                    <GradeCounts
+                      key={d.system}
+                      t={t}
+                      system={d.system}
+                      rows={d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, attempted: b.attempted }))}
+                    />
+                  ))}
                 </li>
               ))}
             </ul>
@@ -267,5 +292,28 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
       {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
         title={(locale === "fr" ? "Voie" : "Routes") + " · " + (periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all)} /> : null}
     </div>
+  );
+}
+
+/** "jaune 6/6 · bleu 7/7 · rouge 1/6" as aligned chips: sent / attempted per grade, easiest first. */
+function GradeCounts({
+  t,
+  system,
+  rows,
+}: {
+  t: Dictionary;
+  system: GradeSystem;
+  rows: Array<{ grade: string; sent: number; attempted: number }>;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <ul className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label={t.progress.sentPerGrade}>
+      {rows.map((r) => (
+        <li key={r.grade} className="flex items-center gap-1.5">
+          <GradeChip t={t} system={system} grade={r.grade} size="sm" />
+          <span className="text-xs tabular-nums text-ink-2">{fmt(t.progress.sentOfShort, { sent: r.sent, attempted: r.attempted })}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
