@@ -75,7 +75,12 @@ Each metric is a pure function in `lib/analytics` with unit tests on fixtures, f
   2. A native wrapper later. That is a separate decision, as the brief requires.
 - **Cost**
   - No paid service is needed for either.
-  - The open-source Grip Connect library supports the Progressor. Its extra commands are reverse-engineered, so only the officially documented commands would be used.
+  - [Grip Connect](https://github.com/Stevie-Ray/hangtime-grip-connect) is the best candidate for the Bluetooth layer:
+    - BSD 2-Clause, compatible with LEBLOND.
+    - Web Bluetooth plus Capacitor and React Native packages. Capacitor would be the route to iPhone without rewriting the app.
+    - It supports several devices besides the Progressor (Force Board, Climbro, Entralpi, WH-C06…), so one integration could cover several sensors later.
+    - It isn't made or supported by Tindeq, and some commands come from firmware analysis. Use only the commands in Tindeq's published API, pin the version, and test on a real Progressor.
+    - Its `download()` CSV/JSON is the library's own format, not the Tindeq app's export. It could become a second import source, but the importer still needs real Tindeq app files.
 
 ## Sample files needed before writing the importer
 
