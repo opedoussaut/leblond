@@ -583,19 +583,13 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   // The written topo list, pasted without a file: it fixes the circuits and adds the boulders the map lacks.
   await page.goto("/settings/admin");
   await form.getByLabel("Site", { exact: true }).selectOption({ label: "Saffres E2E (topo actuel : 3 blocs)" });
-  await form.getByLabel(/Liste écrite du topo/).fill(
-    "Orange AD Saffres E2E
-3
-4+
-1Premier E2E 3  mur
-2Dalle E2E 4+  dalle
-2 bisVariante E2E 5  mur
-" +
-    "Toit E2E 6b  surplomb
-Nouveau Toit E2E 7a  dévers, départ assis
-Dalle E2E 4+  dalle
-",
-  );
+  await form.getByLabel(/Liste écrite du topo/).fill([
+    "Orange AD Saffres E2E", "3", "4+",
+    "1Premier E2E 3  mur", "2Dalle E2E 4+  dalle", "2 bisVariante E2E 5  mur",
+    "Toit E2E 6b  surplomb", "Nouveau Toit E2E 7a  dévers, départ assis", "Dalle E2E 4+  dalle",
+  ].join("
+"));
+
   await form.getByRole("button", { name: "Importer le topo" }).click();
   await expect(form.getByText(/Topo importé : 5 blocs, 1 circuits \(2 ajoutés, 3 mis à jour, 0 retirés\)/)).toBeVisible();
   await expect(form.getByText("Liste : 3 blocs placés sur la carte.")).toBeVisible();
