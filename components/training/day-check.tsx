@@ -54,6 +54,7 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme }: {
       {what ? <p className="mt-1 text-base font-bold text-ink">{what} · {fmt(d.duration, { minutes: rec.minutes })} · {j.places[rec.place]}</p> : null}
       {rec.planned && rec.outcome !== "AS_PLANNED" ? <p className="mt-1 text-sm text-ink-2">{fmt(d.basedOn, { title: rec.planned.title, minutes: rec.planned.minutes })}</p> : null}
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{j.outcomeHints[rec.outcome]}</p>
+      {rec.outcome === "MOBILITY" ? <p className="mt-2 text-sm"><Link href="/atlas/mobility" className="font-bold text-accent underline underline-offset-4">{d.stretchRoutine} →</Link></p> : null}
     </div>
     {reasons.length ? <div>
       <h3 className="text-sm font-bold">{d.why}</h3>

@@ -67,6 +67,13 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
 
     <AtlasDiagramFigure spec={info.diagram} locale={locale} uid={entry.id} title={entry.title}/>
 
+    {info.video ? <Card id="atlas-video" title={a.video}>
+      <a href={info.video.url} rel="noopener noreferrer" target="_blank"
+        className="mt-3 inline-block font-semibold leading-snug text-accent underline underline-offset-2">{info.video.title} ↗</a>
+      <p className="mt-1 text-xs text-ink-3">{a.videoBy.replace("{author}", info.video.author)}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-2">{info.video.note[locale]}</p>
+    </Card> : null}
+
     <Card id="atlas-protocol" title={a.protocol}>
       <table className="mt-3 w-full border-collapse text-sm">
         <tbody>

@@ -123,7 +123,7 @@ export function proposeProgramme(input: ProgrammeInput): PlanSession[] {
 
 /** Method suggestions for the assessment: fit to the self-reported gaps, then filtered by health. */
 export function methodSuggestions(ratings: SkillRatings, health: Health, limit = 3) {
-  const all = methodMatches(ratings, METHODS_FOR_PLANS.length).map((m) => ({ ...m, verdict: methodVerdict(m.method.id, health) }));
+  const all = methodMatches(ratings, Infinity).map((m) => ({ ...m, verdict: methodVerdict(m.method.id, health) }));
   return {
     suggested: all.filter((m) => m.verdict.status !== "avoid").slice(0, limit),
     setAside: all.filter((m) => m.verdict.status === "avoid"),

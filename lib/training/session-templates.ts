@@ -211,6 +211,44 @@ const MAIN: Record<string, readonly ExerciseTemplate[]> = {
       summary: loc("Tension du tronc utile en dévers.", "Trunk tension that transfers to overhangs."),
       steps: [loc("Bas du dos plaqué au sol.", "Lower back pressed to the floor.")] }),
   ],
+  "mobility": [
+    ex({ key: "frog", block: "MAIN", methodId: "mobility", name: loc("Grenouille", "Frog stretch"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 40, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("À quatre pattes, genoux écartés, recule doucement le bassin.", "On all fours, knees wide, gently sit the hips back."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+    ex({ key: "deep-squat", block: "MAIN", methodId: "mobility", name: loc("Squat profond", "Deep squat hold"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 40, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("Pieds à plat, talons au sol, coudes poussant les genoux vers l’extérieur.", "Feet flat, heels down, elbows pushing the knees out."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+    ex({ key: "low-lunge", block: "MAIN", methodId: "mobility", name: loc("Fente basse (par côté)", "Low lunge (per side)"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 30, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("Genou arrière au sol, bassin vers l’avant, buste droit ; change de côté.", "Back knee down, hips forward, chest up; switch sides."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+    ex({ key: "hamstrings", block: "MAIN", methodId: "mobility", name: loc("Ischio-jambiers assis", "Seated hamstrings"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 40, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("Jambes tendues, buste long vers l’avant sans arrondir le dos.", "Straight legs, long chest reaching forward without rounding the back."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+    ex({ key: "wall-shoulders", block: "MAIN", methodId: "mobility", name: loc("Épaules au mur", "Wall shoulder stretch"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 30, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("Mains au mur, recule et laisse descendre la poitrine, bras tendus.", "Hands on the wall, step back and let the chest sink, arms straight."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+    ex({ key: "forearms", block: "MAIN", methodId: "mobility", name: loc("Avant-bras (par bras)", "Forearms (per arm)"),
+      modality: "HOLD", targetSets: 2, targetSeconds: 30, restSeconds: 15,
+      intensity: loc("Tension franche, sans douleur (≈ 6–7/10)", "Strong pull, no pain (≈ 6–7/10)"),
+      summary: loc("Bras tendu, paume vers l’avant, tire doucement les doigts vers toi ; change de bras.", "Straight arm, palm forward, gently pull the fingers back; switch arms."),
+      steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
+      safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
+  ],
   "mental": [
     ex({ key: "reading-routine", block: "MAIN", methodId: "mental", name: loc("Routine lecture–respiration–décision", "Read–breathe–decide routine"),
       modality: "ROUTES", targetSets: 4, targetReps: 1, restSeconds: 180,
@@ -243,6 +281,8 @@ export function templateFor(methodId: string | null, minutes: number | null): Ex
     steps: [loc("Décris les exercices réalisés dans les notes.", "Describe the work done in the notes.")],
   })];
   const short = (minutes ?? 60) <= 30;
+  // Stretching only needs warm muscles; the routine is itself the cool-down.
+  if (methodId === "mobility") return [{ ...GENERAL_WARMUP, targetSeconds: 300 }, ...body];
   const warm = short ? [{ ...GENERAL_WARMUP, targetSeconds: 300 }] : [GENERAL_WARMUP];
   if (methodId && FINGER_METHODS.has(methodId)) warm.push(FINGER_WARMUP);
   else if (!short && methodId !== "strength-conditioning") warm.push(EASY_CLIMBING_WARMUP);

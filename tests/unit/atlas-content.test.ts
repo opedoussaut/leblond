@@ -122,15 +122,27 @@ describe("atlas diagrams match the executable session templates", () => {
     for (const ladder of l.ladders) for (const rung of ladder) expect(rung).toBeLessThanOrEqual(l.rungs);
   });
 
-  it("strength sets, one per template exercise", () => {
-    const s = diagramOf("strength-conditioning", "sets"), templates = mainOf("strength-conditioning");
+  it.each(["strength-conditioning", "mobility"])("%s sets, one per template exercise", (id) => {
+    const s = diagramOf(id, "sets"), templates = mainOf(id);
     expect(s.exercises.map((e) => e.name.en)).toEqual(templates.map((t) => t.name.en));
+    expect(s.exercises.map((e) => e.name.fr)).toEqual(templates.map((t) => t.name.fr));
     s.exercises.forEach((e, i) => {
       const t = templates[i];
       expect([e.sets, e.rest], e.name.en).toEqual([t.targetSets, t.restSeconds]);
       if (t.modality === "HOLD") expect(e.seconds).toBe(t.targetSeconds);
       else expect(e.reps).toBe(t.targetReps);
     });
+  });
+
+  it("mobility: links the video, warms up briefly and has no extra cool-down", () => {
+    const entry = TRAINING_CATALOGUE.find((e) => e.id === "mobility")!;
+    const info = atlasDetail(entry)!;
+    expect(info.video?.url).toBe("https://www.youtube.com/watch?v=mKUle2yBYq0");
+    expect(info.sources.some((s) => s.url === info.video?.url)).toBe(true);
+    const plan = templateFor("mobility", 30);
+    expect(plan[0].key).toBe("general-warmup");
+    expect(plan.filter((t) => t.block === "COOLDOWN")).toEqual([]);
+    expect(plan.filter((t) => t.block === "MAIN").every((t) => t.methodId === "mobility" && t.modality === "HOLD")).toBe(true);
   });
 
   it("technique loop centre states the template's sets, reps and rest", () => {
