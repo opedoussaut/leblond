@@ -587,8 +587,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
     "Orange AD Saffres E2E", "3", "4+",
     "1Premier E2E 3  mur", "2Dalle E2E 4+  dalle", "2 bisVariante E2E 5  mur",
     "Toit E2E 6b  surplomb", "Nouveau Toit E2E 7a  dévers, départ assis", "Dalle E2E 4+  dalle",
-  ].join("
-"));
+  ].join("\n"));
 
   await form.getByRole("button", { name: "Importer le topo" }).click();
   await expect(form.getByText(/Topo importé : 5 blocs, 1 circuits \(2 ajoutés, 3 mis à jour, 0 retirés\)/)).toBeVisible();
