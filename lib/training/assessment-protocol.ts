@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Localized, TrainingAxis } from "./catalogue";
+import { NO_HEALTH_ISSUE, healthFromContext, injuriesSchema, testVerdict, type Health, type Verdict } from "./health";
 
 /**
  * LEBLOND structured assessment protocol (version 2).
@@ -122,11 +123,31 @@ export const measurementSchema = z.object({
   return !!def && def.unit === m.unit && m.value >= def.min && m.value <= def.max;
 }, "Value outside the test range");
 
+/** Home training equipment the programme can use for off-wall sessions. */
+export const HOME_EQUIPMENT = ["hangboard", "pullupBar", "weights", "bands", "mat"] as const;
+export type HomeEquipment = (typeof HOME_EQUIPMENT)[number];
+export const availabilitySchema = z.object({
+  climbingPerWeek: z.number().int().min(0).max(6),
+  offWallPerWeek: z.number().int().min(0).max(6),
+  homeEquipment: z.array(z.enum(HOME_EQUIPMENT)).max(HOME_EQUIPMENT.length),
+}).strict();
+export type Availability = z.infer<typeof availabilitySchema>;
+
+/**
+ * Context of a full assessment. Kept strict, with every newer field optional,
+ * so rows written by earlier versions still parse:
+ *  - v2 rows have `currentPain` (yes/no) and no `injuries` / `availability`;
+ *  - v3 rows have `injuries` (area + level), `availability` and `testDay`.
+ * `rested24h` / `warmedUp` describe the test day; they are only meaningful when tests were done.
+ */
 export const assessmentContextSchema = z.object({
   discipline: z.enum(["BOULDER", "ROUTE", "BOTH"]),
   experienceMonths: z.number().int().min(0).max(900),
   sessionsPerWeekNow: z.number().int().min(0).max(14),
-  currentPain: z.boolean(),
+  currentPain: z.boolean().optional(),
+  injuries: injuriesSchema.optional(),
+  availability: availabilitySchema.optional(),
+  testDay: z.boolean().optional(),
   rested24h: z.boolean(),
   warmedUp: z.boolean(),
   venue: z.string().trim().max(120),
@@ -138,15 +159,38 @@ export const assessmentContextSchema = z.object({
 }).strict();
 export type AssessmentContext = z.infer<typeof assessmentContextSchema>;
 
-/** A test is offered only when the screening says it is appropriate. */
-export function testAllowed(test: TestDefinition, ctx: Pick<AssessmentContext, "experienceMonths" | "currentPain" | "warmedUp">): boolean {
-  if (ctx.currentPain && (test.fingerLoading || test.id === "pull-ups")) return false;
-  if (test.fingerLoading && !ctx.warmedUp) return false;
-  return ctx.experienceMonths >= test.minExperienceMonths;
+type ScreeningContext = Pick<AssessmentContext, "experienceMonths" | "warmedUp"> & Partial<Pick<AssessmentContext, "currentPain" | "injuries">>;
+
+export type TestStatus = {
+  allowed: boolean;
+  /** Why a test is not offered, most important first. */
+  blockedBy: "health" | "experience" | "warmup" | null;
+  /** Health verdict: "adapt" keeps the test but marks the result as partial. */
+  verdict: Verdict;
+};
+
+/**
+ * Whether a test is offered, and why not. Only tests that load a declared area
+ * are left out or adapted (see health.ts); finger tests also need a warm-up
+ * and enough climbing experience.
+ */
+export function testStatus(test: TestDefinition, ctx: ScreeningContext): TestStatus {
+  const health: Health = ctx.injuries || ctx.currentPain !== undefined ? healthFromContext(ctx) : NO_HEALTH_ISSUE;
+  const verdict = testVerdict(test.id, health);
+  const blockedBy = verdict.status === "avoid" ? "health"
+    : ctx.experienceMonths < test.minExperienceMonths ? "experience"
+    : test.fingerLoading && !ctx.warmedUp ? "warmup" : null;
+  return { allowed: blockedBy === null, blockedBy, verdict };
 }
 
-export function measurementQuality(conditions: string, ctx: Pick<AssessmentContext, "warmedUp" | "rested24h">): "complete" | "partial" {
-  return conditions.trim().length >= 3 && ctx.warmedUp && ctx.rested24h ? "complete" : "partial";
+/** A test is offered only when the screening says it is appropriate. */
+export function testAllowed(test: TestDefinition, ctx: ScreeningContext): boolean {
+  return testStatus(test, ctx).allowed;
+}
+
+/** A result is "complete" only with recorded conditions, a warm-up, rest, and no load adaptation for an injury. */
+export function measurementQuality(conditions: string, ctx: Pick<AssessmentContext, "warmedUp" | "rested24h">, adapted = false): "complete" | "partial" {
+  return conditions.trim().length >= 3 && ctx.warmedUp && ctx.rested24h && !adapted ? "complete" : "partial";
 }
 
 export type ObservedEvidence = AssessmentContext["observed"][number];

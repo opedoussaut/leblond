@@ -139,7 +139,7 @@ export function CalendarEntrySessionButton({ locale, entryId, sessionId }: { loc
 
 /** Plan page: start one plan day now, or schedule a whole week. */
 export function PlanSessionControls({ locale, planId, sessions, today, monday }: {
-  locale: Locale; planId: string; sessions: { day: number; methodId: string; minutes: number }[]; today: string; monday: string;
+  locale: Locale; planId: string; sessions: { day: number; methodId: string | null; minutes: number; title?: string }[]; today: string; monday: string;
 }) {
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
@@ -172,7 +172,7 @@ export function PlanSessionControls({ locale, planId, sessions, today, monday }:
             router.push("/train/sessions/" + r.data.id);
           })}
           className={buttonClass("secondary", "sm", "w-full !justify-start !text-left")}>
-          ▶ {days[s.day]} · {METHODS_FOR_PLANS.find((m) => m.id === s.methodId)?.title} · {s.minutes} min
+          ▶ {days[s.day]} · {s.title ?? METHODS_FOR_PLANS.find((m) => m.id === s.methodId)?.title} · {s.minutes} min
         </button>
       </li>)}
     </ul>

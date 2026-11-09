@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeSnapshot, summarizeRoutes, type ClimbingDataset } from "@/lib/analytics";
-import { buildCoachContext, CONTEXT_CHAR_BUDGET, serializeContext } from "@/lib/coach/context";
+import { buildCoachContext, CONTEXT_CHAR_BUDGET, serializeContext, trainingContext } from "@/lib/coach/context";
+import { programmeView } from "@/lib/training/programme";
 import { attemptsFor, daysAgo, NOW, problem, session } from "./fixtures";
 
 function dataset(): ClimbingDataset {
@@ -105,5 +106,51 @@ describe("Patrick route context", () => {
     expect(plain.routeClimbing).toBeNull();
     expect(plain.gradeScales).not.toHaveProperty("FRENCH_SPORT_ROUTES");
     expect(serializeContext(plain).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 200);
+  });
+});
+
+describe("Patrick training context", () => {
+  const view = programmeView({
+    assessment: {
+      id: "a1", methodId: "technique", horizonWeeks: 8, sessionsPerWeek: 3, goal: "Réussir un 7A", startDate: "2026-11-02",
+      context: {
+        discipline: "BOULDER", experienceMonths: 24, sessionsPerWeekNow: 3, rested24h: false, warmedUp: false, venue: "", notes: "", observed: [],
+        injuries: [{ area: "fingers", level: "PAIN" }],
+        availability: { climbingPerWeek: 2, offWallPerWeek: 1, homeEquipment: ["pullupBar"] },
+      },
+    },
+    plan: { id: "p1", name: "Programme", sessions: [{ day: 1, methodId: "technique", minutes: 90, place: "BOULDER_GYM", notes: "" }] },
+    scheduled: [],
+    today: "2026-11-09",
+  });
+
+  it("summarises the programme, declared areas and the last daily check-in", () => {
+    const t = trainingContext({
+      view,
+      lastCheck: { date: "2026-11-09", outcome: "TECHNIQUE", reasons: ["pain:fingers"],
+        input: { sleep: 2, fatigue: 2, soreness: 1, pain: [{ area: "fingers", level: "PAIN" }], minutes: 60, place: "BOULDER_GYM" } },
+      replanSuggested: true,
+    });
+    expect(t?.programme).toMatchObject({ methodId: "technique", week: 2, horizonWeeks: 8, climbingSessionsPerWeek: 2, offWallSessionsPerWeek: 1 });
+    expect(t?.programme?.nextSession).toMatchObject({ date: "2026-11-10", place: "BOULDER_GYM" });
+    expect(t?.declaredBodyAreas).toEqual([{ area: "fingers", level: "PAIN" }]);
+    expect(t?.lastDailyCheck).toMatchObject({ outcome: "TECHNIQUE", minutesAvailable: 60, pain: [{ area: "fingers", level: "PAIN" }] });
+    expect(t?.replanSuggested).toBe(true);
+  });
+
+  it("is omitted when there is no programme and no check-in, and stays in budget otherwise", () => {
+    expect(trainingContext(null)).toBeNull();
+    expect(trainingContext({ view: null, lastCheck: null, replanSuggested: false })).toBeNull();
+    const data = dataset();
+    const target = { grade: "7A", system: "FONT" as const };
+    const ctx = buildCoachContext({
+      climber: { name: "Alex", language: "fr", target },
+      snapshot30: computeSnapshot(data, target, NOW, 30), snapshot90: computeSnapshot(data, target, NOW, 90),
+      recentSessions: [], activeProjects: [], now: NOW,
+      training: { view, lastCheck: null, replanSuggested: false },
+    });
+    expect(ctx.training?.programme?.methodId).toBe("technique");
+    expect(ctx.definitions.declaredBodyAreas).toMatch(/NOT a diagnosis/);
+    expect(serializeContext(ctx).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 50);
   });
 });
