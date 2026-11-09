@@ -35,7 +35,7 @@ insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration
   ('af000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-00000000000a', 'ae000000-0000-0000-0000-000000000001',
    '2026-10-08 09:00+00', '2026-10-08 12:00+00', 180);
 insert into public.problems (id, gym_id, created_by, native_grade, native_grade_system) values
-  ('af100000-0000-0000-0000-000000000001', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '6a', 'FONT'),
+  ('af100000-0000-0000-0000-000000000001', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '6A', 'FONT'),
   ('af100000-0000-0000-0000-000000000002', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '5c', 'FONT'),
   ('af100000-0000-0000-0000-000000000003', 'ae000000-0000-0000-0000-000000000002', 'ad000000-0000-0000-0000-00000000000a', '5a', 'FONT');
 
@@ -61,7 +61,7 @@ select pg_temp.expect_error($$select public.log_problem_tries('af000000-0000-000
 
 -- A project: tries plus an active project, once.
 insert into public.problems (id, gym_id, created_by, native_grade, native_grade_system)
-values ('af100000-0000-0000-0000-000000000004', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '7a', 'FONT');
+values ('af100000-0000-0000-0000-000000000004', 'ae000000-0000-0000-0000-000000000001', 'ad000000-0000-0000-0000-00000000000a', '7A', 'FONT');
 select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000004', 4, 'PROJECT');
 select count(*) from public.log_problem_tries('af000000-0000-0000-0000-000000000002', 'af100000-0000-0000-0000-000000000004', 1, 'PROJECT');
 select pg_temp.expect((select count(*) = 5 and bool_and(result = 'ATTEMPT') from public.attempts where problem_id = 'af100000-0000-0000-0000-000000000004')
