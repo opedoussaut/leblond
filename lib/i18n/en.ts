@@ -623,6 +623,7 @@ export const en: Dictionary = {
     searchProblems: "Name or circuit number",
     allCircuits: "All",
     offCircuit: "Off circuit",
+    offTopo: "Not in topo",
     anyGrade: "Any grade",
     gradeFilter: "Grade",
     results: "{shown} of {total}",

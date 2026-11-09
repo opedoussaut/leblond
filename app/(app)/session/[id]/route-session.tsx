@@ -6,13 +6,13 @@ import { useEffect, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { endSession } from "@/lib/actions/sessions";
-import { deleteRouteAscent, logRouteAscent, updateRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
+import { deleteRouteAscent, deleteRouteAscents, logRouteAscent, updateRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
 import { ResultBadge, routeTone, toneButtonStyle } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { createRouteProject } from "@/lib/actions/route-projects";
 import { ROUTE_RESULTS, ROUTE_STYLES, completesProject, isClean, routeKey, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
-import { fmt } from "@/lib/i18n";
+import { fmt, plural } from "@/lib/i18n";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { formatClock } from "@/lib/training/sessions";
 import { GradeChip } from "@/components/climbing/grade-chip";
@@ -51,6 +51,9 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   const [notes, setNotes] = useState("");
   const [editing, setEditing] = useState<{ id: string; notes: string } | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [confirmMany, setConfirmMany] = useState(false);
   const L = loggingDictionary(locale);
   const [projects, setProjects] = useState(initialProjects);
   const [project, setProject] = useState<ActiveRouteProject | null>(null);
@@ -134,6 +137,20 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
     start(async () => {
       const res = await deleteRouteAscent(id);
       if (!res.ok) { setAscents(before); setNotice({ tone: "error", text: t.common.unknownError }); }
+    });
+  }
+
+  /** Removes the selected routes of this session in one go. */
+  function removeSelected() {
+    const ids = selected.filter((id) => ascents.some((a) => a.id === id));
+    if (!ids.length) return;
+    const before = ascents;
+    setAscents((list) => list.filter((a) => !ids.includes(a.id)));
+    start(async () => {
+      const res = await deleteRouteAscents({ sessionId, ids });
+      if (!res.ok) { setAscents(before); setNotice({ tone: "error", text: t.common.unknownError }); return; }
+      setSelected([]); setSelecting(false); setConfirmMany(false);
+      setNotice({ tone: "ok", text: fmt(plural(locale, ids.length, { one: L.routesRemovedOne, other: L.routesRemovedOther }), { n: ids.length }) });
     });
   }
 
@@ -271,11 +288,40 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
     </section>
 
     <section aria-labelledby="route-list" className="space-y-2">
-      <h2 id="route-list" className="text-sm font-extrabold">{r.thisSession} · {ascents.length}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="route-list" className="text-sm font-extrabold">{r.thisSession} · {ascents.length}</h2>
+        {ascents.length > 0 ? <button type="button" aria-pressed={selecting}
+          onClick={() => { setSelecting((on) => !on); setSelected([]); setConfirmMany(false); }}
+          className="min-h-11 rounded-full px-3 text-sm font-bold text-accent underline underline-offset-2">
+          {selecting ? L.selectDone : L.select}
+        </button> : null}
+      </div>
+      {selecting ? <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2 p-2 text-sm">
+        <span className="font-semibold" aria-live="polite">
+          {fmt(plural(locale, selected.length, { one: L.selectedOne, other: L.selectedOther }), { n: selected.length })}
+        </span>
+        <button type="button" onClick={() => setSelected(ascents.map((a) => a.id))}
+          className="min-h-11 px-2 font-bold text-accent underline underline-offset-2">{L.selectAll}</button>
+        <button type="button" disabled={pending || selected.length === 0} onClick={() => setConfirmMany(true)}
+          className={buttonClass("danger", "sm", "ml-auto")}>{fmt(L.removeSelected, { n: selected.length })}</button>
+      </div> : null}
+      {selecting && confirmMany ? <div role="alertdialog" aria-labelledby="routes-remove-many" className="space-y-2 rounded-xl border border-danger p-3">
+        <p id="routes-remove-many" className="text-sm font-semibold">
+          {fmt(plural(locale, selected.length, { one: L.routesRemoveManyOne, other: L.routesRemoveManyOther }), { n: selected.length })}
+        </p>
+        <div className="flex gap-2">
+          <button type="button" disabled={pending} onClick={removeSelected} className={buttonClass("danger", "sm")}>{L.removeConfirm}</button>
+          <button type="button" onClick={() => setConfirmMany(false)} className={buttonClass("ghost", "sm")}>{t.common.cancel}</button>
+        </div>
+      </div> : null}
       {ascents.length === 0 ? <p className="text-sm text-ink-3">{r.noneYet}</p> :
         <ul className="space-y-2">
-          {ascents.map((a) => <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
-            <span className="min-w-0">
+          {ascents.map((a) => <li key={a.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3",
+            selecting && selected.includes(a.id) && "border-accent bg-surface-2")}>
+            {selecting ? <input type="checkbox" aria-label={`${a.grade}${a.route_name ? " · " + a.route_name : ""}`}
+              checked={selected.includes(a.id)} className="h-5 w-5 shrink-0 accent-accent"
+              onChange={() => setSelected((list) => (list.includes(a.id) ? list.filter((x) => x !== a.id) : [...list, a.id]))} /> : null}
+            <span className="min-w-0 flex-1">
               {a.native_grade && a.native_grade_system ? <GradeChip t={t} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
               <strong className="text-lg tabular-nums">{a.grade}</strong>
               <ResultBadge tone={routeTone(a.result)} label={r.results[a.result]} className="ml-2" />
@@ -293,7 +339,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
                 className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
               <Link href={`/route/${a.id}`} className="mt-1 inline-block text-xs font-bold text-accent underline underline-offset-2">{r.details} ›</Link>
             </span>
-            {confirmRemove === a.id ? <span className="flex shrink-0 flex-col items-end gap-1">
+            {selecting ? null : confirmRemove === a.id ? <span className="flex shrink-0 flex-col items-end gap-1">
               <span className="text-xs font-semibold">{L.routeRemoveTitle}</span>
               <span className="flex gap-1">
                 <button type="button" disabled={pending} onClick={() => { setConfirmRemove(null); remove(a.id); }}

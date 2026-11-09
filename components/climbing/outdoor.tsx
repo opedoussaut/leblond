@@ -9,6 +9,8 @@ import { cn } from "@/components/ui/cn";
 import { Input, Label, Select } from "@/components/ui/field";
 import { createGym } from "@/lib/actions/gyms";
 import { compareGrades } from "@/lib/grading";
+import { plural } from "@/lib/i18n";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import {
   BOOLDER_ATTRIBUTION,
   CIRCUIT_SWATCHES,
@@ -110,6 +112,22 @@ export function circuitColorName(t: Dictionary, color: string | null) {
 }
 
 /** Circuit colour + number, always as text next to the swatch. */
+/**
+ * Where a logged boulder sits: its circuit (colour + number), "Off circuit" for a
+ * topo boulder on no circuit, or "Not in topo" for one logged by grade only.
+ */
+export function CircuitTag({ color, number, inTopo, className }: {
+  color: string | null; number: string | null; inTopo: boolean; className?: string;
+}) {
+  const { t } = useI18n();
+  if (color) return <CircuitBadge color={color} number={number} className={className} />;
+  return (
+    <span className={cn("inline-flex shrink-0 items-center rounded-md border border-line px-1.5 py-0.5 text-xs font-bold text-ink-3", className)}>
+      {inTopo ? t.outdoor.offCircuit : t.outdoor.offTopo}
+    </span>
+  );
+}
+
 export function CircuitBadge({ color, number, className }: { color: string | null; number: string | null; className?: string }) {
   const { t } = useI18n();
   if (!color) return null;
@@ -367,8 +385,11 @@ export function BoolderProblemPicker({
   onNotInTopo,
   source,
   credit,
+  inSession,
 }: {
   problems: CatalogueItem[];
+  /** Topo boulders already in the session being logged → tries logged there. */
+  inSession?: ReadonlyMap<number, number>;
   /** The area's source (BOOLDER by default) and, for a team topo, its credit. */
   source?: string;
   credit?: string | null;
@@ -377,7 +398,13 @@ export function BoolderProblemPicker({
   onCancel?: () => void;
   onNotInTopo: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const L = loggingDictionary(locale);
+  const inSessionLabel = (id: number) => {
+    const n = inSession?.get(id);
+    if (n === undefined) return null;
+    return n > 0 ? fmt(plural(locale, n, { one: L.inSessionTriesOne, other: L.inSessionTriesOther }), { n }) : L.inSessionBadge;
+  };
   const [query, setQuery] = useState("");
   const [circuit, setCircuit] = useState<string | null>(null); // colour, "none", or null = all
   const [grade, setGrade] = useState<string | null>(null);
@@ -492,6 +519,7 @@ export function BoolderProblemPicker({
                 </span>
                 <span className="shrink-0 font-black tabular-nums">{chosen.grade}</span>
               </div>
+              {inSessionLabel(chosen.id) ? <p className="text-xs font-bold text-ok">✓ {inSessionLabel(chosen.id)}</p> : null}
               <Button className="w-full" disabled={pending} onClick={() => onPick(chosen)}>
                 {t.outdoor.mapPick}
               </Button>
@@ -524,6 +552,7 @@ export function BoolderProblemPicker({
                       {p.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
                       {p.parent_id ? ` · ${t.outdoor.variantOf}` : ""}
                     </span>
+                    {inSessionLabel(p.id) ? <span className="mt-0.5 block text-xs font-bold text-ok">✓ {inSessionLabel(p.id)}</span> : null}
                   </span>
                   <span className="shrink-0 font-black tabular-nums">{p.grade}</span>
                 </button>

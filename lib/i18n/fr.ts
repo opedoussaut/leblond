@@ -628,6 +628,7 @@ export const fr = {
     searchProblems: "Nom ou numéro de circuit",
     allCircuits: "Tous",
     offCircuit: "Hors circuit",
+    offTopo: "Hors topo",
     anyGrade: "Toutes cotations",
     gradeFilter: "Cotation",
     results: "{shown} sur {total}",
