@@ -314,6 +314,54 @@ test("a tester deactivated in Beta administration lands on Accès désactivé", 
   await expect(page).toHaveURL(/\/revoked/);
 });
 
+test("an invitation link lets a friend in, once", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  await page.getByLabel("Pour qui ? (facultatif)").fill("Invitee");
+  await page.getByRole("button", { name: "Créer un lien d’invitation" }).click();
+  const invite = page.getByRole("list", { name: "Invitations" }).getByRole("listitem").filter({ hasText: "Invitee" }).first();
+  await expect(invite.getByText(/En attente · expire le/)).toBeVisible();
+  const link = await invite.getByRole("textbox", { name: "Lien d’invitation" }).inputValue();
+  expect(link).toMatch(/\/login\?invite=[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/);
+  await expect(invite.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=/);
+  await expect(invite.getByRole("link", { name: "Telegram" })).toHaveAttribute("href", /^https:\/\/t\.me\/share\/url\?url=/);
+  const { pathname, search } = new URL(link);
+
+  // The friend opens the link: account creation, code filled in, no Google button.
+  await page.context().clearCookies();
+  await page.goto(pathname + search);
+  await expect(page.getByText(/Tu as reçu une invitation/)).toBeVisible();
+  await expect(page.getByLabel("Code d’invitation (si tu en as reçu un)")).toHaveValue(new URLSearchParams(search).get("invite") ?? "");
+  await expect(page.getByRole("button", { name: "Continuer avec Google" })).toHaveCount(0);
+  await page.getByLabel("Prénom ou pseudo").fill("Invitee");
+  await page.getByLabel("Adresse e-mail").fill("invitee@leblond.local");
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  // The link has served: someone else is refused, and the admin sees it used.
+  await page.context().clearCookies();
+  await page.goto(pathname + search);
+  await page.getByLabel("Prénom ou pseudo").fill("Second");
+  await page.getByLabel("Adresse e-mail").fill("second-invitee@leblond.local");
+  await page.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirmer le mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Ce code d’invitation ne marche pas" })).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
+  await signIn(page, ALEX);
+  await page.goto("/settings/admin");
+  await expect(page.getByRole("list", { name: "Invitations" }).getByRole("listitem").filter({ hasText: "Invitee" }).first()
+    .getByText(/Utilisée le/)).toBeVisible();
+
+  // A mistyped code on the link is flagged before anything is sent.
+  await page.context().clearCookies();
+  await page.goto("/login?invite=nope");
+  await expect(page.getByRole("alert").filter({ hasText: "Ce code d’invitation ne marche pas" })).toBeVisible();
+});
+
 test("PWA manifest is installable", async ({ request }) => {
   const m = await (await request.get("/manifest.webmanifest")).json();
   expect(m.display).toBe("standalone");

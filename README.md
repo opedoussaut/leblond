@@ -22,11 +22,11 @@ Numbers alone don't tell a climber what to do next. Patrick reads the statistics
 
 ## Closed beta
 
-Five people: Olivier (admin), Flavio, David, Thomas, Jérôme. There is no open sign-up — see [Supabase setup](#supabase-setup) for the whitelist. Real tester emails are never committed.
+By invitation: Olivier (admin) creates a single-use link in *Beta administration* and sends it by WhatsApp, Telegram or text; the friend signs up with their own email. There is no open sign-up — see [Supabase setup](#supabase-setup) for the whitelist. Real tester emails are never committed.
 
 ## Features (V1 “FIRST CLIMB + CONNECT”)
 
-- Sign-in by password, 6-digit code, magic link or Google; sign-up by invitation only, five-person whitelist enforced in the app **and** in the database
+- Sign-in by password, 6-digit code, magic link or Google; sign-up by invitation only (single-use links or codes the admin shares, or the admin's whitelist), enforced in the app **and** in the database
 - Two-minute onboarding (name, language, level, target, gyms, Patrick intro)
 - Gyms: Arkose, Climbing District, independent/outdoor (Font or custom colours)
 - Outdoor sites without a topo, such as Dampierre Maincourt, logged by Font grade — [docs/integrations.md](docs/integrations.md)

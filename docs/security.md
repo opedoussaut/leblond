@@ -15,6 +15,7 @@
 | Input validation | Zod on every server action and route; DB check constraints for grades, flash rule, ranges. |
 | Safe errors | Generic error codes to clients; no private content in logs; AI telemetry has no prompt text. |
 | Whitelist | `auth.users` trigger rejects uninvited/deactivated emails on every sign-up route (password, email code, magic link, Google). `is_active_beta_user()` gates RLS, and `requireViewer()` sends accounts outside the active whitelist to `/revoked`; their data is kept. The login page tells a refused address it is not part of the closed beta, which reveals whether an address is invited, not whether it has an account. |
+| Invitation links | `beta_invites`: the admin alone reads, creates and cancels them (RLS); never deleted. A code is 10 characters from a 32-symbol alphabet (≈10^15 values), single-use, valid 30 days. `redeem_beta_invite()` (callable without an account: holding the code is the permission) adds the email to the whitelist just before sign-up and answers only yes or no; it never re-activates a tester the admin deactivated. |
 
 ## Admin
 

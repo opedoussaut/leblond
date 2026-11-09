@@ -25,7 +25,8 @@ erDiagram
 
 | Table | Notes |
 |---|---|
-| `beta_users` | Whitelist (email, display name, `admin`/`beta_tester`, active). Writes: service role only. |
+| `beta_users` | Whitelist (email, display name, `admin`/`beta_tester`, active, `invite_id` when the tester came through a link). Writes: service role, or `redeem_beta_invite()`. |
+| `beta_invites` | Single-use invitation links (code, optional name, expiry, used / cancelled dates). Admin only. |
 | `profiles` | Created by trigger on sign-up. Target grade + system, optional body metrics, language, onboarding timestamp. |
 | `gyms` | Shared catalogue. Check constraint locks Arkose → `ARKOSE_COLOR`, Climbing District → `CLIMBING_DISTRICT_COLOR`. |
 | `favourite_gyms` | Per user. |
