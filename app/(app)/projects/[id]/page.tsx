@@ -6,6 +6,8 @@ import { Card, SectionTitle } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { requireViewer } from "@/lib/auth/viewer";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { fmt } from "@/lib/i18n";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import { getI18n } from "@/lib/i18n/server";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { ProjectForm } from "./project-form";
@@ -35,8 +37,14 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
     ? (await viewer.supabase.storage.from(MEDIA_BUCKET).createSignedUrls(videos.map((v) => v.storage_path), 3600)).data
     : [];
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  // The session it was opened in comes first, even before any try there.
+  const { data: openedIn } = project.session_id
+    ? await viewer.supabase.from("sessions").select("id, started_at").eq("id", project.session_id).maybeSingle()
+    : { data: null };
   const sessions = new Map<string, string>();
+  if (openedIn) sessions.set(openedIn.id, openedIn.started_at);
   for (const a of attempts ?? []) if (a.sessions) sessions.set(a.session_id, a.sessions.started_at);
+  const L = loggingDictionary(locale);
 
   return (
     <div className="space-y-5">
@@ -47,6 +55,11 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
           <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           <span className="text-sm text-ink-3">{problem.gyms?.name}</span>
         </div>
+        <p className="mt-2 text-sm text-ink-2">
+          {openedIn ? <Link className="font-semibold text-accent underline-offset-2 hover:underline" href={`/session/${openedIn.id}`}>
+            {fmt(L.openedIn, { date: formatDateTime(openedIn.started_at, locale) })} ›
+          </Link> : L.openedInNone}
+        </p>
       </header>
 
       <Card className="grid grid-cols-3 gap-3">
@@ -68,6 +81,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
                 {formatDateTime(at, locale)}
               </Link>{" "}
               · {(attempts ?? []).filter((a) => a.session_id === sid).length} × {t.results.ATTEMPT.toLowerCase()}
+              {sid === openedIn?.id ? <> · <span className="font-semibold text-ink-2">{L.projectOpenedHere}</span></> : null}
             </li>
           ))}
         </ul>

@@ -339,16 +339,25 @@ export async function logBoulderBatch(input: unknown): Promise<ActionResult<{ pr
 }
 
 /** Keep a problem as a project, from the logger (no navigation). */
-export async function markProblemProject(problemId: string): Promise<ActionResult> {
+/**
+ * Makes a boulder a project. From a session, the project is linked to it
+ * (shown in the session and on the project page). An existing project keeps
+ * the session it was opened in.
+ */
+export async function markProblemProject(problemId: string, sessionId?: string): Promise<ActionResult<{ projectId: string }>> {
   const viewer = await requireViewer();
-  if (!id.safeParse(problemId).success) return { ok: false, error: "invalid" };
+  if (!id.safeParse(problemId).success || (sessionId !== undefined && !id.safeParse(sessionId).success)) return { ok: false, error: "invalid" };
   const { data: existing } = await viewer.supabase.from("projects").select("id").eq("problem_id", problemId).maybeSingle();
-  if (!existing) {
-    const { error } = await viewer.supabase.from("projects").insert({ problem_id: problemId, user_id: viewer.userId });
-    if (error) return { ok: false, error: "unknownError" };
+  let projectId = existing?.id;
+  if (!projectId) {
+    const { data, error } = await viewer.supabase.from("projects")
+      .insert({ problem_id: problemId, user_id: viewer.userId, session_id: sessionId ?? null }).select("id").single();
+    if (error || !data) return { ok: false, error: "unknownError" };
+    projectId = data.id;
   }
   revalidatePath("/projects");
-  return { ok: true };
+  if (sessionId) revalidatePath(`/session/${sessionId}`);
+  return { ok: true, data: { projectId } };
 }
 
 /** Name (or un-name) a session. */
