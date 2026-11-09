@@ -344,6 +344,12 @@ export interface PickerProblem {
  * matches the circuit number exactly ("12" → problem n°12 of each circuit).
  * Order: circuit problems by colour then number, then the rest by popularity.
  */
+/** Circuits easiest first, in the usual Fontainebleau order (white, yellow, orange, blue…); unknown colours last. */
+export function circuitOrder(color: string | null): number {
+  const i = (CIRCUIT_COLORS as readonly string[]).indexOf(color ?? "");
+  return i < 0 ? CIRCUIT_COLORS.length : i;
+}
+
 export function filterProblems<T extends PickerProblem>(
   list: T[],
   opts: { query?: string; circuitColor?: string | null; grade?: string | null },
@@ -368,7 +374,7 @@ export function filterProblems<T extends PickerProblem>(
       if (ea !== eb) return eb - ea;
     }
     if (opts.circuitColor || (a.circuit_color && b.circuit_color)) {
-      const c = (a.circuit_color ?? "").localeCompare(b.circuit_color ?? "");
+      const c = circuitOrder(a.circuit_color) - circuitOrder(b.circuit_color);
       if (c !== 0) return c;
       const n = num(a.circuit_number) - num(b.circuit_number) || (a.circuit_number ?? "").localeCompare(b.circuit_number ?? "");
       if (n !== 0) return n; // 2, then 2b (bis), then 2c (ter)
