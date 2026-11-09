@@ -625,6 +625,74 @@ export const METHOD_DETAILS: Record<string, AtlasDetail> = {
     },
   },
 
+  "mobility": {
+    summary: loc("Une routine courte d’étirements tenus (6 positions, 2 × 30–40 s chacune, ≈ 15 min) pour garder ou gagner l’amplitude utile en escalade : hanches ouvertes pour les pieds hauts et les lolottes, ischio-jambiers pour les crochets de talon, épaules pour les grands mouvements.", "A short routine of held stretches (6 positions, 2 × 30–40 s each, ≈ 15 min) to keep or gain the range climbing uses: open hips for high feet and drop knees, hamstrings for heel hooks, shoulders for big reaches."),
+    trains: loc("Amplitude articulaire (hanches, chaîne postérieure, épaules, avant-bras) et tolérance à l’étirement. Ce n’est ni de la force ni de l’endurance.", "Joint range of motion (hips, posterior chain, shoulders, forearms) and stretch tolerance. It is neither strength nor endurance."),
+    suits: loc("Tous niveaux, surtout si un mouvement te bloque par manque d’amplitude (pied haut, grand écart, épaule). Les jours off ou après la séance.", "All levels, especially if a move stops you for lack of range (high foot, wide bridge, shoulder). On rest days or after a session."),
+    level: loc("Tous niveaux", "All levels"),
+    prerequisites: [
+      loc("Niveau : aucun minimum.", "Level: no minimum."),
+      loc("Âge : adapté aux jeunes grimpeurs, sans forcer.", "Age: suitable for young climbers, without forcing."),
+      loc("Blessures : pas d’étirement sur une zone douloureuse ou récemment blessée sans l’accord d’un professionnel de santé.", "Injuries: no stretching of a painful or recently injured area without a clinician’s agreement."),
+    ],
+    protocol: [
+      { key: "intensity", value: loc("Tension franche mais sans douleur (≈ 6–7/10), respiration lente.", "A strong but painless pull (≈ 6–7/10), slow breathing.") },
+      { key: "effort", value: loc("30 à 40 s par position (par côté quand il y en a deux).", "30–40 s per position (per side where there are two).") },
+      { key: "rest", value: loc("≈ 15 s pour changer de côté ou de position.", "≈ 15 s to switch sides or positions.") },
+      { key: "reps", value: loc("6 positions : grenouille, squat profond, fente basse, ischio-jambiers, épaules au mur, avant-bras.", "6 positions: frog, deep squat, low lunge, hamstrings, wall shoulders, forearms.") },
+      { key: "sets", value: loc("2 passages par position.", "2 rounds per position.") },
+      { key: "session", value: loc("≈ 15 min.", "≈ 15 min.") },
+      { key: "frequency", value: loc("3 à 5 fois par semaine pour gagner de l’amplitude, 2 fois pour l’entretenir.", "3–5 times a week to gain range, twice to maintain it.") },
+    ],
+    preparation: loc("Un tapis, un mur, un minuteur. Muscles chauds : après la séance ou après 5 min de mouvement.", "A mat, a wall, a timer. Warm muscles: after climbing or after 5 min of movement."),
+    steps: [
+      loc("Grenouille : À quatre pattes, genoux écartés, recule doucement le bassin.", "Frog stretch: On all fours, knees wide, gently sit the hips back."),
+      loc("Squat profond : Pieds à plat, talons au sol, coudes poussant les genoux vers l’extérieur.", "Deep squat hold: Feet flat, heels down, elbows pushing the knees out."),
+      loc("Fente basse (par côté) : Genou arrière au sol, bassin vers l’avant, buste droit ; change de côté.", "Low lunge (per side): Back knee down, hips forward, chest up; switch sides."),
+      loc("Ischio-jambiers assis : Jambes tendues, buste long vers l’avant sans arrondir le dos.", "Seated hamstrings: Straight legs, long chest reaching forward without rounding the back."),
+      loc("Épaules au mur : Mains au mur, recule et laisse descendre la poitrine, bras tendus.", "Wall shoulder stretch: Hands on the wall, step back and let the chest sink, arms straight."),
+      loc("Avant-bras (par bras) : Bras tendu, paume vers l’avant, tire doucement les doigts vers toi ; change de bras.", "Forearms (per arm): Straight arm, palm forward, gently pull the fingers back; switch arms."),
+    ],
+    progression: [
+      loc("Augmenter d’abord le temps total par semaine (plus de séances), puis la durée tenue (40 → 60 s).", "First increase total time per week (more sessions), then the hold (40 → 60 s)."),
+      loc("Passer aux positions actives : tenir l’amplitude avec ses muscles (pied haut sans les mains).", "Move to active positions: hold the range with your own muscles (high foot without hands)."),
+      loc("Ajouter la position qui te manque au mur (lolotte, grand écart facial).", "Add the position you lack on the wall (drop knee, wide bridge)."),
+    ],
+    mistakes: [
+      loc("Forcer dans la douleur ou par à-coups : l’amplitude se gagne avec le temps, pas la force.", "Forcing into pain or bouncing: range comes with time, not force."),
+      loc("De longs étirements statiques juste avant un essai maximal : garde-les pour après ou les jours off.", "Long static stretches right before a maximal attempt: keep them for after or rest days."),
+      loc("Étirer fort les doigts juste après une grosse séance de doigts.", "Stretching the fingers hard right after a big finger session."),
+    ],
+    safety: [
+      loc("Jamais dans une douleur articulaire, une poulie ou un coude sensible.", "Never into joint pain, a sore pulley or a sensitive elbow."),
+      loc("Hanches et genoux : arrête si le genou tourne ou pince.", "Hips and knees: stop if the knee twists or pinches."),
+    ],
+    variants: [
+      loc("Version 5 min pour l’échauffement : mouvements dynamiques plutôt que positions tenues.", "5-minute warm-up version: dynamic movements rather than held positions."),
+      loc("Suivre la routine vidéo de Lattice Training (lien ci-dessous).", "Follow Lattice Training’s video routine (link below)."),
+      loc("Yoga doux ou mobilité guidée, 20–30 min, un jour off.", "Gentle yoga or guided mobility, 20–30 min, on a rest day."),
+    ],
+    observe: loc("Le pied le plus haut posé sans les mains, la distance doigts-sol jambes tendues, et si le mouvement qui te bloquait passe mieux.", "The highest foot placed without hands, the fingers-to-floor distance with straight legs, and whether the move that stopped you feels easier."),
+    evidenceNote: loc("Faible pour la performance, solide pour l’amplitude. S’étirer régulièrement augmente l’amplitude (au moins ≈ 5 min par muscle et par semaine, Thomas 2018). Des étirements courts dans l’échauffement ne gênent pas la performance (Behm 2016), mais s’étirer après l’effort n’accélère pas la récupération (Afonso 2021). En escalade, la souplesse pèse peu sur le niveau (Mermier 2000) : elle compte surtout quand un mouvement précis te bloque.", "Low for performance, solid for range. Regular stretching increases range of motion (at least ≈ 5 min per muscle per week, Thomas 2018). Short stretches in a warm-up do not hurt performance (Behm 2016), but stretching after exercise does not speed up recovery (Afonso 2021). In climbing, flexibility weighs little on grade (Mermier 2000): it matters most when a specific move stops you."),
+    sources: [SRC.thomas2018, SRC.behm2016, SRC.afonso2021, SRC.mermier2000, SRC.latticeFlexibility],
+    diagram: {
+      kind: "sets",
+      exercises: [
+        { name: loc("Grenouille", "Frog stretch"), sets: 2, seconds: 40, rest: 15 },
+        { name: loc("Squat profond", "Deep squat hold"), sets: 2, seconds: 40, rest: 15 },
+        { name: loc("Fente basse (par côté)", "Low lunge (per side)"), sets: 2, seconds: 30, rest: 15 },
+        { name: loc("Ischio-jambiers assis", "Seated hamstrings"), sets: 2, seconds: 40, rest: 15 },
+        { name: loc("Épaules au mur", "Wall shoulder stretch"), sets: 2, seconds: 30, rest: 15 },
+        { name: loc("Avant-bras (par bras)", "Forearms (per arm)"), sets: 2, seconds: 30, rest: 15 },
+      ],
+    },
+    video: {
+      title: "The Bare Minimum Flexibility Routine for Climbers",
+      author: "Lattice Training",
+      url: "https://www.youtube.com/watch?v=mKUle2yBYq0",
+      note: loc("Routine vidéo recommandée pour suivre la séance (en anglais, sur YouTube).", "Recommended video routine to follow along (in English, on YouTube)."),
+    },
+  },
   "mental": {
     summary: loc(
       "Préparer la tête autant que le corps : lire la voie depuis le sol, respirer, décider puis s'engager, et apprivoiser la chute en tête par paliers. L'approche s'inspire notamment de The Warrior's Way (Arno Ilgner) et des psychologues du sport qui travaillent avec des grimpeurs.",

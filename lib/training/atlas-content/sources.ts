@@ -10,6 +10,51 @@ import type { Localized } from "@/lib/training/catalogue";
 const loc = (fr: string, en: string): Localized => ({ fr, en });
 
 export const SRC = {
+  thomas2018: {
+    kind: "review",
+    citation: "Thomas E, Bianco A, Paoli A, Palma A (2018). The relation between stretching typology and stretching duration: the effects on range of motion. Int J Sports Med 39(4):243–254.",
+    url: "https://doi.org/10.1055/s-0044-101146",
+    finding: loc(
+      "Revue systématique : l'amplitude progresse avec le temps total d'étirement par semaine (au moins ≈ 5 min par groupe musculaire) et avec des séances fréquentes, quel que soit le type d'étirement.",
+      "Systematic review: range of motion improves with total weekly stretching time (at least ≈ 5 min per muscle group) and with frequent sessions, whatever the type of stretching.",
+    ),
+  },
+  behm2016: {
+    kind: "review",
+    citation: "Behm DG, Blazevich AJ, Kay AD, McHugh M (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence in healthy active individuals: a systematic review. Appl Physiol Nutr Metab 41(1):1–11.",
+    url: "https://doi.org/10.1139/apnm-2015-0235",
+    finding: loc(
+      "Des étirements statiques courts (moins de 60 s par muscle) dans un échauffement complet ont un effet négligeable sur la performance ; tenus longtemps juste avant un effort explosif, ils peuvent la réduire un peu. Effet sur les blessures : faible et incertain.",
+      "Short static stretches (under 60 s per muscle) inside a full warm-up have a trivial effect on performance; held long right before an explosive effort they can reduce it slightly. Effect on injuries: small and uncertain.",
+    ),
+  },
+  afonso2021: {
+    kind: "review",
+    citation: "Afonso J, Clemente FM, Nakamura FY, et al. (2021). The effectiveness of post-exercise stretching in short-term and delayed recovery of strength, range of motion and delayed onset muscle soreness: a systematic review and meta-analysis of randomized controlled trials. Front Physiol 12:677581.",
+    url: "https://doi.org/10.3389/fphys.2021.677581",
+    finding: loc(
+      "Méta-analyse d'essais randomisés : s'étirer après l'effort n'accélère ni la récupération de la force ni la disparition des courbatures.",
+      "Meta-analysis of randomised trials: stretching after exercise speeds up neither strength recovery nor the fading of soreness.",
+    ),
+  },
+  mermier2000: {
+    kind: "study",
+    citation: "Mermier CM, Janot JM, Parker DL, Swan JG (2000). Physiological and anthropometric determinants of sport climbing performance. Br J Sports Med 34(5):359–366.",
+    url: "https://doi.org/10.1136/bjsm.34.5.359",
+    finding: loc(
+      "44 grimpeurs : les qualités entraînables (force, endurance) expliquent l'essentiel des différences de niveau ; la souplesse mesurée n'en explique qu'une très petite part.",
+      "44 climbers: trainable qualities (strength, endurance) explain most of the differences in grade; measured flexibility explains only a very small part.",
+    ),
+  },
+  latticeFlexibility: {
+    kind: "video",
+    citation: "Lattice Training (YouTube). The Bare Minimum Flexibility Routine for Climbers.",
+    url: "https://www.youtube.com/watch?v=mKUle2yBYq0",
+    finding: loc(
+      "Routine de souplesse minimale pour grimpeurs, à suivre en vidéo ; recommandée par l'équipe LEBLOND.",
+      "A minimal flexibility routine for climbers to follow on video; recommended by the LEBLOND team.",
+    ),
+  },
   lopez2019: {
     kind: "study",
     citation: "López-Rivera E, González-Badillo JJ (2019). Comparison of the effects of three hangboard strength and endurance training programs on grip endurance in sport climbers. J Hum Kinet 66:183–195.",

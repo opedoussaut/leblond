@@ -99,8 +99,11 @@ export function expectedRatingsAtWeek(
 /** Rank training methods by how strongly they address the climber's reported gaps.
  * This is a fit heuristic, not an efficacy ranking.
  */
+/** Support work (stretching) complements a programme; it is never ranked as its main method. */
+export const SUPPORT_METHOD_IDS: ReadonlySet<string> = new Set(["mobility"]);
+
 export function methodMatches(ratings: SkillRatings, limit = 3) {
-  return METHODS_FOR_PLANS.map((method) => {
+  return METHODS_FOR_PLANS.filter((method) => !SUPPORT_METHOD_IDS.has(method.id)).map((method) => {
     // Normalize by the method's active focus so a generic "does everything"
     // program cannot dominate every recommendation just for covering more axes.
     const focus = method.scores.map(score => (score - 1) / 4);

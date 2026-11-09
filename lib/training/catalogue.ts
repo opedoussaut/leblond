@@ -102,6 +102,14 @@ export const TRAINING_CATALOGUE: readonly TrainingEntry[] = [
     source: { label: "Hooper's Beta — strength training", url: "https://www.hoopersbeta.com/library/how-to-train-for-climbing-full-body-guide" },
   },
   {
+    id: "mobility", category: "methods", title: "Mobility & stretching",
+    description: { en: "A short routine of held stretches for hips, legs, shoulders and forearms: range for high feet, drop knees and reaches.", fr: "Une courte routine d'étirements tenus pour hanches, jambes, épaules et avant-bras : de l'amplitude pour les pieds hauts, les lolottes et les grands mouvements." },
+    goals: ["boulder", "sport", "technique"], evidence: "limited",
+    scores: [2, 1, 1, 1, 1, 2],
+    source: { label: "Lattice Training — The Bare Minimum Flexibility Routine for Climbers (video)", url: "https://www.youtube.com/watch?v=mKUle2yBYq0" },
+    caution: { en: "Stretch to a strong but painless pull, never into pain. After an injury, follow your physiotherapist's plan.", fr: "Étire jusqu'à une tension franche mais sans douleur, jamais dans la douleur. Après une blessure, suis le plan de ton kiné." },
+  },
+  {
     id: "mental", category: "methods", title: "Mental skills & lead tactics",
     description: { en: "Decision-making, pacing, confidence and appropriately managed exposure.", fr: "Prise de décision, rythme, confiance et exposition progressive sécurisée." },
     goals: ["sport", "technique"], evidence: "limited",

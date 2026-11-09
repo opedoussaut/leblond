@@ -177,4 +177,6 @@ export type AtlasDetail = {
   evidenceNote: Localized;
   sources: readonly AtlasSource[];
   diagram: AtlasDiagram;
+  /** A follow-along video recommended by the owner (opened on its site, never embedded). */
+  video?: { title: string; author: string; url: string; note: Localized };
 };
