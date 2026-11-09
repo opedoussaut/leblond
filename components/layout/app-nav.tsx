@@ -6,7 +6,8 @@ import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { AREAS, activeSubPage, sectionForPath, type SectionId } from "@/lib/navigation/sections";
-import { AtlasIcon, HomeIcon, ProfileIcon, ProgressIcon, SessionIcon } from "./nav-icons";
+import { signOut } from "@/app/(public)/login/actions";
+import { AtlasIcon, HomeIcon, ProfileIcon, ProgressIcon, SessionIcon, SignOutIcon } from "./nav-icons";
 
 const AREA_ICONS: Record<SectionId, () => React.JSX.Element> = {
   home: HomeIcon,
@@ -30,8 +31,8 @@ export function AppNav({ hasLiveSession, hasLiveTraining }: { hasLiveSession: bo
   return (
     <>
       <nav aria-label={t.nav.mainNav}
-        className="fixed inset-y-0 left-0 z-30 hidden w-64 overflow-y-auto border-r border-line bg-surface px-3 pb-6 pt-24 md:block">
-        <ul className="space-y-1">
+        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-y-auto border-r border-line bg-surface px-3 pb-6 pt-24 md:flex">
+        <ul className="flex-1 space-y-1">
           {AREAS.map(({ id, href, children }) => {
             const selected = id === currentArea;
             const Icon = AREA_ICONS[id];
@@ -71,6 +72,14 @@ export function AppNav({ hasLiveSession, hasLiveTraining }: { hasLiveSession: bo
             );
           })}
         </ul>
+        {/* Always in the same place, at the foot of the sidebar. */}
+        <form action={signOut} className="mt-6 border-t border-line pt-3">
+          <button type="submit"
+            className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-extrabold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
+            <SignOutIcon />
+            <span>{t.auth.signOut}</span>
+          </button>
+        </form>
       </nav>
       <nav aria-label={t.nav.mainNav}
         className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur md:hidden">
