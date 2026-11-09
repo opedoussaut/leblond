@@ -773,6 +773,8 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   // Leaving asks twice, then the page offers a new pact.
   await page.goto("/train/alter-ego");
   await page.getByRole("button", { name: "Reprendre le pacte" }).click();
+  // Wait for the resumed pact: a refresh landing mid-confirmation would reset it.
+  await expect(page.getByRole("button", { name: "Mettre le pacte en pause" })).toBeVisible();
   await page.getByRole("button", { name: "Abandonner le pacte" }).click();
   await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
