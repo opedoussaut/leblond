@@ -46,6 +46,8 @@ export const createTrainingSessionSchema = z.discriminatedUnion("source", [
   z.object({
     source: z.literal("plan"),
     planId: z.guid(), planSessionIndex: z.number().int().min(0).max(13),
+    /** The phase whose weekly template the session comes from (plans in phases). */
+    phaseIndex: z.number().int().min(0).max(11).optional(),
     date: localDate, time: localTime,
     startNow: z.boolean(),
   }).strict(),

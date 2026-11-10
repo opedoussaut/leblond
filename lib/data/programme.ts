@@ -3,9 +3,9 @@ import type { ServerSupabase } from "@/lib/supabase/server";
 import { parseContext } from "@/lib/training/assessment-protocol";
 import { dayCheckInputSchema } from "@/lib/training/day-check";
 import { injuriesSchema } from "@/lib/training/health";
-import { trainingPlanSchema } from "@/lib/training/plans";
+import { PLAN_COLUMNS, phaseAt, phasesOf, planFromRow } from "@/lib/training/plans";
 import {
-  DAY_OUTCOMES, REPLAN_WINDOW_DAYS, addDays, programmeView, replanSignal,
+  DAY_OUTCOMES, REPLAN_WINDOW_DAYS, addDays, daysBetween, programmeView, replanSignal,
   type DayCheckRecord, type DayOutcome, type ProgrammeAssessment, type ProgrammePlan, type ProgrammeView, type ScheduledSession,
 } from "@/lib/training/programme";
 import { localDate_ } from "@/lib/training/sessions";
@@ -64,14 +64,18 @@ export async function loadProgramme(supabase: ServerSupabase, today = localDate_
 
   let view: ProgrammeView | null = null;
   if (assessmentRow) {
-    const { data: planRow } = await supabase.from("training_plans").select("id, name, goal, weeks, sessions")
+    const { data: planRow } = await supabase.from("training_plans").select(PLAN_COLUMNS)
       .eq("assessment_id", assessmentRow.id).order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const parsedPlan = planRow ? trainingPlanSchema.safeParse({ name: planRow.name, goal: planRow.goal, weeks: planRow.weeks, sessions: planRow.sessions }) : null;
-    const plan: ProgrammePlan | null = planRow && parsedPlan?.success ? { id: planRow.id, name: planRow.name, sessions: parsedPlan.data.sessions } : null;
+    const parsedPlan = planRow ? planFromRow(planRow) : null;
+    const startDate = localDate_(new Date(assessmentRow.created_at));
+    // A plan in phases follows the programme's weeks: this week's template is the current phase's.
+    const week = Math.floor(Math.max(0, daysBetween(startDate, today)) / 7) + 1;
+    const plan: ProgrammePlan | null = planRow && parsedPlan
+      ? { id: planRow.id, name: planRow.name, sessions: phaseAt(phasesOf(parsedPlan), week).phase.sessions } : null;
     const assessment: ProgrammeAssessment = {
       id: assessmentRow.id, methodId: assessmentRow.method_id, horizonWeeks: assessmentRow.horizon_weeks,
       sessionsPerWeek: assessmentRow.sessions_per_week, goal: assessmentRow.goal,
-      startDate: localDate_(new Date(assessmentRow.created_at)), context: parseContext(assessmentRow.context),
+      startDate, context: parseContext(assessmentRow.context),
     };
     view = programmeView({ assessment, plan, scheduled, today });
   }

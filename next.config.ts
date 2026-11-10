@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   // with the serverless function that needs it.
   outputFileTracingIncludes: {
     "/api/coach": ["./prompts/**/*.md"],
+    "/api/coach/plan": ["./prompts/**/*.md"],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

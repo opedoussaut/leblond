@@ -17,7 +17,7 @@ export default async function globalSetup() {
   }
   // Closed beta: every demo climber who signs up is invited first.
   // stranger@leblond.local is deliberately left out.
-  const testers = ["Sam", "Newcomer", "Gone", "Training", "Free", "Routes", "Past", "Guided"];
+  const testers = ["Sam", "Newcomer", "Gone", "Training", "Free", "Routes", "Past", "Guided", "Plans"];
   await admin.from("beta_users").upsert(
     [
       { email: "alex@leblond.local", display_name: "Alex", role: "admin", active: true },

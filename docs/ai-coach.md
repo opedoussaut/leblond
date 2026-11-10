@@ -41,6 +41,10 @@ For self-hosted servers, make the model's context window at least ~8k tokens (Ol
 - `store: false` on the provider; LEBLOND keeps its own private history. Telemetry stores no prompt or answer text.
 - Rate limit: `MAX_COACH_REQUESTS_PER_USER_PER_DAY` (default 30) on an append-only table.
 
+## Plan proposals
+
+`POST /api/coach/plan` (Patrick mode of the plan editor) sends Patrick's usual bounded context, the plan-building instructions from `lib/training/plan-proposal.ts` and the climber's request (goal, duration, availability, outdoor days, target, declared health). The answer must be one JSON object; it is checked and fitted before being returned as a draft, and counts in the same daily limit (`ai_usage.request_type = 'plan'`). Nothing is saved until the climber saves the plan.
+
 ## Quick actions
 
 What should I climb today? · Analyse my last session · What is holding me back? · How close am I to my target? · Analyse one of my projects · Build my next session · Compare my Arkose and Climbing District performance · What do my recent sessions say about my fatigue? (uses self-reported feelings and personal HR comparisons only).
