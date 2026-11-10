@@ -812,7 +812,7 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await expect(page.getByRole("tab", { name: "Phase 2 · 4 sem." })).toHaveAttribute("aria-selected", "true");
   await expect(hints.getByText(/Pas d’objectif pour cette phase/).first()).toBeVisible();
   await page.getByLabel("Nom de la phase").fill("Spécifique");
-  await page.getByLabel("Type", { exact: true }).selectOption("BUILD");
+  await page.getByRole("combobox", { name: /^Type/ }).selectOption("BUILD");
   await page.getByLabel(/Objectif de la phase/).fill("3 × 10 s sur 20 mm");
   await page.getByLabel("Objectif", { exact: true }).fill("Faire 7A en 3 mois");
   await expect(hints.getByText(/gagnerait à être mesurable/)).toHaveCount(0);
