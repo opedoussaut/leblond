@@ -11,7 +11,7 @@ const session: CoachSessionInput = {
   minutes: 90,
   place: "HOME",
   exercises: [
-    { block: "WARMUP", name: "Écartés à l’élastique", sets: 2, reps: 15, musclewiki: "band-pull-apart" },
+    { block: "WARMUP", name: "Écartés à l’élastique", sets: 2, reps: 15, restAfterSeconds: 90, musclewiki: "band-pull-apart" },
     { block: "MAIN", name: "Tractions lestées", sets: 4, reps: 5, restSeconds: 150, load: "poids du corps", methodId: "strength-conditioning",
       steps: ["Gainage serré", "Descente contrôlée"], safety: "Stop si douleur au coude", musclewiki: "weighted-pull-ups" },
     { block: "COOLDOWN", name: "Squat profond tenu", modality: "HOLD", sets: 3, seconds: 30 },
@@ -61,6 +61,8 @@ describe("coach sessions", () => {
     expect(rows[1].instructions).toMatchObject({ key: "coach:upper-lower-90:1", load: "poids du corps", musclewiki: "weighted-pull-ups" });
     expect(rows[1].instructions.steps[0]).toEqual({ fr: "Gainage serré", en: "Gainage serré" });
     expect(rows[2]).toMatchObject({ modality: "HOLD", target_seconds: 30, target_reps: null });
+    expect(rows[0].instructions.restAfter).toBe(90);
+    expect(rows[1].instructions.restAfter).toBeUndefined();
   });
 
   it("can be started as a training session", () => {

@@ -869,7 +869,7 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   const put = await request.post("/api/coach-sessions", { headers: auth, data: {
     slug: "haut-bas-90", title: "Haut et bas test", objective: "Tirage et genou prudent", minutes: 90, place: "HOME",
     exercises: [
-      { block: "WARMUP", name: "Écartés à l’élastique", sets: 2, reps: 15, musclewiki: "band-pull-apart" },
+      { block: "WARMUP", name: "Écartés à l’élastique", sets: 2, reps: 15, restAfterSeconds: 120, musclewiki: "band-pull-apart" },
       { block: "MAIN", name: "Tractions lestées", sets: 4, reps: 5, restSeconds: 150, load: "poids du corps", musclewiki: "weighted-pull-ups" },
       { block: "COOLDOWN", name: "Squat profond tenu", modality: "HOLD", sets: 3, seconds: 30 },
     ],
@@ -893,4 +893,13 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}/);
   await expect(page.getByRole("heading", { name: "Écartés à l’élastique" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Démonstration MuscleWiki/ })).toHaveAttribute("href", "https://musclewiki.com/exercise/band-pull-apart");
+  await expect(page.getByText("Repos avant l’exercice suivant : 2:00")).toBeVisible();
+
+  // Moving on after a logged set starts the rest between exercises.
+  await page.getByRole("button", { name: "Valider la série" }).click();
+  await page.getByRole("button", { name: "Exercice suivant →" }).click();
+  const timer = page.getByRole("status").filter({ hasText: "Repos avant l’exercice suivant" });
+  await expect(timer).toBeVisible();
+  await expect(timer.getByText("Ensuite : Tractions lestées")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tractions lestées" })).toBeVisible();
 });

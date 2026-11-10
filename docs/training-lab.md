@@ -103,6 +103,9 @@ training session, so the player, history and analytics do not change.
 - Pushing: `node scripts/coach-session.mjs list | push file.json… | remove slug`,
   key from `LEBLOND_COACH_KEY` or `~/.leblond/coach-key`. Session files are the
   climber's personal training and stay out of this repository.
+- `restSeconds` is the rest between sets; `restAfterSeconds` the rest before the
+  next exercise (kept in the exercise snapshot as `restAfter`): the player starts
+  that timer when the climber moves on, unless the exercise was skipped.
 - Loads and volumes are the coach's proposal, not a validated prescription.
 
 ## MongoDB decision

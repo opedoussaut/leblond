@@ -46,7 +46,10 @@ export const coachExerciseSchema = z.object({
   sets: z.number().int().min(1).max(30).optional(),
   reps: z.number().int().min(1).max(200).optional(),
   seconds: z.number().int().min(1).max(7200).optional(),
+  /** Rest between two sets of this exercise. */
   restSeconds: z.number().int().min(0).max(1800).optional(),
+  /** Rest after this exercise, before the next one starts. */
+  restAfterSeconds: z.number().int().min(0).max(900).optional(),
   /** "4 kg", "poids du corps", "bande légère"… shown as written. */
   load: text(80).optional(),
   intensity: text(160).optional(),
@@ -123,6 +126,7 @@ export function coachSnapshot(e: CoachExercise, slug: string, index: number): Ex
     ...(e.safety ? { safety: same(e.safety) } : {}),
     ...(e.load ? { load: e.load } : {}),
     ...(e.musclewiki ? { musclewiki: e.musclewiki } : {}),
+    ...(e.restAfterSeconds ? { restAfter: e.restAfterSeconds } : {}),
   };
 }
 
