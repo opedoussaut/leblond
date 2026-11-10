@@ -788,3 +788,55 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await page.getByRole("button", { name: "Oui, abandonner" }).click();
   await expect(page.getByRole("button", { name: "Signer le pacte" })).toBeVisible();
 });
+
+test("G — training plans: assisted mode with phases, then a plan proposed by Patrick", async ({ page }) => {
+  await register(page, "Plan Builder", "plans@leblond.local");
+  await page.goto("/training-plans");
+
+  // No plan yet: choose how to build it.
+  await expect(page.getByRole("group", { name: "Comment veux-tu construire ce plan ?" })).toBeVisible();
+  await page.getByRole("button", { name: /Je le construis, avec des conseils/ }).click();
+  await expect(page.getByText("Construit avec conseils")).toBeVisible();
+  const hints = page.getByRole("region", { name: "Conseils de LEBLOND" });
+  await page.getByLabel("Nom du plan").fill("Saison 7A");
+  await page.getByLabel("Objectif", { exact: true }).fill("Progresser");
+  await expect(hints.getByText(/gagnerait à être mesurable/)).toBeVisible();
+
+  // Three months, in two phases.
+  await page.getByRole("spinbutton", { name: "Durée du plan" }).fill("3");
+  await page.getByLabel("Unité de durée").selectOption("MONTHS");
+  await expect(page.getByText("soit 13 semaines")).toBeVisible();
+  await expect(hints.getByText(/13 semaines avec la même semaine type/)).toBeVisible();
+  await page.getByRole("button", { name: "+ Ajouter une phase" }).click();
+  await expect(page.getByRole("tab", { name: "Phase 1 · 9 sem." })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Phase 2 · 4 sem." })).toHaveAttribute("aria-selected", "true");
+  await expect(hints.getByText(/Pas d’objectif pour cette phase/).first()).toBeVisible();
+  await page.getByLabel("Nom de la phase").fill("Spécifique");
+  await page.getByRole("combobox", { name: /^Type/ }).selectOption("BUILD");
+  await page.getByLabel(/Objectif de la phase/).fill("3 × 10 s sur 20 mm");
+  await page.getByLabel("Objectif", { exact: true }).fill("Faire 7A en 3 mois");
+  await expect(hints.getByText(/gagnerait à être mesurable/)).toHaveCount(0);
+  await expect(hints.getByText(/Le plan finit sur un bloc chargé/)).toBeVisible();
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Enregistré en privé")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Saison 7A" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("tab", { name: "Spécifique · 4 sem." })).toBeVisible();
+
+  // Patrick mode: a checked draft, reviewed before saving.
+  await page.getByRole("button", { name: "Nouveau plan +" }).click();
+  await page.getByRole("button", { name: /Patrick me le propose/ }).click();
+  await page.getByLabel("Ton objectif principal").fill("Enchaîner mon premier 7A");
+  await page.getByRole("group", { name: "Jours où je grimpe souvent dehors" }).getByRole("button", { name: "Samedi" }).click();
+  await page.getByRole("button", { name: "Demander une proposition à Patrick" }).click();
+  await expect(page.getByText(/Proposition de Patrick : relis-la/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Proposé par Patrick")).toBeVisible();
+  await expect(page.getByText("Les semaines des phases ont été ajustées à la durée choisie.")).toBeVisible();
+  await expect(page.getByText("Des exercices hors Atlas ont été gardés comme séances libres.")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Fondations · 4 sem." })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Semaine allégée · 1 sem." })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Spécifique · 8 sem." })).toBeVisible();
+  await expect(page.getByLabel("Nom du plan")).toHaveValue("MOCK PLAN — Enchaîner mon premier 7A");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Enregistré en privé")).toBeVisible();
+});

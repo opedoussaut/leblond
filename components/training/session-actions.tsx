@@ -138,8 +138,10 @@ export function CalendarEntrySessionButton({ locale, entryId, sessionId }: { loc
 }
 
 /** Plan page: start one plan day now, or schedule a whole week. */
-export function PlanSessionControls({ locale, planId, sessions, today, monday }: {
+export function PlanSessionControls({ locale, planId, sessions, today, monday, phaseIndex = 0 }: {
   locale: Locale; planId: string; sessions: { day: number; methodId: string | null; minutes: number; title?: string }[]; today: string; monday: string;
+  /** For plans in phases: the phase whose weekly template is scheduled or started. */
+  phaseIndex?: number;
 }) {
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
@@ -155,7 +157,7 @@ export function PlanSessionControls({ locale, planId, sessions, today, monday }:
       <button type="button" disabled={pending}
         onClick={() => start(async () => {
           setMessage(null);
-          const r = await schedulePlanWeek(planId, week);
+          const r = await schedulePlanWeek(planId, week, phaseIndex);
           setMessage({ msg: r.ok ? fmt(t.scheduledCount, { n: r.data.created }) : t.error });
           if (r.ok) router.refresh();
         })}
@@ -167,7 +169,7 @@ export function PlanSessionControls({ locale, planId, sessions, today, monday }:
         <button type="button" disabled={pending}
           onClick={() => start(async () => {
             setMessage(null);
-            const r = await createTrainingSession({ source: "plan", planId, planSessionIndex: i, date: today, time: "", startNow: true });
+            const r = await createTrainingSession({ source: "plan", planId, planSessionIndex: i, phaseIndex, date: today, time: "", startNow: true });
             if (!r.ok) { setMessage({ msg: r.error === "live" ? "live" : t.error, liveId: r.liveId }); return; }
             router.push("/train/sessions/" + r.data.id);
           })}

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer, type Viewer } from "@/lib/auth/viewer";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
-import { trainingPlanSchema } from "@/lib/training/plans";
+import { PLAN_COLUMNS, phasesOf, planFromRow } from "@/lib/training/plans";
 import { snapshotOf, templateFor } from "@/lib/training/session-templates";
 import {
   activeSeconds, canTransition, completeSessionSchema, createTrainingSessionSchema, dateForPlanDay, editTrainingSchema, pastTrainingSchema,
@@ -99,10 +99,10 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
       objective: "", methodId: v.methodId, date: v.date, time: v.time, minutes: v.minutes, startNow: v.startNow,
     });
   } else if (v.source === "plan") {
-    const { data: plan } = await viewer.supabase.from("training_plans").select("id,name,goal,weeks,sessions")
+    const { data: plan } = await viewer.supabase.from("training_plans").select(PLAN_COLUMNS)
       .eq("id", v.planId).maybeSingle();
-    const parsedPlan = plan ? trainingPlanSchema.safeParse({ id: plan.id, name: plan.name, goal: plan.goal, weeks: plan.weeks, sessions: plan.sessions }) : null;
-    const ps = parsedPlan?.success ? parsedPlan.data.sessions[v.planSessionIndex] : undefined;
+    const parsedPlan = plan ? planFromRow(plan) : null;
+    const ps = parsedPlan ? phasesOf(parsedPlan)[v.phaseIndex ?? 0]?.sessions[v.planSessionIndex] : undefined;
     if (!plan || !ps) return { ok: false, error: "not_found" };
     result = await insertSession(viewer, {
       title: (ps.title ?? methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
@@ -135,19 +135,21 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
   return result;
 }
 
-/** Schedule every session of a saved plan into the week starting on `monday`. Idempotent per day. */
-export async function schedulePlanWeek(planId: string, monday: string): Promise<Result<{ created: number }>> {
+/** Schedule every session of a saved plan (of one of its phases) into the week starting on `monday`. Idempotent per day. */
+export async function schedulePlanWeek(planId: string, monday: string, phaseIndex = 0): Promise<Result<{ created: number }>> {
   const viewer = await requireViewer();
-  if (!id.safeParse(planId).success || !z.iso.date().safeParse(monday).success) return { ok: false, error: "invalid" };
-  const { data: plan } = await viewer.supabase.from("training_plans").select("id,name,goal,weeks,sessions").eq("id", planId).maybeSingle();
-  const parsed = plan ? trainingPlanSchema.safeParse({ id: plan.id, name: plan.name, goal: plan.goal, weeks: plan.weeks, sessions: plan.sessions }) : null;
-  if (!plan || !parsed?.success) return { ok: false, error: "not_found" };
-  const dates = parsed.data.sessions.map((s) => dateForPlanDay(monday, s.day));
+  if (!id.safeParse(planId).success || !z.iso.date().safeParse(monday).success
+    || !z.number().int().min(0).max(11).safeParse(phaseIndex).success) return { ok: false, error: "invalid" };
+  const { data: plan } = await viewer.supabase.from("training_plans").select(PLAN_COLUMNS).eq("id", planId).maybeSingle();
+  const parsedPlan = plan ? planFromRow(plan) : null;
+  const sessions = parsedPlan ? phasesOf(parsedPlan)[phaseIndex]?.sessions : undefined;
+  if (!plan || !sessions) return { ok: false, error: "not_found" };
+  const dates = sessions.map((s) => dateForPlanDay(monday, s.day));
   const { data: existing } = await viewer.supabase.from("training_sessions").select("plan_session_index,scheduled_date")
     .eq("plan_id", planId).gte("scheduled_date", dates.reduce((a, b) => a < b ? a : b)).lte("scheduled_date", dates.reduce((a, b) => a > b ? a : b));
   const taken = new Set((existing ?? []).map((e) => e.plan_session_index + "@" + e.scheduled_date));
   let created = 0;
-  for (const [index, ps] of parsed.data.sessions.entries()) {
+  for (const [index, ps] of sessions.entries()) {
     if (taken.has(index + "@" + dates[index])) continue;
     const r = await insertSession(viewer, {
       title: (ps.title ?? methodTitle(ps.methodId) ?? "Training") + " · " + plan.name,
