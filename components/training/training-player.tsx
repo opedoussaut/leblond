@@ -185,7 +185,12 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     if (!current) return;
     const exercise = current;
     patchExercise(exercise.id, (e) => ({ ...e, status }));
-    clearRest();
+    // Rest before the next exercise (coach sessions), unless this one was skipped.
+    const restAfter = status !== "SKIPPED" && index < exercises.length - 1 ? exercise.instructions.restAfter ?? 0 : 0;
+    if (restAfter > 0) {
+      const ends = Date.now() + restAfter * 1000;
+      setRestEndsAt(ends); writeRest(session.id, ends);
+    } else clearRest();
     start(async () => {
       const r = await setExerciseStatus({ exerciseId: exercise.id, status, rpe: exercise.rpe, notes: exercise.notes });
       if (!r.ok) { patchExercise(exercise.id, (e) => ({ ...e, status: exercise.status })); fail(); return; }
@@ -219,6 +224,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     current.targetSeconds ? (isTime ? `${Math.round(current.targetSeconds / 60)} ${t.minutesShort}` : `${current.targetSeconds} ${t.seconds}`) : null,
     current.restSeconds ? `${t.rest} ${formatClock(current.restSeconds)}` : null,
   ].filter(Boolean).join(" · ");
+  // A rest started on this exercise with no set logged yet is the rest between exercises.
+  const betweenExercises = index > 0 && current.sets.length === 0 && !!exercises[index - 1]?.instructions.restAfter;
   const instr = current.instructions;
 
   return <div className="space-y-5 pb-6">
@@ -247,8 +254,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     </section>
 
     {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-accent">{t.restTimer}</p>
+      <p className="text-sm font-bold uppercase tracking-[0.12em] text-accent">{betweenExercises ? c.restBetween : t.restTimer}</p>
       <p className="mt-1 text-5xl font-black tabular-nums text-accent">{formatClock(rest)}</p>
+      {betweenExercises ? <p className="mt-1 text-sm font-semibold text-accent">{fmt(c.nextUp, { name: current.name })}</p> : null}
       <button type="button" onClick={clearRest} className="mt-3 min-h-12 rounded-full border border-accent/30 bg-surface px-5 text-sm font-bold text-accent">{t.skipRest}</button>
     </section> : null}
 
@@ -258,6 +266,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
       {instr.load ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{c.load} :</span> {instr.load}</p> : null}
+      {instr.restAfter ? <p className="mt-1 text-sm text-ink-2">{fmt(c.restAfter, { d: formatClock(instr.restAfter) })}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
       {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
         className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}

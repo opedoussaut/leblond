@@ -43,6 +43,8 @@ export type ExerciseSnapshot = {
   load?: string;
   /** Coach sessions only: a verified MuscleWiki page (see lib/training/coach-sessions.ts). */
   musclewiki?: string;
+  /** Coach sessions only: rest in seconds between this exercise and the next one. */
+  restAfter?: number;
 };
 
 const loc = (fr: string, en: string): Localized => ({ fr, en });
