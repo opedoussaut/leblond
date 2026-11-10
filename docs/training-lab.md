@@ -76,6 +76,31 @@ Every entry gives what it trains, who it suits, prerequisites (level, age, injur
 
 **Adding an entry.** Add the catalogue entry, its scores in `lib/training/atlas.ts`, an `AtlasDetail` in the right content file and any new references in `sources.ts` (https only, verified). Run `npm test`: the content test checks coverage, FR/EN completeness, protocol rows, source format and that every diagram renders in both languages.
 
+## Coach sessions (`coach_sessions`, `/api/coach-sessions`)
+
+Complete sessions written for one climber by their coach — Claude, working with
+the climber outside the app, later Patrick — and offered first in the session
+type list ("Séances du coach"). Starting one copies its exercises (sets, reps or
+seconds, rest, load note, steps, safety, MuscleWiki page) into an ordinary
+training session, so the player, history and analytics do not change.
+
+- Schema and checks: `lib/training/coach-sessions.ts` (`coachSessionSchema`).
+  MuscleWiki links are only kept for pages in `MUSCLEWIKI_SLUGS`, checked to exist.
+  Rows are re-validated on read; a row that no longer parses is skipped.
+- Writing from outside: a personal **coach key** created in Settings → Coach
+  access. Shown once, stored as a SHA-256 hash (never readable, even by its
+  owner), revocable, 3 active at most, 300 calls a day, dead as soon as the
+  climber leaves the active whitelist. Its only power is the climber's coach
+  session list, through the `coach_key_*` SECURITY DEFINER functions; the route
+  uses the anon key, never the service-role key. `proxy.ts` lets exactly
+  `/api/coach-sessions` through without a session cookie (`KEY_AUTH_PATHS`).
+- In the app, the climber can read and remove coach sessions (RLS, own rows);
+  there is no direct insert or update grant.
+- Pushing: `node scripts/coach-session.mjs list | push file.json… | remove slug`,
+  key from `LEBLOND_COACH_KEY` or `~/.leblond/coach-key`. Session files are the
+  climber's personal training and stay out of this repository.
+- Loads and volumes are the coach's proposal, not a validated prescription.
+
 ## MongoDB decision
 
 **The existing repository does not use MongoDB**. Identity, security policies and climbing data already live in Supabase/PostgreSQL. This milestone deliberately stores private plans there instead of introducing a second source of identity, secret configuration, database driver, migration path and user-access-control implementation. This keeps the change deployable without additional secrets.

@@ -8,6 +8,8 @@ import {
 } from "@/lib/actions/training-sessions";
 import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
+import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { formatDuration } from "@/lib/duration";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { TrainingStatus } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
@@ -63,10 +65,20 @@ export function SessionLifecycleActions({ locale, id, status }: { locale: Locale
 }
 
 /** One-off session: start now or schedule, with or without an Atlas method. */
-export function QuickSessionForm({ locale, today, presetMethod = "" }: { locale: Locale; today: string; presetMethod?: string }) {
+export type CoachChoice = { id: string; title: string; minutes: number };
+
+/**
+ * One-off session: start now or schedule. The type is a coach session (its own
+ * exercises and duration), an Atlas method, or a free session.
+ */
+export function QuickSessionForm({ locale, today, presetMethod = "", coachSessions = [] }: {
+  locale: Locale; today: string; presetMethod?: string; coachSessions?: CoachChoice[];
+}) {
   const t = trainingSessionDictionary(locale);
+  const c = coachSessionsDictionary(locale);
   const router = useRouter();
   const [methodId, setMethodId] = useState(presetMethod);
+  const coach = methodId.startsWith("coach:") ? coachSessions.find((s) => "coach:" + s.id === methodId) ?? null : null;
   const [title, setTitle] = useState("");
   const [minutes, setMinutes] = useState(60);
   const [date, setDate] = useState(today);
@@ -76,10 +88,10 @@ export function QuickSessionForm({ locale, today, presetMethod = "" }: { locale:
   function create(startNow: boolean) {
     setError(null);
     start(async () => {
-      const r = await createTrainingSession({
-        source: "quick", methodId: methodId || null, title, minutes,
-        date: startNow ? today : date, time: startNow ? "" : time, startNow,
-      });
+      const when = { date: startNow ? today : date, time: startNow ? "" : time, startNow };
+      const r = await createTrainingSession(coach
+        ? { source: "coach", coachSessionId: coach.id, ...when }
+        : { source: "quick", methodId: methodId || null, title, minutes, ...when });
       if (!r.ok) { setError({ msg: r.error === "live" ? "live" : t.error, liveId: r.liveId }); return; }
       router.push("/train/sessions/" + r.data.id);
     });
@@ -88,15 +100,21 @@ export function QuickSessionForm({ locale, today, presetMethod = "" }: { locale:
     <label className="block text-sm font-semibold">{t.method}
       <select className={field} value={methodId} onChange={(e) => setMethodId(e.target.value)}>
         <option value="">{t.noMethod}</option>
-        {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+        {coachSessions.length ? <optgroup label={c.group}>
+          {coachSessions.map((s) => <option key={s.id} value={"coach:" + s.id}>{s.title} · {formatDuration(s.minutes)}</option>)}
+        </optgroup> : null}
+        <optgroup label={c.atlasGroup}>
+          {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+        </optgroup>
       </select>
     </label>
-    <label className="block text-sm font-semibold">{t.sessionTitle}
-      <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
-    </label>
+    {coach ? <p className="text-sm text-ink-2">{fmt(c.durationFromCoach, { d: formatDuration(coach.minutes) })}</p> :
+      <label className="block text-sm font-semibold">{t.sessionTitle}
+        <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
+      </label>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
-        onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} />
+      {coach ? null : <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
+        onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} />}
       <label className="text-sm font-semibold">{t.date}
         <input className={field} type="date" min="2020-01-01" max="2100-12-31" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
