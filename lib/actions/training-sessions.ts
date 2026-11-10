@@ -249,7 +249,7 @@ export async function saveTrainingSet(input: unknown): Promise<Result<{ id: stri
   if (!ex) return { ok: false, error: "not_found" };
   const { data: existing } = await viewer.supabase.from("training_exercise_sets").select("id")
     .eq("exercise_id", v.exerciseId).eq("set_index", v.setIndex).maybeSingle();
-  const values = { reps: v.reps, seconds: v.seconds, load_kg: v.loadKg, completed: v.completed, notes: v.notes };
+  const values = { reps: v.reps, seconds: v.seconds, load_kg: v.loadKg, edge_mm: v.edgeMm ?? null, completed: v.completed, notes: v.notes };
   let result = existing
     ? await viewer.supabase.from("training_exercise_sets").update(values).eq("id", existing.id).select("id").single()
     : await viewer.supabase.from("training_exercise_sets")

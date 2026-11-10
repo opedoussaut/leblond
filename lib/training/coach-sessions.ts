@@ -50,6 +50,8 @@ export const coachExerciseSchema = z.object({
   restSeconds: z.number().int().min(0).max(1800).optional(),
   /** Rest after this exercise, before the next one starts. */
   restAfterSeconds: z.number().int().min(0).max(900).optional(),
+  /** Edge size in mm for hangs and no-hangs (12, 20…): pre-filled when logging a set. */
+  edgeMm: z.number().int().min(3).max(60).optional(),
   /** "4 kg", "poids du corps", "bande légère"… shown as written. */
   load: text(80).optional(),
   intensity: text(160).optional(),
@@ -127,6 +129,7 @@ export function coachSnapshot(e: CoachExercise, slug: string, index: number): Ex
     ...(e.load ? { load: e.load } : {}),
     ...(e.musclewiki ? { musclewiki: e.musclewiki } : {}),
     ...(e.restAfterSeconds ? { restAfter: e.restAfterSeconds } : {}),
+    ...(e.edgeMm ? { edgeMm: e.edgeMm } : {}),
   };
 }
 

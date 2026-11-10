@@ -45,6 +45,8 @@ export type ExerciseSnapshot = {
   musclewiki?: string;
   /** Coach sessions only: rest in seconds between this exercise and the next one. */
   restAfter?: number;
+  /** Coach sessions only: the edge (mm) a hang is planned on; the set logger pre-fills it. */
+  edgeMm?: number;
 };
 
 const loc = (fr: string, en: string): Localized => ({ fr, en });

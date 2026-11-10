@@ -106,7 +106,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         const missing = queued.filter((q) => q.exerciseId === e.id && !e.sets.some((x) => x.setIndex === q.setIndex));
         if (!missing.length) return e;
         return { ...e, sets: [...e.sets, ...missing.map((q) => ({ id: "pending-" + q.setIndex, setIndex: q.setIndex,
-          reps: q.reps, seconds: q.seconds, loadKg: q.loadKg, completed: q.completed, notes: q.notes }))]
+          reps: q.reps, seconds: q.seconds, loadKg: q.loadKg, edgeMm: q.edgeMm ?? null, completed: q.completed, notes: q.notes }))]
           .sort((a, b) => a.setIndex - b.setIndex) };
       }));
       void flushPending();
@@ -145,7 +145,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     start(async () => { const r = await pauseTrainingSession(session.id, pausing); if (!r.ok) fail(); });
   }
 
-  function logSet(values: Pick<TrainingSet, "reps" | "seconds" | "loadKg">) {
+  function logSet(values: Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">) {
     if (!current) return;
     const set: TrainingSet = { id: "pending-" + nextSetIndex, setIndex: nextSetIndex, ...values, completed: true, notes: "" };
     patchExercise(current.id, (e) => ({ ...e, sets: [...e.sets, set] }));
@@ -155,7 +155,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     }
     const input: SaveSetInput = {
       exerciseId: current.id, setIndex: set.setIndex, reps: set.reps, seconds: set.seconds,
-      loadKg: set.loadKg, completed: true, notes: "",
+      loadKg: set.loadKg, edgeMm: set.edgeMm ?? null, completed: true, notes: "",
     };
     // Queue first (synchronously) so a refresh during the request cannot lose the set.
     updatePending(session.id, (list) => [...list.filter((x) => !sameSet(x, input)), input]);
@@ -291,7 +291,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
                 <span className="ml-2 font-semibold text-ink-2">
                   {[s.reps !== null ? `${s.reps} ${current.modality === "ROUTES" ? "✓" : t.reps}` : null,
                     s.seconds !== null ? (isTime ? `${Math.round(s.seconds / 60)} ${t.minutesShort}` : `${s.seconds} ${t.seconds}`) : null,
-                    s.loadKg !== null ? `${s.loadKg > 0 ? "+" : ""}${s.loadKg} kg` : null].filter(Boolean).join(" · ")}
+                    s.loadKg !== null ? `${s.loadKg > 0 ? "+" : ""}${s.loadKg} kg` : null,
+                    s.edgeMm ? `${s.edgeMm} mm` : null].filter(Boolean).join(" · ")}
                 </span>
               </span>
               <button type="button" onClick={() => removeSet(s.setIndex)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{t.removeSet}</button>
@@ -396,7 +397,7 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
 
 /** Inputs for the next set, pre-filled with the exercise targets. Remounted per exercise. */
 function SetLogger({ locale, exercise, onLog }: {
-  locale: Locale; exercise: TrainingExercise; onLog: (v: Pick<TrainingSet, "reps" | "seconds" | "loadKg">) => void;
+  locale: Locale; exercise: TrainingExercise; onLog: (v: Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">) => void;
 }) {
   const t = trainingSessionDictionary(locale);
   const isTime = exercise.modality === "TIME" || exercise.modality === "FREE";
@@ -404,13 +405,17 @@ function SetLogger({ locale, exercise, onLog }: {
   const [seconds, setSeconds] = useState(exercise.targetSeconds
     ? String(isTime ? Math.round(exercise.targetSeconds / 60) : exercise.targetSeconds) : "");
   const [load, setLoad] = useState(exercise.sets.at(-1)?.loadKg?.toString() ?? "");
+  // Edge size: asked for hangs planned on an edge; the last set's edge wins over the plan.
+  const plannedEdge = exercise.instructions.edgeMm;
+  const [edge, setEdge] = useState(String(exercise.sets.at(-1)?.edgeMm ?? plannedEdge ?? ""));
   const num = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? null : Number(v));
   function submit() {
-    const r = num(reps), sec = num(seconds), kg = num(load);
+    const r = num(reps), sec = num(seconds), kg = num(load), mm = num(edge);
     onLog({
       reps: r === null ? null : Math.max(0, Math.round(r)),
       seconds: sec === null ? null : Math.max(0, Math.round(sec * (isTime ? 60 : 1))),
       loadKg: kg === null ? null : Math.round(kg * 2) / 2,
+      edgeMm: plannedEdge && mm !== null ? Math.min(60, Math.max(3, Math.round(mm))) : null,
     });
   }
   return <>
@@ -429,6 +434,17 @@ function SetLogger({ locale, exercise, onLog }: {
         <label className="col-span-2 text-sm font-semibold sm:col-span-1">{t.load}
           <input className={inputClass} inputMode="decimal" type="number" step={0.5} min={-100} max={300} value={load} onChange={(e) => setLoad(e.target.value)} />
         </label>
+      ) : null}
+      {plannedEdge ? (
+        <div className="col-span-2 text-sm font-semibold">
+          <label htmlFor={"edge-" + exercise.id}>{t.edge}</label>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {[20, 15, 12, 10].map((mm) => <button key={mm} type="button" aria-pressed={edge === String(mm)} onClick={() => setEdge(String(mm))}
+              className={"min-h-11 rounded-full border px-4 text-sm font-bold " + (edge === String(mm) ? "border-accent bg-accent text-surface" : "border-line bg-surface text-ink")}>
+              {mm} mm</button>)}
+            <input id={"edge-" + exercise.id} className={inputClass + " w-24"} inputMode="numeric" type="number" min={3} max={60} value={edge} onChange={(e) => setEdge(e.target.value)} />
+          </div>
+        </div>
       ) : null}
     </div>
     <button type="button" onClick={submit}

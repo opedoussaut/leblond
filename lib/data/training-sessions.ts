@@ -48,14 +48,14 @@ export async function loadTrainingSession(supabase: ServerSupabase, id: string):
   const ids = (exRows ?? []).map((e) => e.id);
   const { data: setRows } = ids.length
     ? await supabase.from("training_exercise_sets")
-      .select("id,exercise_id,set_index,reps,seconds,load_kg,completed,notes")
+      .select("id,exercise_id,set_index,reps,seconds,load_kg,edge_mm,completed,notes")
       .in("exercise_id", ids).order("set_index")
     : { data: [] as Tables<"training_exercise_sets">[] };
   const sets = new Map<string, TrainingSet[]>();
   for (const s of setRows ?? []) {
     const list = sets.get(s.exercise_id) ?? [];
     list.push({ id: s.id, setIndex: s.set_index, reps: s.reps, seconds: s.seconds,
-      loadKg: s.load_kg === null ? null : Number(s.load_kg), completed: s.completed, notes: s.notes });
+      loadKg: s.load_kg === null ? null : Number(s.load_kg), edgeMm: s.edge_mm, completed: s.completed, notes: s.notes });
     sets.set(s.exercise_id, list);
   }
   return {
