@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SessionLifecycleActions } from "@/components/training/session-actions";
+import { SessionExport } from "@/components/training/session-export";
 import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
@@ -67,6 +68,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
       climbs={climbs.map((c) => ({ id: c.id, label: `${c.gyms?.name ?? "Session"} · ${formatDate(c.started_at, locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` }))} /> : null}
 
     {finished ? <SessionSummary locale={locale} session={session} exercises={exercises} /> : null}
+    {!running ? <SessionExport locale={locale} session={session} exercises={exercises} /> : null}
 
     {!running && !finished ? <section aria-labelledby="exercise-list" className="space-y-3">
       <h2 id="exercise-list" className="text-lg font-black">{t.exercises}</h2>
