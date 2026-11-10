@@ -125,6 +125,10 @@ export type Database = {
           weeks: number;
           sessions: Json;
           assessment_id: string | null;
+          mode: string;
+          duration_value: number;
+          duration_unit: string;
+          phases: Json;
           created_at: string;
           updated_at: string;
         };
@@ -136,6 +140,10 @@ export type Database = {
           weeks?: number;
           sessions: Json;
           assessment_id?: string | null;
+          mode?: string;
+          duration_value?: number;
+          duration_unit?: string;
+          phases?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -147,6 +155,10 @@ export type Database = {
           weeks?: number;
           sessions?: Json;
           assessment_id?: string | null;
+          mode?: string;
+          duration_value?: number;
+          duration_unit?: string;
+          phases?: Json;
           created_at?: string;
           updated_at?: string;
         };

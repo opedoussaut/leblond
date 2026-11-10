@@ -4,8 +4,10 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
-import { trainingPlanSchema, type SavedTrainingPlan } from "@/lib/training/plans";
+import { PLAN_COLUMNS, planFromRow, type SavedTrainingPlan } from "@/lib/training/plans";
 import { localDate_, mondayOf } from "@/lib/training/sessions";
+import { parseContext } from "@/lib/training/assessment-protocol";
+import { healthFromContext } from "@/lib/training/health";
 
 export const metadata = { title: "Training plans" };
 
@@ -16,20 +18,18 @@ export default async function TrainingPlansPage({ searchParams }: PageProps<"/tr
   const sp = await searchParams;
   const addMethod = typeof sp.add === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.add) ? sp.add : "";
   const today = localDate_(new Date());
+  // Declared health (latest full assessment) feeds the assisted mode's hints.
+  const { data: assessment } = await viewer.supabase.from("training_assessments").select("context")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const health = healthFromContext(parseContext(assessment?.context ?? null));
   const { data, error } = await viewer.supabase.from("training_plans")
-    .select("id, name, goal, weeks, sessions, updated_at")
+    .select(`${PLAN_COLUMNS}, updated_at`)
     .order("updated_at", { ascending: false })
     .limit(20);
 
   const plans: SavedTrainingPlan[] = (data ?? []).flatMap((row) => {
-    const parsed = trainingPlanSchema.safeParse({
-      id: row.id,
-      name: row.name,
-      goal: row.goal,
-      weeks: row.weeks,
-      sessions: row.sessions,
-    });
-    return parsed.success ? [{ ...parsed.data, id: row.id, updatedAt: row.updated_at }] : [];
+    const parsed = planFromRow(row);
+    return parsed ? [{ ...parsed, id: row.id, updatedAt: row.updated_at }] : [];
   });
 
   return (
@@ -40,7 +40,7 @@ export default async function TrainingPlansPage({ searchParams }: PageProps<"/tr
       {error ? (
         <p role="alert" className="mt-5 rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{t.unavailable}</p>
       ) : (
-        <PlanEditor initialPlans={plans} locale={locale} addMethod={addMethod} today={today} monday={mondayOf(today)} />
+        <PlanEditor initialPlans={plans} locale={locale} addMethod={addMethod} today={today} monday={mondayOf(today)} health={health} />
       )}
     </div>
   );

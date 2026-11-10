@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { trainingPlanSchema } from "@/lib/training/plans";
+import { planRow, trainingPlanSchema } from "@/lib/training/plans";
 
 type PlanResult = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "unknown" };
 
@@ -12,7 +12,8 @@ export async function saveTrainingPlan(input: unknown): Promise<PlanResult> {
   const parsed = trainingPlanSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
 
-  const { id, name, goal, weeks, sessions } = parsed.data;
+  const { id } = parsed.data;
+  const row = planRow(parsed.data);
   if (!id) {
     const { count, error: countError } = await viewer.supabase
       .from("training_plans").select("id", { count: "exact", head: true });
@@ -23,11 +24,11 @@ export async function saveTrainingPlan(input: unknown): Promise<PlanResult> {
   const query = id
     ? viewer.supabase
       .from("training_plans")
-      .update({ name, goal, weeks, sessions })
+      .update(row)
       .eq("id", id).eq("user_id", viewer.userId).select("id").single()
     : viewer.supabase
       .from("training_plans")
-      .insert({ user_id: viewer.userId, name, goal, weeks, sessions })
+      .insert({ user_id: viewer.userId, ...row })
       .select("id").single();
   const { data, error } = await query;
   if (error || !data) return { ok: false, error: "unknown" };

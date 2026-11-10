@@ -3,7 +3,10 @@
 ## Overview
 
 - **Public `/training`**: curated catalogue of 11 training methods, four coaching systems and four tools, bilingual FR/EN, filtering by goal, interactive multi-overlay radar, direct research or provider source links.
-- **Private `/training-plans`**: signed-in beta users can create, edit and delete individual weekly plan templates repeated over 1–52 weeks. Sessions are stored privately with row-level security. Maximum 20 plans per user and 14 sessions per week.
+- **Private `/training-plans`**: signed-in beta users can create, edit and delete plans. Sessions are stored privately with row-level security. Maximum 20 plans per user, 12 phases per plan and 14 sessions per weekly template.
+  - **Duration** as entered: 1–260 weeks, 1–60 months or 1–5 years (a month is 52/12 weeks). `weeks` stores the derived length.
+  - **Phases** (`phases` jsonb, migration `20261114000000_training_plan_modes.sql`): each has a name, a kind (base, specific, deload, taper, performance), weeks, an optional checkable objective and its own weekly template. `sessions` always holds the first phase, so older readers keep working; the programme in progress uses the phase that covers the current week. Sessions can be marked optional.
+  - **Three modes** (`mode`): *MANUAL*, the climber builds everything; *ASSISTED*, the same editor with rule-based hints from `lib/training/plan-hints.ts` (recovery, intensity, volume, structure, goal setting, declared injuries), computed by the app and never blocking a save; *PATRICK*, the climber gives a goal, duration, availability, outdoor days and a specific target, and `/api/coach/plan` asks Patrick for phases as JSON. `lib/training/plan-proposal.ts` checks the answer (Atlas methods only, methods the declared health rules out replaced, weeks fitted to the duration) and returns a draft the climber reviews and saves. Nothing is saved by the endpoint; the proposal is never presented as a prediction.
 - **Entry point**: `/training` is linked from the public landing page and works without Supabase configuration. All existing private pages remain gated.
 
 ### How to interpret the scores
