@@ -15,7 +15,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { musclewikiUrl } from "@/lib/training/coach-sessions";
-import { pick } from "@/lib/training/sessions";
+import { formatClock, pick } from "@/lib/training/sessions";
+import { fmt } from "@/lib/i18n";
 
 export const metadata = { title: "LEBLOND — Training session" };
 
@@ -79,6 +80,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
               e.restSeconds ? `${t.rest} ${e.restSeconds} ${t.seconds}` : null].filter(Boolean).join(" · ")}
           </p>
           {e.instructions.load ? <p className="mt-1 text-sm text-ink-2"><strong>{c.load} :</strong> {e.instructions.load}</p> : null}
+          {e.instructions.restAfter && i < exercises.length - 1 ? <p className="mt-1 text-sm text-ink-2">{fmt(c.restAfter, { d: formatClock(e.instructions.restAfter) })}</p> : null}
           {e.instructions.summary ? <p className="mt-1 text-sm text-ink-2">{pick(e.instructions.summary, locale)}</p> : null}
           {e.instructions.safety ? <p className="mt-2 text-xs text-ink-2"><strong>{t.safety} :</strong> {pick(e.instructions.safety, locale)}</p> : null}
           {musclewikiUrl(e.instructions.musclewiki) ? <a href={musclewikiUrl(e.instructions.musclewiki)!} target="_blank" rel="noopener noreferrer"

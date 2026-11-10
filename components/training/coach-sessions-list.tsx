@@ -9,6 +9,7 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { musclewikiUrl, type CoachSession } from "@/lib/training/coach-sessions";
+import { formatClock } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
 
 /** The climber's coach sessions: preview of the exercises, choose one for the form above, remove. */
@@ -43,6 +44,7 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
             return <li key={i} className="border-l-2 border-line pl-3">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.block[e.block]}</span>
               <span className="block font-semibold">{e.name}{dose ? <span className="font-normal text-ink-2"> — {dose}</span> : null}</span>
+              {e.restAfterSeconds && i < s.exercises.length - 1 ? <span className="block text-xs text-ink-2">{fmt(c.restAfter, { d: formatClock(e.restAfterSeconds) })}</span> : null}
               {link ? <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
             </li>;
           })}
