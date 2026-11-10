@@ -88,7 +88,7 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
             <input className={field} type="time" required value={time} onChange={(ev) => setTime(ev.target.value)} />
           </label>
           <DurationField className="col-span-2 sm:col-span-1" label={e.minutes} value={minutes}
-            onChange={(v) => setMinutes(v ?? 0)} min={10} max={720} step={5} />
+            onChange={(v) => setMinutes(v ?? 0)} min={10} max={720} />
         </div>
         <label className="block text-sm font-semibold">{L.sessionName}
           <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />

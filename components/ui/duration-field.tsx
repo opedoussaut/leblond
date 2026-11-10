@@ -1,71 +1,93 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { fmt } from "@/lib/i18n";
-import { durationProblem, hourChoices, joinDuration, minuteChoices, splitMinutes } from "@/lib/duration";
+import { durationPresets, durationProblem, durationSuggestions, formatDuration, parseDuration } from "@/lib/duration";
 import { cn } from "./cn";
-import { Select } from "./field";
+import { Input } from "./field";
 
 /**
- * Hours + minutes picker for a duration stored in minutes. Two selects, no
- * typing. `value` null means "not set" (only offered when `optional`).
+ * Duration stored in minutes, typed the way people say it ("1h30", "1:30",
+ * "90") or picked: from the field's drop-down list, or one tap on a common
+ * duration. `value` null means "not set" (only allowed when `optional`).
  */
-export function DurationField({ label, value, onChange, min = 0, max = 1440, step = 5, optional = false, className }: {
+export function DurationField({ label, value, onChange, min = 0, max = 1440, optional = false, className }: {
   label: string;
   value: number | null;
   onChange: (minutes: number | null) => void;
   min?: number;
   max?: number;
-  step?: number;
   optional?: boolean;
   className?: string;
 }) {
   const { t } = useI18n();
-  const minutesRef = useRef<HTMLSelectElement>(null);
-  const parts = value == null ? null : splitMinutes(value);
-  const problem = value == null ? null : durationProblem(value, min, max);
-
-  // Native validation blocks the submit and names the problem on the field.
-  useEffect(() => {
-    minutesRef.current?.setCustomValidity(
-      problem === "tooShort" ? fmt(t.common.durationTooShort, { n: min })
-        : problem === "tooLong" ? fmt(t.common.durationTooLong, { n: max }) : "",
-    );
-  }, [problem, min, max, t]);
-
-  function set(part: "hours" | "minutes", raw: string) {
-    if (raw === "") { onChange(null); return; }
-    const n = Number(raw);
-    const hours = part === "hours" ? n : parts?.hours ?? 0;
-    const minutes = part === "minutes" ? n : parts?.minutes ?? 0;
-    onChange(joinDuration(hours, minutes));
+  const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState(value == null ? "" : formatDuration(value));
+  // The last value this field sent: a different incoming value comes from the
+  // parent (a reset, a preset elsewhere) and replaces the text.
+  const [sent, setSent] = useState(value);
+  if (value !== sent) {
+    setSent(value);
+    setText(value == null ? "" : formatDuration(value));
   }
 
+  const parsed = parseDuration(text);
+  const unreadable = parsed === undefined;
+  const problem = parsed == null ? null : durationProblem(parsed, min, max);
+  const message = unreadable ? t.common.durationUnreadable
+    : problem === "tooShort" ? fmt(t.common.durationTooShort, { n: formatDuration(min) })
+    : problem === "tooLong" ? fmt(t.common.durationTooLong, { n: formatDuration(max) }) : "";
+
+  // Native validation blocks the submit and names the problem on the field.
+  useEffect(() => { inputRef.current?.setCustomValidity(message); }, [message]);
+
+  function send(next: number | null) {
+    setSent(next);
+    onChange(next);
+  }
+
+  function type(raw: string) {
+    setText(raw);
+    const minutes = parseDuration(raw);
+    // An unreadable text, or an emptied required field, keeps the last value:
+    // native validation blocks the submit until it is fixed.
+    if (minutes === undefined || (minutes === null && !optional)) return;
+    send(minutes);
+  }
+
+  function pick(minutes: number) {
+    setText(formatDuration(minutes));
+    send(minutes);
+  }
+
+  const presets = durationPresets(min, max);
+  const listId = `${id}-list`;
+
   return (
-    <fieldset className={cn("min-w-0", className)}>
-      <legend className="text-sm font-semibold">{label}</legend>
-      <div className="mt-1 grid grid-cols-2 gap-2">
-        <label className="flex items-center gap-1.5">
-          <Select aria-label={t.common.hours} required={!optional}
-            value={parts ? String(parts.hours) : ""} onChange={(e) => set("hours", e.target.value)}>
-            {optional ? <option value="">{t.common.none}</option> : null}
-            {hourChoices(max).map((h) => <option key={h} value={h}>{h}</option>)}
-          </Select>
-          <span aria-hidden="true" className="text-sm font-semibold text-ink-2">h</span>
-        </label>
-        <label className="flex items-center gap-1.5">
-          <Select ref={minutesRef} aria-label={t.common.minutes} required={!optional}
-            value={parts ? String(parts.minutes) : ""} onChange={(e) => set("minutes", e.target.value)}>
-            {optional ? <option value="">{t.common.none}</option> : null}
-            {minuteChoices(step, parts?.minutes).map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
-          </Select>
-          <span aria-hidden="true" className="text-sm font-semibold text-ink-2">min</span>
-        </label>
-      </div>
-      {problem ? <p className="mt-1 text-xs font-semibold text-danger">
-        {problem === "tooShort" ? fmt(t.common.durationTooShort, { n: min }) : fmt(t.common.durationTooLong, { n: max })}
-      </p> : null}
-    </fieldset>
+    <div className={cn("min-w-0", className)}>
+      <label htmlFor={id} className="text-sm font-semibold">{label}</label>
+      <Input ref={inputRef} id={id} className="mt-1" type="text" inputMode="text" autoComplete="off" enterKeyHint="done"
+        list={listId} required={!optional} placeholder={t.common.durationPlaceholder}
+        aria-invalid={message ? true : undefined} aria-describedby={message ? `${id}-msg` : undefined}
+        value={text} onChange={(e) => type(e.target.value)}
+        onBlur={() => { if (parsed != null && !unreadable) setText(formatDuration(parsed)); }} />
+      <datalist id={listId}>
+        {durationSuggestions(min, max).map((d) => <option key={d} value={formatDuration(d)} />)}
+      </datalist>
+      {message ? <p id={`${id}-msg`} className="mt-1 text-xs font-semibold text-danger">{message}</p> : null}
+      {presets.length ? (
+        <div role="group" aria-label={fmt(t.common.durationPresets, { label })} className="mt-2 flex flex-wrap gap-1.5">
+          {presets.map((d) => (
+            <button key={d} type="button" aria-pressed={parsed === d} onClick={() => pick(d)}
+              className={cn("min-h-9 rounded-full border px-3 text-sm font-semibold",
+                parsed === d ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface text-ink-2")}>
+              {formatDuration(d)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -15,7 +15,7 @@ export function Label({ htmlFor, children, hint }: { htmlFor: string; children: 
   );
 }
 
-export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { ref?: React.Ref<HTMLInputElement> }) {
   return <input {...props} className={cn(control, className)} />;
 }
 
