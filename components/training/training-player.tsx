@@ -10,6 +10,8 @@ import {
 } from "@/lib/actions/training-sessions";
 import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
+import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { musclewikiUrl } from "@/lib/training/coach-sessions";
 import {
   activeSeconds, formatClock, pick, restRemaining,
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
@@ -57,6 +59,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
   ego?: { name: string; factor: number; easeOff: boolean } | null;
 }) {
   const t = trainingSessionDictionary(locale);
+  const c = coachSessionsDictionary(locale);
   const router = useRouter();
   const [exercises, setExercises] = useState(initial);
   const [index, setIndex] = useState(Math.min(session.currentIndex, Math.max(0, initial.length - 1)));
@@ -254,7 +257,10 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
       <h2 id="current-exercise" className="mt-2 text-2xl font-black tracking-tight">{current.name}</h2>
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
+      {instr.load ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{c.load} :</span> {instr.load}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
+      {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
+        className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
       <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
         <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{t.howTo}</summary>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">

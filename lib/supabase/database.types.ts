@@ -116,6 +116,87 @@ export type Database = {
         };
         Relationships: [];
       };
+      coach_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          slug: string;
+          title: string;
+          objective: string;
+          minutes: number;
+          place: string | null;
+          author: string;
+          content: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          slug: string;
+          title: string;
+          objective?: string;
+          minutes: number;
+          place?: string | null;
+          author?: string;
+          content: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          slug?: string;
+          title?: string;
+          objective?: string;
+          minutes?: number;
+          place?: string | null;
+          author?: string;
+          content?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      coach_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          label: string;
+          key_hash: string;
+          prefix: string;
+          created_at: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          calls_day: string | null;
+          calls_count: number;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          label: string;
+          key_hash: string;
+          prefix: string;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          calls_day?: string | null;
+          calls_count?: number;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          label?: string;
+          key_hash?: string;
+          prefix?: string;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          calls_day?: string | null;
+          calls_count?: number;
+        };
+        Relationships: [];
+      };
       training_plans: {
         Row: {
           id: string;
@@ -1843,6 +1924,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      create_coach_key: { Args: { p_label: string }; Returns: string };
+      revoke_coach_key: { Args: { p_id: string }; Returns: boolean };
+      coach_key_put_session: {
+        Args: { p_key: string; p_slug: string; p_title: string; p_objective: string; p_minutes: number; p_place: string | null; p_content: Json };
+        Returns: string;
+      };
+      coach_key_list_sessions: {
+        Args: { p_key: string };
+        Returns: { slug: string; title: string; minutes: number; updated_at: string }[];
+      };
+      coach_key_delete_session: { Args: { p_key: string; p_slug: string }; Returns: boolean };
       admin_beta_overview: {
         Args: Record<PropertyKey, never>;
         Returns: {

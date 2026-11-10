@@ -13,6 +13,8 @@ import { loadTrainingSession } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
+import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { musclewikiUrl } from "@/lib/training/coach-sessions";
 import { pick } from "@/lib/training/sessions";
 
 export const metadata = { title: "LEBLOND — Training session" };
@@ -29,6 +31,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const t = trainingSessionDictionary(locale);
+  const c = coachSessionsDictionary(locale);
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const loaded = await loadTrainingSession(viewer.supabase, id);
@@ -75,8 +78,11 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
               e.targetSeconds ? (e.modality === "TIME" || e.modality === "FREE" ? `${Math.round(e.targetSeconds / 60)} ${t.minutesShort}` : `${e.targetSeconds} ${t.seconds}`) : null,
               e.restSeconds ? `${t.rest} ${e.restSeconds} ${t.seconds}` : null].filter(Boolean).join(" · ")}
           </p>
+          {e.instructions.load ? <p className="mt-1 text-sm text-ink-2"><strong>{c.load} :</strong> {e.instructions.load}</p> : null}
           {e.instructions.summary ? <p className="mt-1 text-sm text-ink-2">{pick(e.instructions.summary, locale)}</p> : null}
           {e.instructions.safety ? <p className="mt-2 text-xs text-ink-2"><strong>{t.safety} :</strong> {pick(e.instructions.safety, locale)}</p> : null}
+          {musclewikiUrl(e.instructions.musclewiki) ? <a href={musclewikiUrl(e.instructions.musclewiki)!} target="_blank" rel="noopener noreferrer"
+            className="mr-4 mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
           {e.methodId ? <Link href={"/atlas/" + e.methodId} className="mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
         </li>)}
       </ol>

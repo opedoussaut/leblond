@@ -6,6 +6,7 @@ import { requireViewer, type Viewer } from "@/lib/auth/viewer";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { PLAN_COLUMNS, phasesOf, planFromRow } from "@/lib/training/plans";
 import { snapshotOf, templateFor } from "@/lib/training/session-templates";
+import { COACH_SESSION_COLUMNS, coachExerciseRows, coachSessionFromRow } from "@/lib/training/coach-sessions";
 import {
   activeSeconds, canTransition, completeSessionSchema, createTrainingSessionSchema, dateForPlanDay, editTrainingSchema, pastTrainingSchema,
   exerciseStatusSchema, saveSetSchema, settledExerciseStatus, type TrainingStatus,
@@ -40,6 +41,8 @@ type NewSession = {
   title: string; objective: string; methodId: string | null;
   planId?: string | null; planSessionIndex?: number | null; calendarEntryId?: string | null;
   date: string | null; time: string | null; minutes: number | null; startNow: boolean;
+  /** Exercises of their own (coach sessions); otherwise the Atlas template of `methodId`. */
+  exercises?: ReturnType<typeof coachExerciseRows>;
 };
 
 /** Creates a session and its exercise snapshot atomically (compensating delete on failure). */
@@ -70,7 +73,7 @@ async function insertSession(viewer: Viewer, s: NewSession): Promise<Result<{ id
     return { ok: false, error: "unknown" };
   }
   const locale = viewer.profile.preferred_language === "en" ? "en" : "fr";
-  const rows = templateFor(s.methodId, s.minutes).map((t, position) => ({
+  const rows = s.exercises ? s.exercises.map((e) => ({ user_id: viewer.userId, session_id: created.id, ...e })) : templateFor(s.methodId, s.minutes).map((t, position) => ({
     user_id: viewer.userId, session_id: created.id, position, block: t.block, method_id: t.methodId,
     name: t.name[locale], instructions: snapshotOf(t), modality: t.modality,
     target_sets: t.targetSets, target_reps: t.targetReps, target_seconds: t.targetSeconds,
@@ -97,6 +100,16 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
     result = await insertSession(viewer, {
       title: v.title || methodTitle(v.methodId) || (fr ? "Séance d’entraînement" : "Training session"),
       objective: "", methodId: v.methodId, date: v.date, time: v.time, minutes: v.minutes, startNow: v.startNow,
+    });
+  } else if (v.source === "coach") {
+    const { data: row } = await viewer.supabase.from("coach_sessions").select(COACH_SESSION_COLUMNS)
+      .eq("id", v.coachSessionId).maybeSingle();
+    const coach = row ? coachSessionFromRow(row) : null;
+    if (!coach) return { ok: false, error: "not_found" };
+    result = await insertSession(viewer, {
+      title: coach.title, objective: coach.objective, methodId: null,
+      date: v.date, time: v.time, minutes: coach.minutes, startNow: v.startNow,
+      exercises: coachExerciseRows(coach),
     });
   } else if (v.source === "plan") {
     const { data: plan } = await viewer.supabase.from("training_plans").select(PLAN_COLUMNS)

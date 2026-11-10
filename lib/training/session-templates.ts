@@ -39,6 +39,10 @@ export type ExerciseSnapshot = {
   intensity: Localized;
   safety?: Localized;
   adaptation?: Localized;
+  /** Coach sessions only: the load as the coach wrote it ("4 kg", "poids du corps"). */
+  load?: string;
+  /** Coach sessions only: a verified MuscleWiki page (see lib/training/coach-sessions.ts). */
+  musclewiki?: string;
 };
 
 const loc = (fr: string, en: string): Localized => ({ fr, en });
