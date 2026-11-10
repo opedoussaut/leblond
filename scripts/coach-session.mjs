@@ -44,9 +44,10 @@ const [command, ...args] = process.argv.slice(2);
 let failed = false;
 if (command === "list") {
   const r = await call("GET", endpoint);
-  if (r.status !== 200) { console.error(r.status, r.data); process.exit(1); }
+  if (r.status !== 200) { console.error(r.status, r.data); failed = true; } else {
   for (const s of r.data.sessions) console.log(`${s.slug}\t${s.minutes} min\t${s.title}\t${s.updated_at}`);
   if (!r.data.sessions.length) console.log("(no coach sessions)");
+  }
 } else if (command === "push" && args.length) {
   for (const file of args) {
     const session = JSON.parse(readFileSync(file, "utf8"));
@@ -62,4 +63,5 @@ if (command === "list") {
   console.error("Usage: node scripts/coach-session.mjs list | push <file.json…> | remove <slug>");
   process.exit(2);
 }
-process.exit(failed ? 1 : 0);
+// exitCode, not exit(): exiting while fetch sockets close crashes Node on Windows.
+process.exitCode = failed ? 1 : 0;
