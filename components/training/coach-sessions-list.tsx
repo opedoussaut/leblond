@@ -12,7 +12,7 @@ import { musclewikiUrl, type CoachSession } from "@/lib/training/coach-sessions"
 import { buttonClass } from "@/components/ui/button";
 
 /** The climber's coach sessions: preview of the exercises, choose one for the form above, remove. */
-export function CoachSessionsList({ locale, sessions }: { locale: Locale; sessions: CoachSession[] }) {
+export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Locale; sessions: CoachSession[]; viewerId: string }) {
   const c = coachSessionsDictionary(locale);
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
@@ -30,7 +30,7 @@ export function CoachSessionsList({ locale, sessions }: { locale: Locale; sessio
     {sessions.map((s) => <li key={s.id} className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <strong className="text-base">{s.title}</strong>
-        <span className="text-xs text-ink-2">{formatDuration(s.minutes)} · {fmt(c.exercises, { n: s.exercises.length })} · {c.author[s.author]}</span>
+        <span className="text-xs text-ink-2">{formatDuration(s.minutes)} · {fmt(c.exercises, { n: s.exercises.length })} · {c.author[s.author]}{s.shared ? " · " + c.sharedBadge : ""}</span>
       </div>
       {s.objective ? <p className="mt-1 text-sm text-ink-2">{s.objective}</p> : null}
       <details className="mt-2">
@@ -54,7 +54,7 @@ export function CoachSessionsList({ locale, sessions }: { locale: Locale; sessio
       </details>
       <div className="leblond-actions mt-3">
         <Link href={`/train/sessions?coach=${s.id}#new-heading`} className={buttonClass("primary", "sm")}>{c.choose}</Link>
-        <button type="button" disabled={pending} onClick={() => remove(s.id)} className={buttonClass("ghost", "sm")}>{c.remove}</button>
+        {s.ownerId === viewerId ? <button type="button" disabled={pending} onClick={() => remove(s.id)} className={buttonClass("ghost", "sm")}>{c.remove}</button> : null}
       </div>
     </li>)}
   </ul>;

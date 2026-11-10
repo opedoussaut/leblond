@@ -44,14 +44,15 @@ const [command, ...args] = process.argv.slice(2);
 let failed = false;
 if (command === "list") {
   const r = await call("GET", endpoint);
-  if (r.status !== 200) { console.error(r.status, r.data); process.exit(1); }
-  for (const s of r.data.sessions) console.log(`${s.slug}\t${s.minutes} min\t${s.title}\t${s.updated_at}`);
+  if (r.status !== 200) { console.error(r.status, r.data); failed = true; } else {
+  for (const s of r.data.sessions) console.log(`${s.slug}\t${s.minutes} min\t${s.shared ? "shared" : "private"}\t${s.title}\t${s.updated_at}`);
   if (!r.data.sessions.length) console.log("(no coach sessions)");
+  }
 } else if (command === "push" && args.length) {
   for (const file of args) {
     const session = JSON.parse(readFileSync(file, "utf8"));
     const r = await call("POST", endpoint, session);
-    if (r.status === 200) console.log(`✓ ${r.data.slug} (${file})`);
+    if (r.status === 200) console.log(`✓ ${r.data.slug}${r.data.shared ? " (shared with every climber)" : ""} (${file})`);
     else { failed = true; console.error(`✗ ${file}: ${r.status}`, JSON.stringify(r.data, null, 2)); }
   }
 } else if (command === "remove" && args.length === 1) {
@@ -62,4 +63,5 @@ if (command === "list") {
   console.error("Usage: node scripts/coach-session.mjs list | push <file.json…> | remove <slug>");
   process.exit(2);
 }
-process.exit(failed ? 1 : 0);
+// exitCode, not exit(): exiting while fetch sockets close crashes Node on Windows.
+process.exitCode = failed ? 1 : 0;

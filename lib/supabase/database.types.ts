@@ -126,6 +126,7 @@ export type Database = {
           minutes: number;
           place: string | null;
           author: string;
+          shared: boolean;
           content: Json;
           created_at: string;
           updated_at: string;
@@ -139,6 +140,7 @@ export type Database = {
           minutes: number;
           place?: string | null;
           author?: string;
+          shared?: boolean;
           content: Json;
           created_at?: string;
           updated_at?: string;
@@ -152,6 +154,7 @@ export type Database = {
           minutes?: number;
           place?: string | null;
           author?: string;
+          shared?: boolean;
           content?: Json;
           created_at?: string;
           updated_at?: string;
@@ -1927,12 +1930,12 @@ export type Database = {
       create_coach_key: { Args: { p_label: string }; Returns: string };
       revoke_coach_key: { Args: { p_id: string }; Returns: boolean };
       coach_key_put_session: {
-        Args: { p_key: string; p_slug: string; p_title: string; p_objective: string; p_minutes: number; p_place: string | null; p_content: Json };
+        Args: { p_key: string; p_slug: string; p_title: string; p_objective: string; p_minutes: number; p_place: string | null; p_content: Json; p_shared?: boolean };
         Returns: string;
       };
       coach_key_list_sessions: {
         Args: { p_key: string };
-        Returns: { slug: string; title: string; minutes: number; updated_at: string }[];
+        Returns: { slug: string; title: string; minutes: number; shared: boolean; updated_at: string }[];
       };
       coach_key_delete_session: { Args: { p_key: string; p_slug: string }; Returns: boolean };
       admin_beta_overview: {

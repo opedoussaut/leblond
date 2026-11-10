@@ -6,17 +6,19 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { gradeLabel } from "@/lib/grading/labels";
 import { includesBoulder, includesRoute } from "@/lib/climbing/goals";
 import { getI18n } from "@/lib/i18n/server";
+import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   const viewer = await requireViewer();
-  const { t } = await getI18n(viewer.profile.preferred_language);
+  const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const p = viewer.profile;
   const links = [
     { href: "/projects", label: t.nav.projects },
     { href: "/settings", label: t.profile.edit },
     { href: "/settings/connections", label: t.nav.connections },
+    { href: "/settings#coach-keys-heading", label: coachSessionsDictionary(locale).keys.title },
     ...(viewer.role === "admin" ? [{ href: "/settings/admin", label: t.profile.admin }] : []),
   ];
   return (

@@ -15,6 +15,7 @@ export const runtime = "nodejs";
  *
  *   GET                 list the climber's coach sessions (slug, title, minutes)
  *   POST  {session}     add, or replace the one with the same slug
+ *                       ("shared": true offers it to every climber: administrator keys only)
  *   DELETE ?slug=…      remove one
  */
 
@@ -37,6 +38,7 @@ function failure(error: { message?: string } | null) {
   const message = error?.message ?? "";
   if (message.includes("invalid_key")) return json(401, { error: "invalid_key" });
   if (message.includes("rate_limited")) return json(429, { error: "rate_limited" });
+  if (message.includes("forbidden_shared")) return json(403, { error: "forbidden_shared" });
   if (message.includes("too_many_sessions")) return json(409, { error: "too_many_sessions" });
   return json(500, { error: "unknown" });
 }
@@ -72,10 +74,10 @@ export async function POST(request: Request) {
   const s = parsed.data;
   const { data, error } = await p.db.rpc("coach_key_put_session", {
     p_key: p.key, p_slug: s.slug, p_title: s.title, p_objective: s.objective, p_minutes: s.minutes,
-    p_place: s.place, p_content: coachContent(s),
+    p_place: s.place, p_content: coachContent(s), p_shared: s.shared,
   });
   if (error) return failure(error);
-  return json(200, { id: data, slug: s.slug });
+  return json(200, { id: data, slug: s.slug, shared: s.shared });
 }
 
 export async function DELETE(request: Request) {
