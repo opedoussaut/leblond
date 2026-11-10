@@ -270,7 +270,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
       {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
         className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
-      <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
+      {instr.steps?.length || instr.safety || instr.adaptation || current.methodId ? <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
         <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{t.howTo}</summary>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
           {(instr.steps ?? []).map((s, i) => <li key={i}>{pick(s, locale)}</li>)}
@@ -278,7 +278,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         {instr.safety ? <p className="mt-3 text-sm text-ink"><strong>{t.safety} :</strong> {pick(instr.safety, locale)}</p> : null}
         {instr.adaptation ? <p className="mt-2 text-sm text-ink-2"><strong>{t.adaptation} :</strong> {pick(instr.adaptation, locale)}</p> : null}
         {current.methodId ? <Link href={"/atlas/" + current.methodId} className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
-      </details>
+      </details> : null}
 
       <div className="mt-5 border-t border-line pt-5">
         <h3 className="text-sm font-extrabold">{t.set} {nextSetIndex}{current.targetSets ? ` / ${current.targetSets}` : ""}</h3>
