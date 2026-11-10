@@ -455,8 +455,17 @@ test("A7 — training: record a strength session after the fact, edit it, delete
   await page.goto("/follow-up/training");
   await expect(page.getByRole("link", { name: /Renforcement/ })).toContainText("90 min");
 
-  // Delete.
+  // Export: a CSV with the session, and the PNG / PDF buttons.
   await page.getByRole("link", { name: /Renforcement/ }).click();
+  const exportBox = page.getByRole("region", { name: "Exporter la séance" });
+  await expect(exportBox.getByRole("button", { name: "Image (PNG)" })).toBeVisible();
+  await expect(exportBox.getByRole("button", { name: "PDF" })).toBeVisible();
+  const [csv] = await Promise.all([page.waitForEvent("download"), exportBox.getByRole("button", { name: "Tableur (CSV)" }).click()]);
+  expect(csv.suggestedFilename()).toMatch(/^leblond-\d{4}-\d{2}-\d{2}-.+\.csv$/);
+  const [png] = await Promise.all([page.waitForEvent("download"), exportBox.getByRole("button", { name: "Image (PNG)" }).click()]);
+  expect(png.suggestedFilename()).toMatch(/\.png$/);
+
+  // Delete.
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Supprimer", exact: true }).click();
   await expect(page).toHaveURL(/\/train\/sessions$/);
