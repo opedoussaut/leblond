@@ -87,6 +87,9 @@ training session, so the player, history and analytics do not change.
 - Schema and checks: `lib/training/coach-sessions.ts` (`coachSessionSchema`).
   MuscleWiki links are only kept for pages in `MUSCLEWIKI_SLUGS`, checked to exist.
   Rows are re-validated on read; a row that no longer parses is skipped.
+  For exercises MuscleWiki has no page for, `demo` links an illustrated page on
+  one of `DEMO_HOSTS` (sites checked to show a diagram or video). Linked, never
+  copied: no third-party images are stored in the app.
 - Writing from outside: a personal **coach key** created in Settings → Coach
   access. Shown once, stored as a SHA-256 hash (never readable, even by its
   owner), revocable, 3 active at most, 300 calls a day, dead as soon as the

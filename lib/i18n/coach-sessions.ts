@@ -19,6 +19,7 @@ const fr = {
   restBetween: "Repos avant l’exercice suivant",
   nextUp: "Ensuite : {name}",
   musclewiki: "Démonstration MuscleWiki",
+  demo: "Démonstration illustrée ({site})",
   author: { CLAUDE: "Écrite par Claude", PATRICK: "Écrite par Patrick" },
   proposalNote: "Charges et volumes proposés par le coach, pas une prescription : adapte ou passe un exercice à tout moment.",
   keys: {
@@ -61,6 +62,7 @@ const en: typeof fr = {
   restBetween: "Rest before the next exercise",
   nextUp: "Next: {name}",
   musclewiki: "MuscleWiki demo",
+  demo: "Illustrated demo ({site})",
   author: { CLAUDE: "Written by Claude", PATRICK: "Written by Patrick" },
   proposalNote: "Loads and volumes proposed by the coach, not a prescription: adapt or skip an exercise at any time.",
   keys: {

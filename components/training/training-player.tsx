@@ -11,7 +11,7 @@ import {
 import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
-import { musclewikiUrl } from "@/lib/training/coach-sessions";
+import { demoUrl, musclewikiUrl } from "@/lib/training/coach-sessions";
 import {
   activeSeconds, formatClock, pick, restRemaining,
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
@@ -269,7 +269,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
       {instr.restAfter ? <p className="mt-1 text-sm text-ink-2">{fmt(c.restAfter, { d: formatClock(instr.restAfter) })}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
       {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
-        className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
+        className="mr-4 mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
+      {instr.demo && demoUrl(instr.demo.url) ? <a href={demoUrl(instr.demo.url)!} target="_blank" rel="noopener noreferrer"
+        className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{fmt(c.demo, { site: instr.demo.label })} ↗</a> : null}
       {instr.steps?.length || instr.safety || instr.adaptation || current.methodId ? <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
         <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{t.howTo}</summary>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
