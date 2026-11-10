@@ -50,7 +50,7 @@ export function PastTrainingForm({ locale, today }: { locale: Locale; today: str
         <input className={field} type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
       <DurationField className="col-span-2 sm:col-span-1" label={t.totalMinutes} value={minutes}
-        onChange={(v) => setMinutes(v ?? 0)} min={5} max={480} step={5} />
+        onChange={(v) => setMinutes(v ?? 0)} min={5} max={480} />
     </div>
     <label className="block text-sm font-semibold">{t.rpeShort}
       <input className={field} type="number" min={1} max={10} value={rpe} onChange={(e) => setRpe(e.target.value)} />
@@ -105,7 +105,7 @@ export function EditTrainingForm({ locale, session, today }: {
           <input className={field} type="time" required value={v.time} onChange={(e) => set("time", e.target.value)} />
         </label>
         <DurationField className="col-span-2 sm:col-span-1" label={t.totalMinutes} value={v.minutes}
-          onChange={(m) => set("minutes", m ?? 0)} min={5} max={480} step={5} />
+          onChange={(m) => set("minutes", m ?? 0)} min={5} max={480} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm font-semibold">{t.rpeShort}
