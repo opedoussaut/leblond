@@ -47,6 +47,8 @@ export type ExerciseSnapshot = {
   restAfter?: number;
   /** Coach sessions only: the edge (mm) a hang is planned on; the set logger pre-fills it. */
   edgeMm?: number;
+  /** Coach sessions only: an illustrated demo on an approved site (see DEMO_HOSTS). */
+  demo?: { label: string; url: string };
 };
 
 const loc = (fr: string, en: string): Localized => ({ fr, en });

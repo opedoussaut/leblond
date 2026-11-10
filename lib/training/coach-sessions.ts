@@ -32,6 +32,24 @@ export function musclewikiUrl(slug: string | undefined | null): string | null {
   return slug && musclewikiSlugs.has(slug) ? "https://musclewiki.com/exercise/" + slug : null;
 }
 
+/**
+ * Sites whose exercise pages were checked to show a clear illustration or video,
+ * for exercises MuscleWiki has no page for. A demo link must point to one of them.
+ */
+export const DEMO_HOSTS = [
+  "workoutlabs.com", "www.bodbot.com", "latticetraining.com", "www.caliverse.app", "sworkit.com", "www.acefitness.org",
+] as const;
+const demoHosts: ReadonlySet<string> = new Set(DEMO_HOSTS);
+
+/** A demo link if its host is allowed, else null. */
+export function demoUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && demoHosts.has(u.hostname) ? u.toString() : null;
+  } catch { return null; }
+}
+
 const BLOCKS = ["WARMUP", "MAIN", "COOLDOWN"] as const satisfies readonly Block[];
 const MODALITIES = ["REPS", "HOLD", "TIME", "ROUTES", "INTERVALS", "FREE"] as const satisfies readonly Modality[];
 const methodIds = new Set(METHODS_FOR_PLANS.map((m) => m.id));
@@ -60,6 +78,11 @@ export const coachExerciseSchema = z.object({
   safety: text(300).optional(),
   /** MuscleWiki page; must be one of MUSCLEWIKI_SLUGS. */
   musclewiki: z.string().refine((s) => musclewikiSlugs.has(s), "Unverified MuscleWiki page").optional(),
+  /** Illustrated demo elsewhere (when MuscleWiki has no page): a page on one of DEMO_HOSTS. */
+  demo: z.object({
+    label: z.string().trim().min(1).max(60),
+    url: z.string().max(500).refine((u) => demoUrl(u) !== null, "Demo must be an https page on an approved site"),
+  }).strict().optional(),
   /** Atlas method the exercise belongs to, for the Atlas link. */
   methodId: z.string().refine((id) => methodIds.has(id), "Unknown training method").optional(),
 }).strict();
@@ -130,6 +153,7 @@ export function coachSnapshot(e: CoachExercise, slug: string, index: number): Ex
     ...(e.musclewiki ? { musclewiki: e.musclewiki } : {}),
     ...(e.restAfterSeconds ? { restAfter: e.restAfterSeconds } : {}),
     ...(e.edgeMm ? { edgeMm: e.edgeMm } : {}),
+    ...(e.demo ? { demo: e.demo } : {}),
   };
 }
 
