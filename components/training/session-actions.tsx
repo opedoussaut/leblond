@@ -96,7 +96,7 @@ export function QuickSessionForm({ locale, today, presetMethod = "" }: { locale:
     </label>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
-        onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} step={5} />
+        onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} />
       <label className="text-sm font-semibold">{t.date}
         <input className={field} type="date" min="2020-01-01" max="2100-12-31" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>

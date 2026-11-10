@@ -26,11 +26,11 @@ function mondayOf(date: string) {
   return dt.toISOString().slice(0, 10);
 }
 
-/** Picks a duration in the hours + minutes control (a fieldset named by its legend). */
-async function pickDuration(scope: Page | Locator, legend: string, total: number) {
-  const group = scope.getByRole("group", { name: legend, exact: true });
-  await group.getByLabel("Heures").selectOption(String(Math.floor(total / 60)));
-  await group.getByLabel("Minutes").selectOption(String(total % 60));
+/** Types a duration in the duration field, the way people write it ("1h30"). */
+async function pickDuration(scope: Page | Locator, label: string, total: number) {
+  const field = scope.getByLabel(label, { exact: true });
+  await field.fill(`${Math.floor(total / 60)}h${String(total % 60).padStart(2, "0")}`);
+  await expect(field).toHaveJSProperty("validationMessage", "");
 }
 
 async function register(page: Page, name: string, email: string) {

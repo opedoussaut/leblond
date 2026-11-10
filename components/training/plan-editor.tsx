@@ -133,7 +133,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
                 </select>
               </label>
               <DurationField label={t.planMinutes} value={session.minutes}
-                onChange={(v) => updateSession(index, { minutes: v ?? 0 })} min={10} max={240} step={5} />
+                onChange={(v) => updateSession(index, { minutes: v ?? 0 })} min={10} max={240} />
             </div>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block text-sm font-semibold">

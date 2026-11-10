@@ -168,7 +168,7 @@ export function CalendarWorkspace({
           <label className="text-sm font-semibold">{t.discipline}<select className={field} value={discipline} onChange={e=>setDiscipline(e.target.value as CalendarInput["discipline"])}>{disciplines.map(d=><option key={d} value={d}>{t[d]}</option>)}</select></label>
         </div>
         <DurationField label={t.minutes} optional value={minutes?Number(minutes):null}
-          onChange={v=>setMinutes(v==null?"":String(v))} min={10} max={480} step={5}/>
+          onChange={v=>setMinutes(v==null?"":String(v))} min={10} max={480}/>
         <label className="block text-sm font-semibold">{t.method}<select className={field} value={method} onChange={e=>setMethod(e.target.value)}>
           <option value="">{t.noMethod}</option>{METHODS_FOR_PLANS.map(m=><option value={m.id} key={m.id}>{m.title}</option>)}
         </select></label>

@@ -47,7 +47,7 @@ export function SessionMetaForm({ sessionId, initial, today, fromWatch = false }
         <input className={field} type="time" required value={time} onChange={(ev) => setTime(ev.target.value)} />
       </label>
       <DurationField className="col-span-2 sm:col-span-1" label={e.minutes} value={minutes}
-        onChange={(v) => setMinutes(v ?? 0)} min={1} max={1440} step={5} />
+        onChange={(v) => setMinutes(v ?? 0)} min={1} max={1440} />
     </div>
     {fromWatch ? <p className="text-xs font-semibold text-ink-2">⌚ {t.session.timingEditHint}</p> : null}
     <p className="text-xs text-ink-3">{e.moveHint}</p>
