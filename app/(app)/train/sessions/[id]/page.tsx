@@ -14,7 +14,7 @@ import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
-import { musclewikiUrl } from "@/lib/training/coach-sessions";
+import { demoUrl, musclewikiUrl } from "@/lib/training/coach-sessions";
 import { formatClock, pick } from "@/lib/training/sessions";
 import { fmt } from "@/lib/i18n";
 
@@ -85,6 +85,8 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
           {e.instructions.safety ? <p className="mt-2 text-xs text-ink-2"><strong>{t.safety} :</strong> {pick(e.instructions.safety, locale)}</p> : null}
           {musclewikiUrl(e.instructions.musclewiki) ? <a href={musclewikiUrl(e.instructions.musclewiki)!} target="_blank" rel="noopener noreferrer"
             className="mr-4 mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
+          {e.instructions.demo && demoUrl(e.instructions.demo.url) ? <a href={demoUrl(e.instructions.demo.url)!} target="_blank" rel="noopener noreferrer"
+            className="mr-4 mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{fmt(c.demo, { site: e.instructions.demo.label })} ↗</a> : null}
           {e.methodId ? <Link href={"/atlas/" + e.methodId} className="mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
         </li>)}
       </ol>

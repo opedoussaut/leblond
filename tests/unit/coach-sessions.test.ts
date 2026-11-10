@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  coachExerciseRows, coachSessionFromRow, coachSessionSchema, coachContent, musclewikiUrl, type CoachSessionInput,
+  demoUrl, coachExerciseRows, coachSessionFromRow, coachSessionSchema, coachContent, musclewikiUrl, type CoachSessionInput,
 } from "@/lib/training/coach-sessions";
 import { createTrainingSessionSchema, saveSetSchema } from "@/lib/training/sessions";
 
@@ -74,6 +74,19 @@ describe("coach sessions", () => {
     expect(saveSetSchema.safeParse(set).success).toBe(true);
     expect(saveSetSchema.safeParse({ ...set, edgeMm: 2 }).success).toBe(false);
     expect(coachSessionSchema.safeParse({ ...session, exercises: [{ block: "MAIN", name: "X", edgeMm: 100 }] }).success).toBe(false);
+  });
+
+  it("accepts illustrated demos only on approved sites", () => {
+    const withDemo = (url: string) => coachSessionSchema.safeParse({ ...session,
+      exercises: [{ block: "COOLDOWN", name: "Hip flexor", demo: { label: "WorkoutLabs", url } }] }).success;
+    expect(withDemo("https://workoutlabs.com/exercise-guide/kneeling-hip-flexor-stretch/")).toBe(true);
+    expect(withDemo("http://workoutlabs.com/exercise-guide/x/")).toBe(false);
+    expect(withDemo("https://evil.example/exercise")).toBe(false);
+    expect(withDemo("https://workoutlabs.com.evil.example/x")).toBe(false);
+    expect(demoUrl("javascript:alert(1)")).toBeNull();
+    const rows = coachExerciseRows(coachSessionSchema.parse({ ...session,
+      exercises: [{ block: "COOLDOWN", name: "Hip flexor", demo: { label: "WorkoutLabs", url: "https://workoutlabs.com/exercise-guide/kneeling-hip-flexor-stretch/" } }] }));
+    expect(rows[0].instructions.demo?.label).toBe("WorkoutLabs");
   });
 
   it("can be started as a training session", () => {
