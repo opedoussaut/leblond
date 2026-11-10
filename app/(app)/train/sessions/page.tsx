@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { CoachSessionsList } from "@/components/training/coach-sessions-list";
 import { QuickSessionForm } from "@/components/training/session-actions";
 import { PastTrainingForm } from "@/components/training/training-free-forms";
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
+import { listCoachSessions } from "@/lib/data/coach-sessions";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
+import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
@@ -17,8 +20,10 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const t = trainingSessionDictionary(locale);
   const sp = await searchParams;
-  const presetMethod = typeof sp.method === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.method) ? sp.method : "";
-  const sessions = await listTrainingSessions(viewer.supabase);
+  const c = coachSessionsDictionary(locale);
+  const [sessions, coachSessions] = await Promise.all([listTrainingSessions(viewer.supabase), listCoachSessions(viewer.supabase)]);
+  const presetMethod = typeof sp.coach === "string" && coachSessions.some((s) => s.id === sp.coach) ? "coach:" + sp.coach
+    : typeof sp.method === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.method) ? sp.method : "";
   const today = localDate_(new Date());
   const all = sessions ?? [];
   const live = all.filter((s) => s.status === "IN_PROGRESS" || s.status === "INTERRUPTED");
@@ -55,7 +60,8 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
       <section aria-labelledby="new-heading" className="leblond-premium-surface p-5 sm:p-6">
         <h2 id="new-heading" className="text-lg font-extrabold">{t.newSession}</h2>
         <p className="mt-1 text-sm text-ink-2">{t.newSessionHint}</p>
-        <div className="mt-4"><QuickSessionForm locale={locale} today={today} presetMethod={presetMethod} /></div>
+        <div className="mt-4"><QuickSessionForm key={presetMethod} locale={locale} today={today} presetMethod={presetMethod}
+          coachSessions={coachSessions.map((s) => ({ id: s.id, title: s.title, minutes: s.minutes }))} /></div>
         <details className="mt-6 border-t border-line pt-4">
           <summary className="min-h-11 cursor-pointer text-base font-extrabold text-accent">+ {t.pastTitle}</summary>
           <p className="mt-1 text-sm text-ink-2">{t.pastHint}</p>
@@ -63,6 +69,11 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
         </details>
       </section>
       <div className="space-y-6">
+        {coachSessions.length ? <section aria-labelledby="coach-heading" className="space-y-3">
+          <h2 id="coach-heading" className="text-lg font-extrabold">{c.title}</h2>
+          <p className="text-sm text-ink-2">{c.subtitle}</p>
+          <CoachSessionsList locale={locale} sessions={coachSessions} />
+        </section> : null}
         <section aria-labelledby="upcoming-heading" className="space-y-3">
           <h2 id="upcoming-heading" className="text-lg font-extrabold">{t.upcoming}</h2>
           {upcoming.length ? <ul className="space-y-2">{upcoming.slice(0, 12).map((s) => row(s, t.open))}</ul>

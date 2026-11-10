@@ -52,6 +52,13 @@ export const createTrainingSessionSchema = z.discriminatedUnion("source", [
     startNow: z.boolean(),
   }).strict(),
   z.object({ source: z.literal("calendar"), calendarEntryId: z.guid(), startNow: z.boolean() }).strict(),
+  /** A coach session (lib/training/coach-sessions.ts): its own exercises, not an Atlas template. */
+  z.object({
+    source: z.literal("coach"),
+    coachSessionId: z.guid(),
+    date: localDate, time: localTime,
+    startNow: z.boolean(),
+  }).strict(),
 ]);
 export type CreateTrainingSessionInput = z.infer<typeof createTrainingSessionSchema>;
 

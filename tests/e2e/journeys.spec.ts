@@ -840,3 +840,53 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Enregistré en privé")).toBeVisible();
 });
+
+test("H — coach sessions: a personal key lets the coach add a session, the climber runs it", async ({ page, request }) => {
+  await register(page, "Coach Fan", "coach@leblond.local");
+
+  // Settings: create a coach key, shown once.
+  await page.goto("/settings");
+  const access = page.getByRole("region", { name: "Accès du coach" });
+  await access.getByRole("button", { name: "Créer une clé" }).click();
+  const key = (await access.getByTestId("coach-key").textContent())?.trim() ?? "";
+  expect(key).toMatch(/^lbk_[0-9a-f]{48}$/);
+  await access.getByRole("button", { name: "J’ai enregistré la clé" }).click();
+  await expect(access.getByTestId("coach-key")).toHaveCount(0);
+  await expect(access.getByText(key.slice(0, 12) + "…")).toBeVisible();
+
+  // The coach, outside the app: no session cookie, only the key.
+  const auth = { authorization: "Bearer " + key };
+  expect((await request.get("/api/coach-sessions", { headers: { authorization: "Bearer lbk_" + "0".repeat(48) } })).status()).toBe(401);
+  const invalid = await request.post("/api/coach-sessions", { headers: auth, data: {
+    slug: "bad", title: "X", minutes: 60, exercises: [{ block: "MAIN", name: "X", musclewiki: "made-up-page" }],
+  } });
+  expect(invalid.status()).toBe(400);
+  expect((await invalid.json()).issues[0].path).toBe("exercises.0.musclewiki");
+  const put = await request.post("/api/coach-sessions", { headers: auth, data: {
+    slug: "haut-bas-90", title: "Haut et bas test", objective: "Tirage et genou prudent", minutes: 90, place: "HOME",
+    exercises: [
+      { block: "WARMUP", name: "Écartés à l’élastique", sets: 2, reps: 15, musclewiki: "band-pull-apart" },
+      { block: "MAIN", name: "Tractions lestées", sets: 4, reps: 5, restSeconds: 150, load: "poids du corps", musclewiki: "weighted-pull-ups" },
+      { block: "COOLDOWN", name: "Squat profond tenu", modality: "HOLD", sets: 3, seconds: 30 },
+    ],
+    sources: [{ label: "MuscleWiki", url: "https://musclewiki.com" }],
+  } });
+  expect(put.status()).toBe(200);
+  const list = await request.get("/api/coach-sessions", { headers: auth });
+  expect((await list.json()).sessions.map((s: { slug: string }) => s.slug)).toEqual(["haut-bas-90"]);
+  // The key opens nothing else.
+  expect((await request.post("/api/coach", { headers: auth, data: {} })).status()).toBe(401);
+
+  // The climber finds it in the session list and runs it.
+  await page.goto("/train/sessions");
+  const coach = page.getByRole("region", { name: "Séances du coach" });
+  await expect(coach.getByText("Haut et bas test")).toBeVisible();
+  await coach.getByText("Voir les exercices").click();
+  await expect(coach.getByRole("link", { name: /Démonstration MuscleWiki/ }).first()).toHaveAttribute("href", "https://musclewiki.com/exercise/band-pull-apart");
+  await coach.getByRole("link", { name: "Choisir cette séance" }).click();
+  await expect(page.getByText("Durée prévue par le coach : 1 h 30")).toBeVisible();
+  await page.getByRole("button", { name: /Commencer maintenant/ }).click();
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}/);
+  await expect(page.getByRole("heading", { name: "Écartés à l’élastique" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Démonstration MuscleWiki/ })).toHaveAttribute("href", "https://musclewiki.com/exercise/band-pull-apart");
+});

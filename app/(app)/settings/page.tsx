@@ -1,13 +1,16 @@
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
+import { CoachKeys } from "@/components/settings/coach-keys";
+import { listCoachKeys } from "@/lib/data/coach-sessions";
 import { ProfileForm } from "./profile-form";
 
 export const metadata = { title: "Réglages" };
 
 export default async function SettingsPage() {
   const viewer = await requireViewer();
-  const { t } = await getI18n(viewer.profile.preferred_language);
+  const { t, locale } = await getI18n(viewer.profile.preferred_language);
+  const coachKeys = await listCoachKeys(viewer.supabase);
   const p = viewer.profile;
   return (
     <div>
@@ -29,6 +32,7 @@ export default async function SettingsPage() {
           bio: p.bio ?? "",
         }}
       />
+      <CoachKeys locale={locale} keys={coachKeys} />
     </div>
   );
 }
