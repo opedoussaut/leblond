@@ -11,6 +11,8 @@ export type ExerciseStatus = "PENDING" | "DONE" | "MODIFIED" | "SKIPPED";
 export type TrainingSet = {
   id: string; setIndex: number; reps: number | null; seconds: number | null;
   loadKg: number | null; completed: boolean; notes: string;
+  /** Edge size in mm for hangs / no-hangs (null when not relevant). */
+  edgeMm?: number | null;
 };
 export type TrainingExercise = {
   id: string; position: number; block: Block; methodId: string | null; name: string;
@@ -91,6 +93,7 @@ export const saveSetSchema = z.object({
   reps: z.number().int().min(0).max(500).nullable(),
   seconds: z.number().int().min(0).max(7200).nullable(),
   loadKg: z.number().min(-100).max(300).multipleOf(0.5).nullable(),
+  edgeMm: z.number().int().min(3).max(60).nullable().optional(),
   completed: z.boolean(),
   notes: z.string().trim().max(300),
 }).strict();

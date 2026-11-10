@@ -650,6 +650,7 @@ export type Database = {
           reps: number | null;
           seconds: number | null;
           load_kg: number | null;
+          edge_mm: number | null;
           completed: boolean;
           notes: string;
           created_at: string;
@@ -663,6 +664,7 @@ export type Database = {
           reps?: number | null;
           seconds?: number | null;
           load_kg?: number | null;
+          edge_mm?: number | null;
           completed?: boolean;
           notes?: string;
           created_at?: string;
@@ -676,6 +678,7 @@ export type Database = {
           reps?: number | null;
           seconds?: number | null;
           load_kg?: number | null;
+          edge_mm?: number | null;
           completed?: boolean;
           notes?: string;
           created_at?: string;
