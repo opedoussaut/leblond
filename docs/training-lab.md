@@ -94,8 +94,12 @@ training session, so the player, history and analytics do not change.
   session list, through the `coach_key_*` SECURITY DEFINER functions; the route
   uses the anon key, never the service-role key. `proxy.ts` lets exactly
   `/api/coach-sessions` through without a session cookie (`KEY_AUTH_PATHS`).
-- In the app, the climber can read and remove coach sessions (RLS, own rows);
-  there is no direct insert or update grant.
+- **Shared library**: `"shared": true` offers a session to every active climber.
+  Only an administrator's key may share (`forbidden_shared` otherwise). Shared
+  sessions are read-only for the others; shared content stays generic (no one's
+  personal or health details).
+- In the app, a climber reads their own and the shared coach sessions and can
+  remove only their own (RLS); there is no direct insert or update grant.
 - Pushing: `node scripts/coach-session.mjs list | push file.json… | remove slug`,
   key from `LEBLOND_COACH_KEY` or `~/.leblond/coach-key`. Session files are the
   climber's personal training and stay out of this repository.

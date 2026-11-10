@@ -72,7 +72,7 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
         {coachSessions.length ? <section aria-labelledby="coach-heading" className="space-y-3">
           <h2 id="coach-heading" className="text-lg font-extrabold">{c.title}</h2>
           <p className="text-sm text-ink-2">{c.subtitle}</p>
-          <CoachSessionsList locale={locale} sessions={coachSessions} />
+          <CoachSessionsList locale={locale} sessions={coachSessions} viewerId={viewer.userId} />
         </section> : null}
         <section aria-labelledby="upcoming-heading" className="space-y-3">
           <h2 id="upcoming-heading" className="text-lg font-extrabold">{t.upcoming}</h2>

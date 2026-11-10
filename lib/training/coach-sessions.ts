@@ -74,22 +74,28 @@ export const coachSessionSchema = z.object({
   /** Where the content comes from (coaching articles, studies, MuscleWiki…). */
   sources: z.array(coachSourceSchema).max(8).default([]),
   notes: text(1000).default(""),
+  /**
+   * Offered to every climber (the coach's library), not only to the key's owner.
+   * Only an administrator's key may share. Shared content must stay generic:
+   * no one's personal or health details.
+   */
+  shared: z.boolean().default(false),
 }).strict();
 
 export type CoachExercise = z.infer<typeof coachExerciseSchema>;
 export type CoachSessionInput = z.input<typeof coachSessionSchema>;
 export type CoachSessionData = z.infer<typeof coachSessionSchema>;
-export type CoachSession = CoachSessionData & { id: string; author: "CLAUDE" | "PATRICK"; updatedAt: string };
+export type CoachSession = CoachSessionData & { id: string; ownerId: string; author: "CLAUDE" | "PATRICK"; updatedAt: string };
 
 /** The jsonb `content` column: everything but the columns of their own. */
 export function coachContent(s: CoachSessionData) {
   return { exercises: s.exercises, sources: s.sources, notes: s.notes };
 }
 
-export const COACH_SESSION_COLUMNS = "id,slug,title,objective,minutes,place,author,content,updated_at" as const;
+export const COACH_SESSION_COLUMNS = "id,user_id,slug,title,objective,minutes,place,author,shared,content,updated_at" as const;
 
 type Row = {
-  id: string; slug: string; title: string; objective: string; minutes: number; place: string | null;
+  id: string; user_id: string; shared: boolean; slug: string; title: string; objective: string; minutes: number; place: string | null;
   author: string; content: unknown; updated_at: string;
 };
 
@@ -98,10 +104,10 @@ export function coachSessionFromRow(row: Row): CoachSession | null {
   const content = (row.content && typeof row.content === "object" ? row.content : {}) as Record<string, unknown>;
   const parsed = coachSessionSchema.safeParse({
     slug: row.slug, title: row.title, objective: row.objective, minutes: row.minutes, place: row.place,
-    exercises: content.exercises, sources: content.sources ?? [], notes: content.notes ?? "",
+    exercises: content.exercises, sources: content.sources ?? [], notes: content.notes ?? "", shared: row.shared,
   });
   if (!parsed.success) return null;
-  return { ...parsed.data, id: row.id, author: row.author === "PATRICK" ? "PATRICK" : "CLAUDE", updatedAt: row.updated_at };
+  return { ...parsed.data, id: row.id, ownerId: row.user_id, author: row.author === "PATRICK" ? "PATRICK" : "CLAUDE", updatedAt: row.updated_at };
 }
 
 const same = (s: string) => ({ fr: s, en: s });

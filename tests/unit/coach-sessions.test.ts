@@ -24,6 +24,7 @@ describe("coach sessions", () => {
     const s = coachSessionSchema.parse(session);
     expect(s.exercises[0].modality).toBe("REPS");
     expect(s.notes).toBe("");
+    expect(s.shared).toBe(false);
   });
 
   it("refuses unverified MuscleWiki pages, unknown methods, http sources and bad slugs", () => {
@@ -45,9 +46,10 @@ describe("coach sessions", () => {
 
   it("round-trips through a stored row and skips rows that no longer parse", () => {
     const s = coachSessionSchema.parse(session);
-    const row = { id: "r", slug: s.slug, title: s.title, objective: s.objective, minutes: s.minutes, place: s.place,
+    const row = { id: "r", user_id: "u", shared: true, slug: s.slug, title: s.title, objective: s.objective, minutes: s.minutes, place: s.place,
       author: "CLAUDE", content: coachContent(s), updated_at: "2026-11-10T10:00:00Z" };
     expect(coachSessionFromRow(row)?.exercises).toHaveLength(3);
+    expect(coachSessionFromRow(row)).toMatchObject({ ownerId: "u", shared: true });
     expect(coachSessionFromRow({ ...row, content: { exercises: [{ name: "no block" }] } })).toBeNull();
     expect(coachSessionFromRow({ ...row, content: null })).toBeNull();
   });

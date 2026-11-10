@@ -862,6 +862,10 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   } });
   expect(invalid.status()).toBe(400);
   expect((await invalid.json()).issues[0].path).toBe("exercises.0.musclewiki");
+  // Only an administrator's key can share a session with every climber.
+  expect((await request.post("/api/coach-sessions", { headers: auth, data: {
+    slug: "for-all", title: "X", minutes: 60, shared: true, exercises: [{ block: "MAIN", name: "X" }],
+  } })).status()).toBe(403);
   const put = await request.post("/api/coach-sessions", { headers: auth, data: {
     slug: "haut-bas-90", title: "Haut et bas test", objective: "Tirage et genou prudent", minutes: 90, place: "HOME",
     exercises: [
