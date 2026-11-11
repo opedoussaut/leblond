@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { ATTEMPT_RESULTS, isSend, STYLE_TAGS, WALL_ANGLES, type GradeSystem } from "@/lib/climbing/types";
-import { isValidGrade } from "@/lib/grading";
+import { ATTEMPT_RESULTS, GRADE_SYSTEMS, isSend, STYLE_TAGS, WALL_ANGLES, type GradeSystem } from "@/lib/climbing/types";
+import { acceptsBoulderSystem, gymScales, isValidGrade, sessionBoulderSystem } from "@/lib/grading";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/common";
 import { zonedToUtc } from "@/lib/time";
@@ -159,6 +159,30 @@ export async function updateSessionDetails(sessionId: string, _prev: ActionResul
   return { ok: true };
 }
 
+const sessionScaleSchema = z.object({ sessionId: id, system: z.enum(GRADE_SYSTEMS) }).strict();
+
+/**
+ * Switches the scale a boulder session logs NEW boulders in, among its gym's
+ * scales (e.g. Climbing District levels 1–12 or its former colours). Boulders
+ * already logged keep their own grade and scale: nothing is converted.
+ */
+export async function setSessionGradeSystem(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = sessionScaleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { data: session } = await viewer.supabase.from("sessions")
+    .select("id, discipline, gyms(grading_system, former_grading_systems, grading_system_since)")
+    .eq("id", parsed.data.sessionId).maybeSingle();
+  if (!session?.gyms) return { ok: false, error: "notFound" };
+  if (session.discipline !== "BOULDER" || !acceptsBoulderSystem(gymScales(session.gyms), parsed.data.system)) {
+    return { ok: false, error: "invalid" };
+  }
+  const { error } = await viewer.supabase.from("sessions").update({ grade_system: parsed.data.system }).eq("id", session.id);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath(`/session/${session.id}`);
+  return { ok: true };
+}
+
 export async function deleteSession(sessionId: string): Promise<void> {
   const viewer = await requireViewer();
   if (!id.safeParse(sessionId).success) return;
@@ -171,6 +195,8 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 const createProblemSchema = z.object({
   gymId: id,
+  // The session the boulder is logged in: its scale is the boulder's scale.
+  sessionId: id,
   nativeGrade: z.string().min(1).max(10),
   wallAngle: z.enum(WALL_ANGLES).optional(),
   // Outdoor boulders logged outside the topo: optional name and sector.
@@ -187,10 +213,17 @@ export async function createProblem(input: z.input<typeof createProblemSchema>):
   const viewer = await requireViewer();
   const parsed = createProblemSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { data: gym } = await viewer.supabase.from("gyms").select("grading_system, has_bouldering").eq("id", parsed.data.gymId).single();
-  if (!gym) return { ok: false, error: "notFound" };
-  if (!gym.has_bouldering) return { ok: false, error: "invalid" };
-  const system = gym.grading_system as GradeSystem;
+  const [{ data: gym }, { data: session }] = await Promise.all([
+    viewer.supabase.from("gyms").select("grading_system, former_grading_systems, grading_system_since, has_bouldering")
+      .eq("id", parsed.data.gymId).single(),
+    viewer.supabase.from("sessions").select("gym_id, discipline, grade_system").eq("id", parsed.data.sessionId).maybeSingle(),
+  ]);
+  if (!gym || !session) return { ok: false, error: "notFound" };
+  if (!gym.has_bouldering || session.gym_id !== parsed.data.gymId || session.discipline !== "BOULDER") {
+    return { ok: false, error: "invalid" };
+  }
+  // The session's scale (Climbing District: levels 1–12, or colours for a colour session).
+  const system = sessionBoulderSystem(session, gymScales(gym));
   if (!isValidGrade(system, parsed.data.nativeGrade)) return { ok: false, error: "invalidGrade" };
 
   const { data, error } = await viewer.supabase

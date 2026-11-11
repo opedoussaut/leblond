@@ -48,7 +48,11 @@ function highestBy(
   return result;
 }
 
-/** Highest native grade sent, per grading system (mystery/unordered grades excluded). */
+/**
+ * Highest native grade sent, per grading system (mystery/unordered grades
+ * excluded). One entry per system: grades of different systems (e.g. Climbing
+ * District colours and levels 1–12) are never compared with each other.
+ */
 export function calculateHighestSentGrade(
   problems: ProblemFact[],
   outcomes: Map<string, ProblemOutcome>,
@@ -62,6 +66,25 @@ export function calculateHighestFlashedGrade(
   outcomes: Map<string, ProblemOutcome>,
 ): HighestGrade[] {
   return highestBy(problems, outcomes, (o) => o.flashed);
+}
+
+/**
+ * Highest native grade TRIED BUT NEVER SENT, per grading system: projects and
+ * unsuccessful attempts, reported apart from sends (a try is never a send).
+ * `sentEver` holds problems sent at any time, even outside the period looked
+ * at: those are not "unsent" just because the period only saw a failed try.
+ */
+export function calculateHighestUnsentGrade(
+  problems: ProblemFact[],
+  outcomes: Map<string, ProblemOutcome>,
+  sentEver: ReadonlySet<string> = new Set(),
+): HighestGrade[] {
+  return highestBy(problems, outcomes, (o) => !o.sent && !sentEver.has(o.problemId));
+}
+
+/** Problems sent at least once in these attempts. */
+export function sentProblemIds(outcomes: Map<string, ProblemOutcome>): Set<string> {
+  return new Set([...outcomes.values()].filter((o) => o.sent).map((o) => o.problemId));
 }
 
 /** Highest reliably-estimated Font grade sent across all systems. */

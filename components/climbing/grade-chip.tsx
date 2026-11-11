@@ -1,5 +1,5 @@
 import type { GradeSystem } from "@/lib/climbing/types";
-import { getGradeDefinition, isMysteryGrade } from "@/lib/grading";
+import { getGradeDefinition, isMysteryGrade, isNumericSystem } from "@/lib/grading";
 import { gradeLabel } from "@/lib/grading/labels";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import type { Dictionary } from "@/lib/i18n";
@@ -37,8 +37,9 @@ export function GradeChip({
         // align-middle: an inline chip whose first child is the (empty) swatch would
         // otherwise sit on the swatch's baseline, a few pixels above the text around it.
         "inline-flex items-center gap-1.5 align-middle font-bold leading-none tracking-[0.12em]",
-        // Font grades are case-sensitive (4b ≠ 4B-style notation): never upper-case them.
-        system !== "FONT" && system !== "BLOCKOUT_LEVEL" && "uppercase",
+        // Font grades are case-sensitive (4b ≠ 4B-style notation) and numbered levels
+        // read as written ("B7", "Niv. 7"): only colour names are upper-cased.
+        system !== "FONT" && !isNumericSystem(system) && "uppercase",
         text,
         className,
       )}

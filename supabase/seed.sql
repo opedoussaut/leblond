@@ -9,10 +9,12 @@ insert into public.beta_users (email, display_name, role)
 values ('alex@leblond.local', 'Alex', 'admin')
 on conflict (email) do nothing;
 
-insert into public.gyms (id, name, brand, city, country, grading_system, created_by) values
-  ('d0000000-0000-0000-0000-000000000001', 'Demo Arkose', 'ARKOSE', 'Paris', 'FR', 'ARKOSE_COLOR', null),
-  ('d0000000-0000-0000-0000-000000000002', 'Demo Climbing District', 'CLIMBING_DISTRICT', 'Paris', 'FR', 'CLIMBING_DISTRICT_COLOR', null),
-  ('d0000000-0000-0000-0000-000000000003', 'Demo Bloc Indé', 'INDEPENDENT', 'Lyon', 'FR', 'FONT', null)
+-- Demo Climbing District grades boulders with its levels 1–12; its former
+-- colours stay available for colour sessions (no transition date: unverified).
+insert into public.gyms (id, name, brand, city, country, grading_system, former_grading_systems, created_by) values
+  ('d0000000-0000-0000-0000-000000000001', 'Demo Arkose', 'ARKOSE', 'Paris', 'FR', 'ARKOSE_COLOR', '{}', null),
+  ('d0000000-0000-0000-0000-000000000002', 'Demo Climbing District', 'CLIMBING_DISTRICT', 'Paris', 'FR', 'CLIMBING_DISTRICT_LEVEL', '{CLIMBING_DISTRICT_COLOR}', null),
+  ('d0000000-0000-0000-0000-000000000003', 'Demo Bloc Indé', 'INDEPENDENT', 'Lyon', 'FR', 'FONT', '{}', null)
 on conflict do nothing;
 
 -- Sign in locally as alex@leblond.local (Inbucket/Mailpit shows the code at

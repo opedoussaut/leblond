@@ -28,11 +28,11 @@ erDiagram
 | `beta_users` | Whitelist (email, display name, `admin`/`beta_tester`, active, `invite_id` when the tester came through a link). Writes: service role, `redeem_beta_invite()`, or the admin through `admin_set_beta_user_active()`. |
 | `beta_invites` | Single-use invitation links (code, optional name, expiry, used / cancelled dates). Admin only. |
 | `profiles` | Created by trigger on sign-up. Target grade + system, optional body metrics, language, onboarding timestamp. |
-| `gyms` | Shared catalogue. Check constraint locks Arkose → `ARKOSE_COLOR`, Climbing District → `CLIMBING_DISTRICT_COLOR`. |
+| `gyms` | Shared catalogue. `grading_system` = current bouldering scale; `former_grading_systems` = scales used before, still valid there; `grading_system_since` = verified transition date only. Check constraint locks Arkose → `ARKOSE_COLOR`, Climbing District → `CLIMBING_DISTRICT_LEVEL` (or its former `CLIMBING_DISTRICT_COLOR`). |
 | `favourite_gyms` | Per user. |
-| `problems` | Private to creator. Native grade validated per system; optional Font estimate with confidence and source (all-or-nothing check). Trigger: grade system must equal the gym's. |
+| `problems` | Private to creator. Native grade validated per system; optional Font estimate with confidence and source (all-or-nothing check). Trigger: grade system must be one of the gym's scales (current or former, `gym_accepts_grade_system`). |
 | `tags`, `problem_tags` | 24 style tags from the brief. |
-| `sessions` | One live session per user (partial unique index). `source` defaults to `MANUAL`. |
+| `sessions` | One live session per user (partial unique index). `source` defaults to `MANUAL`. Boulder sessions record `grade_system`, the scale their new boulders are logged in (see [grading.md](grading.md#scales-over-time)). |
 | `attempts` | The core event. `attempt_number` is per climber per problem across sessions; `FLASH` only allowed on attempt 1 (check constraint). Written through `log_attempt()`; only classification/notes are updatable. |
 | `media` | Storage path must start with the owner id. |
 | `projects` | One per problem; auto-set to `SENT` on a send. |

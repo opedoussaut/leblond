@@ -9,6 +9,7 @@ import { logBoulderBatch, type LiveProblem } from "@/lib/actions/sessions";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades, isColorSystem } from "@/lib/grading";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
+import { gradeLabel, gradeSpokenLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -31,6 +32,8 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const grades = listGrades(system);
+  // Climbing District levels: twelve big numerals, the chosen one clearly marked.
+  const levels = system === "CLIMBING_DISTRICT_LEVEL";
 
   function submit(outcome: Outcome) {
     if (!grade) return;
@@ -39,7 +42,7 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
       const res = await logBoulderBatch({ sessionId, grade, count, tries: outcome === "FLASH" ? 1 : tries, outcome, notes });
       if (!res.ok || !res.data) { setMessage({ ok: false, text: t.common.unknownError }); return; }
       onLogged(res.data.problems, res.data.attempts, outcome);
-      setMessage({ ok: true, text: fmt(L.logged, { n: res.data.problems.length, grade: t.grades.colors[grade as keyof typeof t.grades.colors] ?? grade }) });
+      setMessage({ ok: true, text: fmt(L.logged, { n: res.data.problems.length, grade: gradeLabel(t, system, grade) }) });
       setCount(1); setTries(1); setNotes("");
     });
   }
@@ -53,12 +56,15 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
       <button type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm font-bold text-ink-2">{t.common.cancel}</button>
     </div>
     <fieldset>
-      <legend className="text-sm font-bold">{t.session.pickGrade}</legend>
-      <div className={cn("mt-2 grid gap-2", isColorSystem(system) ? "grid-cols-3" : system === "FONT" ? "grid-cols-6" : "grid-cols-5")}>
+      <legend className="text-sm font-bold">{levels ? t.session.pickLevel : t.session.pickGrade}</legend>
+      <div className={cn("mt-2 grid gap-2", isColorSystem(system) ? "grid-cols-3" : system === "FONT" ? "grid-cols-6" : levels ? "grid-cols-4" : "grid-cols-5")}>
         {grades.map((g) => <button key={g.id} type="button" aria-pressed={grade === g.id} onClick={() => setGrade(g.id)}
+          aria-label={levels ? gradeSpokenLabel(t, system, g.id) : undefined}
           style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
-          className={cn("flex min-h-12 flex-col items-center justify-center rounded-xl border px-1 text-xs font-extrabold",
-            isColorSystem(system) && "uppercase", grade === g.id ? "ring-4 ring-accent ring-offset-2" : "border-line")}>
+          className={cn("flex flex-col items-center justify-center rounded-xl border px-1",
+            levels ? "min-h-14 text-2xl font-black tabular-nums" : "min-h-12 text-xs font-extrabold",
+            isColorSystem(system) && "uppercase",
+            grade === g.id ? cn("ring-4 ring-accent ring-offset-2", levels && "border-accent bg-accent text-accent-ink") : "border-line")}>
           <span>{isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}</span>
           {fontRangeFor(system, g.id) ? <span className="text-xs font-medium normal-case opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
         </button>)}

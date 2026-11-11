@@ -23,11 +23,13 @@ import { buttonClass } from "@/components/ui/button";
 
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
+/** One grade per scale; with several scales (e.g. Climbing District colours and levels) each says which it is. */
 function HighestRow({ t, items }: { t: Dictionary; items: HighestGrade[] }) {
   return (
     <span className="flex flex-col items-end gap-1">
       {items.map((h) => (
         <span key={h.system} className="flex items-center gap-2">
+          {items.length > 1 ? <span className="text-xs text-ink-3">{t.grades.scaleShort[h.system]}</span> : null}
           <GradeChip t={t} system={h.system} grade={h.grade} showFont={!h.normalized} />
           {h.normalized && h.system !== "FONT" ? (
             <span className="text-sm text-ink-3">/ {fmt(t.grades.estimatedFont, { grade: h.normalized.grade })}</span>
@@ -89,6 +91,8 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
   if (summary.highestSent.length) rows.push([t.session.highestSend, <HighestRow key="hs" t={t} items={summary.highestSent} />]);
   if (summary.highestFlashed.length)
     rows.push([t.session.highestFlash, <HighestRow key="hf" t={t} items={summary.highestFlashed} />]);
+  if (summary.highestUnsent.length)
+    rows.push([t.session.highestUnsent, <HighestRow key="hu" t={t} items={summary.highestUnsent} />]);
   if (summary.mostSuccessfulStyle) rows.push([t.session.mostSuccessfulStyle, t.styles[summary.mostSuccessfulStyle.key]]);
   if (summary.hardestStyle) rows.push([t.session.hardestStyle, t.styles[summary.hardestStyle.key]]);
   if (summary.bestWallAngle) rows.push([t.session.bestAngle, t.wallAngles[summary.bestWallAngle.key]]);

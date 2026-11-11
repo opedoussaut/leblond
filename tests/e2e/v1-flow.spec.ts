@@ -15,6 +15,7 @@ const GONE = "gone@leblond.local";
 const PASSWORD = "ReasonablyStrongTestingPassword123!";
 const NOT_INVITED = "Cette adresse ne fait pas partie de la bêta fermée.";
 let arkoseSessionUrl = "";
+let cdColourSessionUrl = "";
 
 async function registerWithPassword(page: Page, name: string, email: string) {
   await page.goto("/login");
@@ -162,10 +163,21 @@ test("Arkose session: native colours, try/top/flash, summary", async ({ page }) 
   }
 });
 
-test("Climbing District session: mystery pink handled natively", async ({ page }) => {
+test("Climbing District session: levels 1–12 by default, former colours (mystery pink) on request", async ({ page }) => {
   await signIn(page, ALEX);
   await page.goto("/session/new");
   await chooseGym(page, "Demo Climbing District");
+  await expect(page.getByRole("heading", { name: "Demo Climbing District" })).toBeVisible();
+  cdColourSessionUrl = page.url();
+  // A new Climbing District session offers its levels 1–12, and no colour.
+  const scale = page.getByRole("radiogroup", { name: "Échelle" });
+  await expect(scale.getByRole("radio", { name: "Niveaux 1–12" })).toHaveAttribute("aria-checked", "true");
+  for (let n = 1; n <= 12; n++) await expect(page.getByRole("button", { name: `Niveau ${n}`, exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Niveau 13", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Rose/ })).toHaveCount(0);
+  // This one is logged in the former colours (walls not re-graded yet).
+  await scale.getByRole("radio", { name: "Couleurs (ancienne échelle)" }).click();
+  await expect(scale.getByRole("radio", { name: "Couleurs (ancienne échelle)" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("button", { name: /^Rose/ })).toBeVisible();
   await expect(page.getByText("Mystère").first()).toBeVisible();
   await logGrade(page, "Rose", ["ESSAI", "TOP"]);
@@ -365,6 +377,60 @@ test("PWA manifest is installable", async ({ request }) => {
   expect(m.display).toBe("standalone");
   expect(m.icons.some((i: { sizes: string }) => i.sizes === "512x512")).toBe(true);
   expect((await request.get("/sw.js")).ok()).toBe(true);
+});
+
+// Synthetic levels only (Alex is fictional): no real climber's reference climbs.
+test("Climbing District levels: logged natively, kept apart from the colour session", async ({ page }) => {
+  await signIn(page, ALEX);
+  await page.goto("/session/new");
+  await chooseGym(page, "Demo Climbing District");
+  await expect(page.getByRole("heading", { name: "Demo Climbing District" })).toBeVisible();
+  const scale = page.getByRole("radiogroup", { name: "Échelle" });
+  await expect(scale.getByRole("radio", { name: "Niveaux 1–12" })).toHaveAttribute("aria-checked", "true");
+
+  // Level 4: one try, then a top.
+  await page.getByRole("button", { name: "Niveau 4", exact: true }).click();
+  const current = page.getByRole("region", { name: "Bloc en cours" });
+  await expect(current.getByText("Niv. 4")).toBeVisible();
+  await current.getByRole("button", { name: "Essai", exact: true }).click();
+  await expect(page.getByText(/noté\./)).toBeVisible();
+  await current.getByRole("button", { name: "Top", exact: true }).click();
+  await expect(page.getByText(/Top noté\./)).toBeVisible();
+
+  // Quick entry: two level-9 problems tried, not sent. The chosen level stays visible.
+  await page.getByRole("button", { name: /Saisie rapide/ }).click();
+  const quick = page.getByRole("region", { name: /Saisie rapide/ });
+  await quick.getByRole("button", { name: "Niveau 9", exact: true }).click();
+  await expect(quick.getByRole("button", { name: "Niveau 9", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(quick.getByText("Niv. 9", { exact: true })).toBeVisible();
+  await quick.getByRole("button", { name: "Nombre de blocs +" }).click();
+  await quick.getByRole("button", { name: /Pas réussi/ }).click();
+  await expect(quick.getByText("2 bloc(s) Niv. 9 noté(s).")).toBeVisible();
+
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await page.getByRole("button", { name: "Terminer la séance" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  for (const [value, label] of [["3", "blocs"], ["1", "tops"], ["0", "flashs"], ["4", "essais"]]) {
+    await expect(page.locator("div", { hasText: new RegExp(`^${value}${label}$`, "i") }).first()).toBeVisible();
+  }
+  // Tried-but-not-sent is its own line: level 9 is never a top.
+  await expect(page.locator("dl > div").filter({ hasText: "Plus haut top" })).toContainText("Niv. 4");
+  await expect(page.locator("dl > div").filter({ hasText: "Plus haut top" })).not.toContainText("Niv. 9");
+  await expect(page.locator("dl > div").filter({ hasText: "Plus haut essayé, pas réussi" })).toContainText("Niv. 9");
+
+  // The colour session, edited later: still colours, its boulders unchanged.
+  await page.goto(cdColourSessionUrl + "/edit");
+  await expect(page.getByText("Rose").first()).toBeVisible();
+  await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
+  await expect(scale.getByRole("radio", { name: "Couleurs (ancienne échelle)" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("button", { name: /^Rose/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Niveau 4", exact: true })).toHaveCount(0);
+
+  // Progress: Climbing District colours and levels side by side, each named, never merged.
+  await page.goto("/progress?period=30");
+  const cross = page.locator("section").filter({ hasText: "Comparaison entre salles" });
+  await expect(cross.getByText("Couleurs Climbing District (ancienne échelle)")).toBeVisible();
+  await expect(cross.getByText("Niveaux Climbing District (1–12)")).toBeVisible();
 });
 
 // Runs last: the new-session page then opens on the outdoor tab for Alex.
