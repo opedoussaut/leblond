@@ -94,6 +94,7 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
   await expect(page.getByText("1 sur les 28 derniers jours", { exact: false })).toBeVisible();
   await expect(page.getByRole("region", { name: "Gêne et signes d’alerte" }).getByText("Accrochage")).toBeVisible();
   await expect(page.getByRole("region", { name: "Bilans" }).getByText("Niveau 0 · Très limité, beaucoup d’appui")).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "Navigation principale" });
-  await expect(nav.getByRole("link", { name: "Mobilité des hanches", exact: true })).toHaveAttribute("aria-current", "page");
+  // Phone layout (the CI project): the area's pages are in the sub-navigation.
+  const sub = page.getByRole("navigation", { name: "Pages de cette section" });
+  await expect(sub.getByRole("link", { name: "Mobilité des hanches", exact: true })).toHaveAttribute("aria-current", "page");
 });

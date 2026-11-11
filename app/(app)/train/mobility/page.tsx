@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { MobilityIllustration } from "@/components/training/mobility-illustrations";
 import {
-  MobilityEnrollForm, MobilityNextSession, MobilityScheduleForm, MobilitySettingsForm, doseText,
+  MobilityEnrollForm, MobilityNextSession, MobilityScheduleForm, MobilitySettingsForm,
 } from "@/components/training/mobility-forms";
+import { doseText } from "@/lib/training/hip-mobility/display";
 import { buttonClass } from "@/components/ui/button";
 import { Notice, PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";

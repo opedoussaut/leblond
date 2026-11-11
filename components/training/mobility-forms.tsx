@@ -9,8 +9,8 @@ import { formatDate } from "@/lib/format";
 import { fmt, type Locale } from "@/lib/i18n";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { EXERCISE_BY_ID, LEVEL_SESSIONS, type SessionLength } from "@/lib/training/hip-mobility/content";
-import { VARIANT_NAMES, type Dose, type SessionPlan } from "@/lib/training/hip-mobility/prescription";
-import { pick } from "@/lib/training/sessions";
+import { doseText } from "@/lib/training/hip-mobility/display";
+import type { SessionPlan } from "@/lib/training/hip-mobility/prescription";
 import { buttonClass } from "@/components/ui/button";
 import { fieldClass } from "@/components/ui/field";
 
@@ -19,14 +19,6 @@ const SHORT_MIN = LEVEL_SESSIONS[0]!.SHORT.minutes;
 
 function chip(on: boolean) {
   return "min-h-11 rounded-full border px-4 text-sm font-bold " + (on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink");
-}
-
-export function doseText(locale: Locale, exerciseId: string, dose: Dose): string {
-  const m = mobilityDictionary(locale);
-  const ex = EXERCISE_BY_ID.get(exerciseId);
-  if (!ex) return "";
-  const reps = fmt(ex.perSide ? m.perSide : m.total, { reps: dose.reps });
-  return dose.variant === "STANDARD" ? reps : `${reps} · ${pick(VARIANT_NAMES[dose.variant], locale).toLowerCase()}`;
 }
 
 function LengthPicker({ locale, value, onChange }: { locale: Locale; value: SessionLength; onChange: (v: SessionLength) => void }) {
