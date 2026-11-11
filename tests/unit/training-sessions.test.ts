@@ -94,10 +94,12 @@ describe("templates and validation", () => {
   it("builds an executable sequence for every plan method", () => {
     for (const m of METHODS_FOR_PLANS) {
       const t = templateFor(m.id, 60);
-      expect(t.some((e) => e.block === "WARMUP")).toBe(true);
+      // The hip-mobility session starts gently by design: no separate warm-up or cool-down.
+      const gentle = m.id === "hip-mobility";
+      expect(t.some((e) => e.block === "WARMUP")).toBe(!gentle);
       expect(t.some((e) => e.block === "MAIN")).toBe(true);
       // The stretching routine is itself the cool-down; every other method ends with one.
-      expect(t.at(-1)?.block).toBe(m.id === "mobility" ? "MAIN" : "COOLDOWN");
+      expect(t.at(-1)?.block).toBe(m.id === "mobility" || gentle ? "MAIN" : "COOLDOWN");
       for (const e of t) expect(snapshotOf(e).steps.length).toBeGreaterThan(0);
     }
   });

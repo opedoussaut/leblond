@@ -7,6 +7,7 @@ import { saveDayCheck } from "@/lib/actions/day-checks";
 import { createTrainingSession } from "@/lib/actions/training-sessions";
 import { fmt, type Locale } from "@/lib/i18n";
 import { journeyDictionary, type JourneyDictionary } from "@/lib/i18n/training-journey";
+import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { DAY_PLACES, MINUTE_CHOICES, type DayCheckInput, type DayRecommendation } from "@/lib/training/day-check";
 import { BODY_AREAS, PAIN_LEVELS, type BodyArea } from "@/lib/training/health";
@@ -21,8 +22,8 @@ export function reasonText(code: string, j: JourneyDictionary): string | null {
   return area && area in j.areas ? fmt(template, { area: j.areas[area] }) : template;
 }
 
-function DayResult({ locale, rec, today, scheduledId, hasProgramme }: {
-  locale: Locale; rec: DayRecommendation; today: string; scheduledId: string | null; hasProgramme: boolean;
+function DayResult({ locale, rec, today, scheduledId, hasProgramme, mobilityEnrolled = false }: {
+  locale: Locale; rec: DayRecommendation; today: string; scheduledId: string | null; hasProgramme: boolean; mobilityEnrolled?: boolean;
 }) {
   const j = journeyDictionary(locale);
   const d = j.day;
@@ -55,6 +56,8 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme }: {
       {rec.planned && rec.outcome !== "AS_PLANNED" ? <p className="mt-1 text-sm text-ink-2">{fmt(d.basedOn, { title: rec.planned.title, minutes: rec.planned.minutes })}</p> : null}
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{j.outcomeHints[rec.outcome]}</p>
       {rec.outcome === "MOBILITY" ? <p className="mt-2 text-sm"><Link href="/atlas/mobility" className="font-bold text-accent underline underline-offset-4">{d.stretchRoutine} →</Link></p> : null}
+      {rec.outcome === "MOBILITY" && mobilityEnrolled ? <p className="mt-2 text-sm">{mobilityDictionary(locale).dayMobility}{" "}
+        <Link href="/train/mobility" className="font-bold text-accent underline underline-offset-4">{mobilityDictionary(locale).dayMobilityCta} →</Link></p> : null}
     </div>
     {reasons.length ? <div>
       <h3 className="text-sm font-bold">{d.why}</h3>
@@ -70,9 +73,9 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme }: {
   </section>;
 }
 
-export function DayCheck({ locale, today, initial, saved, hasProgramme, prefilledPain, scheduledId }: {
+export function DayCheck({ locale, today, initial, saved, hasProgramme, prefilledPain, scheduledId, mobilityEnrolled = false }: {
   locale: Locale; today: string; initial: DayCheckInput; saved: DayRecommendation | null;
-  hasProgramme: boolean; prefilledPain: boolean; scheduledId: string | null;
+  hasProgramme: boolean; prefilledPain: boolean; scheduledId: string | null; mobilityEnrolled?: boolean;
 }) {
   const j = journeyDictionary(locale);
   const d = j.day;
@@ -96,7 +99,7 @@ export function DayCheck({ locale, today, initial, saved, hasProgramme, prefille
 
   if (!editing && result) {
     return <div className="space-y-4">
-      <DayResult locale={locale} rec={result} today={today} scheduledId={scheduledId} hasProgramme={hasProgramme} />
+      <DayResult locale={locale} rec={result} today={today} scheduledId={scheduledId} hasProgramme={hasProgramme} mobilityEnrolled={mobilityEnrolled} />
       <p className="text-sm text-ink-2">{d.doneToday}</p>
       <button type="button" onClick={() => setEditing(true)} className={buttonClass("secondary", "md")}>{d.redo}</button>
     </div>;

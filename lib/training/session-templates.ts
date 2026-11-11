@@ -1,5 +1,7 @@
 import type { Localized } from "./catalogue";
 import { METHODS_FOR_PLANS } from "./catalogue";
+import { EXERCISE_BY_ID, HIP_METHOD_ID, LEVEL_SESSIONS } from "./hip-mobility/content";
+import type { MobilitySnapshot } from "./hip-mobility/prescription";
 
 /**
  * Executable exercise templates for each Atlas method.
@@ -49,6 +51,8 @@ export type ExerciseSnapshot = {
   edgeMm?: number;
   /** Coach sessions only: an illustrated demo on an approved site (see DEMO_HOSTS). */
   demo?: { label: string; url: string };
+  /** Mobility programme sessions only: the exercise, its prescribed version and its variations. */
+  mobility?: MobilitySnapshot;
 };
 
 const loc = (fr: string, en: string): Localized => ({ fr, en });
@@ -259,6 +263,17 @@ const MAIN: Record<string, readonly ExerciseTemplate[]> = {
       steps: [loc("Respire lentement ; relâche un peu plus à chaque expiration.", "Breathe slowly; relax a little further on each exhale.")],
       safety: loc("Arrête si ça pince ou fait mal ; pas d’à-coups.", "Stop if it pinches or hurts; no bouncing.") }),
   ],
+  /** Level 0 standard session at its starting doses; personalised sessions come from lib/training/hip-mobility. */
+  [HIP_METHOD_ID]: LEVEL_SESSIONS[0]!.STANDARD.exercises.map((id) => {
+    const e = EXERCISE_BY_ID.get(id)!;
+    return ex({
+      key: "hip:" + e.id, block: "MAIN", methodId: HIP_METHOD_ID, name: e.name,
+      modality: "REPS", targetSets: e.perSide ? 2 : 1, targetReps: e.reps.start, restSeconds: e.restSeconds,
+      intensity: e.cue, summary: e.purpose, steps: e.steps,
+      safety: { fr: e.safety.map((l) => l.fr).join(" "), en: e.safety.map((l) => l.en).join(" ") },
+      adaptation: { fr: e.easier.name.fr + " : " + e.easier.how.fr, en: e.easier.name.en + ": " + e.easier.how.en },
+    });
+  }),
   "mental": [
     ex({ key: "reading-routine", block: "MAIN", methodId: "mental", name: loc("Routine lecture–respiration–décision", "Read–breathe–decide routine"),
       modality: "ROUTES", targetSets: 4, targetReps: 1, restSeconds: 180,
@@ -291,6 +306,8 @@ export function templateFor(methodId: string | null, minutes: number | null): Ex
     steps: [loc("Décris les exercices réalisés dans les notes.", "Describe the work done in the notes.")],
   })];
   const short = (minutes ?? 60) <= 30;
+  // The hip-mobility session starts gently by design: no separate warm-up or cool-down.
+  if (methodId === HIP_METHOD_ID) return [...body];
   // Stretching only needs warm muscles; the routine is itself the cool-down.
   if (methodId === "mobility") return [{ ...GENERAL_WARMUP, targetSeconds: 300 }, ...body];
   const warm = short ? [{ ...GENERAL_WARMUP, targetSeconds: 300 }] : [GENERAL_WARMUP];

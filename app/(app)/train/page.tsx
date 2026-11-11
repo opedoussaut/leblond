@@ -14,6 +14,8 @@ import { fmt } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { getI18n } from "@/lib/i18n/server";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { mobilityDictionary } from "@/lib/i18n/mobility";
+import { HIP_PROGRAMME, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_ } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
@@ -28,13 +30,15 @@ export default async function TrainingHome() {
   const j = journeyDictionary(locale);
   const h = j.hub;
   const today = localDate_(new Date());
-  const [sessions, { count: assessments }, { count: plans }, pact, work, programme] = await Promise.all([
+  const mob = mobilityDictionary(locale);
+  const [sessions, { count: assessments }, { count: plans }, pact, work, programme, { data: mobility }] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
     viewer.supabase.from("training_assessments").select("id", { count: "exact", head: true }),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
     loadOpenPact(viewer.supabase),
     loadClimberWork(viewer.supabase),
     loadProgramme(viewer.supabase, today),
+    viewer.supabase.from("mobility_enrollments").select("working_level,status").eq("programme", HIP_PROGRAMME).maybeSingle(),
   ]);
   const view = programme.view;
   const live = sessions?.find((s) => s.status === "IN_PROGRESS");
@@ -102,6 +106,20 @@ export default async function TrainingHome() {
           </Link>
         </div>
       </div>
+    </section>
+
+    <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div>
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h2 id="mobility-heading" className="text-lg font-extrabold text-ink">{mob.hubTitle}</h2>
+          <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{mob.hubBadge}</span>
+        </div>
+        <p className="mt-1 text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
+        {mobility ? <p className="mt-2 text-sm font-bold text-ink">
+          {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
+        </p> : null}
+      </div>
+      <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} →</Link>
     </section>
 
     <ProgrammeCard locale={locale} view={view} today={today} />

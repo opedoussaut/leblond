@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { METHODS_FOR_PLANS, type Localized } from "./catalogue";
 import type { Block, ExerciseSnapshot, Modality } from "./session-templates";
+import { SIDES, WARNING_FLAGS, type Side, type WarningFlag } from "./hip-mobility/assessment";
+import { VARIANTS, type Variant } from "./hip-mobility/prescription";
 
 /** Pure domain model for executable training sessions (no I/O here). */
 
@@ -13,6 +15,12 @@ export type TrainingSet = {
   loadKg: number | null; completed: boolean; notes: string;
   /** Edge size in mm for hangs / no-hangs (null when not relevant). */
   edgeMm?: number | null;
+  /** Mobility sets only: which leg, the version done, control through the range, discomfort 0–10, warning signs. */
+  side?: Side | null;
+  variant?: Variant | null;
+  controlled?: boolean | null;
+  discomfort?: number | null;
+  flags?: WarningFlag[];
 };
 export type TrainingExercise = {
   id: string; position: number; block: Block; methodId: string | null; name: string;
@@ -61,7 +69,22 @@ export const createTrainingSessionSchema = z.discriminatedUnion("source", [
     date: localDate, time: localTime,
     startNow: z.boolean(),
   }).strict(),
+  /** A hip-mobility session (lib/training/hip-mobility): its exercises come from the climber's own records. */
+  z.object({
+    source: z.literal("mobility"),
+    length: z.enum(["SHORT", "STANDARD"]),
+    /** Exercises whose offered increase the climber accepted for this session. */
+    accept: z.array(z.string().max(60)).max(10),
+    date: localDate, time: localTime,
+    startNow: z.boolean(),
+  }).strict(),
 ]);
+
+/** Hip-mobility sessions planned on chosen days (rebuilt from the records when started). */
+export const scheduleMobilitySchema = z.object({
+  dates: z.array(localDate).min(1).max(14),
+  length: z.enum(["SHORT", "STANDARD"]),
+}).strict();
 export type CreateTrainingSessionInput = z.infer<typeof createTrainingSessionSchema>;
 
 /** A training session already done, entered after the fact: type, when, total time, free description. */
@@ -96,6 +119,11 @@ export const saveSetSchema = z.object({
   edgeMm: z.number().int().min(3).max(60).nullable().optional(),
   completed: z.boolean(),
   notes: z.string().trim().max(300),
+  side: z.enum(SIDES).nullable().optional(),
+  variant: z.enum(VARIANTS).nullable().optional(),
+  controlled: z.boolean().nullable().optional(),
+  discomfort: z.number().int().min(0).max(10).nullable().optional(),
+  flags: z.array(z.enum(WARNING_FLAGS)).max(3).optional(),
 }).strict();
 export type SaveSetInput = z.infer<typeof saveSetSchema>;
 
