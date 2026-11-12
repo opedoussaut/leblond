@@ -423,7 +423,7 @@ test("Climbing District levels: logged natively, kept apart from the colour sess
   await expect(page.getByText("Rose").first()).toBeVisible();
   await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
   await expect(scale.getByRole("radio", { name: "Couleurs (ancienne échelle)" })).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByRole("button", { name: /^Rose/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Rose Mystère", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Niveau 4", exact: true })).toHaveCount(0);
 
   // Progress: Climbing District colours and levels side by side, each named, never merged.
