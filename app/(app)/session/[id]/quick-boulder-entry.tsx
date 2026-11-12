@@ -1,26 +1,26 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { toneButtonStyle } from "@/components/climbing/result-badge";
 import { cn } from "@/components/ui/cn";
-import { logBoulderBatch, type LiveProblem } from "@/lib/actions/sessions";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades, isColorSystem } from "@/lib/grading";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { gradeLabel, gradeSpokenLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { loggingDictionary } from "@/lib/i18n/logging";
-import type { Tables } from "@/lib/supabase/database.types";
 import { Stepper } from "./route-session";
 
 type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
+export type QuickChoice = { grade: string; count: number; tries: number; outcome: Outcome; notes: string };
 
 /** Several problems of one grade, with their tries and outcome, in one tap. */
-export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
-  sessionId: string; system: GradeSystem;
-  onLogged: (problems: LiveProblem[], attempts: Tables<"attempts">[], outcome: Outcome) => void;
+export function QuickBoulderEntry({ system, onSubmit, onClose }: {
+  system: GradeSystem;
+  /** Logs them (saved on the phone, sent when there is signal); false when refused. */
+  onSubmit: (choice: QuickChoice) => boolean;
   onClose: () => void;
 }) {
   const { t, locale } = useI18n();
@@ -30,7 +30,6 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
   const [tries, setTries] = useState(1);
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, start] = useTransition();
   const grades = listGrades(system);
   // Climbing District levels: twelve big numerals, the chosen one clearly marked.
   const levels = system === "CLIMBING_DISTRICT_LEVEL";
@@ -38,13 +37,12 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
   function submit(outcome: Outcome) {
     if (!grade) return;
     setMessage(null);
-    start(async () => {
-      const res = await logBoulderBatch({ sessionId, grade, count, tries: outcome === "FLASH" ? 1 : tries, outcome, notes });
-      if (!res.ok || !res.data) { setMessage({ ok: false, text: t.common.unknownError }); return; }
-      onLogged(res.data.problems, res.data.attempts, outcome);
-      setMessage({ ok: true, text: fmt(L.logged, { n: res.data.problems.length, grade: gradeLabel(t, system, grade) }) });
-      setCount(1); setTries(1); setNotes("");
-    });
+    if (!onSubmit({ grade, count, tries: outcome === "FLASH" ? 1 : tries, outcome, notes })) {
+      setMessage({ ok: false, text: t.common.unknownError });
+      return;
+    }
+    setMessage({ ok: true, text: fmt(L.logged, { n: count, grade: gradeLabel(t, system, grade) }) });
+    setCount(1); setTries(1); setNotes("");
   }
 
   return <section aria-labelledby="quick-entry" className="space-y-4 rounded-2xl border-2 border-accent/40 bg-surface p-4">
@@ -81,7 +79,7 @@ export function QuickBoulderEntry({ sessionId, system, onLogged, onClose }: {
       <div className="grid grid-cols-2 gap-2">
         {([["FLASH", "flash", "⚡", L.flash], ["TOP", "top", "✓", L.top], ["ATTEMPT", "attempt", "·", L.notSent], ["PROJECT", "project", "★", L.project]] as const)
           .map(([outcome, tone, symbol, label]) => <button key={outcome} type="button"
-            disabled={pending || (outcome === "FLASH" && tries > 1)} onClick={() => submit(outcome)}
+            disabled={outcome === "FLASH" && tries > 1} onClick={() => submit(outcome)}
             style={toneButtonStyle(tone)} className="min-h-14 rounded-2xl border px-3 text-base font-black disabled:opacity-40">
             <span aria-hidden>{symbol} </span>{label}{outcome !== "FLASH" && tries > 1 ? ` · ${tries}` : ""}
           </button>)}

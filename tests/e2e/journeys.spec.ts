@@ -127,11 +127,11 @@ test("A — free climber logs a session and sees it in Follow-up without any pla
   await logGrade(page, "Bleu", ["Flash"]);
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   const sessionUrl = page.url();
 
   await page.reload();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 
   await page.goto("/follow-up");
   const climbing = page.getByRole("region", { name: "Bloc · 30 derniers jours" });
@@ -264,7 +264,7 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   await logGrade(page, "Rouge", ["Essai", "Top"]);
   await logGrade(page, "Bleu", ["Flash"]);
   await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   await expect(page.locator("dl").getByText("≈ 6A+–6C+")).toBeVisible();
 
   // Edit date/time from the summary; the session keeps its attempts.

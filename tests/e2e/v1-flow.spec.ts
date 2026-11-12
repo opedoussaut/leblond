@@ -1,6 +1,6 @@
 import { Encoder, Profile, type FileIdMesg, type RecordMesg, type SessionMesg } from "@garmin/fitsdk";
 import { expect, test, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
+import { allSent, signIn } from "./helpers";
 
 /**
  * V1 "FIRST CLIMB + CONNECT" acceptance flow on a real local Supabase stack.
@@ -153,7 +153,7 @@ test("Arkose session: native colours, try/top/flash, summary", async ({ page }) 
 
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   const stats = page.locator("section").filter({ hasText: "SÉANCE TERMINÉE" }).first();
   await expect(page.getByText(/Plus haut top/)).toBeVisible();
   await expect(stats).toBeTruthy();
@@ -186,7 +186,7 @@ test("Climbing District session: levels 1–12 by default, former colours (myste
   await page.getByRole("button", { name: "Oui, flash" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 });
 
 test("problem enrichment: Font estimate kept separate + photo upload", async ({ page }) => {
@@ -409,7 +409,7 @@ test("Climbing District levels: logged natively, kept apart from the colour sess
 
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   for (const [value, label] of [["3", "blocs"], ["1", "tops"], ["0", "flashs"], ["4", "essais"]]) {
     await expect(page.locator("div", { hasText: new RegExp(`^${value}${label}$`, "i") }).first()).toBeVisible();
   }
@@ -494,7 +494,7 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
 
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   for (const [value, label] of [["3", "blocs"], ["2", "tops"], ["1", "flashs"], ["4", "essais"]]) {
     await expect(page.locator("div", { hasText: new RegExp(`^${value}${label}$`, "i") }).first()).toBeVisible();
   }
@@ -525,7 +525,7 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await expect(page.getByText(/noté./)).toBeVisible();
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 
   // The site stays out of the gym list.
   await page.goto("/session/new?where=gym");
@@ -548,7 +548,7 @@ test("Outdoor site with no topo: Dampierre Maincourt, logged by Font grade", asy
   await expect(page.getByText(/noté./)).toBeVisible();
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: /La Fissure/ }).click();
   await expect(page.getByRole("heading", { name: "La Fissure" })).toBeVisible();
   await expect(page.getByText("Secteur Nord").first()).toBeVisible();
@@ -637,7 +637,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await expect(dalleRow).toBeVisible();
   await page.getByRole("button", { name: "Terminer la séance" }).click();
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
-  await expect(page.getByText("SÉANCE TERMINÉE")).toBeVisible();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Dalle E2E/ }).click();
   await expect(page.getByRole("heading", { name: "Dalle E2E" })).toBeVisible();
@@ -714,6 +714,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await confirmMany.getByRole("button", { name: "Retirer", exact: true }).click();
   await expect(page.getByText("2 blocs retirés de la séance.")).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Variante E2E" }).filter({ hasText: "Projet" })).toHaveCount(0);
+  await allSent(page);
   await page.goto("/projects");
   await expect(page.getByText("Variante E2E")).toHaveCount(0);
 

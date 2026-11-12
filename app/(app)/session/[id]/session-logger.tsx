@@ -1,5 +1,6 @@
 import type { RouteAscentRow } from "@/lib/actions/routes";
 import type { Viewer } from "@/lib/auth/viewer";
+import type { KnownBoulder } from "@/lib/climbing/offline-session";
 import type { StyleTag, WallAngle } from "@/lib/climbing/types";
 import { loadOutdoorAreaForGym } from "@/lib/data/outdoor";
 import { tagSlugs, type loadSessionView } from "@/lib/data/session";
@@ -47,6 +48,7 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
 
   // Boolder areas and outdoor sites with a team topo; null for a site without one.
   const outdoor = view.gym.brand === "OUTDOOR" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;
+  const known = outdoor ? await loadKnownTopoBoulders(viewer, view.gym.id, new Set(view.problems.map((p) => p.id))) : {};
   // The session's own scale (an old Climbing District session stays in colours), and the gym's other scales.
   const scales = gymScales(view.gym);
   return (
@@ -70,10 +72,33 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
         outdoor_problem_id: p.outdoor_problem_id,
       }))}
       outdoor={outdoor}
+      known={known}
+      // The logger tells fresh data from the copy kept for use without signal.
+      renderedAt={new Date().toISOString()}
       initialAttempts={view.attempts}
       projectProblemIds={view.activeProjectProblemIds}
       projectsOpenedHere={view.projectsOpenedHere.map((p) => p.problemId)}
       mode={mode}
     />
   );
+}
+
+/**
+ * The climber's topo boulders at this site that are not on screen (tried in
+ * other sessions): picking one again keeps counting its tries, even without
+ * signal.
+ */
+async function loadKnownTopoBoulders(viewer: Viewer, gymId: string, shown: Set<string>): Promise<Record<string, KnownBoulder>> {
+  const { data } = await viewer.supabase.from("problems")
+    .select("id, native_grade, name, outdoor_problem_id, attempts(attempt_number)")
+    .eq("created_by", viewer.userId).eq("gym_id", gymId).not("outdoor_problem_id", "is", null);
+  const out: Record<string, KnownBoulder> = {};
+  for (const p of data ?? []) {
+    if (p.outdoor_problem_id == null || shown.has(p.id)) continue;
+    const numbers = (p.attempts ?? []).map((a) => a.attempt_number);
+    out[String(p.outdoor_problem_id)] = {
+      id: p.id, grade: p.native_grade, name: p.name, tries: numbers.length, lastNumber: numbers.length ? Math.max(...numbers) : 0,
+    };
+  }
+  return out;
 }

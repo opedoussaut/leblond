@@ -48,6 +48,22 @@ const fr = {
   seeProjects: "Voir mes projets", projectsOfSession: "Projets de cette séance",
   projectOpenedHere: "ouvert ici", projectTriedHere: "travaillé ici",
   openedIn: "Ouvert pendant la séance du {date}", openedInNone: "Ouvert hors séance",
+  // Logging without signal.
+  offlineEmpty: "Hors ligne. Continue à noter : tout est gardé sur ce téléphone et envoyé dès que le réseau revient.",
+  offlinePendingOne: "Hors ligne · 1 changement gardé sur ce téléphone, envoyé dès que le réseau revient.",
+  offlinePendingOther: "Hors ligne · {n} changements gardés sur ce téléphone, envoyés dès que le réseau revient.",
+  sendingOne: "Envoi de 1 changement…", sendingOther: "Envoi de {n} changements…",
+  waitingOne: "1 changement pas encore envoyé.", waitingOther: "{n} changements pas encore envoyés.",
+  sendNow: "Réessayer",
+  rejectedOne: "1 changement n’a pas été accepté par le serveur ({reason}). La séance montre maintenant ce qui est enregistré.",
+  rejectedOther: "{n} changements n’ont pas été acceptés par le serveur ({reason}). La séance montre maintenant ce qui est enregistré.",
+  reasonFlash: "un flash, c’est au premier essai", reasonGone: "bloc ou essai introuvable",
+  reasonLatest: "ce n’était plus le dernier essai", reasonOther: "erreur du serveur",
+  sessionGone: "Cette séance n’existe plus sur le serveur : ce qui restait sur ce téléphone a été effacé.",
+  endedOffline: "Séance terminée à {time}. Elle sera enregistrée dès que le réseau revient.",
+  endedSaving: "Séance terminée à {time}. Enregistrement…",
+  needsNetwork: "Photos et vidéos : il faut du réseau.",
+  mapNeedsNetwork: "La carte a besoin du réseau. La liste et la recherche marchent sans.",
 };
 type Dict = typeof fr;
 
@@ -96,6 +112,21 @@ const en: Dict = {
   seeProjects: "See my projects", projectsOfSession: "Projects in this session",
   projectOpenedHere: "opened here", projectTriedHere: "worked on here",
   openedIn: "Opened during the session of {date}", openedInNone: "Opened outside a session",
+  offlineEmpty: "Offline. Keep logging: everything is kept on this phone and sent as soon as there is signal.",
+  offlinePendingOne: "Offline · 1 change kept on this phone, sent as soon as there is signal.",
+  offlinePendingOther: "Offline · {n} changes kept on this phone, sent as soon as there is signal.",
+  sendingOne: "Sending 1 change…", sendingOther: "Sending {n} changes…",
+  waitingOne: "1 change not sent yet.", waitingOther: "{n} changes not sent yet.",
+  sendNow: "Try again",
+  rejectedOne: "1 change was not accepted by the server ({reason}). The session now shows what is stored.",
+  rejectedOther: "{n} changes were not accepted by the server ({reason}). The session now shows what is stored.",
+  reasonFlash: "a flash is on the first try", reasonGone: "problem or try not found",
+  reasonLatest: "it was no longer the latest try", reasonOther: "server error",
+  sessionGone: "This session no longer exists on the server: what was left on this phone was cleared.",
+  endedOffline: "Session ended at {time}. It will be saved as soon as there is signal.",
+  endedSaving: "Session ended at {time}. Saving…",
+  needsNetwork: "Photos and videos need signal.",
+  mapNeedsNetwork: "The map needs signal. The list and search work without it.",
 };
 
 export const loggingDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);
