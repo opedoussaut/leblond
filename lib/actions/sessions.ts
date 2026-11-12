@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { ATTEMPT_RESULTS, GRADE_SYSTEMS, isSend, STYLE_TAGS, WALL_ANGLES, type GradeSystem } from "@/lib/climbing/types";
+import { ATTEMPT_RESULTS, GRADE_SYSTEMS, isSend, STYLE_TAGS, WALL_ANGLES } from "@/lib/climbing/types";
+import { endSessionCore, patchProblem, removeProblemsCore } from "@/lib/data/session-ops";
 import { acceptsBoulderSystem, gymScales, isValidGrade, sessionBoulderSystem } from "@/lib/grading";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { ActionResult } from "@/lib/validation/common";
@@ -104,20 +105,9 @@ export async function rescheduleSession(input: unknown): Promise<ActionResult> {
 export async function endSession(sessionId: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!id.safeParse(sessionId).success) return { ok: false, error: "invalid" };
-  const { data: s } = await viewer.supabase
-    .from("sessions").select("started_at, ended_at, wearable_activity_id").eq("id", sessionId).single();
-  if (!s) return { ok: false, error: "notFound" };
-  if (s.ended_at) return { ok: true };
-  const end = new Date();
-  const minutes = Math.max(0, Math.round((end.getTime() - new Date(s.started_at).getTime()) / 60_000));
-  const { error } = await viewer.supabase
-    .from("sessions")
-    .update({ ended_at: end.toISOString(), duration_minutes: Math.min(minutes, 1440) })
-    .eq("id", sessionId);
-  if (error) return { ok: false, error: "unknownError" };
   // The watch wins: a watch activity linked during the session gives it its times.
-  // Without usable watch timing, the clock times above stay (the call fails quietly).
-  if (s.wearable_activity_id) await viewer.supabase.rpc("apply_activity_timing", { p_session_id: sessionId });
+  const res = await endSessionCore(viewer, sessionId);
+  if (!res.ok) return res;
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -268,62 +258,9 @@ export async function updateProblem(input: z.input<typeof updateProblemSchema>):
   const viewer = await requireViewer();
   const parsed = updateProblemSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const v = parsed.data;
-  const { data: problem } = await viewer.supabase
-    .from("problems")
-    .select("native_grade_system, outdoor_problem_id")
-    .eq("id", v.problemId)
-    .single();
-  if (!problem) return { ok: false, error: "notFound" };
-
-  const patch: Partial<Tables<"problems">> = {};
-  if (v.name !== undefined) patch.name = v.name || null;
-  if (v.wallAngle !== undefined) patch.wall_angle = v.wallAngle;
-  if (v.wallZone !== undefined) patch.wall_zone = v.wallZone || null;
-  if (v.setter !== undefined) patch.setter = v.setter || null;
-  if (v.notes !== undefined) patch.notes = v.notes || null;
-  if (v.beta !== undefined) patch.beta = v.beta?.trim() || null;
-  if (v.topoRef !== undefined) patch.topo_ref = v.topoRef || null;
-  if (v.topoUrl !== undefined) patch.topo_url = v.topoUrl || null;
-  if (v.nativeGrade !== undefined) {
-    // Topo boulders too: the climber may disagree with the topo's grade.
-    if (!isValidGrade(problem.native_grade_system as GradeSystem, v.nativeGrade)) return { ok: false, error: "invalidGrade" };
-    patch.native_grade = v.nativeGrade;
-  }
-  if (v.estimate !== undefined) {
-    if (problem.native_grade_system === "FONT") return { ok: false, error: "invalid" };
-    if (v.estimate === null) {
-      Object.assign(patch, {
-        normalized_grade: null,
-        normalized_grade_system: null,
-        normalization_confidence: null,
-        normalization_source: null,
-      });
-    } else {
-      if (!isValidGrade("FONT", v.estimate.grade)) return { ok: false, error: "invalidGrade" };
-      Object.assign(patch, {
-        normalized_grade: v.estimate.grade,
-        normalized_grade_system: "FONT",
-        normalization_confidence: Math.round(v.estimate.confidence * 100) / 100,
-        normalization_source: "USER_ESTIMATE",
-      });
-    }
-  }
-  if (Object.keys(patch).length) {
-    const { error } = await viewer.supabase.from("problems").update(patch).eq("id", v.problemId);
-    if (error) return { ok: false, error: "unknownError" };
-  }
-  if (v.tags) {
-    const { data: tagRows } = await viewer.supabase.from("tags").select("id, slug").in("slug", v.tags);
-    await viewer.supabase.from("problem_tags").delete().eq("problem_id", v.problemId);
-    if (tagRows?.length) {
-      const { error } = await viewer.supabase
-        .from("problem_tags")
-        .insert(tagRows.map((t) => ({ problem_id: v.problemId, tag_id: t.id })));
-      if (error) return { ok: false, error: "unknownError" };
-    }
-  }
-  revalidatePath(`/problem/${v.problemId}`);
+  const res = await patchProblem(viewer, parsed.data);
+  if (!res.ok) return res;
+  revalidatePath(`/problem/${parsed.data.problemId}`);
   return { ok: true };
 }
 
@@ -480,19 +417,9 @@ export async function removeProblemsFromSession(
   const viewer = await requireViewer();
   const parsed = removeManySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { sessionId, problemIds } = parsed.data;
-  // Read first: the media rows go with the boulder (on delete cascade), the stored files do not.
-  const { data: media } = await viewer.supabase.from("media").select("problem_id, storage_path, thumbnail_path").in("problem_id", problemIds);
-  const { data, error } = await viewer.supabase.rpc("remove_problems_from_session", { p_session_id: sessionId, p_problem_ids: problemIds });
-  if (error) return { ok: false, error: error.code === "P0002" ? "notFound" : "unknownError" };
-  const r = (data ?? {}) as { removed?: number; problems_deleted?: string[]; projects_deleted?: string[] };
-  const problemsDeleted = r.problems_deleted ?? [];
-  const gone = new Set(problemsDeleted);
-  const paths = (media ?? []).filter((m) => m.problem_id && gone.has(m.problem_id))
-    .flatMap((m) => [m.storage_path, m.thumbnail_path]).filter((p): p is string => Boolean(p));
-  if (paths.length) await viewer.supabase.storage.from("media").remove(paths);
-  revalidatePath("/", "layout");
-  return { ok: true, data: { removed: r.removed ?? 0, problemsDeleted, projectsDeleted: r.projects_deleted ?? [] } };
+  const res = await removeProblemsCore(viewer, parsed.data.sessionId, parsed.data.problemIds);
+  if (res.ok) revalidatePath("/", "layout");
+  return res;
 }
 
 /** Remove the most recent attempt on a problem (undo). Older attempts are kept to preserve history. */
