@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { egoTimeline } from "@/lib/analytics/alter-ego";
 import {
   changeTrainingStatus, completeTrainingSession, deleteTrainingSet, pauseTrainingSession,
@@ -20,7 +20,10 @@ import { buttonClass } from "@/components/ui/button";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { WARNING_FLAGS, type WarningFlag } from "@/lib/training/hip-mobility/assessment";
 import { VARIANTS, VARIANT_NAMES, type Variant } from "@/lib/training/hip-mobility/prescription";
+import { scheduleBeeps, unlockSound } from "@/lib/training/beeper";
+import { restBeeps } from "@/lib/training/timer";
 import { AlterEgoLane } from "./alter-ego-lane";
+import { EffortTimer, SoundToggle, useSoundSetting, useWakeLock } from "./effort-timer";
 import { MobilityIllustration } from "./mobility-illustrations";
 
 type LoggedValues = Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">
@@ -77,6 +80,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
   const [notice, setNotice] = useState("");
   const [finishing, setFinishing] = useState(false);
   const [, start] = useTransition();
+  const [sound, setSound] = useSoundSetting();
+  // The rest's beeps, scheduled when it starts; cancelled when it is skipped or the page closes.
+  const restBeepsCancel = useRef<(() => void) | null>(null);
 
   const current = exercises[index];
   const nextSetIndex = (current?.sets.reduce((m, s) => Math.max(m, s.setIndex), 0) ?? 0) + 1;
@@ -85,12 +91,18 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
   // The rest timer's end time is restored from storage, so it survives a refresh.
   useEffect(() => {
     const tick = () => setNow(Date.now());
-    const restore = window.setTimeout(() => setRestEndsAt(readRest(session.id)), 0);
+    const restore = window.setTimeout(() => {
+      const ends = readRest(session.id);
+      setRestEndsAt(ends);
+      // After a reload the phone may only beep again after a tap; the countdown still shows.
+      if (ends) restBeepsCancel.current = scheduleBeeps(restBeeps(ends, Date.now()));
+    }, 0);
     const timer = window.setInterval(tick, 1000);
     document.addEventListener("visibilitychange", tick);
     return () => {
       window.clearTimeout(restore); window.clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
+      restBeepsCancel.current?.();
     };
   }, [session.id]);
 
@@ -126,6 +138,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
 
   const elapsed = activeSeconds({ startedAt: session.startedAt, pausedAt, pausedSeconds, completedAt: null }, new Date(now));
   const rest = restRemaining(restEndsAt, now);
+  // The phone can lie on the floor during the rest: the screen stays on until it beeps.
+  useWakeLock(rest > 0);
   const doneCount = exercises.filter((e) => e.status !== "PENDING").length;
   const progress = useMemo(() => exercises.length ? Math.round((doneCount / exercises.length) * 100) : 0, [doneCount, exercises.length]);
   const egoPhases = useMemo(() => (ego ? egoTimeline(initial, ego.factor) : []), [ego, initial]);
@@ -157,10 +171,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     if (!current) return;
     const set: TrainingSet = { id: "pending-" + nextSetIndex, setIndex: nextSetIndex, ...values, completed: true, notes: "" };
     patchExercise(current.id, (e) => ({ ...e, sets: [...e.sets, set] }));
-    if (current.restSeconds) {
-      const ends = Date.now() + current.restSeconds * 1000;
-      setRestEndsAt(ends); writeRest(session.id, ends);
-    }
+    if (current.restSeconds) startRest(current.restSeconds);
     const input: SaveSetInput = {
       exerciseId: current.id, setIndex: set.setIndex, reps: set.reps, seconds: set.seconds,
       loadKg: set.loadKg, edgeMm: set.edgeMm ?? null, completed: true, notes: "",
@@ -201,10 +212,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     patchExercise(exercise.id, (e) => ({ ...e, status }));
     // Rest before the next exercise (coach sessions), unless this one was skipped.
     const restAfter = status !== "SKIPPED" && index < exercises.length - 1 ? exercise.instructions.restAfter ?? 0 : 0;
-    if (restAfter > 0) {
-      const ends = Date.now() + restAfter * 1000;
-      setRestEndsAt(ends); writeRest(session.id, ends);
-    } else clearRest();
+    if (restAfter > 0) startRest(restAfter);
+    else clearRest();
     start(async () => {
       const r = await setExerciseStatus({ exerciseId: exercise.id, status, rpe: exercise.rpe, notes: exercise.notes });
       if (!r.ok) { patchExercise(exercise.id, (e) => ({ ...e, status: exercise.status })); fail(); return; }
@@ -219,7 +228,28 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     settle(done === 0 ? "SKIPPED" : current.targetSets && done < current.targetSets ? "MODIFIED" : "DONE");
   }
 
-  function clearRest() { setRestEndsAt(null); writeRest(session.id, null); }
+  /** Starts a rest (from a tap, so the phone may beep): pips for its last 3 seconds, then a beep. */
+  function startRest(seconds: number) {
+    unlockSound();
+    const ends = Date.now() + seconds * 1000;
+    setRestEndsAt(ends); writeRest(session.id, ends);
+    restBeepsCancel.current?.();
+    restBeepsCancel.current = scheduleBeeps(restBeeps(ends, Date.now()));
+  }
+
+  function clearRest() {
+    restBeepsCancel.current?.(); restBeepsCancel.current = null;
+    setRestEndsAt(null); writeRest(session.id, null);
+  }
+
+  function changeSound(on: boolean) {
+    setSound(on);
+    // Turned back on during a rest: its end beeps again.
+    if (on && restEndsAt && restEndsAt > Date.now()) {
+      restBeepsCancel.current?.();
+      restBeepsCancel.current = scheduleBeeps(restBeeps(restEndsAt, Date.now()));
+    }
+  }
 
   function stopEarly() {
     if (!window.confirm(t.stopConfirm)) return;
@@ -252,10 +282,13 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{pausedAt ? t.paused : t.elapsed}</p>
           <p className="text-3xl font-black tabular-nums tracking-tight" role="timer" aria-live="off">{formatClock(elapsed)}</p>
         </div>
-        <button type="button" onClick={togglePause} aria-pressed={!!pausedAt}
-          className={buttonClass("secondary", "md")}>
-          {pausedAt ? "▶ " + t.resumeTimer : "❚❚ " + t.pause}
-        </button>
+        <div className="flex items-center gap-2">
+          <SoundToggle locale={locale} on={sound} onChange={changeSound} />
+          <button type="button" onClick={togglePause} aria-pressed={!!pausedAt}
+            className={buttonClass("secondary", "md")}>
+            {pausedAt ? "▶ " + t.resumeTimer : "❚❚ " + t.pause}
+          </button>
+        </div>
       </div>
       <div className="mt-3" aria-hidden="true">
         <div className="flex gap-1">
@@ -326,6 +359,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
 
       <div className="mt-5 border-t border-line pt-5">
         <h3 className="text-sm font-extrabold">{t.set} {nextSetIndex}{current.targetSets ? ` / ${current.targetSets}` : ""}</h3>
+        {/* Holds, hangs, stretches, repeaters, timed blocks: a timer that beeps. New for every set. */}
+        <EffortTimer key={current.id + ":" + nextSetIndex} locale={locale} exercise={current} sound={sound} />
         {mob ? <MobilitySetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />
           : <SetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />}
         <h3 className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.completedSets}</h3>
