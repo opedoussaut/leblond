@@ -1,5 +1,5 @@
 import type { GradeSystem } from "@/lib/climbing/types";
-import { FONT_SCALE, type FontGrade } from "./systems";
+import { FONT_SCALE, gradeSystemKind, type FontGrade } from "./systems";
 
 /**
  * Indicative Fontainebleau ranges for gym colour circuits.
@@ -19,7 +19,9 @@ import { FONT_SCALE, type FontGrade } from "./systems";
  * These are ESTIMATES shown next to the native grade, never stored in place of
  * it, and never used as a measured grade. Colours with no row in the table
  * (Climbing District white/orange, the mystery pink, independent gyms' custom
- * colours) have no estimate.
+ * colours) have no estimate. Climbing District's numbered levels (1–12) have
+ * none either: no table is published for them, and the former colours' ranges
+ * must not be carried over to them.
  */
 export type FontRange = { from: FontGrade; to: FontGrade; openEnded?: boolean; official?: boolean };
 
@@ -75,5 +77,5 @@ export function fontRangeMidpoint(range: FontRange): number {
 
 /** Colour-graded systems whose routes need a French-scale equivalent alongside the native colour. */
 export function isColourSystem(system: GradeSystem): boolean {
-  return system !== "FONT" && system !== "UNKNOWN" && system !== "BLOCKOUT_LEVEL";
+  return gradeSystemKind(system) === "COLOUR";
 }

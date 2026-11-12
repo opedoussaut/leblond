@@ -162,7 +162,8 @@ describe("Normalisation", () => {
 describe("Gym brand grading", () => {
   it("locks Arkose and Climbing District to their native systems", () => {
     expect(allowedSystemsForBrand("ARKOSE")).toEqual(["ARKOSE_COLOR"]);
-    expect(allowedSystemsForBrand("CLIMBING_DISTRICT")).toEqual(["CLIMBING_DISTRICT_COLOR"]);
+    // A new Climbing District gym grades boulders with levels 1–12 (colours are its former scale).
+    expect(allowedSystemsForBrand("CLIMBING_DISTRICT")).toEqual(["CLIMBING_DISTRICT_LEVEL"]);
     expect(allowedSystemsForBrand("INDEPENDENT")).toEqual(["FONT", "CUSTOM_COLOR"]);
   });
 });

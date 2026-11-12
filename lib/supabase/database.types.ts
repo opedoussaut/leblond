@@ -1150,6 +1150,8 @@ export type Database = {
           external_id: string | null;
           external_provider: string | null;
           grading_system: Database["public"]["Enums"]["grade_system"];
+          former_grading_systems: Database["public"]["Enums"]["grade_system"][];
+          grading_system_since: string | null;
           has_bouldering: boolean;
           has_routes: boolean;
           source_url: string | null;
@@ -1170,6 +1172,8 @@ export type Database = {
           external_id?: string | null;
           external_provider?: string | null;
           grading_system: Database["public"]["Enums"]["grade_system"];
+          former_grading_systems?: Database["public"]["Enums"]["grade_system"][];
+          grading_system_since?: string | null;
           has_bouldering?: boolean;
           has_routes?: boolean;
           source_url?: string | null;
@@ -1190,6 +1194,8 @@ export type Database = {
           external_id?: string | null;
           external_provider?: string | null;
           grading_system?: Database["public"]["Enums"]["grade_system"];
+          former_grading_systems?: Database["public"]["Enums"]["grade_system"][];
+          grading_system_since?: string | null;
           has_bouldering?: boolean;
           has_routes?: boolean;
           source_url?: string | null;
@@ -1766,6 +1772,7 @@ export type Database = {
           ended_at: string | null;
           fatigue: number | null;
           gym_id: string;
+          grade_system: Database["public"]["Enums"]["grade_system"] | null;
           id: string;
           motivation: number | null;
           notes: string | null;
@@ -1787,6 +1794,7 @@ export type Database = {
           ended_at?: string | null;
           fatigue?: number | null;
           gym_id: string;
+          grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;
           motivation?: number | null;
           notes?: string | null;
@@ -1808,6 +1816,7 @@ export type Database = {
           ended_at?: string | null;
           fatigue?: number | null;
           gym_id?: string;
+          grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;
           motivation?: number | null;
           notes?: string | null;
@@ -2048,6 +2057,10 @@ export type Database = {
         Args: { p_grade: string; p_system: Database["public"]["Enums"]["grade_system"] };
         Returns: boolean;
       };
+      gym_accepts_grade_system: {
+        Args: { p_gym_id: string; p_system: Database["public"]["Enums"]["grade_system"] };
+        Returns: boolean;
+      };
       link_wearable_activity: { Args: { p_activity_id: string; p_session_id: string }; Returns: undefined };
       apply_activity_timing: { Args: { p_session_id: string }; Returns: Database["public"]["Tables"]["sessions"]["Row"] };
       reschedule_session: {
@@ -2128,7 +2141,7 @@ export type Database = {
       coach_role: "user" | "assistant";
       connection_status: "CONNECTED" | "DISCONNECTED" | "ERROR";
       discipline: "bouldering" | "sport";
-      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN" | "BLOCKOUT_LEVEL" | "CLIMB_UP_COLOR" | "VERTICAL_ART_COLOR";
+      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN" | "BLOCKOUT_LEVEL" | "CLIMB_UP_COLOR" | "VERTICAL_ART_COLOR" | "CLIMBING_DISTRICT_LEVEL";
       gym_brand: "ARKOSE" | "CLIMBING_DISTRICT" | "BLOCKOUT" | "CLIMB_UP" | "VERTICAL_ART" | "INDEPENDENT" | "OUTDOOR" | "OTHER";
       media_type: "PROBLEM_PHOTO" | "ATTEMPT_VIDEO" | "SEND_VIDEO";
       normalization_source: "FONT_NATIVE" | "USER_ESTIMATE" | "GYM_PUBLISHED";
@@ -2250,7 +2263,7 @@ export const Constants = {
       coach_role: ["user", "assistant"],
       connection_status: ["CONNECTED", "DISCONNECTED", "ERROR"],
       discipline: ["bouldering", "sport"],
-      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN", "BLOCKOUT_LEVEL", "CLIMB_UP_COLOR", "VERTICAL_ART_COLOR"],
+      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN", "BLOCKOUT_LEVEL", "CLIMB_UP_COLOR", "VERTICAL_ART_COLOR", "CLIMBING_DISTRICT_LEVEL"],
       gym_brand: ["ARKOSE", "CLIMBING_DISTRICT", "BLOCKOUT", "INDEPENDENT", "OUTDOOR", "OTHER"],
       media_type: ["PROBLEM_PHOTO", "ATTEMPT_VIDEO", "SEND_VIDEO"],
       normalization_source: ["FONT_NATIVE", "USER_ESTIMATE", "GYM_PUBLISHED"],

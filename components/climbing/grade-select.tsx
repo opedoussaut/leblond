@@ -6,8 +6,11 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
 import { gradeLabel } from "@/lib/grading/labels";
 
-/** Systems that can express a level or target (ordered scales only). */
-export const TARGET_SYSTEMS: GradeSystem[] = ["FONT", "ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR"];
+/**
+ * Systems that can express a level or target (ordered scales only). Climbing
+ * District's colours stay listed for objectives set before its levels 1–12.
+ */
+export const TARGET_SYSTEMS: GradeSystem[] = ["FONT", "ARKOSE_COLOR", "CLIMBING_DISTRICT_LEVEL", "CLIMBING_DISTRICT_COLOR"];
 
 export function orderedGrades(system: GradeSystem) {
   return listGrades(system).filter((g) => g.ordinal !== null);

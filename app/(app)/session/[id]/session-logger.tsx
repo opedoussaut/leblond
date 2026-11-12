@@ -3,6 +3,7 @@ import type { Viewer } from "@/lib/auth/viewer";
 import type { StyleTag, WallAngle } from "@/lib/climbing/types";
 import { loadOutdoorAreaForGym } from "@/lib/data/outdoor";
 import { tagSlugs, type loadSessionView } from "@/lib/data/session";
+import { boulderSystemsForGym, gymScales, sessionBoulderSystem } from "@/lib/grading/scales";
 import { isFrenchRouteGrade } from "@/lib/grading/route-grades";
 import { LiveSession } from "./live-session";
 import { RouteSession } from "./route-session";
@@ -46,11 +47,16 @@ export async function SessionLogger({ viewer, view, mode }: { viewer: Viewer; vi
 
   // Boolder areas and outdoor sites with a team topo; null for a site without one.
   const outdoor = view.gym.brand === "OUTDOOR" ? await loadOutdoorAreaForGym(viewer.supabase, view.gym.id) : null;
+  // The session's own scale (an old Climbing District session stays in colours), and the gym's other scales.
+  const scales = gymScales(view.gym);
   return (
     <LiveSession
       sessionId={view.session.id}
       userId={viewer.userId}
-      gym={{ id: view.gym.id, name: view.gym.name, system: view.gym.grading_system, outdoor: view.gym.brand === "OUTDOOR" }}
+      gym={{
+        id: view.gym.id, name: view.gym.name, outdoor: view.gym.brand === "OUTDOOR",
+        system: sessionBoulderSystem(view.session, scales), systems: boulderSystemsForGym(scales),
+      }}
       startedAt={view.session.started_at}
       initialProblems={view.problems.map((p) => ({
         id: p.id,
