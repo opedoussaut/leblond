@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatDuration } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
+import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { summarize, type TrainingExercise, type TrainingSession } from "@/lib/training/sessions";
 
@@ -14,6 +15,7 @@ function Tile({ label, value }: { label: string; value: string }) {
 /** Planned-versus-actual record of a finished (or interrupted) training session. */
 export function SessionSummary({ locale, session, exercises }: { locale: Locale; session: TrainingSession; exercises: TrainingExercise[] }) {
   const t = trainingSessionDictionary(locale);
+  const m = mobilityDictionary(locale);
   const s = summarize(session, exercises);
   const fmtTarget = (e: TrainingExercise) => [
     e.targetSets ? `${e.targetSets} × ` : "",
@@ -25,7 +27,11 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
     if (!done.length) return "—";
     return done.map((x) => [x.reps !== null ? String(x.reps) : null,
       x.seconds !== null ? (e.modality === "TIME" || e.modality === "FREE" ? `${Math.round(x.seconds / 60)} min` : `${x.seconds} s`) : null,
-      x.loadKg !== null ? `${x.loadKg > 0 ? "+" : ""}${x.loadKg} kg` : null, x.edgeMm ? `${x.edgeMm} mm` : null].filter(Boolean).join(" ")).join(" · ");
+      x.loadKg !== null ? `${x.loadKg > 0 ? "+" : ""}${x.loadKg} kg` : null, x.edgeMm ? `${x.edgeMm} mm` : null,
+      // Hip mobility: side and the version done when not the planned one.
+      x.side && x.side !== "BOTH" ? `(${m.sides[x.side]})` : null,
+      x.variant && x.variant !== "STANDARD" ? `· ${x.variant === "EASIER" ? m.easier : m.harder}` : null,
+      x.flags?.length ? "⚠" : null].filter(Boolean).join(" ")).join(" · ");
   };
   return <section aria-labelledby="summary-title" className="space-y-5">
     <h2 id="summary-title" className="text-lg font-black">{t.summary}</h2>

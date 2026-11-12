@@ -1,5 +1,11 @@
 import type { StyleTag, WallAngle } from "@/lib/climbing/types";
-import { calculateHighestFlashedGrade, calculateHighestSentGrade, type HighestGrade } from "./grades";
+import {
+  calculateHighestFlashedGrade,
+  calculateHighestSentGrade,
+  calculateHighestUnsentGrade,
+  sentProblemIds,
+  type HighestGrade,
+} from "./grades";
 import { computeProblemOutcomes, countActivity, type ActivityCounts } from "./outcomes";
 import { calculateStyleStats, calculateWallAngleStats, rankCategories, type CategoryStats } from "./styles";
 import type { AttemptFact, ProblemFact, SessionFact, WearableFact } from "./types";
@@ -9,6 +15,8 @@ export interface SessionSummary extends ActivityCounts {
   durationMinutes: number | null;
   highestSent: HighestGrade[];
   highestFlashed: HighestGrade[];
+  /** Hardest problems tried in this session and never sent (projects, failed tries), per system. */
+  highestUnsent: HighestGrade[];
   mostSuccessfulStyle: CategoryStats<StyleTag> | null;
   hardestStyle: CategoryStats<StyleTag> | null;
   bestWallAngle: CategoryStats<WallAngle> | null;
@@ -52,6 +60,7 @@ export function summarizeSession(
     durationMinutes: session.durationMinutes ?? (session.endedAt ? sessionElapsedMinutes(session) : null),
     highestSent: calculateHighestSentGrade(sessionProblems, outcomes),
     highestFlashed: calculateHighestFlashedGrade(sessionProblems, outcomes),
+    highestUnsent: calculateHighestUnsentGrade(sessionProblems, outcomes, sentProblemIds(computeProblemOutcomes(allAttempts))),
     mostSuccessfulStyle: styles.strongest,
     hardestStyle: styles.weakest,
     bestWallAngle: angles.strongest,

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { PlanEditor } from "@/components/training/plan-editor";
+import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
@@ -35,8 +37,9 @@ export default async function TrainingPlansPage({ searchParams }: PageProps<"/tr
   return (
     <div>
       <Link href="/train" className="text-sm font-bold text-accent underline underline-offset-4">← {t.back}</Link>
-      <h1 className="mt-5 text-2xl font-black tracking-tight md:text-3xl">{t.planTitle}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-ink-2">{t.plansSubtitle}</p>
+      <div className="mt-5">
+        <PageHeader icon={<PAGE_ICONS.trainingPlans />} title={t.planTitle} subtitle={t.plansSubtitle} />
+      </div>
       {error ? (
         <p role="alert" className="mt-5 rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{t.unavailable}</p>
       ) : (

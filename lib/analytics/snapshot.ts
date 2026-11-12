@@ -8,6 +8,7 @@ import {
   calculateHighestFlashedGrade,
   calculateHighestSentGrade,
   calculateHighestSentNormalized,
+  calculateHighestUnsentGrade,
   calculateNativeDistribution,
   calculateRecentTrend,
   calculateRoadToTarget,
@@ -22,6 +23,7 @@ import {
   countActivity,
   DAY_MS,
   rankCategories,
+  sentProblemIds,
   type ClimbingDataset,
 } from "@/lib/analytics";
 import type { GradeSystem } from "@/lib/climbing/types";
@@ -64,6 +66,8 @@ export function computeSnapshot(
     weekly: calculateWeeklyActivity(data.sessions, data.attempts, now, 12),
     highestSent: calculateHighestSentGrade(activeProblems, outcomes),
     highestFlashed: calculateHighestFlashedGrade(activeProblems, outcomes),
+    // Tried, never sent (projects / failed tries), per system — never mixed with sends.
+    highestUnsent: calculateHighestUnsentGrade(activeProblems, outcomes, sentProblemIds(computeProblemOutcomes(data.attempts))),
     highestSentNormalized: calculateHighestSentNormalized(activeProblems, outcomes),
     // Working level/grade always use their own fixed 60-day rule window.
     workingLevels: calculateAllNativeWorkingLevels(data.problems, data.attempts, now),

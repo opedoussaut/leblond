@@ -73,7 +73,9 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
   const prevHealth = healthFromContext(prevCtx);
   const [step, setStep] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const first = useRef(true);
+  // The step last focused. Comparing steps (not a "first run" flag) keeps the
+  // page title focused on mount even when React StrictMode runs effects twice.
+  const focusedStep = useRef(0);
 
   const [discipline, setDiscipline] = useState<AssessmentContext["discipline"]>(prevCtx?.discipline ?? defaults.discipline);
   const [goal, setGoal] = useState(previous?.goal ?? "");
@@ -99,7 +101,8 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
   const [pending, start] = useTransition();
 
   useEffect(() => {
-    if (first.current) { first.current = false; return; }
+    if (focusedStep.current === step) return;
+    focusedStep.current = step;
     heading.current?.focus();
   }, [step]);
 

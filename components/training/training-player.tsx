@@ -17,7 +17,14 @@ import {
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
 } from "@/lib/training/sessions";
 import { buttonClass } from "@/components/ui/button";
+import { mobilityDictionary } from "@/lib/i18n/mobility";
+import { WARNING_FLAGS, type WarningFlag } from "@/lib/training/hip-mobility/assessment";
+import { VARIANTS, VARIANT_NAMES, type Variant } from "@/lib/training/hip-mobility/prescription";
 import { AlterEgoLane } from "./alter-ego-lane";
+import { MobilityIllustration } from "./mobility-illustrations";
+
+type LoggedValues = Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">
+  & Partial<Pick<TrainingSet, "side" | "variant" | "controlled" | "discomfort" | "flags">>;
 
 type ClimbOption = { id: string; label: string };
 const inputClass = "mt-1 block w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg font-bold tabular-nums text-ink";
@@ -106,7 +113,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         const missing = queued.filter((q) => q.exerciseId === e.id && !e.sets.some((x) => x.setIndex === q.setIndex));
         if (!missing.length) return e;
         return { ...e, sets: [...e.sets, ...missing.map((q) => ({ id: "pending-" + q.setIndex, setIndex: q.setIndex,
-          reps: q.reps, seconds: q.seconds, loadKg: q.loadKg, edgeMm: q.edgeMm ?? null, completed: q.completed, notes: q.notes }))]
+          reps: q.reps, seconds: q.seconds, loadKg: q.loadKg, edgeMm: q.edgeMm ?? null, completed: q.completed, notes: q.notes,
+          side: q.side ?? null, variant: q.variant ?? null, controlled: q.controlled ?? null, discomfort: q.discomfort ?? null, flags: q.flags ?? [] }))]
           .sort((a, b) => a.setIndex - b.setIndex) };
       }));
       void flushPending();
@@ -145,7 +153,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     start(async () => { const r = await pauseTrainingSession(session.id, pausing); if (!r.ok) fail(); });
   }
 
-  function logSet(values: Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">) {
+  function logSet(values: LoggedValues) {
     if (!current) return;
     const set: TrainingSet = { id: "pending-" + nextSetIndex, setIndex: nextSetIndex, ...values, completed: true, notes: "" };
     patchExercise(current.id, (e) => ({ ...e, sets: [...e.sets, set] }));
@@ -156,6 +164,12 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     const input: SaveSetInput = {
       exerciseId: current.id, setIndex: set.setIndex, reps: set.reps, seconds: set.seconds,
       loadKg: set.loadKg, edgeMm: set.edgeMm ?? null, completed: true, notes: "",
+      // Hip-mobility details, only sent when recorded.
+      ...(values.side ? { side: values.side } : {}),
+      ...(values.variant ? { variant: values.variant } : {}),
+      ...(values.controlled !== undefined ? { controlled: values.controlled } : {}),
+      ...(values.discomfort !== undefined ? { discomfort: values.discomfort } : {}),
+      ...(values.flags?.length ? { flags: values.flags } : {}),
     };
     // Queue first (synchronously) so a refresh during the request cannot lose the set.
     updatePending(session.id, (list) => [...list.filter((x) => !sameSet(x, input)), input]);
@@ -227,6 +241,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
   // A rest started on this exercise with no set logged yet is the rest between exercises.
   const betweenExercises = index > 0 && current.sets.length === 0 && !!exercises[index - 1]?.instructions.restAfter;
   const instr = current.instructions;
+  const mob = instr.mobility;
+  const m = mobilityDictionary(locale);
+  const warned = !!mob && current.sets.some((s) => s.flags?.length);
 
   return <div className="space-y-5 pb-6">
     <section aria-label={t.player} className="sticky top-0 z-20 -mx-4 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:rounded-2xl md:border md:bg-surface md:px-5">
@@ -263,11 +280,23 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     <article className="leblond-premium-surface p-5 sm:p-6" aria-labelledby="current-exercise">
       <p className="leblond-eyebrow text-accent">{t.block[current.block]} · {t.exStatus[current.status]}</p>
       <h2 id="current-exercise" className="mt-2 text-2xl font-black tracking-tight">{current.name}</h2>
+      {mob ? <MobilityIllustration exerciseId={mob.exerciseId} title={current.name} className="mt-3" /> : null}
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
       {instr.load ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{c.load} :</span> {instr.load}</p> : null}
       {instr.restAfter ? <p className="mt-1 text-sm text-ink-2">{fmt(c.restAfter, { d: formatClock(instr.restAfter) })}</p> : null}
       {instr.summary ? <p className="mt-3 text-sm leading-relaxed text-ink-2">{pick(instr.summary, locale)}</p> : null}
+      {mob ? <p className="mt-2 text-sm text-ink-2"><span className="font-semibold">{m.whyDose} :</span> {m.reasons[mob.reason]}</p> : null}
+      {mob ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <details className="rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
+          <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{m.easier} · {pick(mob.easier.name, locale)}</summary>
+          <p className="text-sm leading-relaxed text-ink-2">{pick(mob.easier.how, locale)}</p>
+        </details>
+        <details className="rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
+          <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{m.harder} · {pick(mob.harder.name, locale)}</summary>
+          <p className="text-sm leading-relaxed text-ink-2">{pick(mob.harder.how, locale)}</p>
+        </details>
+      </div> : null}
       {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
         className="mr-4 mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
       {instr.demo && demoUrl(instr.demo.url) ? <a href={demoUrl(instr.demo.url)!} target="_blank" rel="noopener noreferrer"
@@ -277,14 +306,28 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
           {(instr.steps ?? []).map((s, i) => <li key={i}>{pick(s, locale)}</li>)}
         </ol>
+        {mob?.mistakes.length ? <>
+          <p className="mt-3 text-sm font-bold text-ink">{m.mistakes}</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-2">
+            {mob.mistakes.map((x, i) => <li key={i}>{pick(x, locale)}</li>)}
+          </ul>
+        </> : null}
         {instr.safety ? <p className="mt-3 text-sm text-ink"><strong>{t.safety} :</strong> {pick(instr.safety, locale)}</p> : null}
         {instr.adaptation ? <p className="mt-2 text-sm text-ink-2"><strong>{t.adaptation} :</strong> {pick(instr.adaptation, locale)}</p> : null}
         {current.methodId ? <Link href={"/atlas/" + current.methodId} className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
       </details> : null}
 
+      {warned ? <div role="alert" className="mt-4 rounded-2xl border border-danger/40 bg-danger/10 p-4">
+        <p className="text-sm font-black text-danger">{m.stopTitle}</p>
+        <p className="mt-1 text-sm text-ink">{m.stopText}</p>
+        <button type="button" onClick={() => settle(current.sets.some((s) => s.completed) ? "MODIFIED" : "SKIPPED")}
+          className={buttonClass("secondary", "md", "mt-3")}>{m.skipRestOfExercise} →</button>
+      </div> : null}
+
       <div className="mt-5 border-t border-line pt-5">
         <h3 className="text-sm font-extrabold">{t.set} {nextSetIndex}{current.targetSets ? ` / ${current.targetSets}` : ""}</h3>
-        <SetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />
+        {mob ? <MobilitySetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />
+          : <SetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />}
         <h3 className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.completedSets}</h3>
         {current.sets.length === 0 ? <p className="mt-2 text-sm text-ink-3">{t.noSets}</p> :
           <ul className="mt-2 space-y-2">
@@ -294,7 +337,12 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
                   {[s.reps !== null ? `${s.reps} ${current.modality === "ROUTES" ? "✓" : t.reps}` : null,
                     s.seconds !== null ? (isTime ? `${Math.round(s.seconds / 60)} ${t.minutesShort}` : `${s.seconds} ${t.seconds}`) : null,
                     s.loadKg !== null ? `${s.loadKg > 0 ? "+" : ""}${s.loadKg} kg` : null,
-                    s.edgeMm ? `${s.edgeMm} mm` : null].filter(Boolean).join(" · ")}
+                    s.edgeMm ? `${s.edgeMm} mm` : null,
+                    mob && s.side && s.side !== "BOTH" ? m.sides[s.side] : null,
+                    mob && s.variant && s.variant !== "STANDARD" ? (s.variant === "EASIER" ? m.easier : m.harder) : null,
+                    mob && s.controlled === false ? m.notQuite : null,
+                    mob && s.discomfort ? `${m.discomfort.split(" (")[0]} ${s.discomfort}/10` : null,
+                    ...(mob ? (s.flags ?? []).map((f) => "⚠ " + m.flagNames[f]) : [])].filter(Boolean).join(" · ")}
                 </span>
               </span>
               <button type="button" onClick={() => removeSet(s.setIndex)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{t.removeSet}</button>
@@ -395,6 +443,79 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
       <button type="button" onClick={onCancel} className="min-h-14 rounded-2xl border border-line px-5 text-sm font-bold">{t.previous}</button>
     </div>
   </form>;
+}
+
+/**
+ * Hip-mobility set: reps, the side (alternating on one-sided exercises), the
+ * version done, whether every rep was controlled (left unanswered = unknown),
+ * discomfort 0–10 and warning signs. Remounted per exercise.
+ */
+function MobilitySetLogger({ locale, exercise, onLog }: {
+  locale: Locale; exercise: TrainingExercise; onLog: (v: LoggedValues) => void;
+}) {
+  const t = trainingSessionDictionary(locale);
+  const m = mobilityDictionary(locale);
+  const mob = exercise.instructions.mobility!;
+  const last = exercise.sets.at(-1);
+  const nextSide = !mob.perSide ? "BOTH" : last?.side === "LEFT" ? "RIGHT" : "LEFT";
+  const [side, setSide] = useState<"LEFT" | "RIGHT" | "BOTH">(nextSide);
+  const [variant, setVariant] = useState<Variant>(last?.variant ?? mob.dose.variant);
+  const [reps, setReps] = useState(String(exercise.targetReps ?? mob.dose.reps));
+  const [controlled, setControlled] = useState<boolean | null>(null);
+  const [discomfort, setDiscomfort] = useState(0);
+  const [flags, setFlags] = useState<WarningFlag[]>([]);
+  const chip = (on: boolean) => "min-h-11 rounded-full border px-4 text-sm font-bold " + (on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink");
+  function submit() {
+    const n = Number(reps);
+    onLog({
+      reps: reps.trim() === "" || !Number.isFinite(n) ? null : Math.max(0, Math.min(500, Math.round(n))),
+      seconds: null, loadKg: null, edgeMm: null,
+      side, variant, controlled, discomfort, flags,
+    });
+    setSide(!mob.perSide ? "BOTH" : side === "LEFT" ? "RIGHT" : "LEFT");
+    setControlled(null); setDiscomfort(0); setFlags([]);
+  }
+  return <div className="mt-2 space-y-4">
+    {mob.perSide ? <fieldset>
+      <legend className="text-sm font-semibold">{m.sideNow}</legend>
+      <div className="mt-1 flex gap-2">
+        {(["LEFT", "RIGHT"] as const).map((x) => <button key={x} type="button" aria-pressed={side === x} onClick={() => setSide(x)} className={chip(side === x)}>{m.sides[x]}</button>)}
+      </div>
+    </fieldset> : null}
+    <label className="block text-sm font-semibold">{t.repsLabel}
+      <input className={inputClass} inputMode="numeric" type="number" min={0} max={500} value={reps} onChange={(e) => setReps(e.target.value)} />
+    </label>
+    <fieldset>
+      <legend className="text-sm font-semibold">{m.version}</legend>
+      <div className="mt-1 flex flex-wrap gap-2">
+        {VARIANTS.map((v) => <button key={v} type="button" aria-pressed={variant === v} onClick={() => setVariant(v)} className={chip(variant === v)}>
+          {pick(VARIANT_NAMES[v], locale)}</button>)}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend className="text-sm font-semibold">{m.controlled}</legend>
+      <div className="mt-1 flex gap-2">
+        <button type="button" aria-pressed={controlled === true} onClick={() => setControlled(controlled === true ? null : true)} className={chip(controlled === true)}>{m.yes}</button>
+        <button type="button" aria-pressed={controlled === false} onClick={() => setControlled(controlled === false ? null : false)} className={chip(controlled === false)}>{m.notQuite}</button>
+      </div>
+    </fieldset>
+    <label className="block text-sm font-semibold">{m.discomfortSet}
+      <input type="range" min={0} max={10} value={discomfort} onChange={(e) => setDiscomfort(Number(e.target.value))} className="mt-2 w-full accent-accent" />
+      <span className="text-sm font-bold tabular-nums">{discomfort} / 10</span>
+    </label>
+    <fieldset>
+      <legend className="text-sm font-semibold">{m.warning}</legend>
+      <div className="mt-1 flex flex-wrap gap-2">
+        {WARNING_FLAGS.map((f) => <button key={f} type="button" aria-pressed={flags.includes(f)}
+          onClick={() => setFlags((list) => list.includes(f) ? list.filter((x) => x !== f) : [...list, f])}
+          className={"min-h-11 rounded-full border px-4 text-sm font-bold " + (flags.includes(f) ? "border-danger bg-danger text-surface" : "border-line bg-surface text-ink")}>
+          {m.flagNames[f]}</button>)}
+      </div>
+    </fieldset>
+    <button type="button" onClick={submit} className={buttonClass("primary", "md", "w-full text-lg active:scale-[0.99]")}>
+      ✓ {t.logSet}{mob.perSide ? " · " + m.sides[side] : ""}
+    </button>
+  </div>;
 }
 
 /** Inputs for the next set, pre-filled with the exercise targets. Remounted per exercise. */

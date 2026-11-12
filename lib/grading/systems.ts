@@ -10,13 +10,42 @@ import type { GradeSystem } from "@/lib/climbing/types";
  *
  * Sources (see docs/grading.md):
  * - Arkose: https://arkose.com/groupe/actus/niveau-escalade-bloc-couleur-tout-comprendre
- * - Climbing District: https://climbingdistrict.com/infos/faq/
+ * - Climbing District: https://climbingdistrict.com/infos/faq/ (colours, the
+ *   network's former bouldering scale) and its numbered levels 1 → 12 (the
+ *   current scale). No official colour ↔ level table is published: none is
+ *   encoded here, and no transition date is recorded until one is verified.
  * - Block'Out: https://blockout.fr/tours/la-grimpe (B1 → B14, "sans se limiter à la seule couleur des prises")
  * - Climb Up: https://www.climb-up.fr/faq/ (7 niveaux : jaune, vert, bleu, violet, rouge, blanc, noir)
  * - Vertical'Art: https://www.vertical-art.fr/faq/ (blanc → violet, référence cotation Bleau)
  */
 
 export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
+
+/**
+ * What a system's grades ARE, independently of the gym using it:
+ *  - COLOUR: hold colours (Arkose, Climbing District colours, custom colours…);
+ *  - NUMERIC: numbered gym levels (Block'Out B1–B14, Climbing District 1–12) —
+ *    gym levels, NOT Font or French grades even when they look like numbers;
+ *  - CONVENTIONAL: a recognised climbing scale (Font for boulders).
+ * French route grades are a separate scale (lib/grading/route-grades.ts).
+ */
+export type GradeSystemKind = "COLOUR" | "NUMERIC" | "CONVENTIONAL" | "UNKNOWN";
+
+export const GRADE_SYSTEM_KIND: Record<GradeSystem, GradeSystemKind> = {
+  ARKOSE_COLOR: "COLOUR",
+  CLIMBING_DISTRICT_COLOR: "COLOUR",
+  CLIMBING_DISTRICT_LEVEL: "NUMERIC",
+  FONT: "CONVENTIONAL",
+  CUSTOM_COLOR: "COLOUR",
+  UNKNOWN: "UNKNOWN",
+  BLOCKOUT_LEVEL: "NUMERIC",
+  CLIMB_UP_COLOR: "COLOUR",
+  VERTICAL_ART_COLOR: "COLOUR",
+};
+
+export function gradeSystemKind(system: GradeSystem): GradeSystemKind {
+  return GRADE_SYSTEM_KIND[system];
+}
 
 export interface GradeDefinition {
   id: string;
@@ -148,6 +177,18 @@ export const BLOCKOUT_GRADES: GradeDefinition[] = Array.from({ length: 14 }, (_,
   ordinal: i,
 }));
 
+/**
+ * Climbing District numbered levels, 1 (easiest) → 12. Stored as "1" … "12".
+ * These are the gym's own levels: never read them as Font ("7" ≠ 7A) or as
+ * French route grades, and never map them to the former colours.
+ */
+export const CLIMBING_DISTRICT_LEVEL_GRADES: GradeDefinition[] = Array.from({ length: 12 }, (_, i) => ({
+  id: String(i + 1),
+  system: "CLIMBING_DISTRICT_LEVEL" as const,
+  kind: "ORDERED" as const,
+  ordinal: i,
+}));
+
 /** Climb Up: seven bouldering levels in the network's own order (white is above red). */
 export const CLIMB_UP_GRADES: GradeDefinition[] = ordered("CLIMB_UP_COLOR", [
   ["YELLOW", undefined, "#F2C318", "#1a1400"],
@@ -183,6 +224,7 @@ export const GRADES_BY_SYSTEM: Record<GradeSystem, GradeDefinition[]> = {
   BLOCKOUT_LEVEL: BLOCKOUT_GRADES,
   CLIMB_UP_COLOR: CLIMB_UP_GRADES,
   VERTICAL_ART_COLOR: VERTICAL_ART_GRADES,
+  CLIMBING_DISTRICT_LEVEL: CLIMBING_DISTRICT_LEVEL_GRADES,
 };
 
 /** Whether grades in this system can be placed on an ordinal scale. */
@@ -191,6 +233,9 @@ export function isOrderedSystem(system: GradeSystem): boolean {
 }
 
 export function isColorSystem(system: GradeSystem): boolean {
-  return system === "ARKOSE_COLOR" || system === "CLIMBING_DISTRICT_COLOR" || system === "CUSTOM_COLOR"
-    || system === "CLIMB_UP_COLOR" || system === "VERTICAL_ART_COLOR";
+  return gradeSystemKind(system) === "COLOUR";
+}
+
+export function isNumericSystem(system: GradeSystem): boolean {
+  return gradeSystemKind(system) === "NUMERIC";
 }

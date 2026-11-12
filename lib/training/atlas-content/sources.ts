@@ -37,6 +37,15 @@ export const SRC = {
       "Meta-analysis of randomised trials: stretching after exercise speeds up neither strength recovery nor the fading of soreness.",
     ),
   },
+  afonso2021strength: {
+    kind: "review",
+    citation: "Afonso J, Ramirez-Campillo R, Moscão J, et al. (2021). Strength training versus stretching for improving range of motion: a systematic review and meta-analysis. Healthcare (Basel) 9(4):427.",
+    url: "https://doi.org/10.3390/healthcare9040427",
+    finding: loc(
+      "Méta-analyse (11 études, 452 participants) : le renforcement et l'étirement n'ont pas montré de différence d'effet sur l'amplitude articulaire. Études très hétérogènes.",
+      "Meta-analysis (11 studies, 452 participants): strength training and stretching showed no difference in their effect on range of motion. Studies were very heterogeneous.",
+    ),
+  },
   mermier2000: {
     kind: "study",
     citation: "Mermier CM, Janot JM, Parker DL, Swan JG (2000). Physiological and anthropometric determinants of sport climbing performance. Br J Sports Med 34(5):359–366.",

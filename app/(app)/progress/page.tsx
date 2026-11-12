@@ -3,6 +3,7 @@ import { RatioBars } from "@/components/charts/ratio-bars";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { cn } from "@/components/ui/cn";
 import { Explain, Stat } from "@/components/ui/stat";
 import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analytics";
@@ -36,7 +37,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
 
   return (
     <div className="space-y-5">
-      <PageHeader title={t.progress.title} />
+      <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} />
       <nav aria-label={t.progress.period} className="flex gap-2">
         {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => (
           <Link
@@ -132,10 +133,12 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 [
                   [t.progress.highestSent, snap.highestSent],
                   [t.progress.highestFlashed, snap.highestFlashed],
+                  [t.progress.highestUnsent, snap.highestUnsent],
                 ] as const
               ).map(([title, best]) => (
                 <div key={title}>
                   <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{title}</p>
+                  {best.length === 0 ? <p className="mt-2 text-sm text-ink-3">—</p> : null}
                   <ul className="mt-2 space-y-2">
                     {best.map((h) => (
                       <li key={h.system}>
@@ -174,15 +177,18 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 <div key={n.brand}>
                   <p className="mb-2 text-sm font-semibold">{t.brands[n.brand]}</p>
                   {n.distributions.map((d) => (
-                    <RatioBars
-                      key={d.system}
-                      rows={d.buckets.map((b) => ({
-                        key: `${d.system}-${b.grade}`,
-                        label: <GradeChip t={t} system={d.system} grade={b.grade} size="sm" />,
-                        sent: b.sent,
-                        attempted: b.attempted,
-                      }))}
-                    />
+                    <div key={d.system}>
+                      {/* A network with two scales (Climbing District colours / levels): one block each, never merged. */}
+                      {n.distributions.length > 1 ? <p className="mb-1 mt-2 text-xs text-ink-3">{t.grades.systems[d.system]}</p> : null}
+                      <RatioBars
+                        rows={d.buckets.map((b) => ({
+                          key: `${d.system}-${b.grade}`,
+                          label: <GradeChip t={t} system={d.system} grade={b.grade} size="sm" />,
+                          sent: b.sent,
+                          attempted: b.attempted,
+                        }))}
+                      />
+                    </div>
                   ))}
                 </div>
               ))}
@@ -231,6 +237,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                       key={d.system}
                       t={t}
                       system={d.system}
+                      label={g.distributions.length > 1 ? t.grades.systems[d.system] : undefined}
                       rows={d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, attempted: b.attempted }))}
                     />
                   ))}
@@ -300,14 +307,19 @@ function GradeCounts({
   t,
   system,
   rows,
+  label,
 }: {
   t: Dictionary;
   system: GradeSystem;
   rows: Array<{ grade: string; sent: number; attempted: number }>;
+  /** Names the scale when the gym has figures in more than one. */
+  label?: string;
 }) {
   if (rows.length === 0) return null;
   return (
-    <ul className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label={t.progress.sentPerGrade}>
+    <>
+    {label ? <p className="mt-1.5 text-xs text-ink-3">{label}</p> : null}
+    <ul className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label={label ? `${t.progress.sentPerGrade} · ${label}` : t.progress.sentPerGrade}>
       {rows.map((r) => (
         <li key={r.grade} className="flex items-center gap-1.5">
           <GradeChip t={t} system={system} grade={r.grade} size="sm" />
@@ -315,5 +327,6 @@ function GradeCounts({
         </li>
       ))}
     </ul>
+    </>
   );
 }

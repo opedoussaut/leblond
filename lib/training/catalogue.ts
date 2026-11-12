@@ -110,6 +110,14 @@ export const TRAINING_CATALOGUE: readonly TrainingEntry[] = [
     caution: { en: "Stretch to a strong but painless pull, never into pain. After an injury, follow your physiotherapist's plan.", fr: "Étire jusqu'à une tension franche mais sans douleur, jamais dans la douleur. Après une blessure, suis le plan de ton kiné." },
   },
   {
+    id: "hip-mobility", category: "methods", title: "Hip mobility — from zero",
+    description: { en: "A beginner programme for very stiff hips: gentle supported movements, then active control and strength in that range, then foot placement and hip turns on the wall. Progress by level, never by date.", fr: "Un programme débutant pour des hanches très raides : mouvements doux avec appui, puis contrôle actif et force dans cette amplitude, puis placement des pieds et rotations de hanche au mur. On progresse par niveau, jamais par date." },
+    goals: ["boulder", "sport", "technique"], evidence: "limited",
+    scores: [2, 1, 1, 1, 1, 2],
+    source: { label: "Afonso et al. 2021 — strength training vs stretching for range of motion", url: "https://doi.org/10.3390/healthcare9040427" },
+    caution: { en: "Comfortable range only: no forcing, no bouncing, never sharp pain. Persistent pain, catching or a hard block: see a qualified clinician or sports physiotherapist before progressing.", fr: "Amplitude confortable uniquement : pas de forçage, pas d'à-coups, jamais de douleur vive. Douleur qui dure, accrochage ou blocage net : consulte un professionnel de santé qualifié ou un kinésithérapeute du sport avant de progresser." },
+  },
+  {
     id: "mental", category: "methods", title: "Mental skills & lead tactics",
     description: { en: "Decision-making, pacing, confidence and appropriately managed exposure.", fr: "Prise de décision, rythme, confiance et exposition progressive sécurisée." },
     goals: ["sport", "technique"], evidence: "limited",

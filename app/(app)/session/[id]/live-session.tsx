@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { isColorSystem } from "@/lib/grading/systems";
+import { gradeSpokenLabel } from "@/lib/grading/labels";
 import { QuickBoulderEntry } from "./quick-boulder-entry";
+import { ScaleSwitch } from "./scale-switch";
 import { ResultBadge, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { markProblemProject, type LiveProblem } from "@/lib/actions/sessions";
@@ -32,6 +34,7 @@ import {
   logAttempt,
   removeProblemFromSession,
   removeProblemsFromSession,
+  setSessionGradeSystem,
   updateProblem,
 } from "@/lib/actions/sessions";
 import { logTopoBoulder, pickOutdoorProblem } from "@/lib/actions/outdoor";
@@ -85,7 +88,8 @@ export function LiveSession({
 }: {
   sessionId: string;
   userId: string;
-  gym: { id: string; name: string; system: GradeSystem; outdoor?: boolean };
+  /** `system`: the scale this session logs new boulders in; `systems`: all the gym's scales (current first). */
+  gym: { id: string; name: string; system: GradeSystem; systems?: GradeSystem[]; outdoor?: boolean };
   startedAt: string;
   initialProblems: LiveProblemItem[];
   initialAttempts: Attempt[];
@@ -136,6 +140,20 @@ export function LiveSession({
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmMany, setConfirmMany] = useState(false);
   const L = loggingDictionary(locale);
+  // The scale new boulders are logged in; existing boulders keep their own.
+  const [scale, setScale] = useState<GradeSystem>(gym.system);
+  const scales = gym.systems ?? [gym.system];
+  function switchScale(next: GradeSystem) {
+    const previous = scale;
+    setScale(next);
+    start(async () => {
+      const res = await setSessionGradeSystem({ sessionId, system: next });
+      if (!res.ok) {
+        setScale(previous);
+        setStatus({ tone: "error", text: t.common.unknownError });
+      }
+    });
+  }
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -192,7 +210,7 @@ export function LiveSession({
 
   function addProblem(grade: string) {
     start(async () => {
-      const res = await createProblem({ gymId: gym.id, nativeGrade: grade, ...(gym.outdoor ? manual : {}) });
+      const res = await createProblem({ gymId: gym.id, sessionId, nativeGrade: grade, ...(gym.outdoor ? manual : {}) });
       if (!res.ok || !res.data) return say("error", t.common.unknownError);
       const p = res.data;
       setProblems((list) => [
@@ -200,6 +218,7 @@ export function LiveSession({
         {
           id: p.id,
           native_grade: p.native_grade,
+          native_grade_system: p.native_grade_system,
           wall_angle: p.wall_angle,
           tags: [],
           created_at: p.created_at,
@@ -722,7 +741,8 @@ export function LiveSession({
               </label>
             </div>
           ) : null}
-          <GradeGrid system={gym.system} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
+          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={pending} />}
+          <GradeGrid system={scale} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
           {outdoor && outdoor.problems.length > 0 ? (
             <button type="button" onClick={() => setGradeFallback(false)} className="text-sm text-accent underline-offset-2 hover:underline">
               ← {t.outdoor.backToTopo}
@@ -735,7 +755,10 @@ export function LiveSession({
         </Button>
       )}
       {quick ? (
-        <QuickBoulderEntry sessionId={sessionId} system={gym.system} onLogged={onQuickLogged} onClose={() => setQuick(false)} />
+        <div className="space-y-2">
+          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={pending} />}
+          <QuickBoulderEntry key={scale} sessionId={sessionId} system={scale} onLogged={onQuickLogged} onClose={() => setQuick(false)} />
+        </div>
       ) : (
         <Button size="lg" variant="secondary" className="w-full" onClick={() => { setQuick(true); setAdding(false); }}>
           ⚡ {L.quickTitle}
@@ -1035,10 +1058,12 @@ function GradeGrid({
 }) {
   const { t } = useI18n();
   const grades = listGrades(system);
+  // Climbing District levels: twelve big numerals (other scales keep their layout).
+  const levels = system === "CLIMBING_DISTRICT_LEVEL";
   return (
     <section className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-bold">{t.session.pickGrade}</h2>
+        <h2 className="font-bold">{levels ? t.session.pickLevel : t.session.pickGrade}</h2>
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel}>
             {t.common.cancel}
@@ -1052,13 +1077,14 @@ function GradeGrid({
             type="button"
             disabled={pending}
             onClick={() => onPick(g.id)}
+            aria-label={levels ? gradeSpokenLabel(t, system, g.id) : undefined}
             className={cn(
               "flex flex-col items-center justify-center rounded-2xl border border-line px-1 text-center font-bold disabled:opacity-50",
-              isColorSystem(system) ? "min-h-16" : "min-h-12",
+              isColorSystem(system) || levels ? "min-h-16" : "min-h-12",
             )}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
-            <span className={cn("text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
+            <span className={cn(levels ? "text-2xl font-black tabular-nums" : "text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
               {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-xs font-medium">{t.grades.mystery}</span> : null}

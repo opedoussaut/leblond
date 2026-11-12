@@ -3,6 +3,7 @@ import { CoachSessionsList } from "@/components/training/coach-sessions-list";
 import { QuickSessionForm } from "@/components/training/session-actions";
 import { PastTrainingForm } from "@/components/training/training-free-forms";
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { listCoachSessions } from "@/lib/data/coach-sessions";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
@@ -48,7 +49,7 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
   </li>;
 
   return <div className="space-y-7">
-    <PageHeader title={t.listTitle} subtitle={t.listSubtitle} />
+    <PageHeader icon={<PAGE_ICONS.trainingSessions />} title={t.listTitle} subtitle={t.listSubtitle} />
     {sessions === null ? <p role="alert" className="rounded-xl border border-warn p-4 text-sm">{t.error}</p> : null}
 
     {live.length ? <section aria-labelledby="live-heading" className="space-y-3">

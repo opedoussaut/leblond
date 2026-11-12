@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { countActivity, summarizeRoutes } from "@/lib/analytics";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
@@ -34,7 +35,7 @@ export default async function SessionsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t.session.title} />
+      <PageHeader icon={<PAGE_ICONS.session />} title={t.session.title} />
       {live ? (
         <Card className="border-accent">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok">● {t.session.active}</p>

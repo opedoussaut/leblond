@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { CalendarWorkspace } from "@/components/calendar/calendar-workspace";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
@@ -8,7 +9,7 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_ } from "@/lib/training/sessions";
 import type { CalendarTraining } from "@/components/calendar/calendar-workspace";
 
-export const metadata = { title: "LEBLOND — Calendrier" };
+export const metadata = { title: "LEBLOND — Agenda" };
 export default async function CalendarPage({ searchParams }: PageProps<"/calendar">) {
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
@@ -50,7 +51,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const t=calendarDictionary(locale);
   const presetMethod = typeof sp.method === "string" && METHODS_FOR_PLANS.some(m=>m.id===sp.method) ? sp.method : "";
   return <div className="space-y-5">
-    <PageHeader title={t.title} subtitle={t.subtitle}/>
+    <PageHeader icon={<PAGE_ICONS.calendar />} title={t.title} subtitle={t.subtitle}/>
     {error ? <p role="alert" className="text-sm text-danger">{t.error}</p> : null}
     <CalendarWorkspace month={month} locale={locale} events={transformed} sessions={recorded} trainings={trainings} presetMethod={presetMethod}/>
   </div>;

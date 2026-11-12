@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RouteStats } from "@/components/climbing/route-stats";
 import { PageHeader } from "@/components/ui/card";
+import { AREA_ICONS } from "@/components/layout/nav-icons";
 import { computeSnapshot } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
@@ -10,14 +11,19 @@ import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
 import { formatDate, formatRatio } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
+import { mobilityOverview } from "@/lib/analytics/mobility";
+import { loadMobility } from "@/lib/data/mobility";
+import { fmt } from "@/lib/i18n";
+import { mobilityDictionary } from "@/lib/i18n/mobility";
+import { LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
 
-export const metadata = { title: "LEBLOND — Follow-up" };
+export const metadata = { title: "LEBLOND — Progrès" };
 
 function Evidence({ kind, fr }: { kind: "observed" | "recorded" | "self"; fr: boolean }) {
   const label = {
     observed: fr ? "Observé · carnet de grimpe" : "Observed · climbing journal",
     recorded: fr ? "Enregistré · séances d’entraînement" : "Recorded · training sessions",
-    self: fr ? "Déclaratif · bilans" : "Self-reported · assessments",
+    self: fr ? "Déclaratif · évaluations" : "Self-reported · assessments",
   }[kind];
   return <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-bold text-ink-2">{label}</span>;
 }
@@ -34,12 +40,16 @@ export default async function FollowUpHome() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   const now = new Date();
-  const [dataset, routes, training, { data: assessments }] = await Promise.all([
+  const mob = mobilityDictionary(locale);
+  const [dataset, routes, training, { data: assessments }, mobility] = await Promise.all([
     loadClimbingDataset(viewer.supabase),
     loadRouteAscents(viewer.supabase),
     listTrainingSessions(viewer.supabase, 400),
     viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
+    loadMobility(viewer.supabase),
   ]);
+  const mobilityUsed = !!mobility.enrollment || mobility.records.length > 0 || mobility.assessments.length > 0;
+  const mobOverview = mobilityOverview(mobility.records, mobility.assessments, mobility.today);
   const snap = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 30);
   const today = localDate_(now);
   const since = localDate_(new Date(now.getTime() - 56 * 86_400_000));
@@ -48,8 +58,8 @@ export default async function FollowUpHome() {
   const working = snap.workingGrade;
 
   return <div className="space-y-8">
-    <PageHeader
-      title={fr ? "Suivi" : "Follow-up"}
+    <PageHeader icon={<AREA_ICONS.progress />}
+      title={fr ? "Progrès" : "Progress"}
       subtitle={fr ? "Ce qui s’est réellement passé. Chaque chiffre indique sa source."
                    : "What actually happened. Every number shows where it comes from."}/>
 
@@ -83,8 +93,8 @@ export default async function FollowUpHome() {
       </div>
       {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
         : recent.length === 0 ? <p className="text-sm text-ink-2">
-          {fr ? "Pas encore de séance d’entraînement. Le suivi de grimpe ci-dessus reste complet sans programme."
-              : "No training sessions yet. Your climbing follow-up above is complete without a plan."}{" "}
+          {fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
+              : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
           <Link href="/train" className="font-bold text-accent underline">{fr ? "Découvrir l’entraînement" : "Explore training"}</Link>
         </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
@@ -96,17 +106,29 @@ export default async function FollowUpHome() {
       <Link href="/follow-up/training" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Historique d’entraînement" : "Training history"} →</Link>
     </section>
 
+    {mobilityUsed ? <section aria-labelledby="mobility-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="mobility-heading" className="text-lg font-extrabold">{mob.fuCardTitle}</h2>
+        <Evidence kind="recorded" fr={fr} />
+      </div>
+      <p className="text-sm text-ink-2">{fmt(mob.fuCardText, {
+        sessions: mobOverview.sessionsLast28,
+        level: LEVEL_LABELS[contentLevel(mobility.enrollment?.workingLevel ?? 0)].name[locale],
+      })}</p>
+      <Link href="/follow-up/mobility" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{mob.fuTitle} →</Link>
+    </section> : null}
+
     <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="assess-heading" className="text-lg font-extrabold">{fr ? "Bilans" : "Assessments"}</h2>
+        <h2 id="assess-heading" className="text-lg font-extrabold">{fr ? "Évaluations" : "Assessments"}</h2>
         <Evidence kind="self" fr={fr} />
       </div>
-      {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucun bilan. C’est facultatif." : "No assessments. They are optional."}</p>
+      {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucune évaluation. C’est facultatif." : "No assessments. They are optional."}</p>
         : <p className="text-sm text-ink-2">
-          {fr ? `${assessments!.length} bilan(s) · dernier le ` : `${assessments!.length} assessment(s) · latest on `}
+          {fr ? `${assessments!.length} évaluation(s) · dernière le ` : `${assessments!.length} assessment(s) · latest on `}
           {formatDate(assessments![0].created_at, locale)}
         </p>}
-      <Link href="/training-assessment" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Comparer mes bilans" : "Compare my assessments"} →</Link>
+      <Link href="/training-assessment" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Comparer mes évaluations" : "Compare my assessments"} →</Link>
       <p className="text-xs text-ink-3">{fr
         ? "Les scénarios d’évolution sont illustratifs et ne prédisent pas une cotation. Ils restent séparés des résultats observés."
         : "Progress scenarios are illustrative and do not predict a grade. They stay separate from observed results."}</p>
