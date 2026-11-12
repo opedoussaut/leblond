@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ForgetOfflineData } from "@/components/offline/forget-offline-data";
 import { Notice } from "@/components/ui/card";
 import { normalizeInviteCode } from "@/lib/auth/invite-code";
 import { getI18n } from "@/lib/i18n/server";
@@ -18,6 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const invite = normalizeInviteCode(rawInvite);
   return (
     <main className="leblond-login-glow pt-safe flex min-h-dvh items-center justify-center px-4 py-5 sm:px-6 sm:py-9">
+      <ForgetOfflineData />
       <div className="grid grid-cols-1 w-full max-w-5xl overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_28px_100px_-50px_rgba(9,41,77,0.42)] md:grid-cols-2">
         <div className="flex items-center justify-center bg-[#164775] p-3 sm:p-5 md:p-7">
           <Image

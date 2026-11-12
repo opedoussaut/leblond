@@ -847,7 +847,8 @@ export const fr = {
   },
   pwa: {
     offlineTitle: "Hors connexion",
-    offlineBody: "LEBLOND a besoin du réseau pour enregistrer tes essais. Reconnecte-toi et réessaie.",
+    offlineBody: "Cette page a besoin du réseau. Une séance de bloc en cours se note quand même sans réseau : tout est gardé sur ce téléphone et envoyé dès que le réseau revient.",
+    resume: "Reprendre la séance en cours · {gym}",
   },
   errors: {
     notFound: "Introuvable.",

@@ -3,6 +3,7 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { AppNav, AreaSubNav } from "@/components/layout/app-nav";
 import { RouteFocus } from "@/components/layout/route-focus";
+import { PendingSync } from "@/components/offline/pending-sync";
 import { requireViewer } from "@/lib/auth/viewer";
 
 /** Authenticated shell. Onboarding has its own layout without navigation. */
@@ -32,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <AreaSubNav />
         {children}
       </main>
+      <PendingSync userId={viewer.userId} />
       <AppNav hasLiveSession={(count ?? 0) > 0} hasLiveTraining={(training ?? 0) > 0}
         displayName={displayName} isAdmin={isAdmin} />
     </div>

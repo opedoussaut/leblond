@@ -388,8 +388,11 @@ export function BoolderProblemPicker({
   source,
   credit,
   inSession,
+  offline = false,
 }: {
   problems: CatalogueItem[];
+  /** No signal: the map (its tiles come from the network) is hidden; the list works. */
+  offline?: boolean;
   /** Topo boulders already in the session being logged → tries logged there. */
   inSession?: ReadonlyMap<number, number>;
   /** The area's source (BOOLDER by default) and, for a team topo, its credit. */
@@ -410,7 +413,8 @@ export function BoolderProblemPicker({
   const [query, setQuery] = useState("");
   const [circuit, setCircuit] = useState<string | null>(null); // colour, "none", or null = all
   const [grade, setGrade] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "map">("list");
+  const [chosenView, setView] = useState<"list" | "map">("list");
+  const view = offline ? "list" : chosenView;
   const [selectedId, setSelectedId] = useState<number | null>(null);
   // How many rows are listed, for the current search and filters (back to one page when they change).
   const filterKey = `${query}|${circuit}|${grade}`;
@@ -486,7 +490,8 @@ export function BoolderProblemPicker({
           </option>
         ))}
       </Select>
-      {hasMap ? (
+      {hasMap && offline ? <p className="text-xs text-ink-3">{L.mapNeedsNetwork}</p> : null}
+      {hasMap && !offline ? (
         <div className="inline-flex rounded-full border border-line p-0.5" role="group" aria-label={t.outdoor.viewAs}>
           {(["list", "map"] as const).map((v) => (
             <button

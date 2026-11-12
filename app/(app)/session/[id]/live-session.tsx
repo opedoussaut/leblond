@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isColorSystem } from "@/lib/grading/systems";
 import { gradeSpokenLabel } from "@/lib/grading/labels";
-import { QuickBoulderEntry } from "./quick-boulder-entry";
+import { QuickBoulderEntry, type QuickChoice } from "./quick-boulder-entry";
 import { ScaleSwitch } from "./scale-switch";
+import { useBoulderLog, type Rejection } from "./use-boulder-log";
 import { ResultBadge, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
-import { markProblemProject, type LiveProblem } from "@/lib/actions/sessions";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
@@ -26,19 +25,16 @@ import { Select, fieldClass } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
-import {
-  correctAttempt,
-  createProblem,
-  deleteLatestAttempt,
-  endSession,
-  logAttempt,
-  removeProblemFromSession,
-  removeProblemsFromSession,
-  setSessionGradeSystem,
-  updateProblem,
-} from "@/lib/actions/sessions";
-import { logTopoBoulder, pickOutdoorProblem } from "@/lib/actions/outdoor";
 import { countActivity, type AttemptFact } from "@/lib/analytics";
+import {
+  canFlash as canFlashOn,
+  nextAttemptNumber,
+  removeProblems,
+  type Attempt,
+  type KnownBoulder,
+  type LiveProblemItem,
+  type NewBoulderOp,
+} from "@/lib/climbing/offline-session";
 import {
   STYLE_TAGS,
   WALL_ANGLES,
@@ -50,22 +46,17 @@ import {
 } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
 import { fmt, plural } from "@/lib/i18n";
-import type { Tables } from "@/lib/supabase/database.types";
 
-type Attempt = Tables<"attempts">;
+export type { LiveProblemItem };
 type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
-export type LiveProblemItem = {
-  id: string;
-  native_grade: string;
-  /** The scale the problem was logged with (may predate a change of the gym's scale). */
-  native_grade_system?: GradeSystem;
-  notes?: string | null;
-  wall_angle: WallAngle;
-  tags: StyleTag[];
-  created_at: string;
-  name: string | null;
-  outdoor_problem_id: number | null;
-};
+
+/** The tries of a boulder logged in one step: tries − 1 misses, then the outcome. */
+function triesFor(tries: number, outcome: Outcome): Array<{ id: string; result: AttemptResult }> {
+  return Array.from({ length: tries }, (_, j) => ({
+    id: crypto.randomUUID(),
+    result: j === tries - 1 && (outcome === "FLASH" || outcome === "TOP") ? outcome : "ATTEMPT",
+  }));
+}
 
 function elapsed(startedAt: string, now: number) {
   const s = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
@@ -84,6 +75,8 @@ export function LiveSession({
   projectProblemIds,
   projectsOpenedHere = [],
   outdoor = null,
+  known = {},
+  renderedAt,
   mode = "live",
 }: {
   sessionId: string;
@@ -98,13 +91,25 @@ export function LiveSession({
   projectsOpenedHere?: string[];
   /** Set when the session is in a Fontainebleau area from the Boolder catalogue. */
   outdoor?: { area: AreaItem; problems: CatalogueItem[] } | null;
+  /** Topo id → the climber's boulder there, tried in another session (outdoor). */
+  known?: Record<string, KnownBoulder>;
+  /** When the server made the page: tells fresh data from the copy kept for use without signal. */
+  renderedAt: string;
   /** "edit": filling in or correcting a finished session — no timer, no end button. */
   mode?: "live" | "edit";
 }) {
   const { t, locale } = useI18n();
-  const router = useRouter();
-  const [problems, setProblems] = useState(initialProblems);
-  const [attempts, setAttempts] = useState(initialAttempts);
+  const L = loggingDictionary(locale);
+  const logger = useBoulderLog({
+    sessionId, userId, gymName: gym.name, renderedAt, live: mode === "live",
+    server: {
+      problems: initialProblems, attempts: initialAttempts, projectIds: projectProblemIds, openedHere: projectsOpenedHere,
+      scale: gym.system, endedAt: null, known,
+    },
+  });
+  const { state } = logger;
+  const { problems, attempts, projectIds, openedHere, scale } = state;
+  const ctx = { sessionId, userId };
   const [currentId, setCurrentId] = useState<string | null>(() => {
     const last = [...initialAttempts].filter((a) => a.session_id === sessionId).at(-1);
     return last?.problem_id ?? null;
@@ -114,20 +119,12 @@ export function LiveSession({
   const [gradeFallback, setGradeFallback] = useState(false);
   const catalogue = useMemo(() => new Map((outdoor?.problems ?? []).map((p) => [p.id, p])), [outdoor]);
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const [flashPrompt, setFlashPrompt] = useState<Attempt | null>(null);
+  /** A top on try 1 just logged: offer to make it a flash. */
+  const [flashPromptId, setFlashPromptId] = useState<string | null>(null);
+  const flashPrompt = flashPromptId ? attempts.find((a) => a.id === flashPromptId) ?? null : null;
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [pending, start] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const [quick, setQuick] = useState(false);
-  const [projectIds, setProjectIds] = useState(projectProblemIds);
-  const [openedHere, setOpenedHere] = useState(projectsOpenedHere);
-  /** A project created now is linked to this session; an existing one keeps its own session. */
-  const addProjects = (problemIds: string[]) => {
-    const fresh = problemIds.filter((pid) => !projectIds.includes(pid));
-    if (!fresh.length) return;
-    setProjectIds((ids) => [...ids, ...fresh.filter((pid) => !ids.includes(pid))]);
-    setOpenedHere((ids) => [...ids, ...fresh.filter((pid) => !ids.includes(pid))]);
-  };
   const projectLabel = (problemId: string) => (openedHere.includes(problemId) ? L.projectHere : L.project);
   const [bulkTries, setBulkTries] = useState(2);
   const [commentDraft, setCommentDraft] = useState<string | null>(null);
@@ -139,20 +136,21 @@ export function LiveSession({
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmMany, setConfirmMany] = useState(false);
-  const L = loggingDictionary(locale);
   // The scale new boulders are logged in; existing boulders keep their own.
-  const [scale, setScale] = useState<GradeSystem>(gym.system);
   const scales = gym.systems ?? [gym.system];
+
+  /** Applies changes on screen and queues them for the server; says why when they are refused. */
+  function run(ops: NewBoulderOp[]): boolean {
+    const error = logger.enqueue(ops);
+    if (error) {
+      say("error", error === "flashOnlyFirst" ? t.session.flashOnlyFirst : t.common.unknownError);
+      return false;
+    }
+    return true;
+  }
+
   function switchScale(next: GradeSystem) {
-    const previous = scale;
-    setScale(next);
-    start(async () => {
-      const res = await setSessionGradeSystem({ sessionId, system: next });
-      if (!res.ok) {
-        setScale(previous);
-        setStatus({ tone: "error", text: t.common.unknownError });
-      }
-    });
+    run([{ kind: "scale", system: next }]);
   }
 
   useEffect(() => {
@@ -209,29 +207,15 @@ export function LiveSession({
   const say = (tone: "ok" | "error", text: string) => setStatus({ tone, text });
 
   function addProblem(grade: string) {
-    start(async () => {
-      const res = await createProblem({ gymId: gym.id, sessionId, nativeGrade: grade, ...(gym.outdoor ? manual : {}) });
-      if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      const p = res.data;
-      setProblems((list) => [
-        ...list,
-        {
-          id: p.id,
-          native_grade: p.native_grade,
-          native_grade_system: p.native_grade_system,
-          wall_angle: p.wall_angle,
-          tags: [],
-          created_at: p.created_at,
-          name: p.name,
-          notes: p.notes,
-          outdoor_problem_id: p.outdoor_problem_id,
-        },
-      ]);
-      setCurrentId(p.id);
-      setAdding(false);
-      setFlashPrompt(null);
-      setManual({ name: "", sector: manual.sector });
-    });
+    const id = crypto.randomUUID();
+    const extra = gym.outdoor
+      ? { ...(manual.name.trim() ? { name: manual.name.trim() } : {}), ...(manual.sector.trim() ? { sector: manual.sector.trim() } : {}) }
+      : {};
+    if (!run([{ kind: "createProblem", problemId: id, grade, system: scale, ...extra }])) return;
+    setCurrentId(id);
+    setAdding(false);
+    setFlashPromptId(null);
+    setManual({ name: "", sector: manual.sector });
   }
 
   /** A topo boulder was chosen: ask for its grade, tries and result. */
@@ -240,249 +224,144 @@ export function LiveSession({
     setLastAdded(null);
   }
 
-  const asItem = (p: LiveProblem): LiveProblemItem => ({
-    id: p.id,
-    native_grade: p.native_grade,
-    native_grade_system: p.native_grade_system,
-    notes: p.notes,
-    wall_angle: p.wall_angle as WallAngle,
-    tags: p.tags as StyleTag[],
-    created_at: p.created_at,
-    name: p.name,
-    outdoor_problem_id: p.outdoor_problem_id,
+  /** The climber's boulder for a topo boulder: already listed, tried in another session, or new. */
+  function topoProblem(item: CatalogueItem): { id: string; listed: boolean; grade: string | null } {
+    const listed = problems.find((p) => p.outdoor_problem_id === item.id);
+    if (listed) return { id: listed.id, listed: true, grade: listed.native_grade };
+    const before = state.known[String(item.id)];
+    return { id: before?.id ?? crypto.randomUUID(), listed: false, grade: before?.grade ?? null };
+  }
+  const pickOp = (item: CatalogueItem, problemId: string): NewBoulderOp => ({
+    kind: "pickTopo", problemId, outdoorProblemId: item.id, name: item.name, grade: item.grade,
   });
 
   /** Adds the topo boulder with its tries and result in one go; the topo stays open for the next one. */
   function addFromTopo(item: CatalogueItem, choice: { grade: string; outcome: Outcome; tries: number }) {
-    start(async () => {
-      const res = await logTopoBoulder({ sessionId, gymId: gym.id, outdoorProblemId: item.id, ...choice });
-      if (!res.ok || !res.data) {
-        return say("error", !res.ok && res.error === "flashOnlyFirst" ? t.session.flashOnlyFirst : t.common.unknownError);
-      }
-      const { problem: p, attempts: added } = res.data;
-      setProblems((list) =>
-        list.some((x) => x.id === p.id)
-          ? list.map((x) => (x.id === p.id ? { ...x, native_grade: p.native_grade } : x))
-          : [...list, asItem(p)],
-      );
-      setAttempts((list) => [...list, ...added]);
-      const newProject = choice.outcome === "PROJECT" && !projectIds.includes(p.id);
-      if (choice.outcome === "PROJECT") addProjects([p.id]);
-      setCurrentId(p.id);
-      setPicked(null);
-      setFlashPrompt(null);
-      const what =
-        choice.outcome === "FLASH"
-          ? L.flash
-          : choice.outcome === "TOP"
-            ? choice.tries === 1 ? L.top : fmt(L.topIn, { n: choice.tries })
-            : plural(locale, choice.tries, choice.outcome === "PROJECT"
-              ? { one: L.projectTriesOne, other: L.projectTriesOther }
-              : { one: L.notSentOne, other: L.notSentOther });
-      const text = fmt(L.topoAdded, { name: item.name, what }) + (newProject ? " " + L.projectLinked : "");
-      setLastAdded(text);
-      say("ok", text);
-    });
+    const target = topoProblem(item);
+    const ops: NewBoulderOp[] = [];
+    if (!target.listed) ops.push(pickOp(item, target.id));
+    if (choice.grade !== (target.grade ?? item.grade)) ops.push({ kind: "updateProblem", problemId: target.id, nativeGrade: choice.grade });
+    ops.push({ kind: "attempts", problemId: target.id, items: triesFor(choice.tries, choice.outcome) });
+    const newProject = choice.outcome === "PROJECT" && !projectIds.includes(target.id);
+    if (choice.outcome === "PROJECT") ops.push({ kind: "project", problemId: target.id });
+    if (!run(ops)) return;
+    setCurrentId(target.id);
+    setPicked(null);
+    setFlashPromptId(null);
+    const what =
+      choice.outcome === "FLASH"
+        ? L.flash
+        : choice.outcome === "TOP"
+          ? choice.tries === 1 ? L.top : fmt(L.topIn, { n: choice.tries })
+          : plural(locale, choice.tries, choice.outcome === "PROJECT"
+            ? { one: L.projectTriesOne, other: L.projectTriesOther }
+            : { one: L.notSentOne, other: L.notSentOther });
+    const text = fmt(L.topoAdded, { name: item.name, what }) + (newProject ? " " + L.projectLinked : "");
+    setLastAdded(text);
+    say("ok", text);
   }
 
   /** The former behaviour: select the boulder and log it try by try. */
   function selectFromTopo(item: CatalogueItem) {
     setPicked(null);
-    const known = problems.find((p) => p.outdoor_problem_id === item.id);
-    if (known) {
-      setCurrentId(known.id);
-      setAdding(false);
-      setFlashPrompt(null);
-      return;
-    }
-    start(async () => {
-      const res = await pickOutdoorProblem({ gymId: gym.id, outdoorProblemId: item.id });
-      if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      const p = res.data;
-      setProblems((list) => (list.some((x) => x.id === p.id) ? list : [...list, asItem(p)]));
-      setCurrentId(p.id);
-      setAdding(false);
-      setFlashPrompt(null);
-    });
+    const target = topoProblem(item);
+    if (!target.listed && !run([pickOp(item, target.id)])) return;
+    setCurrentId(target.id);
+    setAdding(false);
+    setFlashPromptId(null);
   }
 
   function log(result: AttemptResult) {
     if (!current) return;
-    const problemId = current.id;
-    const nextNumber = Math.max(0, ...attempts.filter((a) => a.problem_id === problemId).map((a) => a.attempt_number)) + 1;
-    if (result === "FLASH" && nextNumber > 1) return say("error", t.session.flashOnlyFirst);
-    const temp: Attempt = {
-      id: `temp-${crypto.randomUUID()}`,
-      session_id: sessionId,
-      problem_id: problemId,
-      user_id: userId,
-      attempt_number: nextNumber,
-      result,
-      created_at: new Date().toISOString(),
-      notes: null,
-      perceived_difficulty: null,
-      started_at: null,
-    };
-    setAttempts((list) => [...list, temp]); // optimistic: instant feedback
-    setFlashPrompt(null);
-    start(async () => {
-      const res = await logAttempt({ sessionId, problemId, result });
-      if (!res.ok || !res.data) {
-        setAttempts((list) => list.filter((a) => a.id !== temp.id));
-        return say("error", res.ok ? t.common.unknownError : res.error === "flashOnlyFirst" ? t.session.flashOnlyFirst : t.common.unknownError);
-      }
-      const saved = res.data.attempt;
-      setAttempts((list) => list.map((a) => (a.id === temp.id ? saved : a)));
-      say("ok", fmt(t.session.logged, { result: t.results[saved.result] }));
-      if (res.data.suggestFlash) setFlashPrompt(saved);
-    });
+    const id = crypto.randomUUID();
+    const first = nextAttemptNumber(state, current.id) === 1;
+    if (!run([{ kind: "attempts", problemId: current.id, items: [{ id, result }] }])) return;
+    setFlashPromptId(result === "TOP" && first ? id : null);
+    say("ok", fmt(t.session.logged, { result: t.results[result] }));
   }
 
   /** Record several unsuccessful tries on the current problem in one tap. */
   function logTries(n: number) {
     if (!current) return;
-    const problemId = current.id;
-    start(async () => {
-      for (let i = 0; i < n; i++) {
-        const res = await logAttempt({ sessionId, problemId, result: "ATTEMPT" });
-        if (!res.ok || !res.data) return say("error", t.common.unknownError);
-        const saved = res.data.attempt;
-        setAttempts((list) => [...list, saved]);
-      }
-      say("ok", fmt(L.triesShort, { n }) + " ✓");
-    });
+    const items = Array.from({ length: n }, () => ({ id: crypto.randomUUID(), result: "ATTEMPT" as const }));
+    if (!run([{ kind: "attempts", problemId: current.id, items }])) return;
+    say("ok", fmt(L.triesShort, { n }) + " ✓");
   }
 
   function makeProject() {
     if (!current) return;
-    const problemId = current.id;
-    start(async () => {
-      const res = await markProblemProject(problemId, sessionId);
-      if (!res.ok) return say("error", t.common.unknownError);
-      addProjects([problemId]);
-      say("ok", L.projectSavedHere);
-    });
+    if (run([{ kind: "project", problemId: current.id }])) say("ok", L.projectSavedHere);
   }
 
   function saveComment() {
     if (!current || commentDraft === null) return;
-    const problemId = current.id;
     const notes = commentDraft.trim();
-    setProblems((list) => list.map((p) => (p.id === problemId ? { ...p, notes } : p)));
     setCommentDraft(null);
-    start(async () => {
-      const res = await updateProblem({ problemId, notes: notes || null });
-      say(res.ok ? "ok" : "error", res.ok ? L.saved : t.common.unknownError);
-    });
+    if (run([{ kind: "updateProblem", problemId: current.id, notes: notes || null }])) say("ok", L.saved);
   }
 
-  function onQuickLogged(created: LiveProblem[], newAttempts: Attempt[], outcome: string) {
-    setProblems((list) => [...list, ...created.map((p) => ({
-      id: p.id, native_grade: p.native_grade, native_grade_system: p.native_grade_system, notes: p.notes,
-      wall_angle: p.wall_angle as WallAngle, tags: [] as StyleTag[], created_at: p.created_at, name: p.name,
-      outdoor_problem_id: p.outdoor_problem_id,
-    }))]);
-    setAttempts((list) => [...list, ...newAttempts]);
-    if (outcome === "PROJECT") addProjects(created.map((p) => p.id));
+  /** Several boulders of one grade, each with its tries and outcome (quick entry). */
+  function quickAdd(c: QuickChoice): boolean {
+    const ops: NewBoulderOp[] = [];
+    for (let i = 0; i < c.count; i++) {
+      const id = crypto.randomUUID();
+      ops.push({ kind: "createProblem", problemId: id, grade: c.grade, system: scale, ...(c.notes.trim() ? { notes: c.notes.trim() } : {}) });
+      ops.push({ kind: "attempts", problemId: id, items: triesFor(c.outcome === "FLASH" ? 1 : c.tries, c.outcome) });
+      if (c.outcome === "PROJECT") ops.push({ kind: "project", problemId: id });
+    }
+    return run(ops);
   }
 
   function markFlash(a: Attempt) {
-    start(async () => {
-      const res = await correctAttempt({ attemptId: a.id, result: "FLASH" });
-      if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      const updated = res.data;
-      setAttempts((list) => list.map((x) => (x.id === a.id ? updated : x)));
-      setFlashPrompt(null);
-      say("ok", fmt(t.session.logged, { result: t.results.FLASH }));
-    });
+    if (!run([{ kind: "correctAttempt", attemptId: a.id, result: "FLASH" }])) return;
+    setFlashPromptId(null);
+    say("ok", fmt(t.session.logged, { result: t.results.FLASH }));
   }
 
   function undo() {
     if (!current) return;
     const latest = attempts
-      .filter((a) => a.problem_id === current.id && a.session_id === sessionId && !a.id.startsWith("temp-"))
+      .filter((a) => a.problem_id === current.id && a.session_id === sessionId)
       .sort((a, b) => b.attempt_number - a.attempt_number)[0];
     if (!latest) return;
-    start(async () => {
-      const res = await deleteLatestAttempt(latest.id);
-      if (!res.ok) return say("error", t.common.unknownError);
-      setAttempts((list) => list.filter((a) => a.id !== latest.id));
-      setFlashPrompt(null);
-      say("ok", t.session.undone);
-    });
-  }
-
-  /** Mirrors the database after boulders were taken out of this session. */
-  function applyRemoval(ids: string[], problemsDeleted: string[], projectsDeleted: string[]) {
-    const out = new Set(ids);
-    // Same renumbering as the database: the remaining tries count from 1 again.
-    setAttempts((list) => {
-      const rest = list.filter((a) => !(out.has(a.problem_id) && a.session_id === sessionId));
-      const numbers = new Map<string, number>();
-      for (const pid of out) {
-        rest.filter((a) => a.problem_id === pid).sort((a, b) => a.attempt_number - b.attempt_number)
-          .forEach((a, i) => numbers.set(a.id, i + 1));
-      }
-      return rest.map((a) => (numbers.has(a.id) ? { ...a, attempt_number: numbers.get(a.id)! } : a));
-    });
-    const projectGone = new Set(projectsDeleted);
-    const stillProject = (pid: string) => projectIds.includes(pid) && !projectGone.has(pid);
-    setProblems((list) => list.filter((p) => !problemsDeleted.includes(p.id) && !(out.has(p.id) && !stillProject(p.id))));
-    setProjectIds((list) => list.filter((pid) => !projectGone.has(pid) && !problemsDeleted.includes(pid)));
-    setOpenedHere((list) => list.filter((pid) => !projectGone.has(pid) && !problemsDeleted.includes(pid)));
-    if (currentId && out.has(currentId)) setCurrentId(null);
-    setFlashPrompt(null);
+    if (!run([{ kind: "deleteAttempt", attemptId: latest.id }])) return;
+    setFlashPromptId(null);
+    say("ok", t.session.undone);
   }
 
   /** Takes the current boulder out of this session (logged by mistake). */
   function removeCurrent() {
     if (!current) return;
     const problemId = current.id;
-    start(async () => {
-      const res = await removeProblemFromSession({ sessionId, problemId });
-      if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      const { problemDeleted, projectDeleted } = res.data;
-      applyRemoval([problemId], problemDeleted ? [problemId] : [], projectDeleted ? [problemId] : []);
-      setConfirmRemoveId(null);
-      say("ok", projectDeleted ? L.removedWithProject : problemDeleted ? L.removedDeleted : L.removed);
-    });
+    // Same rules as the database: what will be deleted with it, for the message.
+    const { problemsDeleted, projectsDeleted } = removeProblems(state, [problemId], ctx);
+    if (!run([{ kind: "remove", problemIds: [problemId] }])) return;
+    setCurrentId(null);
+    setFlashPromptId(null);
+    setConfirmRemoveId(null);
+    say("ok", projectsDeleted.includes(problemId) ? L.removedWithProject : problemsDeleted.includes(problemId) ? L.removedDeleted : L.removed);
   }
 
   /** Takes the selected boulders out of this session, all or nothing. */
   function removeSelected() {
     const ids = selected.filter((pid) => inSession.some((p) => p.id === pid));
     if (!ids.length) return;
-    start(async () => {
-      const res = await removeProblemsFromSession({ sessionId, problemIds: ids });
-      if (!res.ok || !res.data) return say("error", t.common.unknownError);
-      applyRemoval(ids, res.data.problemsDeleted, res.data.projectsDeleted);
-      setSelected([]);
-      setSelecting(false);
-      setConfirmMany(false);
-      say("ok", fmt(plural(locale, ids.length, { one: L.removedManyOne, other: L.removedManyOther }), { n: ids.length }));
-    });
+    if (!run([{ kind: "remove", problemIds: ids }])) return;
+    if (currentId && ids.includes(currentId)) setCurrentId(null);
+    setFlashPromptId(null);
+    setSelected([]);
+    setSelecting(false);
+    setConfirmMany(false);
+    say("ok", fmt(plural(locale, ids.length, { one: L.removedManyOne, other: L.removedManyOther }), { n: ids.length }));
   }
 
   function patchCurrent(patch: { wallAngle?: WallAngle; tags?: StyleTag[] }) {
     if (!current) return;
-    const id = current.id;
-    setProblems((list) =>
-      list.map((p) =>
-        p.id === id ? { ...p, wall_angle: patch.wallAngle ?? p.wall_angle, tags: patch.tags ?? p.tags } : p,
-      ),
-    );
-    start(async () => {
-      const res = await updateProblem({ problemId: id, ...patch });
-      if (!res.ok) say("error", t.common.unknownError);
-    });
+    run([{ kind: "updateProblem", problemId: current.id, ...patch }]);
   }
 
   function finish() {
-    start(async () => {
-      const res = await endSession(sessionId);
-      if (!res.ok) return say("error", t.common.unknownError);
-      router.refresh();
-    });
+    if (run([{ kind: "end" }])) setConfirmEnd(false);
   }
 
   function openProblem(problemId: string) {
@@ -490,6 +369,21 @@ export function LiveSession({
     setAdding(false);
     setPicked(null);
     setLastAdded(null);
+  }
+
+  const syncBar = <SyncBar log={logger} L={L} locale={locale} />;
+
+  // Ended on this phone, not stored yet: nothing more to log, only to send.
+  if (mode === "live" && state.endedAt) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-black leading-tight">{gym.name}</h1>
+        <p className="rounded-2xl bg-surface-2 p-4 font-semibold">
+          {fmt(logger.online ? L.endedSaving : L.endedOffline, { time: new Date(state.endedAt).toLocaleTimeString(locale === "en" ? "en-GB" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) })}
+        </p>
+        {syncBar}
+      </div>
+    );
   }
 
   /** One boulder in the lists: grade, circuit (outdoor), name, this session's tries and badges. */
@@ -517,8 +411,12 @@ export function LiveSession({
 
   const currentAttempts = current ? attempts.filter((a) => a.problem_id === current.id) : [];
   const currentSessionAttempts = currentAttempts.filter((a) => a.session_id === sessionId);
-  const canFlash = current !== null && currentAttempts.length === 0;
-  const pickedKnown = picked ? problems.find((p) => p.outdoor_problem_id === picked.id) ?? null : null;
+  // A topo boulder tried in another session cannot be flashed any more.
+  const canFlash = current !== null && canFlashOn(state, current.id);
+  const pickedListed = picked ? problems.find((p) => p.outdoor_problem_id === picked.id) ?? null : null;
+  const pickedBefore = picked ? state.known[String(picked.id)] ?? null : null;
+  // Boulders made on this phone and not on the server yet: no photo, no link to their page.
+  const currentUnsent = current !== null && logger.unsentProblems.has(current.id);
 
   return (
     <div className="space-y-5">
@@ -555,6 +453,7 @@ export function LiveSession({
         </dl>
       </header>
 
+      {syncBar}
       <p aria-live="polite" className={cn("min-h-5 text-sm", status?.tone === "error" ? "text-danger" : "text-ink-2")}>
         {status?.text}
       </p>
@@ -590,10 +489,10 @@ export function LiveSession({
               ⚡ {t.results.flash}
             </Button>
           </div>
-          {flashPrompt && flashPrompt.problem_id === current.id ? (
+          {flashPrompt && flashPrompt.problem_id === current.id && flashPrompt.attempt_number === 1 ? (
             <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-accent-soft p-3 text-sm">
               <span>{t.session.suggestFlash}</span>
-              <Button onClick={() => markFlash(flashPrompt)} disabled={pending}>
+              <Button onClick={() => markFlash(flashPrompt)}>
                 {t.session.markFlash}
               </Button>
             </div>
@@ -605,12 +504,12 @@ export function LiveSession({
             <span className="w-6 text-center font-black tabular-nums">{bulkTries}</span>
             <button type="button" aria-label={L.tries + " +"} disabled={bulkTries >= 20} onClick={() => setBulkTries((n) => Math.min(20, n + 1))}
               className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
-            <Button variant="secondary" disabled={pending} onClick={() => logTries(bulkTries)}>{fmt(L.logTries, { n: bulkTries })}</Button>
+            <Button variant="secondary" onClick={() => logTries(bulkTries)}>{fmt(L.logTries, { n: bulkTries })}</Button>
             {projectIds.includes(current.id)
               ? <Link href="/projects" className="ml-auto" title={L.seeProjects}>
                   <ResultBadge tone="project" label={projectLabel(current.id)} />
                 </Link>
-              : <button type="button" disabled={pending} onClick={makeProject} style={toneButtonStyle("project")}
+              : <button type="button" onClick={makeProject} style={toneButtonStyle("project")}
                   className="ml-auto min-h-11 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
           </div>
           <div className="mt-3">
@@ -618,7 +517,7 @@ export function LiveSession({
               <input value={commentDraft} maxLength={2000} autoFocus aria-label={L.comment} placeholder={L.commentPlaceholder}
                 onChange={(ev) => setCommentDraft(ev.target.value)}
                 className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-3 text-sm" />
-              <Button onClick={saveComment} disabled={pending}>{L.save}</Button>
+              <Button onClick={saveComment}>{L.save}</Button>
             </div> : <>
               {current.notes ? <p className="text-sm italic text-ink-2">“{current.notes}”</p> : null}
               <button type="button" onClick={() => setCommentDraft(current.notes ?? "")}
@@ -627,20 +526,26 @@ export function LiveSession({
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {currentSessionAttempts.length > 0 ? (
-              <Button variant="ghost" onClick={undo} disabled={pending}>
+              <Button variant="ghost" onClick={undo}>
                 ↶ {t.session.undo}
               </Button>
             ) : null}
-            <MediaUploader
-              userId={userId}
-              problemId={current.id}
-              sessionId={sessionId}
-              compact
-              onUploaded={() => say("ok", "✓")}
-            />
-            <Link href={`/problem/${current.id}`} className="ml-auto text-sm text-accent underline-offset-2 hover:underline">
-              {t.session.viewProblem}
-            </Link>
+            {logger.online && !currentUnsent ? (
+              <MediaUploader
+                userId={userId}
+                problemId={current.id}
+                sessionId={sessionId}
+                compact
+                onUploaded={() => say("ok", "✓")}
+              />
+            ) : !logger.online ? (
+              <span className="text-xs text-ink-3">{L.needsNetwork}</span>
+            ) : null}
+            {currentUnsent ? null : (
+              <Link href={`/problem/${current.id}`} className="ml-auto text-sm text-accent underline-offset-2 hover:underline">
+                {t.session.viewProblem}
+              </Link>
+            )}
           </div>
           {confirmRemoveId === current.id ? (
             <div className="mt-3 space-y-2 rounded-xl border border-danger p-3">
@@ -658,7 +563,7 @@ export function LiveSession({
                       : L.removeDeletes}
               </p>
               <div className="flex gap-2">
-                <Button variant="danger" onClick={removeCurrent} disabled={pending}>
+                <Button variant="danger" onClick={removeCurrent}>
                   {L.removeConfirm}
                 </Button>
                 <Button variant="ghost" onClick={() => setConfirmRemoveId(null)}>
@@ -702,9 +607,9 @@ export function LiveSession({
         <TopoQuickAdd
           key={picked.id}
           item={picked}
-          currentGrade={pickedKnown?.native_grade ?? null}
-          priorTries={pickedKnown ? attempts.filter((a) => a.problem_id === pickedKnown.id).length : 0}
-          pending={pending}
+          currentGrade={pickedListed?.native_grade ?? pickedBefore?.grade ?? null}
+          priorTries={pickedListed ? nextAttemptNumber(state, pickedListed.id) - 1 : pickedBefore?.lastNumber ?? 0}
+          pending={false}
           onAdd={(choice) => addFromTopo(picked, choice)}
           onOneByOne={() => selectFromTopo(picked)}
           onCancel={() => setPicked(null)}
@@ -720,9 +625,10 @@ export function LiveSession({
             problems={outdoor.problems}
             source={outdoor.area.source}
             credit={outdoor.area.credit}
-            pending={pending}
+            pending={false}
             onPick={pickFromTopo}
             inSession={inSessionTopo}
+            offline={!logger.online}
             onCancel={problems.length ? () => { setAdding(false); setLastAdded(null); } : undefined}
             onNotInTopo={() => setGradeFallback(true)}
           />
@@ -741,8 +647,8 @@ export function LiveSession({
               </label>
             </div>
           ) : null}
-          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={pending} />}
-          <GradeGrid system={scale} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={pending} />
+          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={false} />}
+          <GradeGrid system={scale} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={false} />
           {outdoor && outdoor.problems.length > 0 ? (
             <button type="button" onClick={() => setGradeFallback(false)} className="text-sm text-accent underline-offset-2 hover:underline">
               ← {t.outdoor.backToTopo}
@@ -756,8 +662,8 @@ export function LiveSession({
       )}
       {quick ? (
         <div className="space-y-2">
-          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={pending} />}
-          <QuickBoulderEntry key={scale} sessionId={sessionId} system={scale} onLogged={onQuickLogged} onClose={() => setQuick(false)} />
+          {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={false} />}
+          <QuickBoulderEntry key={scale} system={scale} onSubmit={quickAdd} onClose={() => setQuick(false)} />
         </div>
       ) : (
         <Button size="lg" variant="secondary" className="w-full" onClick={() => { setQuick(true); setAdding(false); }}>
@@ -782,7 +688,7 @@ export function LiveSession({
               </span>
               <button type="button" onClick={() => setSelected(inSession.map((p) => p.id))}
                 className="min-h-11 px-2 font-bold text-accent underline underline-offset-2">{L.selectAll}</button>
-              <Button variant="danger" className="ml-auto" disabled={pending || selected.length === 0} onClick={() => setConfirmMany(true)}>
+              <Button variant="danger" className="ml-auto" disabled={selected.length === 0} onClick={() => setConfirmMany(true)}>
                 {fmt(L.removeSelected, { n: selected.length })}
               </Button>
             </div>
@@ -794,7 +700,7 @@ export function LiveSession({
               </p>
               <p className="text-sm text-ink-2">{L.removeManyBody}</p>
               <div className="flex gap-2">
-                <Button variant="danger" onClick={removeSelected} disabled={pending}>{L.removeConfirm}</Button>
+                <Button variant="danger" onClick={removeSelected}>{L.removeConfirm}</Button>
                 <Button variant="ghost" onClick={() => setConfirmMany(false)}>{t.common.cancel}</Button>
               </div>
             </div>
@@ -849,8 +755,8 @@ export function LiveSession({
           <div className="space-y-2 rounded-2xl border border-line p-4">
             <p className="font-semibold">{t.session.endConfirm}</p>
             <div className="flex gap-2">
-              <Button size="lg" className="flex-1" onClick={finish} disabled={pending}>
-                {pending ? t.session.ending : t.session.end}
+              <Button size="lg" className="flex-1" onClick={finish}>
+                {t.session.end}
               </Button>
               <Button size="lg" variant="ghost" onClick={() => setConfirmEnd(false)}>
                 {t.common.cancel}
@@ -1130,5 +1036,54 @@ function ChipRow({
         })}
       </div>
     </fieldset>
+  );
+}
+
+/** Signal, changes waiting on this phone, and what the server refused. */
+function SyncBar({ log, L, locale }: {
+  log: ReturnType<typeof useBoulderLog>;
+  L: ReturnType<typeof loggingDictionary>;
+  locale: "fr" | "en";
+}) {
+  const reason = (r: Rejection) =>
+    r.error === "flashOnlyFirst" ? L.reasonFlash
+      : r.error === "notFound" ? L.reasonGone
+        : r.error === "notLatest" ? L.reasonLatest
+          : L.reasonOther;
+  const n = log.pending;
+  let text: string | null = null;
+  if (log.gone) text = L.sessionGone;
+  else if (!log.online) text = n ? fmt(plural(locale, n, { one: L.offlinePendingOne, other: L.offlinePendingOther }), { n }) : L.offlineEmpty;
+  else if (n && log.syncing) text = fmt(plural(locale, n, { one: L.sendingOne, other: L.sendingOther }), { n });
+  else if (n) text = fmt(plural(locale, n, { one: L.waitingOne, other: L.waitingOther }), { n });
+  const rejected = log.rejections.length;
+  if (!text && !rejected) return null;
+  return (
+    <div className="space-y-2">
+      {text ? (
+        <div role="status" className={cn(
+          "flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold",
+          log.online && !log.gone ? "bg-surface-2 text-ink-2" : "bg-accent-soft text-ink",
+        )}>
+          <span className="min-w-0 flex-1">{text}</span>
+          {n && log.online && !log.syncing ? (
+            <button type="button" onClick={log.retry} className="min-h-11 rounded-full px-3 font-bold text-accent underline underline-offset-2">
+              {L.sendNow}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {rejected ? (
+        <div role="alert" className="flex flex-wrap items-center gap-2 rounded-xl border border-danger px-3 py-2 text-sm">
+          <span className="min-w-0 flex-1">
+            {fmt(plural(locale, rejected, { one: L.rejectedOne, other: L.rejectedOther }), {
+              n: rejected,
+              reason: [...new Set(log.rejections.map(reason))].join(", "),
+            })}
+          </span>
+          <button type="button" onClick={log.dismissRejections} aria-label="OK" className="min-h-11 rounded-full px-3 font-bold">OK</button>
+        </div>
+      ) : null}
+    </div>
   );
 }

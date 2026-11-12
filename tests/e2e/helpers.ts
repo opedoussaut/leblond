@@ -41,3 +41,8 @@ export async function signIn(page: Page, email: string) {
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   sessions.set(email, await page.context().cookies());
 }
+
+/** The session logger sends each change in the background: wait until nothing is left to send. */
+export async function allSent(page: Page) {
+  await expect(page.getByText(/^(Envoi de \d+ changements?…|\d+ changements? pas encore envoyés?\.)$/)).toHaveCount(0, { timeout: 15_000 });
+}

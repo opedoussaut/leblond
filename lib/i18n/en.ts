@@ -839,7 +839,8 @@ export const en: Dictionary = {
   },
   pwa: {
     offlineTitle: "Offline",
-    offlineBody: "LEBLOND needs the network to save your attempts. Reconnect and try again.",
+    offlineBody: "This page needs signal. A boulder session in progress can still be logged without it: everything is kept on this phone and sent as soon as there is signal.",
+    resume: "Resume the session in progress · {gym}",
   },
   errors: {
     notFound: "Not found.",
