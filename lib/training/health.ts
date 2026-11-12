@@ -10,7 +10,7 @@ import { z } from "zod";
  *  - PAIN: avoid loading the area;
  *  - ACUTE: acute or worsening — stop and see a professional.
  */
-export const BODY_AREAS = ["fingers", "wrist", "elbow", "shoulder", "back", "knee", "other"] as const;
+export const BODY_AREAS = ["fingers", "wrist", "elbow", "shoulder", "back", "hip", "knee", "other"] as const;
 export type BodyArea = (typeof BODY_AREAS)[number];
 export const PAIN_LEVELS = ["DISCOMFORT", "PAIN", "ACUTE"] as const;
 export type PainLevel = (typeof PAIN_LEVELS)[number];
@@ -49,6 +49,7 @@ export const METHOD_LOADS: Readonly<Record<string, LoadMap>> = {
   "four-by-four": { fingers: 2, elbow: 2, shoulder: 2, wrist: 1, knee: 1 },
   "campus": { fingers: 3, elbow: 3, shoulder: 3, wrist: 2 },
   "strength-conditioning": { shoulder: 3, elbow: 2, wrist: 2, back: 2, knee: 1 },
+  "hip-mobility": { hip: 1, knee: 1, back: 1 },
   "mental": { fingers: 1, shoulder: 1 },
   "periodized": { fingers: 2, elbow: 2, shoulder: 2, wrist: 1, back: 1, knee: 1 },
 };

@@ -5,7 +5,7 @@ import type { Locale } from "./index";
  * daily check-in (bilan du jour), the programme in progress and health areas.
  */
 const fr = {
-  areas: { fingers: "Doigts", wrist: "Poignet", elbow: "Coude", shoulder: "Épaule", back: "Dos", knee: "Genou", other: "Autre zone" },
+  areas: { fingers: "Doigts", wrist: "Poignet", elbow: "Coude", shoulder: "Épaule", back: "Dos", hip: "Hanche", knee: "Genou", other: "Autre zone" },
   levels: {
     DISCOMFORT: { label: "Gêne", hint: "Je peux m’entraîner à charge réduite." },
     PAIN: { label: "Douleur", hint: "J’évite de solliciter cette zone." },
@@ -230,7 +230,7 @@ const fr = {
 export type JourneyDictionary = typeof fr;
 
 const en: JourneyDictionary = {
-  areas: { fingers: "Fingers", wrist: "Wrist", elbow: "Elbow", shoulder: "Shoulder", back: "Back", knee: "Knee", other: "Other area" },
+  areas: { fingers: "Fingers", wrist: "Wrist", elbow: "Elbow", shoulder: "Shoulder", back: "Back", hip: "Hip", knee: "Knee", other: "Other area" },
   levels: {
     DISCOMFORT: { label: "Discomfort", hint: "I can train at reduced load." },
     PAIN: { label: "Pain", hint: "I avoid loading this area." },

@@ -100,7 +100,7 @@ export function expectedRatingsAtWeek(
  * This is a fit heuristic, not an efficacy ranking.
  */
 /** Support work (stretching) complements a programme; it is never ranked as its main method. */
-export const SUPPORT_METHOD_IDS: ReadonlySet<string> = new Set(["mobility"]);
+export const SUPPORT_METHOD_IDS: ReadonlySet<string> = new Set(["mobility", "hip-mobility"]);
 
 export function methodMatches(ratings: SkillRatings, limit = 3) {
   return METHODS_FOR_PLANS.filter((method) => !SUPPORT_METHOD_IDS.has(method.id)).map((method) => {

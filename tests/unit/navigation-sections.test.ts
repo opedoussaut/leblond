@@ -37,6 +37,7 @@ describe("one selected page per area", () => {
     expect(activeSubPage("/problem/x")?.href).toBe("/session");
     expect(activeSubPage("/follow-up/training")?.href).toBe("/follow-up/training");
     expect(activeSubPage("/follow-up")?.href).toBe("/follow-up");
+    expect(activeSubPage("/follow-up/mobility")?.href).toBe("/follow-up/mobility");
     expect(activeSubPage("/training/evaluate")?.href).toBe("/training-assessment");
     expect(activeSubPage("/settings/connections")?.href).toBe("/settings/connections");
     expect(activeSubPage("/home")).toBeNull();

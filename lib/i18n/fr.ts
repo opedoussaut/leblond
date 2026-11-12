@@ -40,6 +40,7 @@ export const fr = {
     myProfile: "Mon profil",
     trainingSessions: "Séances d’entraînement",
     trainingHistory: "Historique d’entraînement",
+    mobility: "Mobilité des hanches",
     baseline: "Bilan complet",
     dayCheck: "Bilan du jour",
     subNav: "Pages de cette section",
@@ -586,6 +587,7 @@ export const fr = {
       nextSession: "Construis ma prochaine séance",
       compareGyms: "Compare mes performances Arkose et Climbing District",
       fatigue: "Que disent mes dernières séances sur ma fatigue ?",
+      mobility: "Où en est ma mobilité des hanches ?",
     },
   },
   profile: {

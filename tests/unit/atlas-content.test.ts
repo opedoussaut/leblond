@@ -122,7 +122,7 @@ describe("atlas diagrams match the executable session templates", () => {
     for (const ladder of l.ladders) for (const rung of ladder) expect(rung).toBeLessThanOrEqual(l.rungs);
   });
 
-  it.each(["strength-conditioning", "mobility"])("%s sets, one per template exercise", (id) => {
+  it.each(["strength-conditioning", "mobility", "hip-mobility"])("%s sets, one per template exercise", (id) => {
     const s = diagramOf(id, "sets"), templates = mainOf(id);
     expect(s.exercises.map((e) => e.name.en)).toEqual(templates.map((t) => t.name.en));
     expect(s.exercises.map((e) => e.name.fr)).toEqual(templates.map((t) => t.name.fr));

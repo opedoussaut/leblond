@@ -1,5 +1,6 @@
 import type { AtlasDetail } from "@/lib/training/atlas-types";
 import type { Localized } from "@/lib/training/catalogue";
+import { EXERCISE_BY_ID, LEVEL_SESSIONS } from "@/lib/training/hip-mobility/content";
 import { SRC } from "./sources";
 
 /**
@@ -691,6 +692,74 @@ export const METHOD_DETAILS: Record<string, AtlasDetail> = {
       author: "Lattice Training",
       url: "https://www.youtube.com/watch?v=mKUle2yBYq0",
       note: loc("Routine vidéo recommandée pour suivre la séance (en anglais, sur YouTube).", "Recommended video routine to follow along (in English, on YouTube)."),
+    },
+  },
+  "hip-mobility": {
+    summary: loc(
+      "Un programme pour partir de hanches très raides et arriver à une mobilité utile au mur : d’abord des mouvements doux avec appui, puis du contrôle actif et de la force dans l’amplitude gagnée, enfin le placement des pieds, les transferts de poids et les rotations de hanche en grimpant. Pas de grand écart : le but est une amplitude que tu contrôles. On progresse par niveau, quand le précédent est contrôlé et bien toléré, jamais parce qu’un nombre de semaines est passé.",
+      "A programme to go from very stiff hips to mobility that works on the wall: first gentle supported movements, then active control and strength in the range you gain, then foot placement, weight shifts and hip turns while climbing. No splits: the goal is range you control. You progress by level, when the previous one is controlled and well tolerated, never because a number of weeks has passed.",
+    ),
+    trains: loc(
+      "Amplitude passive des hanches, contrôle actif et force dans cette amplitude, puis coordination au mur (pieds qui restent en pression, hanches qui se déplacent). La souplesse n’explique pas tout : la force, l’équilibre, la technique, l’écart des prises et l’inclinaison du mur comptent aussi.",
+      "Passive hip range, active control and strength in that range, then coordination on the wall (feet that keep pressure, hips that move). Flexibility is not the whole story: strength, balance, technique, foothold spacing and wall angle matter too.",
+    ),
+    suits: loc(
+      "Les grimpeurs dont les hanches limitent les pieds écartés, les pieds hauts ou les rotations, même au tout début. Aucun bilan complet ni autre programme n’est nécessaire.",
+      "Climbers whose hips limit wide feet, high feet or hip turns, even at the very start. No full assessment or other programme is needed.",
+    ),
+    level: loc("Débutant, dès le niveau 0", "Beginner, from level 0"),
+    prerequisites: [
+      loc("Niveau : aucun minimum ; la séance de niveau 0 se fait avec beaucoup d’appui.", "Level: no minimum; the level 0 session uses plenty of support."),
+      loc("Matériel : un tapis, un coussin ferme, une marche basse et stable, un support (mur, chaise, table).", "Equipment: a mat, a firm cushion, a low stable step, a support (wall, chair, table)."),
+      loc("Blessures : pas de séance sur une hanche, un genou ou un dos douloureux ou récemment blessé sans l’accord d’un professionnel de santé.", "Injuries: no session on a painful or recently injured hip, knee or back without a clinician’s agreement."),
+    ],
+    protocol: [
+      { key: "intensity", value: loc("Amplitude confortable, effort léger ; gêne ≤ 2/10, jamais de douleur vive.", "Comfortable range, light effort; discomfort ≤ 2/10, never sharp pain.") },
+      { key: "effort", value: loc("Répétitions lentes et contrôlées (3 à 4 s par mouvement).", "Slow, controlled reps (3–4 s per movement).") },
+      { key: "rest", value: loc("≈ 15 s entre les côtés, ≈ 30 s entre les exercices.", "≈ 15 s between sides, ≈ 30 s between exercises.") },
+      { key: "reps", value: loc("5 à 8 répétitions (par côté pour les exercices à un côté).", "5–8 reps (per side for one-sided exercises).") },
+      { key: "sets", value: loc("1 série par côté au niveau 0.", "1 set per side at level 0.") },
+      { key: "session", value: loc("≈ 10 min, version courte ≈ 5 min.", "≈ 10 min, short version ≈ 5 min.") },
+      { key: "frequency", value: loc("3 à 4 séances courtes par semaine au début.", "3–4 short sessions a week at the start.") },
+    ],
+    preparation: loc("Un tapis, un coussin ferme, une marche basse et un support stable. Pas besoin d’échauffement séparé : la séance commence en douceur.", "A mat, a firm cushion, a low step and a stable support. No separate warm-up needed: the session starts gently."),
+    steps: [
+      loc("Fais le bilan débutant (4 tests, gauche et droite) pour situer ton point de départ, sans score de souplesse.", "Do the beginner assessment (4 tests, left and right) to find your starting point, with no flexibility score."),
+      loc("Fais la séance guidée de ton niveau : chaque exercice a une version plus facile et une plus difficile.", "Do your level’s guided session: every exercise has an easier and a harder version."),
+      loc("Note pour chaque côté les répétitions, la version faite, le contrôle et la gêne : LEBLOND ajuste la séance suivante.", "Record for each side the reps, the version done, control and discomfort: LEBLOND adjusts the next session."),
+      loc("Refais le bilan quelques semaines plus tard, dans les mêmes conditions, pour comparer.", "Repeat the assessment a few weeks later, in the same conditions, to compare."),
+    ],
+    progression: [
+      loc("Une marche après l’autre : quelques répétitions de plus, puis la version plus difficile, seulement après deux séances propres d’affilée, et seulement si tu acceptes.", "One step at a time: a few more reps, then the harder version, only after two clean sessions in a row, and only if you accept."),
+      loc("Gêne forte, accrochage ou répétitions mal contrôlées : la séance suivante revient automatiquement à une version plus facile.", "Strong discomfort, catching or poorly controlled reps: the next session automatically steps back to an easier version."),
+      loc("Ensuite : contrôle actif dans l’amplitude, puis transfert au mur et exercices de pan facultatifs.", "Then: active control in the range, then transfer to the wall and optional board drills."),
+    ],
+    mistakes: [
+      loc("Forcer l’amplitude, rebondir ou tenir longtemps en fin d’amplitude.", "Forcing the range, bouncing or loading the end of the range for long."),
+      loc("Croire que tout vient de la souplesse : sans force ni contrôle, l’amplitude gagnée ne sert pas au mur.", "Thinking it is all about flexibility: without strength and control, new range does not help on the wall."),
+      loc("Monter de niveau parce que des semaines ont passé plutôt que parce que le niveau est maîtrisé.", "Moving up because weeks have passed rather than because the level is mastered."),
+    ],
+    safety: [
+      loc("Jamais de douleur vive, d’accrochage ou de blocage net : arrête l’exercice et prends la version plus facile.", "Never sharp pain, catching or a hard block: stop the exercise and use the easier version."),
+      loc("Douleur qui dure, accrochage, grosse différence gauche/droite ou blocage mécanique : consulte un professionnel de santé qualifié ou un kinésithérapeute du sport avant de progresser.", "Persistent pain, catching, a large left/right difference or a mechanical block: see a qualified clinician or sports physiotherapist before progressing."),
+    ],
+    variants: [
+      loc("Version courte (≈ 5 min, 3 exercices) les jours chargés.", "Short version (≈ 5 min, 3 exercises) on busy days."),
+      loc("Chaque exercice en version plus facile (plus d’appui, moins d’amplitude) ou plus difficile (moins d’appui, pause).", "Each exercise in an easier version (more support, less range) or a harder one (less support, a pause)."),
+      loc("Au mur, plus tard : terrain facile ou pan réglé moins raide, prises de pied rapprochées d’abord.", "On the wall, later: easy terrain or a less steep board, close footholds first."),
+    ],
+    observe: loc("Les tests répétés dans les mêmes conditions : transitions 90/90 contrôlées, distance genou–sol, hauteur de marche, transferts de pied propres, côté par côté.", "The tests repeated in the same conditions: controlled 90/90 transitions, knee-to-floor distance, step height, clean foot transfers, side by side."),
+    evidenceNote: loc(
+      "Limitée mais cohérente. L’amplitude progresse avec un travail régulier (Thomas 2018), et le renforcement améliore l’amplitude autant que l’étirement dans une méta-analyse aux études très variées (Afonso 2021) : d’où un programme qui mêle mouvement doux, contrôle actif et force. En escalade, la souplesse pèse peu sur le niveau (Mermier 2000) ; elle compte quand un mouvement précis te bloque. Les niveaux de LEBLOND sont des repères d’entraînement, pas une évaluation clinique.",
+      "Limited but consistent. Range improves with regular work (Thomas 2018), and strength training improved range of motion as much as stretching in a meta-analysis of very varied studies (Afonso 2021): hence a programme mixing gentle movement, active control and strength. In climbing, flexibility weighs little on grade (Mermier 2000); it matters when a specific move stops you. LEBLOND’s levels are training landmarks, not a clinical assessment.",
+    ),
+    sources: [SRC.thomas2018, SRC.afonso2021strength, SRC.mermier2000],
+    diagram: {
+      kind: "sets",
+      exercises: LEVEL_SESSIONS[0]!.STANDARD.exercises.map((id) => {
+        const e = EXERCISE_BY_ID.get(id)!;
+        return { name: e.name, sets: e.perSide ? 2 : 1, reps: e.reps.start, rest: e.restSeconds };
+      }),
     },
   },
   "mental": {
