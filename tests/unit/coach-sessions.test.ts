@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  demoUrl, coachExerciseRows, coachSessionFromRow, coachSessionSchema, coachContent, musclewikiUrl, type CoachSessionInput,
+  demoUrl, coachExerciseRows, coachSessionFromRow, coachSessionSchema, coachContent, musclewikiUrl, MUSCLEWIKI_SLUGS, type CoachSessionInput,
 } from "@/lib/training/coach-sessions";
 import { createTrainingSessionSchema, saveSetSchema } from "@/lib/training/sessions";
 
@@ -41,6 +41,9 @@ describe("coach sessions", () => {
 
   it("builds MuscleWiki links only for verified pages", () => {
     expect(musclewikiUrl("wall-sit")).toBe("https://musclewiki.com/exercise/wall-sit");
+    expect(musclewikiUrl("hip-flexor-stretch-kneeling-lunge-2")).toBe("https://musclewiki.com/exercise/hip-flexor-stretch-kneeling-lunge-2");
+    expect(MUSCLEWIKI_SLUGS.every((s) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s))).toBe(true);
+    expect(new Set(MUSCLEWIKI_SLUGS).size).toBe(MUSCLEWIKI_SLUGS.length);
     expect(musclewikiUrl("javascript:alert(1)")).toBeNull();
     expect(musclewikiUrl(undefined)).toBeNull();
   });
