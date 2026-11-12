@@ -8,6 +8,7 @@ import { routeAscentsInLastDays, routeWorkingGrade, summarizeRoutes } from "@/li
 import { coachSummary, pactProgress } from "@/lib/analytics/alter-ego";
 import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
 import { loadProgramme } from "@/lib/data/programme";
+import { currentPlan, loadMobility } from "@/lib/data/mobility";
 import { resolveNormalized } from "@/lib/grading";
 import { localDate_ } from "@/lib/training/sessions";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
@@ -198,7 +199,8 @@ export async function assembleCoachContext(
   const pact = await loadOpenPact(viewer.supabase);
   const today = localDate_(now);
   const pactState = pact ? pactProgress(pact, await loadClimberWork(viewer.supabase), today) : null;
-  const programme = await loadProgramme(viewer.supabase, today);
+  const [programme, mobility] = await Promise.all([loadProgramme(viewer.supabase, today), loadMobility(viewer.supabase, today)]);
+  const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobility.records.length > 0;
 
   return buildCoachContext({
     climber: {
@@ -225,6 +227,10 @@ export async function assembleCoachContext(
     quickAction: opts.quickAction ?? null,
     alterEgo: pact && pactState ? coachSummary(pact, today, pactState.standing, pactState.easeOff) : null,
     training: { view: programme.view, lastCheck: programme.recentChecks[0] ?? null, replanSuggested: programme.replan.suggested },
+    mobility: mobilityUsed ? {
+      enrollment: mobility.enrollment, assessments: mobility.assessments, records: mobility.records,
+      plan: currentPlan(mobility), today,
+    } : null,
     now,
   });
 }

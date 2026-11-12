@@ -651,6 +651,11 @@ export type Database = {
           seconds: number | null;
           load_kg: number | null;
           edge_mm: number | null;
+          side: "LEFT" | "RIGHT" | "BOTH" | null;
+          variant: "EASIER" | "STANDARD" | "HARDER" | null;
+          controlled: boolean | null;
+          discomfort: number | null;
+          details: Json | null;
           completed: boolean;
           notes: string;
           created_at: string;
@@ -665,6 +670,11 @@ export type Database = {
           seconds?: number | null;
           load_kg?: number | null;
           edge_mm?: number | null;
+          side?: "LEFT" | "RIGHT" | "BOTH" | null;
+          variant?: "EASIER" | "STANDARD" | "HARDER" | null;
+          controlled?: boolean | null;
+          discomfort?: number | null;
+          details?: Json | null;
           completed?: boolean;
           notes?: string;
           created_at?: string;
@@ -679,6 +689,11 @@ export type Database = {
           seconds?: number | null;
           load_kg?: number | null;
           edge_mm?: number | null;
+          side?: "LEFT" | "RIGHT" | "BOTH" | null;
+          variant?: "EASIER" | "STANDARD" | "HARDER" | null;
+          controlled?: boolean | null;
+          discomfort?: number | null;
+          details?: Json | null;
           completed?: boolean;
           notes?: string;
           created_at?: string;
@@ -693,6 +708,76 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      mobility_enrollments: {
+        Row: {
+          id: string;
+          user_id: string;
+          programme: "HIP";
+          started_on: string;
+          working_level: number;
+          level_changed_at: string;
+          sessions_per_week: number;
+          session_length: "SHORT" | "STANDARD";
+          status: "ACTIVE" | "PAUSED";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          programme: "HIP";
+          started_on: string;
+          working_level?: number;
+          level_changed_at?: string;
+          sessions_per_week?: number;
+          session_length?: "SHORT" | "STANDARD";
+          status?: "ACTIVE" | "PAUSED";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          working_level?: number;
+          level_changed_at?: string;
+          sessions_per_week?: number;
+          session_length?: "SHORT" | "STANDARD";
+          status?: "ACTIVE" | "PAUSED";
+        };
+        Relationships: [];
+      };
+      mobility_assessments: {
+        Row: {
+          id: string;
+          user_id: string;
+          programme: "HIP";
+          assessed_on: string;
+          protocol_version: number;
+          conditions: Json;
+          results: Json;
+          stage: number;
+          rules_version: number;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          programme: "HIP";
+          assessed_on: string;
+          protocol_version: number;
+          conditions?: Json;
+          results: Json;
+          stage: number;
+          rules_version: number;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          notes?: string;
+        };
+        Relationships: [];
       };
       training_assessments: {
         Row: {

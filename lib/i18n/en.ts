@@ -37,6 +37,7 @@ export const en: Dictionary = {
     myProfile: "My profile",
     trainingSessions: "Training sessions",
     trainingHistory: "Training history",
+    mobility: "Hip mobility",
     baseline: "Full assessment",
     dayCheck: "Daily check-in",
     subNav: "Pages in this section",
@@ -562,6 +563,7 @@ export const en: Dictionary = {
       nextSession: "Build my next session",
       compareGyms: "Compare my Arkose and Climbing District performance",
       fatigue: "What do my recent sessions say about my fatigue?",
+      mobility: "How is my hip mobility going?",
     },
   },
   profile: {

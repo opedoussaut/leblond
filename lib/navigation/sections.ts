@@ -6,7 +6,7 @@ export type SectionId = (typeof SECTION_IDS)[number];
 export type SubPageKey =
   | "overview" | "session" | "projects"
   | "dayCheck" | "trainingSessions" | "calendar" | "atlas" | "trainingPlans" | "baseline" | "patrick"
-  | "progress" | "trainingHistory" | "assessment"
+  | "progress" | "trainingHistory" | "mobility" | "assessment"
   | "myProfile" | "connections";
 
 export type SubPage = { href: string; key: SubPageKey };
@@ -46,6 +46,7 @@ export const AREAS: readonly Area[] = [
       { href: "/follow-up", key: "overview" },
       { href: "/progress", key: "progress" },
       { href: "/follow-up/training", key: "trainingHistory" },
+      { href: "/follow-up/mobility", key: "mobility" },
       { href: "/training-assessment", key: "assessment" },
     ],
   },
