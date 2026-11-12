@@ -12,15 +12,22 @@ import {
   exerciseStatusSchema, saveSetSchema, settledExerciseStatus, type TrainingStatus,
 } from "@/lib/training/sessions";
 import { loadTrainingSession } from "@/lib/data/training-sessions";
+import { currentPlan, loadMobility } from "@/lib/data/mobility";
+import { HIP_METHOD_ID, LEVEL_SESSIONS, type SessionLength } from "@/lib/training/hip-mobility/content";
+import { mobilityExerciseRows, sessionTitle } from "@/lib/training/hip-mobility/prescription";
+import { scheduleMobilitySchema } from "@/lib/training/sessions";
 import { zonedToUtc } from "@/lib/time";
 
 type Result<T = undefined> = { ok: true; data: T } | { ok: false; error: "invalid" | "not_found" | "live" | "state" | "limit" | "unknown"; liveId?: string };
 
 const id = z.guid();
+/** A planned hip-mobility session this short was the short version. */
+const SHORT_MINUTES = LEVEL_SESSIONS[0]!.SHORT.minutes;
 const MAX_SESSIONS = 3000;
 
 function revalidateTraining(sessionId?: string) {
   revalidatePath("/train", "layout");
+  revalidatePath("/patrick");
   revalidatePath("/calendar");
   revalidatePath("/follow-up", "layout");
   revalidatePath("/home");
@@ -42,8 +49,20 @@ type NewSession = {
   planId?: string | null; planSessionIndex?: number | null; calendarEntryId?: string | null;
   date: string | null; time: string | null; minutes: number | null; startNow: boolean;
   /** Exercises of their own (coach sessions); otherwise the Atlas template of `methodId`. */
-  exercises?: ReturnType<typeof coachExerciseRows>;
+  exercises?: ReturnType<typeof coachExerciseRows> | ReturnType<typeof mobilityExerciseRows>;
+  /** Hip-mobility options: session length and accepted increases. */
+  mobility?: { length?: SessionLength; accept?: readonly string[] };
 };
+
+/**
+ * The exercise rows of a hip-mobility session, prescribed from the climber's own
+ * records (never the fixed Atlas template), whatever the session came from.
+ */
+async function mobilityRows(viewer: Viewer, options: NewSession["mobility"]) {
+  const locale = viewer.profile.preferred_language === "en" ? "en" : "fr";
+  const plan = currentPlan(await loadMobility(viewer.supabase), options?.length, options?.accept);
+  return { plan, rows: mobilityExerciseRows(plan, locale) };
+}
 
 /** Creates a session and its exercise snapshot atomically (compensating delete on failure). */
 async function insertSession(viewer: Viewer, s: NewSession): Promise<Result<{ id: string }>> {
@@ -73,7 +92,8 @@ async function insertSession(viewer: Viewer, s: NewSession): Promise<Result<{ id
     return { ok: false, error: "unknown" };
   }
   const locale = viewer.profile.preferred_language === "en" ? "en" : "fr";
-  const rows = s.exercises ? s.exercises.map((e) => ({ user_id: viewer.userId, session_id: created.id, ...e })) : templateFor(s.methodId, s.minutes).map((t, position) => ({
+  const own = s.exercises ?? (s.methodId === HIP_METHOD_ID ? (await mobilityRows(viewer, s.mobility)).rows : undefined);
+  const rows = own ? own.map((e) => ({ user_id: viewer.userId, session_id: created.id, ...e })) : templateFor(s.methodId, s.minutes).map((t, position) => ({
     user_id: viewer.userId, session_id: created.id, position, block: t.block, method_id: t.methodId,
     name: t.name[locale], instructions: snapshotOf(t), modality: t.modality,
     target_sets: t.targetSets, target_reps: t.targetReps, target_seconds: t.targetSeconds,
@@ -110,6 +130,13 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
       title: coach.title, objective: coach.objective, methodId: null,
       date: v.date, time: v.time, minutes: coach.minutes, startNow: v.startNow,
       exercises: coachExerciseRows(coach),
+    });
+  } else if (v.source === "mobility") {
+    const { plan, rows } = await mobilityRows(viewer, { length: v.length, accept: v.accept });
+    if (rows.length === 0) return { ok: false, error: "state" };
+    result = await insertSession(viewer, {
+      title: sessionTitle(plan, fr ? "fr" : "en"), objective: "", methodId: HIP_METHOD_ID,
+      date: v.date, time: v.time, minutes: plan.minutes, startNow: v.startNow, exercises: rows,
     });
   } else if (v.source === "plan") {
     const { data: plan } = await viewer.supabase.from("training_plans").select(PLAN_COLUMNS)
@@ -176,10 +203,58 @@ export async function schedulePlanWeek(planId: string, monday: string, phaseInde
   return { ok: true, data: { created } };
 }
 
+/** Hip-mobility sessions planned on chosen days; days that already have one are skipped. */
+export async function scheduleMobilitySessions(input: unknown): Promise<Result<{ created: number }>> {
+  const viewer = await requireViewer();
+  const parsed = scheduleMobilitySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const dates = [...new Set(parsed.data.dates)].sort();
+  const { data: existing } = await viewer.supabase.from("training_sessions").select("scheduled_date")
+    .eq("method_id", HIP_METHOD_ID).in("scheduled_date", dates).in("status", ["PLANNED", "IN_PROGRESS", "COMPLETED"]);
+  const taken = new Set((existing ?? []).map((e) => e.scheduled_date));
+  const { plan, rows } = await mobilityRows(viewer, { length: parsed.data.length });
+  if (rows.length === 0) return { ok: false, error: "state" };
+  const fr = viewer.profile.preferred_language !== "en";
+  let created = 0;
+  for (const date of dates) {
+    if (taken.has(date)) continue;
+    const r = await insertSession(viewer, {
+      title: sessionTitle(plan, fr ? "fr" : "en"), objective: "", methodId: HIP_METHOD_ID,
+      date, time: null, minutes: plan.minutes, startNow: false, exercises: rows,
+    });
+    if (!r.ok) return { ok: false, error: r.error };
+    created++;
+  }
+  revalidateTraining();
+  return { ok: true, data: { created } };
+}
+
+/**
+ * A planned hip-mobility session is prescribed again when it starts, so it
+ * follows everything recorded since it was planned. The length is kept; earlier
+ * accepted increases are not carried over (the climber accepts them again).
+ */
+async function refreshPlannedMobility(viewer: Viewer, sessionId: string, plannedMinutes: number | null): Promise<boolean> {
+  const { data: current } = await viewer.supabase.from("training_session_exercises").select("id").eq("session_id", sessionId);
+  const ids = (current ?? []).map((e) => e.id);
+  if (ids.length) {
+    const { count } = await viewer.supabase.from("training_exercise_sets").select("id", { count: "exact", head: true }).in("exercise_id", ids);
+    if ((count ?? 0) > 0) return true;
+  }
+  const length: SessionLength = plannedMinutes !== null && plannedMinutes <= SHORT_MINUTES ? "SHORT" : "STANDARD";
+  const { rows } = await mobilityRows(viewer, { length });
+  if (rows.length === 0) return false;
+  const { error: delError } = await viewer.supabase.from("training_session_exercises").delete().eq("session_id", sessionId);
+  if (delError) return false;
+  const { error } = await viewer.supabase.from("training_session_exercises")
+    .insert(rows.map((e) => ({ user_id: viewer.userId, session_id: sessionId, ...e })));
+  return !error;
+}
+
 async function loadOwned(viewer: Viewer, sessionId: string) {
   if (!id.safeParse(sessionId).success) return null;
   const { data } = await viewer.supabase.from("training_sessions")
-    .select("id,status,started_at,paused_at,paused_seconds,completed_at,calendar_entry_id")
+    .select("id,status,started_at,paused_at,paused_seconds,completed_at,calendar_entry_id,method_id,planned_minutes")
     .eq("id", sessionId).maybeSingle();
   return data;
 }
@@ -192,6 +267,9 @@ export async function startTrainingSession(sessionId: string): Promise<Result<{ 
   if (!canTransition(s.status, "IN_PROGRESS")) return { ok: false, error: "state" };
   const live = await liveSessionId(viewer);
   if (live && live !== s.id) return { ok: false, error: "live", liveId: live };
+  if (s.status === "PLANNED" && s.method_id === HIP_METHOD_ID && !(await refreshPlannedMobility(viewer, s.id, s.planned_minutes))) {
+    return { ok: false, error: "unknown" };
+  }
   const now = new Date().toISOString();
   // Resuming an interrupted session keeps its original start; the gap counts as paused.
   const update = s.status === "INTERRUPTED" && s.started_at
@@ -249,7 +327,11 @@ export async function saveTrainingSet(input: unknown): Promise<Result<{ id: stri
   if (!ex) return { ok: false, error: "not_found" };
   const { data: existing } = await viewer.supabase.from("training_exercise_sets").select("id")
     .eq("exercise_id", v.exerciseId).eq("set_index", v.setIndex).maybeSingle();
-  const values = { reps: v.reps, seconds: v.seconds, load_kg: v.loadKg, edge_mm: v.edgeMm ?? null, completed: v.completed, notes: v.notes };
+  const values = {
+    reps: v.reps, seconds: v.seconds, load_kg: v.loadKg, edge_mm: v.edgeMm ?? null, completed: v.completed, notes: v.notes,
+    side: v.side ?? null, variant: v.variant ?? null, controlled: v.controlled ?? null, discomfort: v.discomfort ?? null,
+    details: v.flags && v.flags.length ? { flags: v.flags } : null,
+  };
   let result = existing
     ? await viewer.supabase.from("training_exercise_sets").update(values).eq("id", existing.id).select("id").single()
     : await viewer.supabase.from("training_exercise_sets")

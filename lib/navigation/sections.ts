@@ -22,7 +22,7 @@ export type SubPageKey =
   | "dayCheck" | "calendar"
   | "session" | "projects"
   | "trainingSessions" | "trainingPlans" | "atlas"
-  | "climbingProgress" | "trainingHistory" | "assessment"
+  | "climbingProgress" | "trainingHistory" | "mobility" | "assessment"
   | "profile" | "connections" | "settings";
 
 export type SubPage = { href: string; key: SubPageKey };
@@ -61,10 +61,7 @@ export const AREAS: readonly Area[] = [
     children: [
       { href: "/progress", key: "climbingProgress" },
       { href: "/follow-up/training", key: "trainingHistory" },
-      // TODO(PR #89, hip mobility): once it is merged, add
-      //   { href: "/follow-up/mobility", key: "mobility" },
-      // here, add "mobility" to SubPageKey, label it "Mobilité" / "Mobility"
-      // in t.nav and map it to PersonStanding in components/layout/nav-icons.tsx.
+      { href: "/follow-up/mobility", key: "mobility" },
       { href: "/training-assessment", key: "assessment" },
     ],
   },

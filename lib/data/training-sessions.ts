@@ -2,6 +2,7 @@ import "server-only";
 import type { ServerSupabase } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { ExerciseSnapshot } from "@/lib/training/session-templates";
+import { WARNING_FLAGS, type WarningFlag } from "@/lib/training/hip-mobility/assessment";
 import type { TrainingExercise, TrainingSession, TrainingSet } from "@/lib/training/sessions";
 
 export const SESSION_COLUMNS =
@@ -37,6 +38,12 @@ export async function listTrainingSessions(supabase: ServerSupabase, limit = 200
   return (data as unknown as SessionRow[]).map(toSession);
 }
 
+/** Warning signs stored in a set's details (anything unexpected is dropped). */
+export function flagsOf(details: unknown): WarningFlag[] {
+  const list = details && typeof details === "object" ? (details as { flags?: unknown }).flags : undefined;
+  return Array.isArray(list) ? list.filter((f): f is WarningFlag => (WARNING_FLAGS as readonly unknown[]).includes(f)) : [];
+}
+
 /** One session with its exercises and recorded sets, or null if not visible. */
 export async function loadTrainingSession(supabase: ServerSupabase, id: string):
   Promise<{ session: TrainingSession; exercises: TrainingExercise[] } | null> {
@@ -48,14 +55,15 @@ export async function loadTrainingSession(supabase: ServerSupabase, id: string):
   const ids = (exRows ?? []).map((e) => e.id);
   const { data: setRows } = ids.length
     ? await supabase.from("training_exercise_sets")
-      .select("id,exercise_id,set_index,reps,seconds,load_kg,edge_mm,completed,notes")
+      .select("id,exercise_id,set_index,reps,seconds,load_kg,edge_mm,completed,notes,side,variant,controlled,discomfort,details")
       .in("exercise_id", ids).order("set_index")
     : { data: [] as Tables<"training_exercise_sets">[] };
   const sets = new Map<string, TrainingSet[]>();
   for (const s of setRows ?? []) {
     const list = sets.get(s.exercise_id) ?? [];
     list.push({ id: s.id, setIndex: s.set_index, reps: s.reps, seconds: s.seconds,
-      loadKg: s.load_kg === null ? null : Number(s.load_kg), edgeMm: s.edge_mm, completed: s.completed, notes: s.notes });
+      loadKg: s.load_kg === null ? null : Number(s.load_kg), edgeMm: s.edge_mm, completed: s.completed, notes: s.notes,
+      side: s.side, variant: s.variant, controlled: s.controlled, discomfort: s.discomfort, flags: flagsOf(s.details) });
     sets.set(s.exercise_id, list);
   }
   return {

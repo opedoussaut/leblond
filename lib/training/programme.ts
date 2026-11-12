@@ -9,7 +9,7 @@ import type { PlanPlace, PlanSession } from "./plans";
 
 /**
  * The programme in progress, as ONE notion:
- *   full assessment (bilan complet) → chosen method + weekly template (training_plans row
+ *   full assessment (évaluation complète) → chosen method + weekly template (training_plans row
  *   linked by assessment_id) repeated for `horizonWeeks` → sessions in the calendar.
  * The daily check-in adapts today's session from it. Everything here is pure.
  */

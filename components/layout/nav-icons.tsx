@@ -8,7 +8,7 @@
  */
 import {
   BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
-  Mountain, Play, Plug, Settings, ShieldCheck, Sun, Target, TrendingUp, UserRound,
+  Mountain, PersonStanding, Play, Plug, Settings, ShieldCheck, Sun, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionId, SubPageKey } from "@/lib/navigation/sections";
@@ -35,6 +35,7 @@ export const PAGE_ICONS: Record<SubPageKey, LucideIcon> = {
   // the area they sit in is shown by colour.
   climbingProgress: Mountain,
   trainingHistory: Dumbbell,
+  mobility: PersonStanding,
   assessment: ClipboardCheck,
   profile: UserRound,
   connections: Plug,

@@ -12,6 +12,13 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
 import type { Injury } from "@/lib/training/health";
+import {
+  changesSinceBaseline, discomfortReports, hardestMovement, mobilityOverview, mobilityPeriods, sideComparison,
+  type AssessmentPoint,
+} from "@/lib/analytics/mobility";
+import { MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
+import { EXERCISE_BY_ID, LEVEL_LABELS } from "@/lib/training/hip-mobility/content";
+import { summarizePerformance, type MobilitySessionRecord, type SessionPlan } from "@/lib/training/hip-mobility/prescription";
 import type { DayOutcome, ProgrammeView } from "@/lib/training/programme";
 
 /**
@@ -49,6 +56,7 @@ export const QUICK_ACTIONS = [
   "nextSession",
   "compareGyms",
   "fatigue",
+  "mobility",
 ] as const;
 export type QuickAction = (typeof QUICK_ACTIONS)[number];
 
@@ -142,7 +150,7 @@ export interface FocusRouteProjectInput {
   sessionsCount: number;
 }
 
-/** The programme in progress and the latest daily check-in (bilan du jour), as loaded by lib/data/programme. */
+/** The programme in progress and the latest daily check-in (forme du jour), as loaded by lib/data/programme. */
 export interface CoachTrainingInput {
   view: ProgrammeView | null;
   lastCheck: {
@@ -196,6 +204,112 @@ export function trainingContext(input: CoachTrainingInput | null | undefined) {
   };
 }
 
+/** The hip-mobility programme as loaded by lib/data/mobility (records and plan are already computed). */
+export interface CoachMobilityInput {
+  enrollment: { startedOn: string; workingLevel: number; sessionLength: "SHORT" | "STANDARD"; sessionsPerWeek: number; status: "ACTIVE" | "PAUSED" } | null;
+  assessments: readonly AssessmentPoint[];
+  records: readonly MobilitySessionRecord[];
+  plan: SessionPlan | null;
+  today: string;
+}
+
+const exerciseName = (id: string) => EXERCISE_BY_ID.get(id)?.name.en ?? id;
+const testName = (id: string) => MOBILITY_TESTS.find((t) => t.id === id)?.name.en ?? id;
+
+/**
+ * Bounded hip-mobility summary for Patrick: the computed internal stage (a label,
+ * NOT clinical), the latest assessment and its changes against the first
+ * comparable one, recent sessions per exercise and side, the current prescription
+ * with any offered increase, and whether a clinician check is recommended.
+ * Everything is computed by lib/analytics and lib/training; Patrick only explains it.
+ */
+export function mobilityContext(input: CoachMobilityInput | null | undefined) {
+  if (!input || (!input.enrollment && input.assessments.length === 0 && input.records.length === 0)) return null;
+  const points = [...input.assessments].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = points[0] ?? null;
+  const records = [...input.records].sort((a, b) => b.date.localeCompare(a.date));
+  const overview = mobilityOverview(records, points, input.today);
+  const hardest = hardestMovement(records);
+  const unitOf = (test: string, side: string) => {
+    const def = MOBILITY_TESTS.find((t) => t.id === test);
+    return (side === "BOTH" ? def?.both?.unit : def?.value.unit) ?? "";
+  };
+  const measured = (test: string, side: string, value: number | null) => (value === null ? null : `${value} ${unitOf(test, side)}`.trim());
+  const some = <T,>(list: readonly T[]) => (list.length ? [...list] : undefined);
+  return {
+    programme: "Hip Mobility — From Zero to Functional Climbing Mobility",
+    enrolled: !!input.enrollment,
+    startedOn: input.enrollment?.startedOn ?? null,
+    status: input.enrollment?.status ?? null,
+    workingLevel: input.enrollment?.workingLevel ?? 0,
+    sessionsPerWeekTarget: input.enrollment?.sessionsPerWeek ?? null,
+    tests: Object.fromEntries(MOBILITY_TESTS.map((t) => [t.id, testName(t.id)])),
+    assessedStage: latest ? { stage: latest.stage, label: LEVEL_LABELS[latest.stage].name.en, date: latest.date } : null,
+    latestAssessment: latest ? {
+      date: latest.date,
+      conditions: latest.conditions ? {
+        warmedUp: latest.conditions.warmedUp, timeOfDay: latest.conditions.timeOfDay, cushionCm: latest.conditions.cushionCm,
+        wall: latest.conditions.wall ?? undefined,
+      } : null,
+      results: latest.results.slice(0, 10).map((r) => ({
+        test: r.test, side: r.side, level: r.level, notDone: r.done ? undefined : r.skipReason,
+        measured: measured(r.test, r.side, r.value), support: r.support, discomfort: r.discomfort,
+        active: r.active, warningSigns: some(r.flags),
+      })),
+    } : null,
+    changesSinceFirstComparable: changesSinceBaseline(points).slice(0, 10).map((c) => c.comparable ? {
+      test: c.test, side: c.side, since: c.since, direction: c.direction,
+      before: { level: c.before.level, measured: measured(c.test, c.side, c.before.value), support: c.before.support },
+      after: { level: c.after.level, measured: measured(c.test, c.side, c.after.value), support: c.after.support },
+      caveats: some(c.caveats),
+    } : { test: c.test, side: c.side, since: c.since, comparable: false, differences: c.differences }),
+    sessions: {
+      total: overview.sessionsTotal,
+      last28Days: overview.sessionsLast28,
+      lastDate: overview.lastSession,
+      perWeekLast8: mobilityPeriods(records, input.today, "week", 8).map((p) => p.sessions),
+    },
+    recentSessions: records.slice(0, 3).map((r) => ({
+      date: r.date, level: r.level, status: r.status, sessionPain: r.pain, rpe: r.rpe,
+      exercises: r.exercises.slice(0, 6).map((e) => {
+        const ex = EXERCISE_BY_ID.get(e.exerciseId);
+        const sum = ex ? summarizePerformance(ex, e) : null;
+        const reps = (side: "LEFT" | "RIGHT" | "BOTH") => {
+          const list = e.sets.filter((x) => x.completed && (x.side ?? "BOTH") === side).map((x) => x.reps ?? 0);
+          return list.length ? Math.max(...list) : undefined;
+        };
+        return {
+          exercise: exerciseName(e.exerciseId), version: sum?.dose?.variant ?? null,
+          reps: { left: reps("LEFT"), right: reps("RIGHT"), both: reps("BOTH") },
+          clean: sum?.clean ?? false, maxDiscomfort: sum?.maxDiscomfort ?? 0, warningSigns: some(sum?.flags ?? []),
+        };
+      }),
+    })),
+    leftRight: sideComparison(records).slice(0, 4).map((c) => {
+      const side = (s: typeof c.left) => ({
+        averageReps: s.averageReps, easierShare: Math.round(s.easierShare * 100) / 100,
+        averageDiscomfort: s.averageDiscomfort, uncontrolledSets: s.uncontrolled,
+      });
+      return { exercise: exerciseName(c.exerciseId), harderSide: c.harderSide, left: side(c.left), right: side(c.right) };
+    }),
+    discomfortReports: discomfortReports(records, 3, 6).map((d) => ({
+      date: d.date, exercise: d.exerciseId ? exerciseName(d.exerciseId) : "whole session", side: d.side ?? undefined,
+      discomfort: d.discomfort, warningSigns: some(d.flags),
+    })),
+    hardestMovement: hardest ? exerciseName(hardest.exerciseId) : null,
+    nextSession: input.plan ? {
+      level: input.plan.level,
+      exercises: input.plan.decisions.map((d) => ({
+        exercise: exerciseName(d.exerciseId), dose: d.dose, offeredIncrease: d.offer, reason: d.reason, stepBack: d.stepBack || undefined,
+      })),
+      leftOutForDeclaredAreas: some(input.plan.excluded.map(exerciseName)),
+    } : null,
+    progressionSupportedByRecords: !!input.plan && input.plan.decisions.some((d) => d.offer !== null),
+    clinicianCheckRecommended: input.plan ? input.plan.clinician.recommended : false,
+    clinicianReasons: input.plan ? input.plan.clinician.reasons : [],
+  };
+}
+
 export interface CoachContextInput {
   climber: { name: string; language: "fr" | "en"; target: { grade: string; system: string } };
   snapshot30: Snapshot;
@@ -211,6 +325,7 @@ export interface CoachContextInput {
   quickAction?: QuickAction | null;
   alterEgo?: ReturnType<typeof coachSummary> | null;
   training?: CoachTrainingInput | null;
+  mobility?: CoachMobilityInput | null;
   now: Date;
 }
 
@@ -299,6 +414,7 @@ export function buildCoachContext(input: CoachContextInput) {
       routeVsBoulder: "Route grades (French sport scale, lower-case, e.g. 6b+) and boulder grades (Font, colours) are separate scales. Never convert one into the other.",
       trainingProgramme: "Programme set by the climber's latest full assessment: one main method and a weekly template (weekday 0 = Monday) repeated for horizonWeeks, until the next full assessment.",
       declaredBodyAreas: "Self-reported by the climber, NOT a diagnosis. DISCOMFORT = train at reduced load; PAIN = avoid loading that area; ACUTE = stop loading it and see a health professional.",
+      mobility: "Hip Mobility programme. Stages 0–4 are LEBLOND's internal training stages, NOT a clinical assessment. Assessment performance levels are described levels (0–4) per test and side; 'measured' values are tape-measure cm or counts taken by the climber; tests are named by letter (see 'tests'); discomfort is self-reported 0–10. Changes are only meaningful when 'comparable' is true. Versions: EASIER < STANDARD < HARDER. 'offeredIncrease' is the only progression the records support; null means stay or step back.",
       dailyCheck: "Daily check-in (self-reported): sleep 1 = poor … 3 = good; fatigue 1 = fresh … 3 = very tired; soreness 0 = none … 2 = marked. outcome is what LEBLOND recommended for that day: AS_PLANNED, REDUCED, TECHNIQUE, MOBILITY or REST.",
     },
     last30Days: period(s30),
@@ -393,6 +509,7 @@ export function buildCoachContext(input: CoachContextInput) {
     quickAction: input.quickAction ?? null,
     alterEgo: input.alterEgo ?? null,
     training: trainingContext(input.training),
+    mobility: mobilityContext(input.mobility),
   };
   return enforceBudget(ctx);
 }
@@ -418,6 +535,13 @@ function enforceBudget<T extends Record<string, unknown>>(ctx: T): T {
   json = JSON.stringify(ctx);
   const frs = ctx.focusRouteSession as { ascents?: unknown[] } | null;
   if (json.length > CONTEXT_CHAR_BUDGET && frs?.ascents) frs.ascents = frs.ascents.slice(0, 15);
+  json = JSON.stringify(ctx);
+  const mob = ctx.mobility as { recentSessions?: unknown[]; leftRight?: unknown[]; discomfortReports?: unknown[] } | null | undefined;
+  if (json.length > CONTEXT_CHAR_BUDGET && mob) {
+    mob.recentSessions = mob.recentSessions?.slice(0, 1);
+    mob.leftRight = mob.leftRight?.slice(0, 2);
+    mob.discomfortReports = mob.discomfortReports?.slice(0, 3);
+  }
   return ctx;
 }
 

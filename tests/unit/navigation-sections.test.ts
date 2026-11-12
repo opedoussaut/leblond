@@ -15,7 +15,7 @@ describe("five intent-based areas", () => {
       today: ["/train/today", "/calendar"],
       climbing: ["/session", "/projects"],
       training: ["/train/sessions", "/training-plans", "/atlas"],
-      progress: ["/progress", "/follow-up/training", "/training-assessment"],
+      progress: ["/progress", "/follow-up/training", "/follow-up/mobility", "/training-assessment"],
       patrick: [],
     });
     for (const area of AREAS) expect(area.children.some((c) => c.href === area.href)).toBe(false);
@@ -43,13 +43,13 @@ describe("every URL keeps working and maps to its area", () => {
     }
   });
   it("keeps training execution, plans and the Atlas in Training", () => {
-    for (const path of ["/train", "/train/sessions", "/train/sessions/abc", "/train/alter-ego",
+    for (const path of ["/train", "/train/sessions", "/train/sessions/abc", "/train/alter-ego", "/train/mobility",
       "/training-plans", "/atlas", "/atlas/max-hangs", "/training"]) {
       expect(sectionForPath(path)).toBe("training");
     }
   });
   it("keeps results, training history and evaluations in Progress", () => {
-    for (const path of ["/follow-up", "/follow-up/training", "/progress", "/training-assessment",
+    for (const path of ["/follow-up", "/follow-up/training", "/follow-up/mobility", "/progress", "/training-assessment",
       "/train/assess", "/training/evaluate"]) {
       expect(sectionForPath(path)).toBe("progress");
     }
@@ -81,6 +81,7 @@ describe("one current page", () => {
     expect(activeSubPage("/projects/routes/x")?.href).toBe("/projects");
     expect(activeSubPage("/follow-up/training")?.href).toBe("/follow-up/training");
     expect(activeSubPage("/progress")?.href).toBe("/progress");
+    expect(activeSubPage("/follow-up/mobility")?.href).toBe("/follow-up/mobility");
     expect(activeSubPage("/training/evaluate")?.href).toBe("/training-assessment");
     expect(activeSubPage("/train/assess")?.href).toBe("/training-assessment");
     expect(activeSubPage("/settings/connections")?.href).toBe("/settings/connections");

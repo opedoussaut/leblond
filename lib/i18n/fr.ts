@@ -54,6 +54,7 @@ export const fr = {
     atlas: "Atlas",
     climbingProgress: "Grimpe",
     trainingHistory: "Entraînement",
+    mobility: "Mobilité",
     assessment: "Évaluations",
     // Account (avatar) menu
     accountMenu: "Mon compte",
@@ -575,6 +576,7 @@ export const fr = {
       nextSession: "Construis ma prochaine séance",
       compareGyms: "Compare mes performances Arkose et Climbing District",
       fatigue: "Que disent mes dernières séances sur ma fatigue ?",
+      mobility: "Où en est ma mobilité des hanches ?",
     },
   },
   profile: {

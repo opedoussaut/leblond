@@ -19,11 +19,15 @@ import { TEMPLATE_VERSION, type Block, type ExerciseSnapshot, type Modality } fr
  * climber to a missing page. Add a slug here once its page has been checked.
  */
 export const MUSCLEWIKI_SLUGS = [
+  "adductor-stretch-dynamic-unilateral-4-point-position", "adductor-stretch-seated-bilateral-static",
   "band-face-pull", "band-hip-abduction", "band-pull-apart", "barbell-front-raise", "bench-dips",
   "bodyweight-box-squat", "bodyweight-step-down", "cable-external-rotation", "cable-internal-rotation",
-  "cable-lat-prayer", "dumbbell-bulgarian-split-squat", "dumbbell-curl", "dumbbell-overhead-press",
-  "dumbbell-pullover", "dumbbell-romanian-deadlift", "dumbbell-wrist-extension", "glute-bridge",
-  "hanging-knee-raises", "kettlebell-goblet-squat", "kettlebell-romanian-deadlift", "pull-ups", "push-up",
+  "cable-lat-prayer", "calves-stretch-variation-one", "cat-pose", "chest-stretch-variation-one",
+  "child-pose-arms-extended", "dead-hang", "dumbbell-bulgarian-split-squat", "dumbbell-curl",
+  "dumbbell-overhead-press", "dumbbell-pullover", "dumbbell-romanian-deadlift", "dumbbell-wrist-extension",
+  "glute-bridge", "good-mornings", "hamstring-stretch-supine-static", "hanging-knee-raises",
+  "hip-flexor-stretch-kneeling-lunge-2", "kettlebell-goblet-squat", "kettlebell-romanian-deadlift",
+  "lat-and-shoulder-external-rotation-stretch-1-kneeling-dowel", "pull-ups", "push-up", "side-lunges",
   "single-leg-glute-bridge", "wall-sit", "weighted-pull-ups",
 ] as const;
 const musclewikiSlugs: ReadonlySet<string> = new Set(MUSCLEWIKI_SLUGS);

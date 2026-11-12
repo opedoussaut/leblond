@@ -5,7 +5,7 @@ import { injuriesSchema, methodVerdict, type BodyArea, type Health } from "./hea
 import type { PlanSession } from "./plans";
 
 /**
- * Daily check-in ("bilan du jour", about 30 s): how the climber is today, how
+ * Daily check-in ("forme du jour", about 30 s): how the climber is today, how
  * much time they have and where. It never changes the programme: it adapts
  * TODAY's session from it (as planned, lighter, swapped to technique or
  * mobility, or rest). Pure functions only.
