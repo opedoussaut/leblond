@@ -473,6 +473,16 @@ test("A7 — training: record a strength session after the fact, edit it, delete
 });
 
 test("B — guided climber: assess, plan, schedule, execute, review, reassess", async ({ page }) => {
+  // Nothing can be heard in CI: record the pitch of every tone the timers start.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __lbTones: number[] };
+    w.__lbTones = [];
+    const start = OscillatorNode.prototype.start;
+    OscillatorNode.prototype.start = function (this: OscillatorNode, when?: number) {
+      w.__lbTones.push(this.frequency.value);
+      return start.call(this, when);
+    };
+  });
   test.setTimeout(240_000);
   await page.setViewportSize(DESKTOP);
   await register(page, "Guided Climber", "guided@leblond.local");
@@ -540,9 +550,26 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   }
   await page.getByRole("button", { name: /Exercice suivant/ }).click();
   await expect(page.getByRole("heading", { name: "Suspensions lourdes" })).toBeVisible();
+  // Hands on the hangboard, eyes off the phone: 3, 2, 1, a beep to start, a beep at the end.
+  const hangTimer = page.getByRole("region", { name: "Chrono de l’exercice" });
+  await page.evaluate(() => { (window as unknown as { __lbTones: number[] }).__lbTones = []; });
+  await hangTimer.getByRole("button", { name: "▶ Lancer le chrono · 10 s" }).click();
+  await expect(hangTimer.getByText("Prêt…")).toBeVisible();
+  await expect(hangTimer.getByText("Tiens !")).toBeVisible({ timeout: 5_000 });
+  await page.screenshot({ path: "test-results/visual/hang-timer.png" });
+  // Scheduled on the audio clock: 3 pips, go, 3 pips before the end, then the 3-note end (the 440 Hz one is the silent unlock).
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __lbTones: number[] }).__lbTones.filter((hz) => hz !== 440)))
+    .toEqual([880, 880, 880, 1320, 880, 880, 880, 1320, 1320, 1760]);
+  await hangTimer.getByRole("button", { name: /Arrêter le chrono/ }).click();
+  await expect(hangTimer.getByRole("button", { name: /Lancer le chrono/ })).toBeVisible();
   await page.getByLabel(/Charge/).fill("5");
+  await page.evaluate(() => { (window as unknown as { __lbTones: number[] }).__lbTones = []; });
   await page.getByRole("button", { name: /Valider la série/ }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Série 1" })).toContainText("+5 kg");
+  // The 3-minute rest ends with 3 pips and a beep, scheduled as it starts.
+  await expect(page.getByRole("status").filter({ hasText: "Repos" })).toContainText(/2:5\d|3:00/);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __lbTones: number[] }).__lbTones.filter((hz) => hz !== 440)))
+    .toEqual([880, 880, 880, 1320]);
   await page.getByRole("button", { name: /Valider la série/ }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "Série 2" })).toBeVisible();
   await page.getByRole("button", { name: /Pause/ }).click();
