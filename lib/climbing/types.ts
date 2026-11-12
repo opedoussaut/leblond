@@ -12,6 +12,7 @@ export const GRADE_SYSTEMS = [
   "BLOCKOUT_LEVEL",
   "CLIMB_UP_COLOR",
   "VERTICAL_ART_COLOR",
+  "CLIMBING_DISTRICT_LEVEL",
 ] as const;
 export type GradeSystem = (typeof GRADE_SYSTEMS)[number];
 
@@ -27,10 +28,14 @@ export const GYM_BRANDS = [
 ] as const;
 export type GymBrand = (typeof GYM_BRANDS)[number];
 
-/** Brands whose grading system is fixed by the network. */
+/**
+ * Brands whose CURRENT bouldering scale is fixed by the network (used for new
+ * gyms). A gym's former scales, still valid for what was logged with them,
+ * live on the gym row (`gyms.former_grading_systems`, see lib/grading/scales.ts).
+ */
 export const BRAND_NATIVE_SYSTEM: Partial<Record<GymBrand, GradeSystem>> = {
   ARKOSE: "ARKOSE_COLOR",
-  CLIMBING_DISTRICT: "CLIMBING_DISTRICT_COLOR",
+  CLIMBING_DISTRICT: "CLIMBING_DISTRICT_LEVEL",
   BLOCKOUT: "BLOCKOUT_LEVEL",
   CLIMB_UP: "CLIMB_UP_COLOR",
   VERTICAL_ART: "VERTICAL_ART_COLOR",

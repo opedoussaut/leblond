@@ -10,7 +10,7 @@ import {
 import type { RouteSummary } from "@/lib/analytics/routes";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
-import { listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
+import { GRADES_BY_SYSTEM, listGrades, RELIABLE_CONFIDENCE } from "@/lib/grading";
 import type { Injury } from "@/lib/training/health";
 import {
   changesSinceBaseline, discomfortReports, hardestMovement, mobilityOverview, mobilityPeriods, sideComparison,
@@ -376,11 +376,25 @@ function period(s: Snapshot) {
     attemptsPerSend: { value: round(s.attemptsPerSend.value), sends: s.attemptsPerSend.sends },
     highestSent: highest(s.highestSent),
     highestFlashed: highest(s.highestFlashed),
+    hardestTriedNotSent: highest(s.highestUnsent),
   };
 }
 
+/** Said to Patrick whenever Climbing District grades are in the context. */
+export const CLIMBING_DISTRICT_SCALES_NOTE =
+  "CLIMBING_DISTRICT_LEVEL = Climbing District's current numbered levels 1–12 (1 easiest; gym levels, not Font or French grades). CLIMBING_DISTRICT_COLOR = its former colour scale (PINK unranked). Separate scales with no verified equivalence: never convert, merge or compare them.";
+
 export function buildCoachContext(input: CoachContextInput) {
   const { snapshot30: s30, snapshot90: s90 } = input;
+  const scales = gradeScalesFor([
+    input.climber.target.system as GradeSystem,
+    ...s90.workingLevels.map((w) => w.system as GradeSystem),
+    ...s90.crossGym.native.flatMap((n) => n.distributions.map((d) => d.system)),
+    // Older focus sessions and projects may be in a scale the last 90 days did not use.
+    ...(input.focusSession?.problems ?? []).map((p) => p.system as GradeSystem),
+    ...input.activeProjects.map((p) => p.system as GradeSystem),
+  ].filter((s) => s in GRADES_BY_SYSTEM));
+  const climbingDistrict = "CLIMBING_DISTRICT_LEVEL" in scales || "CLIMBING_DISTRICT_COLOR" in scales;
   const ctx = {
     generatedAt: input.now.toISOString(),
     climber: {
@@ -395,11 +409,7 @@ export function buildCoachContext(input: CoachContextInput) {
       fontWorkingGrade: s90.workingGrade.level,
     },
     gradeScales: {
-      ...gradeScalesFor([
-      input.climber.target.system as GradeSystem,
-      ...s90.workingLevels.map((w) => w.system as GradeSystem),
-      ...s90.crossGym.native.flatMap((n) => n.distributions.map((d) => d.system)),
-      ]),
+      ...scales,
       ...(input.routeClimbing || input.focusRouteSession || input.focusRouteProject
         ? { FRENCH_SPORT_ROUTES: { ordered: [...FRENCH_ROUTE_GRADES], unranked: [] as string[] } } : {}),
     },
@@ -408,7 +418,9 @@ export function buildCoachContext(input: CoachContextInput) {
       trend: `Mean of the ${DEFAULT_TREND_RULE.topN} hardest sends (in grade steps) over the last ${DEFAULT_TREND_RULE.windowDays} days vs the previous ${DEFAULT_TREND_RULE.windowDays}; needs ≥${DEFAULT_TREND_RULE.minSendsPerWindow} sends per window and a change ≥${DEFAULT_TREND_RULE.threshold} grade step.`,
       sendRate: "sent problems ÷ problems tried (distinct problems)",
       tops: "distinct problems sent",
-      gradeScales: "Each system's grades, easiest first. The next grade up is the next item. Unranked grades (e.g. Climbing District PINK) have no position.",
+      gradeScales: "Each system's grades, easiest first. The next grade up is the next item. Unranked grades (e.g. Climbing District PINK) have no position. Every grade figure names its system; grades of different systems are never comparable.",
+      boulderResults: "Boulders: FLASH = sent on the first try (onsight is not recorded separately for boulders); TOP = sent after tries; tried but not sent never counts as a send (hardestTriedNotSent).",
+      ...(climbingDistrict ? { climbingDistrictScales: CLIMBING_DISTRICT_SCALES_NOTE } : {}),
       routeResults: "Route (sport/roped) ascents: ONSIGHT = first go without beta, FLASH = first go with beta, REDPOINT = no fall after working it (these three are 'clean'); TOP_WITH_REST = reached the top with falls/rests on the rope; ATTEMPT = did not reach the anchor. Styles: LEAD, TOPROPE, AUTOBELAY.",
       routeLeadWorkingGrade: "Hardest French route grade climbed clean on LEAD at least twice in the last 60 days; null unless ≥6 routes were logged in that window. Top-rope and auto-belay never count toward it.",
       routeVsBoulder: "Route grades (French sport scale, lower-case, e.g. 6b+) and boulder grades (Font, colours) are separate scales. Never convert one into the other.",
@@ -496,6 +508,7 @@ export function buildCoachContext(input: CoachContextInput) {
             flashes: input.focusSession.summary.flashes,
             attempts: input.focusSession.summary.attempts,
             highestSent: highest(input.focusSession.summary.highestSent),
+            hardestTriedNotSent: highest(input.focusSession.summary.highestUnsent ?? []),
             mostSuccessfulStyle: input.focusSession.summary.mostSuccessfulStyle?.key ?? null,
             hardestStyle: input.focusSession.summary.hardestStyle?.key ?? null,
             wearable: input.focusSession.summary.wearable,

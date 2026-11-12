@@ -11,10 +11,40 @@
 | System | Values (easy → hard) | Notes |
 |---|---|---|
 | `ARKOSE_COLOR` | YELLOW, GREEN, BLUE, RED, BLACK, PURPLE | Initiation, beginner, intermediate, advanced, very good, expert. Source: Arkose “niveau escalade bloc couleur”. |
-| `CLIMBING_DISTRICT_COLOR` | WHITE, YELLOW, ORANGE, GREEN, BLUE, RED, BLACK, PURPLE + **PINK** | PINK = mystery: kind `MYSTERY`, ordinal `null`. Colours overlap (≈4a–8a+ overall). Source: Climbing District FAQ. |
+| `CLIMBING_DISTRICT_COLOR` | WHITE, YELLOW, ORANGE, GREEN, BLUE, RED, BLACK, PURPLE + **PINK** | Climbing District's **former** bouldering scale. PINK = mystery: kind `MYSTERY`, ordinal `null`. Colours overlap (≈4a–8a+ overall). Source: Climbing District FAQ. |
+| `CLIMBING_DISTRICT_LEVEL` | `1` … `12` | Climbing District's **current** bouldering scale (since migration `20261119000001`). Numbered gym levels, not Font or French grades; shown as "Niv. 7" / "Lvl 7". No published table links them to the colours or to Font, so LEBLOND has none. |
+| `BLOCKOUT_LEVEL` | B1 … B14 | Block'Out's numbered levels. |
 | `FONT` | 1a, 1b, 1c … 5a, 5b, 5c, 6A, 6A+ … 8C+, 9A (34 steps) | Native Font problems are their own normalised grade (confidence 1). Lettered below 6A, as on the Fontainebleau circuits and in Boolder. |
 | `CUSTOM_COLOR` | Generic colours | Unordered: LEBLOND does not know an independent gym's ranking. |
 | `UNKNOWN` | UNKNOWN | Unordered. |
+
+Each system has a kind (`GRADE_SYSTEM_KIND`): `COLOUR`, `NUMERIC` (gym levels) or `CONVENTIONAL` (Font). French route grades are a separate scale (`lib/grading/route-grades.ts`).
+
+## Scales over time
+
+A gym's scale can change (Climbing District moved from colours to levels 1–12). Nothing is ever converted:
+
+- `gyms.grading_system` is the **current** bouldering scale, the default for new sessions;
+  `gyms.former_grading_systems` lists earlier scales, still valid at that gym;
+  `gyms.grading_system_since` is the start date of the current scale **only when a source verifies it**
+  (null for Climbing District). Before that date, new sessions default to the latest former scale.
+- `sessions.grade_system` is the scale a boulder session logs **new** boulders in. Sessions logged before
+  the change keep their scale (the migration recorded it before switching the gyms), so editing an old
+  Climbing District session still offers its colours. A session can be switched to another scale of its gym
+  (a "Scale" switch in the logger, shown only when the gym has more than one); boulders already logged keep theirs.
+- Every boulder keeps `problems.native_grade` and `native_grade_system`, so its grade can always be read later.
+- Routes follow `gyms.route_grading` (French scale, or the gym's colours); outdoor venues use Font.
+
+Helpers: `lib/grading/scales.ts` (`boulderSystemsForGym`, `defaultBoulderSystem`, `sessionBoulderSystem`).
+The database enforces the same rules (`gym_accepts_grade_system`, trigger `sessions_grade_system`).
+
+## Progression across scales
+
+Analytics group every figure by native system: highest send, highest flash, highest tried-but-not-sent
+(projects and failed tries, never counted as sends), working level, trend, distributions and objectives.
+Climbing District colours and levels are two scales and are never compared or merged; the UI names the scale
+whenever a network or a session has figures in both. Boulders record first-try sends as `FLASH`; an onsight is
+not recorded separately for boulders (routes record it).
 
 ## Utilities (`lib/grading/ordering.ts`)
 
@@ -41,7 +71,8 @@ Next to each Arkose or Climbing District colour, LEBLOND shows an indicative Fon
 [`grade-reference.csv`](./grade-reference.csv) and are implemented in `lib/grading/conversions.ts`.
 They are labelled as estimates, never replace the native grade, and do not feed the normalised analytics
 (those still use per-problem estimates with their own confidence). Colours absent from the table
-(Climbing District white/orange, pink mystery, independent gyms' custom colours) show no range.
+(Climbing District white/orange, pink mystery, independent gyms' custom colours) show no range,
+and neither do Climbing District's levels 1–12.
 
 ## Routes at colour-graded gyms
 
