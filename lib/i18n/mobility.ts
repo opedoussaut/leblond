@@ -217,7 +217,7 @@ const mobility = {
   fr: {
     hubTitle: "Mobilité des hanches — niveau débutant",
     hubBadge: "Programme",
-    hubText: "Une routine courte et guidée (5–10 min) pour débutants aux hanches très raides. Aucun bilan complet nécessaire.",
+    hubText: "Une routine courte et guidée (5–10 min) pour débutants aux hanches très raides. Aucune évaluation complète nécessaire.",
     hubCta: "Découvrir le programme",
     hubOpen: "Ouvrir mon programme de mobilité",
     hubLevel: "Niveau actuel : {level}",

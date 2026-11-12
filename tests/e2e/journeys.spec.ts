@@ -74,7 +74,7 @@ async function logGrade(page: Page, grade: string, results: Array<"Essai" | "Top
 }
 
 /**
- * Runs the 7-step full assessment (bilan complet) with two measured tests:
+ * Runs the 7-step full assessment (évaluation complète) with two measured tests:
  * goal → availability → health → tests (readiness right before them) → self-ratings → priorities → programme.
  */
 async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
@@ -113,7 +113,7 @@ async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
   await expect(page.getByRole("heading", { name: "Programme proposé" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Ta semaine type" }).getByRole("listitem")).toHaveCount(2);
   await page.getByRole("checkbox", { name: /Je comprends que ce programme/ }).check();
-  await page.getByRole("button", { name: "Enregistrer mon bilan et mon programme" }).click();
+  await page.getByRole("button", { name: "Enregistrer mon évaluation et mon programme" }).click();
   await expect(page.getByRole("heading", { name: "Profil par niveau de preuve" })).toBeVisible();
 }
 
@@ -479,7 +479,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
 
   await page.getByRole("link", { name: /Commencer mon parcours d’entraînement/ }).click();
   await expect(page).toHaveURL(/\/train$/);
-  await page.getByRole("link", { name: /Faire mon bilan complet/ }).first().click();
+  await page.getByRole("link", { name: /Faire mon évaluation complète/ }).first().click();
   await expect(page).toHaveURL(/\/train\/assess/);
   await runProtocol(page, 25, 8);
   await expect(page.getByRole("region", { name: "Profil par niveau de preuve" }).getByText("25 s")).toBeVisible();
@@ -488,11 +488,11 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.goto("/train");
   const programme = page.getByRole("region", { name: "Programme en cours" });
   await expect(programme.getByText("Semaine 1 sur 8")).toBeVisible();
-  await expect(programme.getByText("Prochain bilan complet")).toBeVisible();
+  await expect(programme.getByText("Prochaine évaluation complète")).toBeVisible();
   await expect(page.getByRole("link", { name: /Choisir mon programme \(fait\)/ })).toBeVisible();
 
-  // Daily check-in (bilan du jour): adapts today's session only.
-  await page.getByRole("link", { name: /Faire mon bilan du jour/ }).click();
+  // Daily readiness (forme du jour): adapts today's session only.
+  await page.getByRole("link", { name: /Noter ma forme du jour/ }).click();
   await expect(page).toHaveURL(/\/train\/today$/);
   await page.getByRole("group", { name: "Ta nuit" }).getByText("Mauvaise").click();
   await page.getByRole("group", { name: "Ta fatigue" }).getByText("Très fatigué").click();
@@ -501,7 +501,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(day.getByText("De la mobilité douce à la place")).toBeVisible();
   await expect(day.getByText(/Très fatigué : récupérer/)).toBeVisible();
   await page.reload();
-  await expect(page.getByText(/Bilan du jour déjà fait/)).toBeVisible();
+  await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
   await page.goto("/train");
   await expect(page.getByText("Fait aujourd’hui : de la mobilité douce à la place.")).toBeVisible();
 
@@ -560,7 +560,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await finish.getByRole("button", { name: "7", exact: true }).click();
   await finish.getByLabel(/Notes et difficultés/).fill("Bonne séance, doigts frais.");
   await finish.getByRole("button", { name: "Enregistrer et terminer" }).click();
-  await expect(page.getByRole("heading", { name: "Bilan de la séance" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Résumé de la séance" })).toBeVisible();
 
   await page.reload();
   const table = page.getByRole("table", { name: "Prévu / réalisé" });
@@ -577,7 +577,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
 
   // Controlled reassessment: improved hang → compared with the baseline.
   await page.goto("/training-assessment");
-  await page.getByRole("button", { name: /Nouveau bilan complet \(réévaluation\)/ }).click();
+  await page.getByRole("button", { name: /Nouvelle évaluation complète \(réévaluation\)/ }).click();
   await runProtocol(page, 31, 9);
   await expect(page.getByText(/\+6 vs initial/)).toBeVisible();
   await expect(page.getByText(/\+1 vs initial/)).toBeVisible();
@@ -589,13 +589,13 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(page.getByText("+6 s depuis le premier résultat · en progrès")).toBeVisible();
 
   // Reset asks twice, keeps nothing and leaves the journal alone.
-  await page.getByRole("button", { name: "Réinitialiser mes bilans" }).click();
+  await page.getByRole("button", { name: "Réinitialiser mes évaluations" }).click();
   await page.getByRole("button", { name: "Les garder" }).click();
   await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toBeVisible();
-  await page.getByRole("button", { name: "Réinitialiser mes bilans" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Supprimer 2 bilan(s)" })).toBeVisible();
+  await page.getByRole("button", { name: "Réinitialiser mes évaluations" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Supprimer 2 évaluation(s)" })).toBeVisible();
   await page.getByRole("button", { name: "Oui, tout effacer" }).click();
-  await expect(page.getByText("Tes bilans ont été réinitialisés.")).toBeVisible();
+  await expect(page.getByText("Tes évaluations ont été réinitialisées.")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Mon niveau actuel" })).toBeVisible();
@@ -609,14 +609,20 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await page.goto("/home");
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
   const area = (name: string) => nav.getByRole("link", { name, exact: true });
+  // Five areas, no "Vue d'ensemble" entries: an area link opens its overview.
+  for (const name of ["Aujourd’hui", "Grimper", "S’entraîner", "Progrès", "Patrick"]) await expect(area(name)).toBeVisible();
+  await expect(nav.getByRole("link", { name: /Vue d’ensemble/ })).toHaveCount(0);
 
-  const steps: Array<{ click: () => Promise<void>; url: RegExp; h1: RegExp; active: string; visible: string[]; hidden: string[] }> = [
-    { click: () => area("Grimper").click(), url: /\/climbing$/, h1: /Grimper/, active: "Grimper", visible: ["Projets"], hidden: ["Atlas", "Progrès"] },
-    { click: () => area("S’entraîner").click(), url: /\/train$/, h1: /S’entraîner/, active: "S’entraîner", visible: ["Atlas", "Séances d’entraînement"], hidden: ["Projets"] },
-    { click: () => nav.getByRole("link", { name: "Atlas", exact: true }).click(), url: /\/atlas$/, h1: /Training Atlas/, active: "S’entraîner", visible: ["Atlas"], hidden: ["Projets"] },
-    { click: () => nav.getByRole("link", { name: "Séances d’entraînement", exact: true }).click(), url: /\/train\/sessions$/, h1: /Séances d’entraînement/, active: "S’entraîner", visible: ["Calendrier"], hidden: ["Progrès"] },
-    { click: () => area("Suivi").click(), url: /\/follow-up$/, h1: /^Suivi$/, active: "Suivi", visible: ["Historique d’entraînement", "Progrès"], hidden: ["Atlas", "Séances d’entraînement"] },
-    { click: () => area("Profil").click(), url: /\/profile$/, h1: /.+/, active: "Profil", visible: ["Connexions"], hidden: ["Atlas", "Progrès"] },
+  const steps: Array<{ click: () => Promise<void>; url: RegExp; h1: RegExp; active: string; current: string; visible: string[]; hidden: string[] }> = [
+    { click: () => area("Grimper").click(), url: /\/climbing$/, h1: /Grimper/, active: "Grimper", current: "Grimper", visible: ["Séances", "Projets"], hidden: ["Atlas", "Grimpe"] },
+    { click: () => area("S’entraîner").click(), url: /\/train$/, h1: /S’entraîner/, active: "S’entraîner", current: "S’entraîner", visible: ["Séances", "Programmes", "Atlas"], hidden: ["Projets", "Agenda"] },
+    { click: () => nav.getByRole("link", { name: "Atlas", exact: true }).click(), url: /\/atlas$/, h1: /Training Atlas/, active: "S’entraîner", current: "Atlas", visible: ["Atlas"], hidden: ["Projets"] },
+    { click: () => nav.getByRole("link", { name: "Séances", exact: true }).click(), url: /\/train\/sessions$/, h1: /Séances d’entraînement/, active: "S’entraîner", current: "Séances", visible: ["Programmes"], hidden: ["Évaluations"] },
+    { click: () => area("Aujourd’hui").click(), url: /\/home$/, h1: /Bonjour/, active: "Aujourd’hui", current: "Aujourd’hui", visible: ["Forme du jour", "Agenda"], hidden: ["Atlas"] },
+    { click: () => nav.getByRole("link", { name: "Agenda", exact: true }).click(), url: /\/calendar$/, h1: /Mon agenda/, active: "Aujourd’hui", current: "Agenda", visible: ["Forme du jour"], hidden: ["Programmes"] },
+    { click: () => area("Progrès").click(), url: /\/follow-up$/, h1: /^Progrès$/, active: "Progrès", current: "Progrès", visible: ["Grimpe", "Entraînement", "Évaluations"], hidden: ["Atlas", "Séances"] },
+    { click: () => nav.getByRole("link", { name: "Évaluations", exact: true }).click(), url: /\/training-assessment$/, h1: /Évaluations/, active: "Progrès", current: "Évaluations", visible: ["Grimpe"], hidden: ["Atlas"] },
+    { click: () => area("Patrick").click(), url: /\/patrick$/, h1: /.+/, active: "Patrick", current: "Patrick", visible: [], hidden: ["Grimpe", "Atlas"] },
   ];
   for (const s of steps) {
     await s.click();
@@ -628,16 +634,25 @@ test("C — navigation moves section, selection and focus together (desktop)", a
     await expect(nav.locator("[data-active-area=true]")).toHaveCount(1);
     for (const v of s.visible) await expect(nav.getByRole("link", { name: v, exact: true })).toBeVisible();
     for (const h of s.hidden) await expect(nav.getByRole("link", { name: h, exact: true })).toHaveCount(0);
+    // One strong highlight: the current page only (the area link itself on an overview).
     await expect(nav.locator("[aria-current=page]")).toHaveCount(1);
+    await expect(nav.locator("[aria-current=page]")).toHaveText(s.current);
   }
 
   // Browser history and deep links keep the state consistent.
   await page.goBack();
-  await expect(page).toHaveURL(/\/follow-up$/);
-  await expect(area("Suivi")).toHaveAttribute("data-active-area", "true");
+  await expect(page).toHaveURL(/\/training-assessment$/);
+  await expect(area("Progrès")).toHaveAttribute("data-active-area", "true");
   await page.goto("/atlas/repeaters");
   await expect(nav.getByRole("link", { name: "Atlas", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(area("S’entraîner")).toHaveAttribute("data-active-area", "true");
+  await expect(area("S’entraîner")).toHaveAttribute("aria-current", "true");
+  // Old URLs keep working and land in their new area.
+  await page.goto("/train/assess");
+  await expect(area("Progrès")).toHaveAttribute("data-active-area", "true");
+  await expect(nav.getByRole("link", { name: "Évaluations", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.goto("/train/today");
+  await expect(area("Aujourd’hui")).toHaveAttribute("data-active-area", "true");
+  await expect(nav.getByRole("link", { name: "Forme du jour", exact: true })).toHaveAttribute("aria-current", "page");
 
   // Keyboard: activate an area with Enter; focus lands on the new heading.
   await area("Grimper").focus();
@@ -645,33 +660,83 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await expect(page).toHaveURL(/\/climbing$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
 
-  // Sign-out sits at the foot of the sidebar, on every page.
-  const signOut = nav.getByRole("button", { name: "Se déconnecter" });
-  await expect(signOut).toBeVisible();
-  await signOut.click();
+  // Account menu at the foot of the sidebar: aria-expanded, keyboard, Esc.
+  const sidebar = page.locator("aside");
+  const account = sidebar.getByRole("button", { name: /Mon compte/ });
+  const item = (name: string) => sidebar.getByRole("link", { name, exact: true });
+  await expect(account).toHaveAttribute("aria-expanded", "false");
+  await expect(item("Profil")).toBeHidden();
+  await account.focus();
+  await page.keyboard.press("Enter");
+  await expect(account).toHaveAttribute("aria-expanded", "true");
+  for (const name of ["Profil", "Connexions", "Réglages"]) await expect(item(name)).toBeVisible();
+  await expect(sidebar.getByRole("button", { name: "Déconnexion" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(account).toHaveAttribute("aria-expanded", "false");
+  await expect(account).toBeFocused();
+  await expect(item("Profil")).toBeHidden();
+  await page.keyboard.press("ArrowDown");
+  await expect(account).toHaveAttribute("aria-expanded", "true");
+  await expect(item("Profil")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(item("Connexions")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/settings\/connections$/);
+  await expect(nav.locator("[data-active-area=true]")).toHaveCount(0);
+  await account.click();
+  await expect(item("Connexions")).toHaveAttribute("aria-current", "page");
+  await page.locator("#app-main h1").click();
+  await expect(account).toHaveAttribute("aria-expanded", "false");
+
+  // Sign-out sits in the account menu, on every page.
+  await account.click();
+  await sidebar.getByRole("button", { name: "Déconnexion" }).click();
   await expect(page).toHaveURL(/\/login/);
 });
 
-test("C — mobile: bottom bar + one sub-navigation per area", async ({ page }) => {
+test("C — mobile: bottom bar, every sub-page on screen, account menu in the header", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
   await signInWithPassword(page, "guided@leblond.local");
   await page.goto("/home");
   const bottom = page.getByRole("navigation", { name: "Navigation principale" });
   const sub = page.getByRole("navigation", { name: "Pages de cette section" });
-  await expect(sub).toHaveCount(0);
+  await expect(bottom.getByRole("link")).toHaveCount(5);
+  await expect(sub.getByRole("link", { name: "Forme du jour" })).toBeVisible();
+  await expect(sub.getByRole("link", { name: "Agenda" })).toBeVisible();
   await bottom.getByRole("link", { name: "S’entraîner" }).click();
   await expect(page).toHaveURL(/\/train$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
   await expect(sub.getByRole("link", { name: "Atlas" })).toBeVisible();
   await expect(sub.getByRole("link", { name: "Projets" })).toHaveCount(0);
-  await sub.getByRole("link", { name: "Calendrier" }).click();
-  await expect(page).toHaveURL(/\/calendar$/);
+  await sub.getByRole("link", { name: "Programmes" }).click();
+  await expect(page).toHaveURL(/\/training-plans$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
-  await expect(sub.getByRole("link", { name: "Calendrier" })).toHaveAttribute("aria-current", "page");
-  await bottom.getByRole("link", { name: "Suivi" }).click();
+  await expect(sub.getByRole("link", { name: "Programmes" })).toHaveAttribute("aria-current", "page");
+  await bottom.getByRole("link", { name: "Progrès" }).click();
   await expect(page).toHaveURL(/\/follow-up$/);
-  await expect(sub.getByRole("link", { name: "Calendrier" })).toHaveCount(0);
-  await expect(sub.getByRole("link", { name: "Historique d’entraînement" })).toBeVisible();
-  await expect(bottom.locator("[data-active-area=true]")).toHaveText(/Suivi/);
+  await expect(sub.getByRole("link", { name: "Programmes" })).toHaveCount(0);
+  await expect(bottom.locator("[data-active-area=true]")).toHaveText(/Progrès/);
+  // Every page of the area is on screen at 375 px: nothing is hidden off to the side.
+  for (const name of ["Grimpe", "Entraînement", "Évaluations"]) {
+    const box = await sub.getByRole("link", { name }).boundingBox();
+    expect(box, name).not.toBeNull();
+    expect(box!.x, name).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, name).toBeLessThanOrEqual(375);
+  }
+
+  // Account menu in the header: aria-expanded, Esc closes it.
+  const account = page.getByRole("button", { name: /Mon compte/ });
+  await expect(account).toHaveAttribute("aria-expanded", "false");
+  await account.click();
+  await expect(account).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Escape");
+  await expect(account).toHaveAttribute("aria-expanded", "false");
+  await expect(account).toBeFocused();
+  await account.click();
+  await page.getByRole("link", { name: "Connexions", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/connections$/);
+  await expect(sub.getByRole("link", { name: "Connexions" })).toHaveAttribute("aria-current", "page");
+  await expect(bottom.locator("[data-active-area=true]")).toHaveCount(0);
 });
 
 test("D — private data: signed-out visitors are redirected, other climbers get 404", async ({ page, request }) => {

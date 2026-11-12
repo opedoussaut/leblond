@@ -63,7 +63,7 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
 
   await page.getByRole("button", { name: "Terminer la séance" }).last().click();
   await page.getByRole("button", { name: "Enregistrer et terminer" }).click();
-  await expect(page.getByRole("heading", { name: "Bilan de la séance" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Résumé de la séance" })).toBeVisible();
 
   // The warning sign is remembered: clinician advice, and no increase on offer.
   await page.goto("/train/mobility");
@@ -96,5 +96,5 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
   await expect(page.getByRole("region", { name: "Bilans" }).getByText("Niveau 0 · Très limité, beaucoup d’appui")).toBeVisible();
   // Phone layout (the CI project): the area's pages are in the sub-navigation.
   const sub = page.getByRole("navigation", { name: "Pages de cette section" });
-  await expect(sub.getByRole("link", { name: "Mobilité des hanches", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(sub.getByRole("link", { name: "Mobilité", exact: true })).toHaveAttribute("aria-current", "page");
 });

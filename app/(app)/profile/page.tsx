@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader, SectionTitle } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { signOut } from "@/app/(public)/login/actions";
 import { requireViewer } from "@/lib/auth/viewer";
 import { gradeLabel } from "@/lib/grading/labels";
@@ -23,7 +24,7 @@ export default async function ProfilePage() {
   ];
   return (
     <div className="space-y-5">
-      <PageHeader title={p.display_name || t.profile.title} subtitle={viewer.email} />
+      <PageHeader icon={<PAGE_ICONS.profile />} title={p.display_name || t.profile.title} subtitle={viewer.email} />
       <Card>
         <dl className="divide-y divide-line text-sm">
           <div className="flex justify-between py-2">

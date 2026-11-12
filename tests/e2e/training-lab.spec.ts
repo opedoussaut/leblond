@@ -35,15 +35,15 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/calendar");
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
-  await expect(nav.getByRole("link", { name: "Calendrier", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Agenda", exact: true })).toHaveAttribute("aria-current", "page");
   // Progressive disclosure: only the selected area's pages are listed.
-  await expect(nav.getByRole("link", { name: "Séance", exact: true })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "S’entraîner", exact: true })).toHaveAttribute("data-active-area", "true");
-  await nav.getByRole("link", { name: "Suivi", exact: true }).click();
+  await expect(nav.getByRole("link", { name: "Projets", exact: true })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Aujourd’hui", exact: true })).toHaveAttribute("data-active-area", "true");
+  await nav.getByRole("link", { name: "Progrès", exact: true }).click();
   await expect(page).toHaveURL(/\/follow-up/);
   await expect(page.locator("#app-main h1")).toBeFocused();
-  await expect(nav.getByRole("link", { name: "Suivi", exact: true })).toHaveAttribute("data-active-area", "true");
-  await expect(nav.getByRole("link", { name: "Calendrier", exact: true })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Progrès", exact: true })).toHaveAttribute("data-active-area", "true");
+  await expect(nav.getByRole("link", { name: "Agenda", exact: true })).toHaveCount(0);
   await nav.getByRole("link", { name: "S’entraîner", exact: true }).click();
   await expect(page).toHaveURL(/\/train/);
   await expect(page.getByRole("link", { name: /Training Atlas/ })).toBeVisible();
@@ -59,7 +59,7 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await slide.focus();
   await slide.press("Home");
   await expect(slide).toHaveValue("1");
-  await page.getByRole("checkbox", { name: /Simuler un bilan ultérieur/ }).check();
+  await page.getByRole("checkbox", { name: /Simuler une évaluation ultérieure/ }).check();
   await expect(page.getByText(/Rien n'est enregistré ici/)).toBeVisible();
 
   // Dedicated atlas: twelve descriptive axes, complete method sheet and

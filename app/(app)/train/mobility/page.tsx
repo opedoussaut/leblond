@@ -6,6 +6,7 @@ import {
 import { doseText } from "@/lib/training/hip-mobility/display";
 import { buttonClass } from "@/components/ui/button";
 import { Notice, PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { currentPlan, loadMobility } from "@/lib/data/mobility";
 import { formatDate } from "@/lib/format";
@@ -36,7 +37,7 @@ export default async function HipMobilityPage() {
 
   return <div className="space-y-6">
     <p className="text-sm"><Link href="/train" className="font-bold text-accent underline underline-offset-4">← {locale === "fr" ? "S’entraîner" : "Training"}</Link></p>
-    <PageHeader title={m.title} subtitle={m.subtitle} />
+    <PageHeader icon={<PAGE_ICONS.mobility />} title={m.title} subtitle={m.subtitle} />
 
     {plan.clinician.recommended ? <div role="alert" className="rounded-2xl border border-danger/40 bg-danger/10 p-5">
       <h2 className="text-base font-black text-danger">{m.clinicianTitle}</h2>

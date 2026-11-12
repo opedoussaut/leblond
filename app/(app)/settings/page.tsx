@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { CoachKeys } from "@/components/settings/coach-keys";
@@ -14,7 +15,7 @@ export default async function SettingsPage() {
   const p = viewer.profile;
   return (
     <div>
-      <PageHeader title={t.settings.title} />
+      <PageHeader icon={<PAGE_ICONS.settings />} title={t.settings.title} />
       <ProfileForm
         initial={{
           displayName: p.display_name,

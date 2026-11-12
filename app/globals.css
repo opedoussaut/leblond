@@ -109,6 +109,13 @@ select {
   border-radius: 6px;
 }
 
+/* In-page anchors are not hidden under the sticky mobile header. */
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+}
+
 /* Bottom navigation clears the iOS home indicator. */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);

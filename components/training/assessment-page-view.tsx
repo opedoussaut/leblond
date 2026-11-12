@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { AssessmentWorkspace } from "@/components/training/assessment-workspace";
+import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
@@ -96,12 +98,14 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
-        <Link href={backHref} className="text-sm font-bold text-accent underline underline-offset-4">← {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Suivi" : "Follow-up")}</Link>
+        <Link href={backHref} className="text-sm font-bold text-accent underline underline-offset-4">← {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Progrès" : "Progress")}</Link>
         <Link href="/progress" className="text-sm font-bold text-accent underline underline-offset-4">{locale==="fr"?"Mes résultats":"My results"} →</Link>
       </div>
-      <h1 className="mt-6 text-2xl font-black tracking-tight md:text-3xl">{doing ? j.hub.fullTitle
-        : (locale === "fr" ? "Bilans et évolution" : "Assessments and progress")}</h1>
-      <p className="mt-3 text-sm leading-relaxed text-ink-2">{doing ? j.full.intro : a.subtitle}</p>
+      <div className="mt-6">
+        <PageHeader icon={<PAGE_ICONS.assessment />} title={doing ? j.hub.fullTitle
+          : (locale === "fr" ? "Évaluations et évolution" : "Assessments and progress")}
+          subtitle={doing ? j.full.intro : a.subtitle} />
+      </div>
       {doing ? <Link href="/train/today" className="mt-2 inline-block text-sm font-bold text-accent underline underline-offset-4">{j.hub.dayTitle} · {j.hub.dayBadge} →</Link> : null}
       {viewer.profile.target_discipline !== "BOULDER" ? (
         <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink-2">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import {
   changesSinceBaseline, discomfortReports, exerciseProgress, hardestMovement, mobilityOverview, mobilityPeriods, sideComparison,
 } from "@/lib/analytics/mobility";
@@ -61,8 +62,8 @@ export default async function MobilityFollowUpPage() {
   const functional = assessments.flatMap((a) => a.results.filter((r) => r.test === "D" && r.side !== "BOTH").map((r) => ({ a, r })));
 
   return <div className="space-y-6">
-    <p className="text-sm"><Link href="/follow-up" className="font-bold text-accent underline underline-offset-4">← {locale === "fr" ? "Suivi" : "Follow-up"}</Link></p>
-    <PageHeader title={m.fuTitle} subtitle={m.fuSubtitle} />
+    <p className="text-sm"><Link href="/follow-up" className="font-bold text-accent underline underline-offset-4">← {locale === "fr" ? "Progrès" : "Progress"}</Link></p>
+    <PageHeader icon={<PAGE_ICONS.mobility />} title={m.fuTitle} subtitle={m.fuSubtitle} />
 
     {empty ? <div className="rounded-2xl border border-dashed border-line p-6 text-center">
       <p className="text-sm text-ink-2">{m.fuEmpty}</p>

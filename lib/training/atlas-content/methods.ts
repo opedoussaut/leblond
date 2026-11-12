@@ -704,7 +704,7 @@ export const METHOD_DETAILS: Record<string, AtlasDetail> = {
       "Passive hip range, active control and strength in that range, then coordination on the wall (feet that keep pressure, hips that move). Flexibility is not the whole story: strength, balance, technique, foothold spacing and wall angle matter too.",
     ),
     suits: loc(
-      "Les grimpeurs dont les hanches limitent les pieds écartés, les pieds hauts ou les rotations, même au tout début. Aucun bilan complet ni autre programme n’est nécessaire.",
+      "Les grimpeurs dont les hanches limitent les pieds écartés, les pieds hauts ou les rotations, même au tout début. Aucune évaluation complète ni autre programme n’est nécessaire.",
       "Climbers whose hips limit wide feet, high feet or hip turns, even at the very start. No full assessment or other programme is needed.",
     ),
     level: loc("Débutant, dès le niveau 0", "Beginner, from level 0"),

@@ -150,7 +150,7 @@ export interface FocusRouteProjectInput {
   sessionsCount: number;
 }
 
-/** The programme in progress and the latest daily check-in (bilan du jour), as loaded by lib/data/programme. */
+/** The programme in progress and the latest daily check-in (forme du jour), as loaded by lib/data/programme. */
 export interface CoachTrainingInput {
   view: ProgrammeView | null;
   lastCheck: {

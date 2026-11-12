@@ -299,7 +299,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         <h2 className="text-lg font-black">{a.checkin}</h2>
         <p className="mt-2 text-xs leading-relaxed text-ink-2">{a.checkinHint}</p>
         <p className="mt-2 text-xs leading-relaxed text-ink-2">{locale==="fr"
-          ?"Protocole de répétition : compare les 4 dernières semaines avec ton bilan précédent, dans des conditions aussi similaires que possible. Pour chaque dimension, garde la même échelle de 1 à 5 ; distingue les faits enregistrés de ton ressenti."
+          ?"Protocole de répétition : compare les 4 dernières semaines avec ton évaluation précédente, dans des conditions aussi similaires que possible. Pour chaque dimension, garde la même échelle de 1 à 5 ; distingue les faits enregistrés de ton ressenti."
           :"Repeat the protocol: compare the last four weeks against your previous baseline using as similar conditions as possible. Apply the same 1–5 scale for every dimension; distinguish logged evidence from your perception."}</p>
         {now<1 ? <p className="mt-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-2">{a.notYet}</p> : <>
           <label className="mt-4 block text-sm font-bold">{a.chooseWeek}
@@ -360,8 +360,8 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 id="evidence-heading" className="text-lg font-black">{fr ? "Profil par niveau de preuve" : "Profile by evidence level"}</h2>
       <span className="text-xs font-semibold text-ink-3">
-        {record.kind === "STRUCTURED" ? (fr ? "Bilan structuré" : "Structured assessment") : record.kind === "BASIC" ? (fr ? "Bilan de base" : "Basic assessment") : (fr ? "Auto-évaluation (v1)" : "Self-assessment (v1)")}
-        {!isBaseline ? (fr ? " · comparé au bilan initial du " : " · compared with baseline of ") + new Date(baseline!.createdAt).toLocaleDateString(fr ? "fr-FR" : "en-GB") : ""}
+        {record.kind === "STRUCTURED" ? (fr ? "Évaluation structurée" : "Structured assessment") : record.kind === "BASIC" ? (fr ? "Évaluation de base" : "Basic assessment") : (fr ? "Auto-évaluation (v1)" : "Self-assessment (v1)")}
+        {!isBaseline ? (fr ? " · comparée à l’évaluation initiale du " : " · compared with baseline of ") + new Date(baseline!.createdAt).toLocaleDateString(fr ? "fr-FR" : "en-GB") : ""}
       </span>
     </div>
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
@@ -377,7 +377,7 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
           <p className="text-xs text-ink-3">{m.date} · {fr?"protocole":"protocol"} v{m.protocolVersion} · {m.quality==="complete"?(fr?"conditions complètes":"complete conditions"):(fr?"conditions partielles":"partial conditions")}{m.conditions?" · "+m.conditions:""}</p>
           {c && !c.comparable ? <p className="mt-1 text-xs font-semibold text-ink-2">{fr?"Comparaison indicative : conditions ou version différentes.":"Indicative comparison: conditions or version differ."}</p> : null}
         </li>;})}
-    </ul> : <p className="flex items-center gap-2 text-sm text-ink-2"><EvidenceBadge level="insufficient" locale={locale}/> {fr ? "Aucun test mesuré dans ce bilan." : "No measured test in this assessment."}</p>}
+    </ul> : <p className="flex items-center gap-2 text-sm text-ink-2"><EvidenceBadge level="insufficient" locale={locale}/> {fr ? "Aucun test mesuré dans cette évaluation." : "No measured test in this assessment."}</p>}
     {context?.observed.length ? <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {context.observed.map(o=><li key={o.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm">
         <span>{OBSERVED_LABELS[o.id]?.[locale] ?? o.id}<span className="block text-xs text-ink-3">n = {o.sample}</span></span>
@@ -390,6 +390,6 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
         <span className="tabular-nums font-bold">{record.ratings[axis].toFixed(1)}{d!==null && d!==0 ? <span className="ml-1 text-xs text-ink-3">({d>0?"+":""}{d.toFixed(1)})</span> : null}</span>
       </li>;})}
     </ul>
-    <p className="text-xs text-ink-3">{fr ? "Notes 1–5 : déclaratives. Les écarts entre bilans reflètent aussi un changement de perception." : "1–5 ratings: self-reported. Differences between assessments also reflect changes in perception."}</p>
+    <p className="text-xs text-ink-3">{fr ? "Notes 1–5 : déclaratives. Les écarts entre évaluations reflètent aussi un changement de perception." : "1–5 ratings: self-reported. Differences between assessments also reflect changes in perception."}</p>
   </section>;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MobilityAssessmentForm } from "@/components/training/mobility-assessment-form";
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { getI18n } from "@/lib/i18n/server";
@@ -19,7 +20,7 @@ export default async function HipMobilityAssessPage() {
     .eq("programme", HIP_PROGRAMME).order("assessed_on", { ascending: false }).order("created_at", { ascending: false }).limit(1).maybeSingle();
   return <div className="space-y-5">
     <p className="text-sm"><Link href="/train/mobility" className="font-bold text-accent underline underline-offset-4">← {m.title}</Link></p>
-    <PageHeader title={m.assessTitle} subtitle={m.assessSubtitle} />
+    <PageHeader icon={<PAGE_ICONS.mobility />} title={m.assessTitle} subtitle={m.assessSubtitle} />
     <MobilityAssessmentForm locale={locale} today={localDate_(new Date())} previous={last ? parseStoredConditions(last.conditions) : null} />
   </div>;
 }

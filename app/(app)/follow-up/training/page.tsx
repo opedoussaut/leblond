@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
@@ -29,7 +30,7 @@ export default async function TrainingHistoryPage() {
   const overall = adherence(past, today);
 
   return <div className="space-y-7">
-    <PageHeader title={fr ? "Historique d’entraînement" : "Training history"}
+    <PageHeader icon={<PAGE_ICONS.trainingHistory />} title={fr ? "Historique d’entraînement" : "Training history"}
       subtitle={fr ? "Séances prévues et réellement réalisées, avec leur contenu." : "Planned and actually completed sessions, with their content."} />
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {[
