@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { EmptyState, PageHeader } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
@@ -36,7 +37,7 @@ export default async function ProjectsPage() {
 
   return (
     <div>
-      <PageHeader title={t.projects.title} />
+      <PageHeader icon={<PAGE_ICONS.projects />} title={t.projects.title} />
       <h2 className="mb-3 text-lg font-extrabold">{r.boulderProjects}</h2>
       {projects?.length ? (
         <ul className="space-y-2">

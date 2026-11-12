@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AreaCard } from "@/components/layout/area-card";
-import { ProgressIcon, SessionIcon } from "@/components/layout/nav-icons";
+import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
 import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,7 +12,7 @@ export default async function ClimbingHome() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   return <div className="space-y-7">
-    <PageHeader
+    <PageHeader icon={<AREA_ICONS.climbing />}
       title={fr ? "Grimper" : "Climb"}
       subtitle={fr
         ? "Ton carnet de grimpe, bloc et voie. Séances, essais et projets, sans programme obligatoire."
@@ -26,11 +26,11 @@ export default async function ClimbingHome() {
       ↺ {fr ? "Ajouter une séance déjà faite" : "Add a session you already did"}
     </Link>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <AreaCard href="/session" icon={<SessionIcon />}
+      <AreaCard href="/session" icon={<PAGE_ICONS.session />}
         title={fr ? "Mes séances" : "My climbing sessions"}
         description={fr ? "Consulte tes sorties, note tes essais et retrouve tes blocs réussis." : "Review past climbs, log attempts and revisit completed boulders."}
         emphasis/>
-      <AreaCard href="/projects" icon={<ProgressIcon />}
+      <AreaCard href="/projects" icon={<PAGE_ICONS.projects />}
         title={fr ? "Mes projets" : "My projects"}
         description={fr ? "Garde une trace des blocs que tu travailles et de leur progression." : "Keep track of boulder projects you are working on."}/>
     </div>

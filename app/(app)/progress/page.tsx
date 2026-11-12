@@ -3,6 +3,7 @@ import { RatioBars } from "@/components/charts/ratio-bars";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { cn } from "@/components/ui/cn";
 import { Explain, Stat } from "@/components/ui/stat";
 import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analytics";
@@ -36,7 +37,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
 
   return (
     <div className="space-y-5">
-      <PageHeader title={t.progress.title} />
+      <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} />
       <nav aria-label={t.progress.period} className="flex gap-2">
         {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => (
           <Link

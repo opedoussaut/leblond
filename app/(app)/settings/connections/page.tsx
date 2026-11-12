@@ -1,6 +1,7 @@
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { BoolderAttribution } from "@/components/climbing/outdoor";
 import { Card, Notice, PageHeader, SectionTitle } from "@/components/ui/card";
+import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { latestOutdoorImport } from "@/lib/data/outdoor";
 import { formatDateTime } from "@/lib/format";
@@ -43,7 +44,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/sett
 
   return (
     <div className="space-y-5">
-      <PageHeader title={t.connections.title} subtitle={t.connections.intro} />
+      <PageHeader icon={<PAGE_ICONS.connections />} title={t.connections.title} subtitle={t.connections.intro} />
       {sp.connected ? <Notice tone="ok">{fmt(t.connections.oauthConnected, { provider: providerName })}</Notice> : null}
       {typeof sp.error === "string" ? (
         <Notice tone="error">{fmt(t.connections.oauthError, { provider: providerName, reason: sp.error })}</Notice>

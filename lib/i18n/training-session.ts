@@ -10,7 +10,7 @@ const fr = {
   startNow: "Commencer maintenant", schedule: "Planifier",
   inProgress: "En cours", upcoming: "À venir", history: "Terminées", nothingUpcoming: "Aucune séance planifiée.",
   nothingDone: "Aucune séance terminée pour l’instant.",
-  resume: "Reprendre", open: "Ouvrir", start: "Démarrer la séance", review: "Voir le bilan",
+  resume: "Reprendre", open: "Ouvrir", start: "Démarrer la séance", review: "Voir le résumé",
   status: {
     PLANNED: "Prévue", IN_PROGRESS: "En cours", COMPLETED: "Terminée", SKIPPED: "Non faite",
     CANCELED: "Annulée", INTERRUPTED: "Interrompue",
@@ -43,7 +43,7 @@ const fr = {
   confirmFinish: "Enregistrer et terminer", stopEarly: "Interrompre", stopConfirm: "Interrompre la séance ? Le travail enregistré est conservé.",
   saved: "Enregistré", saving: "Enregistrement…", offline: "Échec de l’enregistrement. Réessaie — rien n’est perdu.",
   liveElsewhere: "Une autre séance d’entraînement est déjà en cours.", goLive: "Ouvrir la séance en cours",
-  summary: "Bilan de la séance", exercisesDone: "Exercices faits", exercisesModified: "Adaptés",
+  summary: "Résumé de la séance", exercisesDone: "Exercices faits", exercisesModified: "Adaptés",
   exercisesSkipped: "Passés", setsDone: "Séries", totalReps: "Répétitions", holdTime: "Temps sous tension",
   duration: "Durée", minutesShort: "min", plannedVsActual: "Prévu / réalisé", painReported: "Douleur signalée",
   backToList: "Mes séances d’entraînement", startFromAtlas: "Faire une séance avec cette méthode",

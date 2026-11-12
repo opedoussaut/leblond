@@ -1,11 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
+import { AreaCard } from "@/components/layout/area-card";
+import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
+import { buttonClass } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
+import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { fmt } from "@/lib/i18n";
-import { buttonClass } from "@/components/ui/button";
+import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { localDate_ } from "@/lib/training/sessions";
 
 /**
+ * Aujourd'hui (Today) overview: today's form and agenda first, then
  * "What do I want to do today?" — two balanced, independent journeys.
  * Logging never requires a plan; training is opt-in. Both share one history.
  */
@@ -16,20 +23,23 @@ export default async function HomePage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
-  const [{ data: live }, { data: training }, { count: plans }] = await Promise.all([
+  const j = journeyDictionary(locale);
+  const today = localDate_(new Date());
+  const dateLabel = formatDate(today + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" });
+  const [{ data: live }, { data: training }, { count: plans }, { data: dayCheck }] = await Promise.all([
     viewer.supabase.from("sessions").select("id, gyms(name)").is("ended_at", null).limit(1).maybeSingle(),
     viewer.supabase.from("training_sessions").select("id, title").eq("status", "IN_PROGRESS").limit(1).maybeSingle(),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
+    viewer.supabase.from("training_day_checks").select("outcome").eq("check_date", today).limit(1).maybeSingle(),
   ]);
+  const outcome = dayCheck?.outcome;
 
   return <div className="space-y-8">
-    <header>
-      <p className="leblond-eyebrow text-accent">LEBLOND · ROAD TO 7A</p>
-      <h1 className="mt-3 text-ink text-2xl font-black tracking-tight md:text-3xl">
-        {fmt(t.home.hello, { name: viewer.profile.display_name })}
-      </h1>
-
-    </header>
+    <div>
+      <p className="leblond-eyebrow mb-3 text-accent">LEBLOND · ROAD TO 7A</p>
+      <PageHeader icon={<AREA_ICONS.today />} title={fmt(t.home.hello, { name: viewer.profile.display_name })}
+        subtitle={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)} />
+    </div>
 
     {live || training ? <section aria-label={fr ? "Activité en cours" : "Activity in progress"} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {live ? <Link href={`/session/${live.id}`}
@@ -45,6 +55,17 @@ export default async function HomePage() {
         <span className="text-sm font-extrabold">{fr ? "Reprendre" : "Resume"} →</span>
       </Link> : null}
     </section> : null}
+
+    <section aria-labelledby="your-day" className="space-y-4">
+      <h2 id="your-day" className="text-lg font-extrabold tracking-tight text-ink-2">{t.home.yourDay}</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <AreaCard href="/train/today" icon={<PAGE_ICONS.dayCheck />} title={t.nav.dayCheck}
+          description={t.home.dayCheckText} emphasis={!outcome}
+          note={outcome ? fmt(j.hub.dayDone, { outcome: j.outcomes[outcome].toLowerCase() }) : j.hub.dayBadge} />
+        <AreaCard href="/calendar" icon={<PAGE_ICONS.calendar />} title={t.nav.calendar}
+          description={t.home.agendaText} />
+      </div>
+    </section>
 
     <section aria-labelledby="choose-path" className="space-y-4">
       <h2 id="choose-path" className="text-lg font-extrabold tracking-tight text-ink-2">
@@ -91,11 +112,11 @@ export default async function HomePage() {
           {fr ? "Ton escalade. Ton rythme." : "Your climbing. Your pace."}
         </p>
         <p className="max-w-lg text-sm leading-relaxed text-blue-100">
-          {fr ? "Tes séances de grimpe alimentent ton suivi, avec ou sans programme. Tu peux passer d’un parcours à l’autre à tout moment."
-              : "Your climbing sessions feed your follow-up, with or without a plan. Switch between journeys whenever you like."}
+          {fr ? "Tes séances de grimpe alimentent tes progrès, avec ou sans programme. Tu peux passer d’un parcours à l’autre à tout moment."
+              : "Your climbing sessions feed your progress, with or without a plan. Switch between journeys whenever you like."}
         </p>
         <Link href="/follow-up" className="inline-block text-sm font-bold text-white underline underline-offset-4">
-          {fr ? "Voir mon suivi" : "View my follow-up"} →
+          {t.home.progressLink} →
         </Link>
       </div>
       <Image src="/brand/leblond-approved-hero.svg" width={480} height={480}

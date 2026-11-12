@@ -1,7 +1,7 @@
 import type { Locale } from "./index";
 export const calendarDictionary = (locale: Locale) => ({
   fr: {
-    title:"Mon calendrier", subtitle:"Tes dates, tes entraînements prévus et les séances réellement enregistrées, au même endroit.",
+    title:"Mon agenda", subtitle:"Tes dates, tes entraînements prévus et les séances réellement enregistrées, au même endroit.",
     today:"Aujourd’hui", previous:"Mois précédent", next:"Mois suivant", add:"Ajouter une date",
     day:"Date", time:"Heure (facultatif)", titleField:"Titre", kind:"Type d’activité",
     discipline:"Discipline", minutes:"Durée (facultatif)", notes:"Notes (facultatif)",

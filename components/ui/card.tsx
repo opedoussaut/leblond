@@ -8,12 +8,27 @@ export function SectionTitle({ children, className }: { children: React.ReactNod
   return <h2 className={cn("text-xs font-bold uppercase tracking-[0.12em] text-ink-3", className)}>{children}</h2>;
 }
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
+/**
+ * Page title. `icon` is the page's navigation icon (components/layout/nav-icons),
+ * so a page looks the same in the menu and in its own header.
+ */
+export function PageHeader({ title, subtitle, action, icon }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
   return (
     <header className="mb-5 flex items-start justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-ink-2">{subtitle}</p> : null}
+      <div className="flex min-w-0 items-start gap-3">
+        {icon ? <span aria-hidden="true"
+          className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent md:h-11 md:w-11 [&_svg]:h-5 [&_svg]:w-5 md:[&_svg]:h-[22px] md:[&_svg]:w-[22px]">
+          {icon}
+        </span> : null}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-black tracking-tight md:text-3xl">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm text-ink-2">{subtitle}</p> : null}
+        </div>
       </div>
       {action}
     </header>
