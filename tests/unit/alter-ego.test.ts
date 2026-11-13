@@ -110,6 +110,36 @@ describe("the ego's schedule", () => {
   });
 });
 
+describe("racing alongside", () => {
+  const raced = (date: string): ClimberWork => ({ ...work(date, 18), targets: [pullUps] });
+
+  it("counts the séance it raced in the player as soon as the climber records it, same day", () => {
+    // Signed on Wednesday 4 Nov: the plan's Tuesday is not owed, its Friday is still ahead.
+    const p = pact({ startDate: "2026-11-04" });
+    expect(egoLedger(p, "2026-11-04").sessions).toBe(0);
+    const ego = egoLedger(p, "2026-11-04", [raced("2026-11-04"), raced("2026-11-04")]);
+    expect(ego).toEqual({ sessions: 2, reps: 36, minutes: 2 * Math.round(timelineSeconds(egoTimeline([pullUps], 1)) / 60) });
+  });
+
+  it("races at its week's load and replaces the plan's séance that day, never both", () => {
+    const p = pact();
+    // Tuesday 10 Nov is a plan day in week 1: the raced séance stands for it.
+    const withRace = egoLedger(p, "2026-11-11", [raced("2026-11-10")]);
+    const planOnly = egoLedger(p, "2026-11-11");
+    expect(withRace.sessions).toBe(planOnly.sessions);
+    // A séance on a day off (Sunday 8 Nov) is one more for both.
+    expect(egoLedger(p, "2026-11-11", [raced("2026-11-08")]).sessions).toBe(planOnly.sessions + 1);
+    expect(egoLedger(p, "2026-11-11", [raced("2026-11-10")]).reps)
+      .toBe(egoLedger(p, "2026-11-11").reps - egoSessionLedger(egoSchedule(p)[2], PROGRESSION_V1).reps + 3 * Math.round(6 * loadFactor(1)));
+  });
+
+  it("ignores séances before the pact and interrupted ones", () => {
+    const p = pact({ startDate: "2026-11-04" });
+    const early = raced("2026-11-03"), stopped = { ...raced("2026-11-04"), status: "INTERRUPTED" as const };
+    expect(egoLedger(p, "2026-11-04", [early, stopped]).sessions).toBe(0);
+  });
+});
+
 describe("pause", () => {
   it("freezes the pact clock while paused and shifts it after resuming", () => {
     const paused = pact({ status: "PAUSED", pausedSince: "2026-11-10" });
