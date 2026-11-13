@@ -7,6 +7,7 @@ import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
 import { loadFactor, pactClock, pactWeek } from "@/lib/analytics/alter-ego";
 import { loadOpenRival } from "@/lib/data/alter-ego";
+import { loadAvatar } from "@/lib/data/avatar";
 import { REACH_MARGIN } from "@/lib/analytics/rival";
 import { utcToZoned } from "@/lib/time";
 import { localDate_ } from "@/lib/training/sessions";
@@ -55,6 +56,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     // Within reach, it stays at most 10 % ahead in the lane too.
     factor: rival.settings.level === "REACH" ? Math.min(factor, 1 + REACH_MARGIN) : factor,
     portrait: rival.settings.portrait,
+    avatar: (await loadAvatar(viewer.supabase)).level,
   } : null;
 
   return <div className="space-y-6">

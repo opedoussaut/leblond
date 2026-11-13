@@ -6,6 +6,8 @@ import { RatioBars } from "@/components/charts/ratio-bars";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
+import { AvatarCard } from "@/components/training/avatar-card";
+import { loadAvatar } from "@/lib/data/avatar";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { cn } from "@/components/ui/cn";
 import { Explain, Stat } from "@/components/ui/stat";
@@ -31,6 +33,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const [data, routes, boardRows] = await Promise.all([
     loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
   ]);
+  const avatar = await loadAvatar(viewer.supabase, { dataset: data, boardRows });
   const now = new Date();
   const days = PERIODS[periodKey];
   const boardSince = days === null ? 0 : now.getTime() - days * 86_400_000;
@@ -47,6 +50,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   return (
     <div className="space-y-5">
       <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} />
+      <AvatarCard locale={locale} progress={avatar} />
       <nav aria-label={t.progress.period} className="flex gap-2">
         {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => (
           <Link
