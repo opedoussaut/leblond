@@ -18,9 +18,9 @@ const LEAD_MARGIN = 0.05;
  * The ego training through the same session, live. It is driven by the player's
  * own clock, so it pauses with the player and needs no network.
  */
-export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, easeOff, portrait }: {
+export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, portrait }: {
   locale: Locale; name: string; phases: Phase[]; exerciseNames: string[];
-  elapsed: number; youFraction: number; easeOff: boolean; portrait?: RivalPortraitId;
+  elapsed: number; youFraction: number; portrait?: RivalPortraitId;
 }) {
   const t = alterEgoDictionary(locale);
   const s = trainingSessionDictionary(locale);
@@ -32,15 +32,15 @@ export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, you
   const leader = lead > LEAD_MARGIN ? "you" : lead < -LEAD_MARGIN ? "ego" : "level";
   const verdict = leader === "you" ? t.laneYouAhead : leader === "ego" ? fmt(t.laneEgoAhead, { name }) : t.laneLevel;
 
-  // Its own sound when it passes you (never during an ease-off). Set ends stay
+  // Its own sound when it passes you. Set ends stay
   // silent so they are never mistaken for the player's own timer beeps.
   const previous = useRef<string | null>(null);
   useEffect(() => {
     const before = previous.current;
     previous.current = leader;
-    if (before === null || easeOff || !total) return;
+    if (before === null || !total) return;
     if (leader === "ego" && before !== "ego") scheduleBeeps([{ at: Date.now(), tone: "rival" }]);
-  }, [leader, easeOff, total]);
+  }, [leader, total]);
 
   if (!total) return null;
   const finished = youFraction >= 1;
@@ -52,9 +52,9 @@ export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, you
   return <div aria-label={fmt(t.laneLabel, { name })} role="group" className="mt-2 rounded-xl bg-surface-2 px-3 py-2">
     <div className="flex items-center justify-between gap-3 text-xs">
       <strong className="flex min-w-0 items-center gap-2 truncate">{portrait ? <RivalPortrait portrait={portrait} size={28} /> : null}{name}</strong>
-      {easeOff ? null : <span className="shrink-0 font-semibold text-ink-2">{verdict}</span>}
+      <span className="shrink-0 font-semibold text-ink-2">{verdict}</span>
     </div>
-    {finished && !easeOff ? <p role="status" className="mt-1 text-sm font-bold">
+    {finished ? <p role="status" className="mt-1 text-sm font-bold">
       {margin >= 0 ? fmt(r.laneBeat, { name, d: formatClock(margin) }) : fmt(r.laneLost, { name, d: formatClock(-margin) })}
     </p> : null}
     <p className="mt-0.5 truncate text-xs tabular-nums text-ink-2">{doing}</p>

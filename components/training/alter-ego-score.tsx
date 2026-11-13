@@ -16,7 +16,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   const t = alterEgoDictionary(locale);
   const { standing: s } = progress;
   const name = pact.displayName;
-  const verdict = progress.easeOff ? t.easeOff : fmt({ ahead: t.ahead, level: t.level, behind: t.behind }[s.state], { name });
+  const verdict = fmt({ ahead: t.ahead, level: t.level, behind: t.behind }[s.state], { name });
   const rows = [
     { label: t.sessions, you: s.you.sessions, ego: s.ego.sessions },
     { label: t.reps, you: s.you.reps, ego: s.ego.reps },
@@ -36,7 +36,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
       </p>
       </div>
     </div>
-    <p className={"rounded-xl px-4 py-3 text-sm font-semibold " + (progress.easeOff ? "bg-surface-2 text-ink" : "bg-accent-soft text-ink")}>{verdict}</p>
+    <p className={"rounded-xl px-4 py-3 text-sm font-semibold " + "bg-accent-soft text-ink"}>{verdict}</p>
     <table className="w-full text-sm">
       <caption className="sr-only">{t.tableCaption}</caption>
       <thead>

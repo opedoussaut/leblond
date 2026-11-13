@@ -82,14 +82,14 @@ export default async function AlterEgoPage() {
   return <div className="space-y-5">
     {back}
     <PageHeader title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
-    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={progress.easeOff ? null : rivalBoulderGrade(pact, settings, today)}
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today)}
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress}
       observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
-    {progress.next && !progress.easeOff ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
+    {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
       {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}
     </p> : null}
-    {progress.easeOff ? null : <p className="text-sm font-semibold text-ink-2">{t.gapNote}</p>}
+    <p className="text-sm font-semibold text-ink-2">{t.gapNote}</p>
     <RivalSettingsForm locale={locale} pactId={pact.id} initial={settings} today={today}
       hasBoulderGrades={!!pact.startBoulderGrade && !!pact.targetBoulderGrade} />
     <PactControls locale={locale} id={pact.id} status={pact.status} over={progress.over} />
