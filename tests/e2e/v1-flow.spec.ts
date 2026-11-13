@@ -458,11 +458,11 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
   await picker.getByRole("button", { name: /Le Talon d'Achille/ }).first().click();
   // A topo boulder opens the one-step form; "Noter essai par essai" keeps the try-by-try logger.
   const quickAdd = page.getByRole("region", { name: "Ajouter ce bloc" });
-  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (5c)" })).toHaveAttribute("aria-pressed", "true");
+  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (5C)" })).toHaveAttribute("aria-pressed", "true");
   await quickAdd.getByRole("button", { name: "Noter essai par essai" }).click();
   const current = page.getByRole("region", { name: "Bloc en cours" });
   await expect(current.getByText("Le Talon d'Achille")).toBeVisible();
-  await expect(current.getByText("5c", { exact: true })).toBeVisible();
+  await expect(current.getByText("5C", { exact: true })).toBeVisible();
   for (const name of ["Essai", "Top"]) {
     await current.getByRole("button", { name, exact: true }).click();
     await expect(page.getByText(/noté\./)).toBeVisible();
@@ -488,7 +488,7 @@ test("Fontainebleau session: Boolder topo, closures, lettered Font grades", asyn
   // Boulder missing from the topo: lettered Font grade grid.
   await page.getByRole("button", { name: /AJOUTER UN BLOC/ }).click();
   await page.getByRole("button", { name: "Bloc absent du topo ? Choisir une cotation" }).click();
-  await page.getByRole("button", { name: "4b", exact: true }).click();
+  await page.getByRole("button", { name: "4B", exact: true }).click();
   await current.getByRole("button", { name: "Essai", exact: true }).click();
   await expect(page.getByText(/Essai noté\./)).toBeVisible();
 
@@ -604,12 +604,12 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await picker.getByRole("button", { name: "Carte", exact: true }).click();
   const map = picker.getByRole("region", { name: "Carte des blocs (OpenStreetMap)" });
   await expect(picker.getByText(/^\d+ blocs sur la carte$/)).toBeVisible();
-  await map.getByRole("button", { name: /Dalle E2E · 4c/ }).click();
+  await map.getByRole("button", { name: /Dalle E2E · 4C/ }).click();
   await picker.getByRole("button", { name: "Choisir ce bloc" }).click();
   // One step: my own grade, the result and the number of tries.
   const quickAdd = page.getByRole("region", { name: "Ajouter ce bloc" });
   await expect(quickAdd.getByText("Dalle E2E")).toBeVisible();
-  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (4c)" })).toHaveAttribute("aria-pressed", "true");
+  await expect(quickAdd.getByRole("button", { name: "Cotation du topo (4C)" })).toHaveAttribute("aria-pressed", "true");
   await quickAdd.getByRole("button", { name: "Ma cotation" }).click();
   await quickAdd.getByRole("combobox", { name: "Ma cotation" }).selectOption("5a");
   await quickAdd.getByRole("button", { name: "Top", exact: true }).click();
@@ -618,7 +618,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
   await expect(page.getByText("Ajouté : Dalle E2E · Top en 3 essais.").first()).toBeVisible();
   const dalleRow = page.getByRole("listitem").filter({ hasText: "Dalle E2E" });
-  await expect(dalleRow).toContainText("5a");
+  await expect(dalleRow).toContainText("5A");
   await expect(dalleRow.getByRole("img", { name: "Essai, Essai, Top" })).toBeVisible();
 
   // Logged by mistake, then taken out of the session: with no other tries, the boulder goes.
@@ -729,7 +729,7 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await editForm.getByLabel("Cotation").selectOption("3b");
   await editForm.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByText("Bloc enregistré.")).toBeVisible();
-  await expect(page.getByRole("listitem").filter({ hasText: "Premier corrigé E2E" })).toContainText("3b");
+  await expect(page.getByRole("listitem").filter({ hasText: "Premier corrigé E2E" })).toContainText("3B");
 
   await page.getByRole("button", { name: "+ Ajouter un bloc" }).click();
   const addForm = page.getByRole("form", { name: "Nouveau bloc" });

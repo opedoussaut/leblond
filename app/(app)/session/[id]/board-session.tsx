@@ -13,6 +13,7 @@ import { Minus, Plus } from "lucide-react";
 import { deleteBoardAscent, logBoardAscent, setBoardAngle } from "@/lib/actions/boards";
 import { endSession } from "@/lib/actions/sessions";
 import { summarizeBoardSession, type BoardAscentFact } from "@/lib/analytics/boards";
+import { filledSlots, type BoardPlan } from "@/lib/analytics/board-plan";
 import {
   BOARD_NAMES, BOARD_RESULTS, BOARD_SCALES, boardGrades, climbKey, hasMirror, type Board, type BoardResult, type BoardScale,
 } from "@/lib/climbing/boards";
@@ -20,6 +21,7 @@ import type { BoardAscentRow } from "@/lib/data/boards";
 import { fmt } from "@/lib/i18n";
 import { boardsDictionary } from "@/lib/i18n/boards";
 import { formatClock } from "@/lib/training/sessions";
+import { boulderGrade } from "@/lib/grading/display";
 
 /** A climb the climber already logged on this board: suggested by name, with its history. */
 export type KnownBoardClimb = {
@@ -54,9 +56,11 @@ const toFact = (r: BoardAscentRow): BoardAscentFact => ({
  * without signal wait on the phone and are sent when the network is back; a
  * resent climb is never stored twice (client id).
  */
-export function BoardSession({ sessionId, board, layout, initialAngle, startedAt, ended, initialAscents, known, defaultScale }: {
+export function BoardSession({ sessionId, board, layout, initialAngle, startedAt, ended, initialAscents, known, defaultScale, plan = null }: {
   sessionId: string; board: Board; layout: string | null; initialAngle: number; startedAt: string; ended: boolean;
   initialAscents: BoardAscentRow[]; known: KnownBoardClimb[]; defaultScale: BoardScale;
+  /** The guided séance prepared on /session/board-plan, carried in the address. */
+  plan?: Pick<BoardPlan, "format" | "target" | "slots"> | null;
 }) {
   const { locale } = useI18n();
   const b = boardsDictionary(locale);
@@ -65,8 +69,8 @@ export function BoardSession({ sessionId, board, layout, initialAngle, startedAt
   const [pending, setPending] = useState<Pending[]>([]);
   const [angle, setAngle] = useState(initialAngle);
   const [name, setName] = useState("");
-  const [scale, setScale] = useState<BoardScale>(defaultScale);
-  const [grade, setGrade] = useState(defaultScale === "V" ? "V3" : "6A");
+  const [scale, setScale] = useState<BoardScale>(plan ? "FONT" : defaultScale);
+  const [grade, setGrade] = useState(plan?.slots[0]?.grade ?? (defaultScale === "V" ? "V3" : "6A"));
   const [tries, setTries] = useState(1);
   const [result, setResult] = useState<BoardResult>("SENT");
   const [benchmark, setBenchmark] = useState(false);
@@ -167,6 +171,14 @@ export function BoardSession({ sessionId, board, layout, initialAngle, startedAt
   }
 
   const summary = summarizeBoardSession(ascents.map(toFact));
+  const filled = plan ? filledSlots(plan.slots, [...ascents.map((a) => ({ grade: a.grade, gradeScale: a.grade_scale })), ...pending.map((p) => ({ grade: p.grade, gradeScale: p.gradeScale }))]) : new Set<number>();
+  function pickSlot(i: number) {
+    const slot = plan?.slots[i];
+    if (!slot) return;
+    setScale("FONT"); setGrade(slot.grade);
+    if (slot.suggestion) setName(slot.suggestion.name);
+    document.getElementById("add-climb-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   const elapsed = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
 
   return <div className="space-y-6">
@@ -186,8 +198,26 @@ export function BoardSession({ sessionId, board, layout, initialAngle, startedAt
             <dt className="text-xs text-ink-3">{label}</dt><dd className="font-display text-xl font-black tabular-nums">{n}</dd>
           </div>)}
       </dl>
-      {summary.top.length ? <p className="text-sm text-ink-2">{b.summary.top} : <strong className="text-ink">{summary.top.map((t) => t.grade).join(" · ")}</strong></p> : null}
+      {summary.top.length ? <p className="text-sm text-ink-2">{b.summary.top} : <strong className="text-ink">{summary.top.map((t) => boulderGrade(t.grade)).join(" · ")}</strong></p> : null}
     </header>
+
+    {plan && !ended ? <section aria-labelledby="plan-live-heading" className="space-y-2 rounded-2xl border border-line bg-surface p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 id="plan-live-heading" className="text-lg font-bold">{b.plan.liveTitle}</h2>
+        <span className="text-sm font-semibold tabular-nums" data-testid="plan-progress">{fmt(b.plan.liveDone, { done: filled.size, total: plan.slots.length })}</span>
+      </div>
+      <p className="text-xs text-ink-3">{b.plan.liveHint}</p>
+      <ol className="flex flex-wrap gap-2" data-testid="plan-live-slots">
+        {plan.slots.map((s, i) => <li key={i}>
+          <button type="button" onClick={() => pickSlot(i)} aria-pressed={filled.has(i)}
+            title={`${b.plan.blocks[s.block]}${s.suggestion ? " · " + s.suggestion.name : ""}`}
+            className={cn("min-h-11 rounded-xl border px-3 font-display text-sm font-black tabular-nums",
+              filled.has(i) ? "border-accent bg-accent-soft text-accent line-through" : "border-line bg-surface-2 text-ink")}>
+            {boulderGrade(s.grade)}{s.suggestion ? <span className="ml-1 font-sans text-xs font-normal">· {s.suggestion.name}</span> : null}
+          </button>
+        </li>)}
+      </ol>
+    </section> : null}
 
     <form aria-labelledby="add-climb-heading" className="leblond-premium-surface space-y-4 p-4 sm:p-5" onSubmit={(e) => { e.preventDefault(); add(); }}>
       <h2 id="add-climb-heading" className="text-lg font-bold">{b.addClimb}</h2>
@@ -208,7 +238,7 @@ export function BoardSession({ sessionId, board, layout, initialAngle, startedAt
         </fieldset>
         <label className="text-sm font-semibold">{b.grade}
           <select className={fieldClass} value={grade} onChange={(e) => setGrade(e.target.value)} data-testid="board-grade">
-            {boardGrades(scale).map((g) => <option key={g} value={g}>{g}</option>)}
+            {boardGrades(scale).map((g) => <option key={g} value={g}>{boulderGrade(g)}</option>)}
           </select>
         </label>
       </div>
@@ -246,12 +276,12 @@ export function BoardSession({ sessionId, board, layout, initialAngle, startedAt
       {ascents.length || pending.length ? <ul className="space-y-2" data-testid="board-climbs">
         {pending.map((p) => <li key={p.clientId} className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-line bg-surface p-3 opacity-70">
           <span className="min-w-0"><strong className="block truncate">{p.climbName}</strong>
-            <span className="text-xs text-ink-2">{p.grade} · {p.angle}° · {fmt(b.triesShort, { n: p.tries })}</span></span>
+            <span className="text-xs text-ink-2">{boulderGrade(p.grade)} · {p.angle}° · {fmt(b.triesShort, { n: p.tries })}</span></span>
           <span className="shrink-0 text-xs font-semibold text-warn">{b.pending}</span>
         </li>)}
         {ascents.map((a) => <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-3">
           <span className="min-w-0">
-            <strong className="block truncate">{a.climb_name} <span className="font-display">{a.grade}</span></strong>
+            <strong className="block truncate">{a.climb_name} <span className="font-display">{boulderGrade(a.grade)}</span></strong>
             <span className="text-xs text-ink-2">{a.angle}° · {fmt(b.triesShort, { n: a.tries })}{a.is_benchmark ? " · " + b.benchmark : ""}{a.is_mirror ? " · " + b.mirror : ""}{a.notes ? " · " + a.notes : ""}</span>
           </span>
           <span className="flex shrink-0 items-center gap-3">

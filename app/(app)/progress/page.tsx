@@ -20,6 +20,7 @@ import { RouteStats } from "@/components/climbing/route-stats";
 import { formatDate, formatNumber, formatRatio } from "@/lib/format";
 import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
+import { boulderGrade } from "@/lib/grading/display";
 
 export const metadata = { title: "Progrès" };
 
@@ -215,7 +216,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 <RatioBars
                   rows={snap.crossGym.normalized.buckets.map((b) => ({
                     key: b.grade,
-                    label: `${b.grade} (${t.common.estimate})`,
+                    label: `${boulderGrade(b.grade)} (${t.common.estimate})`,
                     sent: b.sent,
                     attempted: b.attempted,
                   }))}

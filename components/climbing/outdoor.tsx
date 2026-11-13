@@ -24,6 +24,7 @@ import { fmt, type Dictionary } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { MapPin } from "./topo-map";
 import { IconCheck, IconExternal, IconStar, IconWarn } from "@/components/ui/icons";
+import { boulderGrade } from "@/lib/grading/display";
 
 /** Leaflet and the OpenStreetMap tiles load only when a map is asked for. */
 const TopoMap = dynamic(() => import("./topo-map"), {
@@ -81,7 +82,7 @@ function toPin(t: Dictionary, p: Located): MapPin {
     bg: sw.bg,
     fg: sw.fg,
     text: p.circuit_color && p.circuit_number ? p.circuit_number : p.grade,
-    label: `${circuit} · ${p.name} · ${p.grade}`,
+    label: `${circuit} · ${p.name} · ${boulderGrade(p.grade)}`,
   };
 }
 
@@ -483,7 +484,7 @@ export function BoolderProblemPicker({
         <option value="">{t.outdoor.anyGrade}</option>
         {grades.map((g) => (
           <option key={g} value={g}>
-            {g}
+            {boulderGrade(g)}
           </option>
         ))}
       </Select>
@@ -522,7 +523,7 @@ export function BoolderProblemPicker({
                     {chosen.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
                   </span>
                 </span>
-                <span className="shrink-0 font-black tabular-nums">{chosen.grade}</span>
+                <span className="shrink-0 font-black tabular-nums">{boulderGrade(chosen.grade)}</span>
               </div>
               {inSessionLabel(chosen.id) ? <p className="text-xs font-bold text-ok"><IconCheck /> {inSessionLabel(chosen.id)}</p> : null}
               <Button className="w-full" disabled={pending} onClick={() => onPick(chosen)}>
@@ -559,7 +560,7 @@ export function BoolderProblemPicker({
                     </span>
                     {inSessionLabel(p.id) ? <span className="mt-0.5 block text-xs font-bold text-ok"><IconCheck /> {inSessionLabel(p.id)}</span> : null}
                   </span>
-                  <span className="shrink-0 font-black tabular-nums">{p.grade}</span>
+                  <span className="shrink-0 font-black tabular-nums">{boulderGrade(p.grade)}</span>
                 </button>
               </li>
             ))}

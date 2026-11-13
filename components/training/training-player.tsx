@@ -316,7 +316,8 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     <article className="leblond-premium-surface p-5 sm:p-6" aria-labelledby="current-exercise">
       <p className="leblond-eyebrow text-accent">{t.block[current.block]} · {t.exStatus[current.status]}</p>
       <h2 id="current-exercise" className="mt-2 text-2xl font-bold tracking-tight">{current.name}</h2>
-      {mob ? <MobilityIllustration exerciseId={mob.exerciseId} title={current.name} className="mt-3" /> : null}
+      {mob ? <MobilityIllustration exerciseId={mob.exerciseId} title={current.name} className="mt-3" />
+        : instr.illustration ? <MobilityIllustration exerciseId={instr.illustration} title={current.name} className="mt-3" /> : null}
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
       {instr.load ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{c.load} :</span> {instr.load}</p> : null}

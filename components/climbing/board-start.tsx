@@ -111,6 +111,7 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{b.error}</p> : null}
     <div className="flex flex-wrap items-center gap-4">
       <button type="submit" disabled={pending} className={buttonClass("primary", "lg")}>{past ? b.record : b.start}</button>
+      <Link href="/session/board-plan" className={cn(linkClass, "text-sm font-semibold")}>{b.plan.link}</Link>
       <Link href="/session/board-import" className={cn(linkClass, "text-sm")}>{b.importLink}</Link>
     </div>
   </form>;

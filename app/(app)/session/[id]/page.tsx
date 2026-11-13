@@ -5,13 +5,15 @@ import { getI18n } from "@/lib/i18n/server";
 import { SessionSummaryView } from "./summary";
 import { BoardSession, type KnownBoardClimb } from "./board-session";
 import { climbHistory } from "@/lib/analytics/boards";
+import { decodePlan } from "@/lib/analytics/board-plan";
 import { DEFAULT_ANGLE, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { RouteSessionSummary } from "./route-summary";
 import { SessionLogger, loadRouteAscents } from "./session-logger";
 
-export default async function SessionPage({ params }: PageProps<"/session/[id]">) {
+export default async function SessionPage({ params, searchParams }: PageProps<"/session/[id]">) {
   const { id } = await params;
+  const planParam = (await searchParams).plan;
   const viewer = await requireViewer();
   const view = await loadSessionView(viewer.supabase, id);
   if (!view) notFound();
@@ -32,7 +34,8 @@ export default async function SessionPage({ params }: PageProps<"/session/[id]">
     const lastScale = facts.length ? facts[facts.length - 1].gradeScale : locale === "en" ? "V" : "FONT";
     return <BoardSession sessionId={view.session.id} board={board} layout={view.session.board_layout}
       initialAngle={view.session.board_angle ?? DEFAULT_ANGLE} startedAt={view.session.started_at} ended={!!view.session.ended_at}
-      initialAscents={here} known={known} defaultScale={lastScale} />;
+      initialAscents={here} known={known} defaultScale={lastScale}
+      plan={view.session.ended_at ? null : decodePlan(typeof planParam === "string" ? planParam : null)} />;
   }
 
   if (!view.session.ended_at) return <SessionLogger viewer={viewer} view={view} mode="live" />;

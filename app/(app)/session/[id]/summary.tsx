@@ -21,6 +21,7 @@ import { SessionWearable } from "./session-wearable";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
 import { buttonClass } from "@/components/ui/button";
 import { IconEdit, IconStar } from "@/components/ui/icons";
+import { boulderGrade } from "@/lib/grading/display";
 
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
@@ -33,7 +34,7 @@ function HighestRow({ t, items }: { t: Dictionary; items: HighestGrade[] }) {
           {items.length > 1 ? <span className="text-xs text-ink-3">{t.grades.scaleShort[h.system]}</span> : null}
           <GradeChip t={t} system={h.system} grade={h.grade} showFont={!h.normalized} />
           {h.normalized && h.system !== "FONT" ? (
-            <span className="text-sm text-ink-3">/ {fmt(t.grades.estimatedFont, { grade: h.normalized.grade })}</span>
+            <span className="text-sm text-ink-3">/ {fmt(t.grades.estimatedFont, { grade: boulderGrade(h.normalized.grade) })}</span>
           ) : null}
         </span>
       ))}

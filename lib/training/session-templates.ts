@@ -51,6 +51,8 @@ export type ExerciseSnapshot = {
   edgeMm?: number;
   /** Coach sessions only: an illustrated demo on an approved site (see DEMO_HOSTS). */
   demo?: { label: string; url: string };
+  /** Coach sessions only: one of LEBLOND's own drawings (lib/training/illustrations.ts). */
+  illustration?: string;
   /** Mobility programme sessions only: the exercise, its prescribed version and its variations. */
   mobility?: MobilitySnapshot;
 };

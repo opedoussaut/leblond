@@ -2,6 +2,7 @@ import { z } from "zod";
 import { METHODS_FOR_PLANS } from "./catalogue";
 import { PLAN_PLACES } from "./plans";
 import { TEMPLATE_VERSION, type Block, type ExerciseSnapshot, type Modality } from "./session-templates";
+import { ILLUSTRATIONS } from "./illustrations";
 
 /**
  * Coach sessions: complete sessions written for one climber by their coach
@@ -41,7 +42,7 @@ export function musclewikiUrl(slug: string | undefined | null): string | null {
  * for exercises MuscleWiki has no page for. A demo link must point to one of them.
  */
 export const DEMO_HOSTS = [
-  "workoutlabs.com", "www.bodbot.com", "latticetraining.com", "www.caliverse.app", "sworkit.com", "www.acefitness.org",
+  "workoutlabs.com", "latticetraining.com", "www.caliverse.app", "sworkit.com", "www.acefitness.org",
 ] as const;
 const demoHosts: ReadonlySet<string> = new Set(DEMO_HOSTS);
 
@@ -87,6 +88,8 @@ export const coachExerciseSchema = z.object({
     label: z.string().trim().min(1).max(60),
     url: z.string().max(500).refine((u) => demoUrl(u) !== null, "Demo must be an https page on an approved site"),
   }).strict().optional(),
+  /** One of LEBLOND's own drawings (lib/training/illustrations.ts), shown with the exercise. */
+  illustration: z.enum(ILLUSTRATIONS).optional(),
   /** Atlas method the exercise belongs to, for the Atlas link. */
   methodId: z.string().refine((id) => methodIds.has(id), "Unknown training method").optional(),
 }).strict();
@@ -158,6 +161,7 @@ export function coachSnapshot(e: CoachExercise, slug: string, index: number): Ex
     ...(e.restAfterSeconds ? { restAfter: e.restAfterSeconds } : {}),
     ...(e.edgeMm ? { edgeMm: e.edgeMm } : {}),
     ...(e.demo ? { demo: e.demo } : {}),
+    ...(e.illustration ? { illustration: e.illustration } : {}),
   };
 }
 
