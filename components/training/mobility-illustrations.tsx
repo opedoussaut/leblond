@@ -14,6 +14,34 @@ function Arrow({ d, both = false }: { d: string; both?: boolean }) {
     markerEnd="url(#mob-arrow)" markerStart={both ? "url(#mob-arrow-start)" : undefined} />;
 }
 
+/* Solid figure parts for the newer drawings: limbs with volume, far limbs lighter for depth, the moving limb in the accent colour. */
+const ACCENT = "var(--color-accent, #1769b9)";
+type Tone = "near" | "far" | "move" | "ghost";
+function toneProps(tone: Tone) {
+  if (tone === "move") return { stroke: ACCENT };
+  if (tone === "far") return { stroke: "currentColor", strokeOpacity: 0.38 };
+  if (tone === "ghost") return { stroke: "currentColor", strokeOpacity: 0.28, strokeDasharray: "2 6", strokeWidth: 3 };
+  return { stroke: "currentColor", strokeOpacity: 0.88 };
+}
+function Limb({ pts, tone = "near", thin = false }: { pts: string; tone?: Tone; thin?: boolean }) {
+  return <polyline points={pts} fill="none" strokeWidth={thin ? 6 : 8} strokeLinecap="round" strokeLinejoin="round" {...toneProps(tone)} />;
+}
+function Foot({ heel, toe, tone = "near" }: { heel: [number, number]; toe: [number, number]; tone?: Tone }) {
+  return <path d={`M${heel[0]} ${heel[1]} L${toe[0]} ${toe[1]}`} fill="none" strokeWidth={6} strokeLinecap="round" {...toneProps(tone)} />;
+}
+function Torso({ from, to, wide = false }: { from: [number, number]; to: [number, number]; wide?: boolean }) {
+  return <path d={`M${from[0]} ${from[1]} L${to[0]} ${to[1]}`} fill="none" stroke="currentColor" strokeOpacity={0.88} strokeWidth={wide ? 16 : 13} strokeLinecap="round" />;
+}
+function Head({ x, y }: { x: number; y: number }) {
+  return <circle cx={x} cy={y} r={7.5} fill="currentColor" fillOpacity={0.88} stroke="none" />;
+}
+function Wall({ x }: { x: number }) {
+  return <g stroke="currentColor" strokeOpacity={0.45}>
+    <path d={`M${x} 4 L${x} 89`} strokeWidth={2.5} />
+    {[12, 26, 40, 54, 68, 82].map((y) => <path key={y} d={`M${x} ${y} L${x + 7} ${y - 7}`} strokeWidth={1.5} />)}
+  </g>;
+}
+
 function Figure({ id }: { id: Drawing }) {
   switch (id) {
     case "supine-knee-sways": return <>
@@ -58,36 +86,49 @@ function Figure({ id }: { id: Drawing }) {
     </>;
     // Facing the wall in a split stance, the front knee goes to the wall, heel down.
     case "knee-to-wall": return <>
-      <path d="M134 6 L134 88" />
-      <circle cx={98} cy={18} r={7} />
-      <path d="M98 26 L94 56 M97 34 L130 40 M94 56 L126 64 L112 88 L124 88 M94 56 L78 72 L62 86" />
-      <path d="M106 92 L118 92" stroke="var(--color-accent, #1769b9)" strokeDasharray="2 2" />
-      <Arrow d="M104 76 Q116 66 126 64" />
+      <Wall x={138} />
+      <Limb pts="96,55 80,70 66,85" tone="far" /><Foot heel={[66, 85]} toe={[76, 87]} tone="far" />
+      <Limb pts="99,29 114,37 132,40" tone="far" thin />
+      <Torso from={[99, 25]} to={[96, 55]} />
+      <Limb pts="96,55 128,63 114,85" tone="move" /><Foot heel={[114, 85]} toe={[126, 87]} tone="move" />
+      <Limb pts="100,30 117,34 133,34" thin />
+      <Head x={101} y={16} />
+      <path d="M108 93 L120 93" stroke="var(--color-accent, #1769b9)" strokeWidth={2} strokeDasharray="2 2" />
+      <Arrow d="M108 49 Q120 47 128 54" />
     </>;
     // Seen from the feet, lying on a mat, feet wide: the right knee drops inwards (the left foot then rests on it).
     case "supine-hip-internal-rotation": return <>
-      <path d="M30 88 L130 88 L110 8 L50 8 Z" strokeOpacity={0.3} strokeWidth={2} />
-      <circle cx={80} cy={18} r={6} />
-      <path d="M80 24 L80 64 M80 34 L62 52 M80 34 L98 52 M68 66 L92 66" />
-      <path d="M68 66 L52 38 L40 86" />
-      <path d="M92 66 L72 78 L120 86" />
-      <path d="M92 66 L108 38 L120 86" strokeDasharray="3 4" strokeOpacity={0.45} />
-      <Arrow d="M112 32 Q104 62 78 74" />
+      <path d="M28 89 L132 89 L112 6 L48 6 Z" fill="currentColor" fillOpacity={0.06} stroke="currentColor" strokeOpacity={0.25} strokeWidth={1.5} />
+      <Limb pts="73,27 62,42 56,56" tone="far" thin /><Limb pts="87,27 98,42 104,56" tone="far" thin />
+      <Torso from={[80, 24]} to={[80, 58]} wide />
+      <Head x={80} y={15} />
+      <Limb pts="88,62 104,46 120,86" tone="ghost" />
+      <Limb pts="72,62 56,46 42,86" />
+      <Limb pts="88,62 74,78 120,86" tone="move" />
+      <Arrow d="M110 40 Q110 66 84 72" />
     </>;
     // Facing the wall, forearms on it, the arms slide up without shrugging.
     case "wall-slides": return <>
-      <path d="M120 6 L120 88" />
-      <circle cx={96} cy={22} r={7} />
-      <path d="M96 30 L96 60 M96 60 L92 88 M96 60 L102 88 M97 36 L116 44 L116 18" />
-      <Arrow d="M128 50 L128 14" />
+      <Wall x={124} />
+      <Limb pts="98,58 97,73 95,86" tone="far" /><Foot heel={[95, 86]} toe={[104, 88]} tone="far" />
+      <Limb pts="98,31 117,38 117,16" tone="far" thin />
+      <Torso from={[98, 27]} to={[98, 58]} />
+      <Limb pts="98,58 101,73 100,86" /><Foot heel={[100, 86]} toe={[110, 88]} />
+      <Limb pts="117,46 117,26" tone="ghost" thin />
+      <Limb pts="99,32 119,34 119,10" tone="move" thin />
+      <Head x={99} y={18} />
+      <Arrow d="M132 48 L132 12" />
     </>;
     // Seen from the feet: lying with the buttocks at the wall, the legs open along the wall.
     case "wall-straddle": return <>
-      <rect x={14} y={6} width={132} height={66} rx={2} strokeOpacity={0.35} />
-      <circle cx={80} cy={80} r={6} />
-      <path d="M80 72 L46 16 M80 72 L114 16 M78 76 L52 86 M82 76 L108 86" />
-      <Arrow d="M42 22 Q30 34 28 50" />
-      <Arrow d="M118 22 Q130 34 132 50" />
+      <rect x={12} y={4} width={136} height={70} rx={3} fill="currentColor" fillOpacity={0.05} stroke="currentColor" strokeOpacity={0.3} strokeWidth={1.5} />
+      <Limb pts="76,66 72,10" tone="ghost" /><Limb pts="84,66 88,10" tone="ghost" />
+      <Limb pts="80,72 56,84" tone="far" thin /><Limb pts="80,72 104,84" tone="far" thin />
+      <Limb pts="76,66 44,14" tone="move" /><Limb pts="84,66 116,14" tone="move" />
+      <Torso from={[80, 64]} to={[80, 76]} wide />
+      <Head x={80} y={84} />
+      <Arrow d="M38 24 Q28 36 26 52" />
+      <Arrow d="M122 24 Q132 36 134 52" />
     </>;
   }
 }
