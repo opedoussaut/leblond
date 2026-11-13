@@ -1070,6 +1070,11 @@ test("I — board séance on the Kilter, BoardLib import, board projects and pro
     "kilter,40,Toit test,2026-04-02 19:01:00,6b/V4,6b/V4,True,4,False,True,",
   ].join("\n");
   await page.goto("/session/board-import");
+  // The BoardLib commands to copy, for the chosen board.
+  await expect(page.getByTestId("boardlib-command").nth(1)).toHaveText("boardlib logbook kilter --username=TON_EMAIL --output=kilter.csv");
+  await page.getByTestId("boardlib-board").selectOption("DECOY");
+  await expect(page.getByTestId("boardlib-command").nth(1)).toHaveText("boardlib database decoy decoy.db --username=TON_IDENTIFIANT");
+  await expect(page.getByTestId("boardlib-command").nth(2)).toContainText("--database-path=decoy.db");
   await page.getByTestId("board-import-file").setInputFiles({ name: "kilter.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect(page.getByTestId("board-import-preview")).toHaveText("2 bloc(s) lus sur 1 jour(s), 0 ligne(s) ignorée(s).");
   await page.getByRole("button", { name: "Importer", exact: true }).click();

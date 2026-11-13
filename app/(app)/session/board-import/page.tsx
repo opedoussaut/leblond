@@ -3,6 +3,8 @@ import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { requireViewer } from "@/lib/auth/viewer";
 import { boardsDictionary } from "@/lib/i18n/boards";
 import { getI18n } from "@/lib/i18n/server";
+import { BoardLibCommand } from "@/components/climbing/boardlib-command";
+import { fmt } from "@/lib/i18n";
 import { BoardImport } from "./board-import";
 
 export const metadata = { title: "Importer un carnet BoardLib" };
@@ -15,8 +17,9 @@ export default async function BoardImportPage() {
   return <div className="space-y-6">
     <PageHeader icon={<PAGE_ICONS.newSession />} title={b.importTitle} subtitle={b.importIntro} />
     <ol className="list-decimal space-y-2 pl-5 text-sm text-ink-2">
-      {b.importSteps.map((s, i) => <li key={i}>{s}</li>)}
+      {b.importSteps.map((s, i) => <li key={i}>{fmt(s, { user: b.cmdUser })}</li>)}
     </ol>
+    <BoardLibCommand />
     <p className="text-xs text-ink-3">{b.importNote}</p>
     <BoardImport />
   </div>;

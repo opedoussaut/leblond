@@ -36,7 +36,7 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
   const b = boardsDictionary(locale);
   const router = useRouter();
   const [board, setBoard] = useState<Board>("KILTER");
-  const [layout, setLayout] = useState(BOARD_LAYOUTS.KILTER[0]);
+  const [layout, setLayout] = useState<string>(BOARD_LAYOUTS.KILTER[0] ?? "");
   const [angle, setAngle] = useState(DEFAULT_ANGLE);
   const [atGym, setAtGym] = useState(false);
   const [gymId, setGymId] = useState(gyms[0]?.id ?? "");
@@ -49,7 +49,7 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
 
   function pickBoard(next: Board) {
     setBoard(next);
-    setLayout(BOARD_LAYOUTS[next][0]);
+    setLayout(BOARD_LAYOUTS[next][0] ?? "");
     setAngle((a) => clampAngle(next, a));
   }
 
@@ -71,17 +71,18 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
     </div>
     <fieldset>
       <legend className="text-sm font-semibold">{b.board}</legend>
-      <div className={cn(segmentGroupClass, "mt-2 grid-cols-3")}>
-        {BOARDS.map((x) => <button key={x} type="button" aria-pressed={board === x} onClick={() => pickBoard(x)} className={segmentClass(board === x)}>{BOARD_SHORT[x]}</button>)}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {BOARDS.map((x) => <button key={x} type="button" aria-pressed={board === x} onClick={() => pickBoard(x)}
+          className={buttonClass(board === x ? "primary" : "secondary", "sm")}>{BOARD_SHORT[x]}</button>)}
       </div>
     </fieldset>
-    <fieldset>
+    {BOARD_LAYOUTS[board].length ? <fieldset>
       <legend className="text-sm font-semibold">{b.layout}</legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {BOARD_LAYOUTS[board].map((l) => <button key={l} type="button" aria-pressed={layout === l} onClick={() => setLayout(l)}
           className={buttonClass(layout === l ? "primary" : "secondary", "sm")}>{l}</button>)}
       </div>
-    </fieldset>
+    </fieldset> : null}
     <fieldset>
       <legend className="text-sm font-semibold">{b.angle} <span className="font-normal text-ink-3">({ANGLE_STEP}°)</span></legend>
       <div className="mt-2"><AngleStepper board={board} angle={angle} onChange={setAngle} /></div>
