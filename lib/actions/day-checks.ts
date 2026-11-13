@@ -42,7 +42,7 @@ export async function saveDayCheck(input: unknown): Promise<Result> {
       ...answers, user_id: viewer.userId, check_date: today, assessment_id: state.view?.assessmentId ?? null,
     });
   if (error) return { ok: false, error: "unknown" };
-  revalidatePath("/train");
+  revalidatePath("/home");
   revalidatePath("/train/today");
   return { ok: true, recommendation };
 }

@@ -1,17 +1,17 @@
 /**
  * Single source of truth for the five main product areas and their pages.
  *
- * Areas follow intent, not data type:
- *   Aujourd'hui  — what to do today (daily form, agenda)
- *   Grimper      — the climbing journal
- *   S'entraîner  — prepare and run training
- *   Progrès      — what happened, evaluations included
- *   Patrick      — the coach
+ * Three words organise the app (structure v2): Séance, Programme, Agenda.
+ *   Aujourd'hui — what to do now (live séance, daily form, today's plan)
+ *   Séances     — what you do: one journal of grimpe and entraînement, the Agenda, projects
+ *   Programmes  — what you follow: programmes, hip mobility, the library of methods and templates
+ *   Progrès     — what happened, evaluation results included
+ *   Patrick     — the coach
  * Profile, connections and settings live in the account (avatar) menu, not in
- * an area. Each area link opens that area's overview page, so there is no
- * "overview" sub-page.
+ * an area. An area link opens its first page; when that page is also listed
+ * (Journal, Mes programmes), the listed page is the one marked as current.
  */
-export const SECTION_IDS = ["today", "climbing", "training", "progress", "patrick"] as const;
+export const SECTION_IDS = ["today", "sessions", "programmes", "progress", "patrick"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 /** Where a path belongs: one of the five areas, or the account menu. */
@@ -19,9 +19,8 @@ export type NavContext = SectionId | "account";
 
 /** i18n keys under `t.nav` used for sub-pages and account pages. */
 export type SubPageKey =
-  | "dayCheck" | "calendar"
-  | "session" | "projects"
-  | "trainingSessions" | "trainingPlans" | "atlas"
+  | "journal" | "calendar" | "projects"
+  | "myProgrammes" | "library"
   | "climbingProgress" | "trainingHistory" | "mobility" | "assessment"
   | "profile" | "connections" | "settings";
 
@@ -34,26 +33,21 @@ export type Area = { id: SectionId; href: string; children: readonly SubPage[] }
  * share the workspace.
  */
 export const AREAS: readonly Area[] = [
+  // Forme du jour is reached from Aujourd'hui itself: one place, no sub-page.
+  { id: "today", href: "/home", children: [] },
   {
-    id: "today", href: "/home",
+    id: "sessions", href: "/session",
     children: [
-      { href: "/train/today", key: "dayCheck" },
+      { href: "/session", key: "journal" },
       { href: "/calendar", key: "calendar" },
-    ],
-  },
-  {
-    id: "climbing", href: "/climbing",
-    children: [
-      { href: "/session", key: "session" },
       { href: "/projects", key: "projects" },
     ],
   },
   {
-    id: "training", href: "/train",
+    id: "programmes", href: "/programmes",
     children: [
-      { href: "/train/sessions", key: "trainingSessions" },
-      { href: "/training-plans", key: "trainingPlans" },
-      { href: "/atlas", key: "atlas" },
+      { href: "/programmes", key: "myProgrammes" },
+      { href: "/atlas", key: "library" },
     ],
   },
   {
@@ -83,29 +77,31 @@ const startsWith = (pathname: string, prefix: string) =>
  * legacy and nested URLs are mapped to the area that now owns them.
  */
 export function sectionForPath(pathname: string): NavContext {
-  if (pathname === "/" || startsWith(pathname, "/home") ||
-      startsWith(pathname, "/train/today") || startsWith(pathname, "/calendar")) return "today";
-  // The full evaluation is launched from Progrès › Évaluations.
-  if (startsWith(pathname, "/train/assess") || startsWith(pathname, "/training/evaluate") ||
-      startsWith(pathname, "/training-assessment") || startsWith(pathname, "/progress") ||
-      startsWith(pathname, "/follow-up")) return "progress";
-  if (startsWith(pathname, "/climbing") || startsWith(pathname, "/session") ||
-      startsWith(pathname, "/problem") || startsWith(pathname, "/route") ||
-      startsWith(pathname, "/projects")) return "climbing";
-  if (startsWith(pathname, "/train") || startsWith(pathname, "/training-plans") ||
-      startsWith(pathname, "/training") || startsWith(pathname, "/atlas")) return "training";
+  if (pathname === "/" || startsWith(pathname, "/home") || startsWith(pathname, "/train/today")) return "today";
+  // Evaluation results live in Progrès; the wizard itself is started from Programmes.
+  if (startsWith(pathname, "/training/evaluate") || startsWith(pathname, "/training-assessment") ||
+      startsWith(pathname, "/progress") || startsWith(pathname, "/follow-up")) return "progress";
+  // A training séance (player included) is a séance like a climb: it lives in the journal.
+  if (startsWith(pathname, "/session") || startsWith(pathname, "/train/sessions") || startsWith(pathname, "/calendar") ||
+      startsWith(pathname, "/climbing") || startsWith(pathname, "/problem") || startsWith(pathname, "/route") ||
+      startsWith(pathname, "/projects")) return "sessions";
+  if (startsWith(pathname, "/programmes") || startsWith(pathname, "/train") || startsWith(pathname, "/training-plans") ||
+      startsWith(pathname, "/training") || startsWith(pathname, "/atlas")) return "programmes";
   if (startsWith(pathname, "/patrick")) return "patrick";
   if (startsWith(pathname, "/profile") || startsWith(pathname, "/settings")) return "account";
   return "today";
 }
 
-/** Detail URLs that belong to a listed page under another prefix. */
+/** Detail URLs that belong to a listed page under another prefix (first match wins). */
 const ALIASES: ReadonlyArray<readonly [string, string]> = [
-  ["/problem", "/session"],          // a boulder opened from a session
-  ["/route", "/session"],            // a route ascent opened from a session
+  ["/problem", "/session"],          // a boulder opened from a séance
+  ["/route", "/session"],            // a route ascent opened from a séance
+  ["/train/sessions", "/session"],   // a training séance, in the same journal
+  ["/climbing", "/session"],         // the old climbing home
   ["/training/evaluate", "/training-assessment"],
-  ["/train/assess", "/training-assessment"],
-  ["/training", "/atlas"],           // public Training Lab = the Atlas
+  ["/training-plans", "/programmes"],
+  ["/train", "/programmes"],         // assessment wizard, hip mobility, alter ego
+  ["/training", "/atlas"],           // the public methods page = the library
 ];
 
 /** The pages listed for a context: an area's sub-pages, or the account pages. */
@@ -135,7 +131,12 @@ export function activeSubPage(pathname: string): SubPage | null {
   return best;
 }
 
-/** True when the path is the area's own overview page (the area link is then the current page). */
+/**
+ * True when the path is the area's own overview page, so the area link itself
+ * is the current page. Not when that page is also listed as a sub-page
+ * (Journal, Mes programmes): the sub-page is then the one marked.
+ */
 export function isAreaOverview(area: Area, pathname: string): boolean {
+  if (area.children.some((c) => c.href === area.href)) return false;
   return pathname === area.href || (area.id === "today" && pathname === "/");
 }

@@ -2,38 +2,56 @@ import Link from "next/link";
 import Image from "next/image";
 import { AreaCard } from "@/components/layout/area-card";
 import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
+import { cn } from "@/components/ui/cn";
 import { requireViewer } from "@/lib/auth/viewer";
 import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { fmt } from "@/lib/i18n";
+import { areasDictionary } from "@/lib/i18n/areas";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
-import { localDate_ } from "@/lib/training/sessions";
+import { dateForPlanDay, localDate_, mondayOf } from "@/lib/training/sessions";
 import { IconNext, LiveDot } from "@/components/ui/icons";
 
 /**
- * Aujourd'hui (Today) overview: today's form and agenda first, then
- * "What do I want to do today?" — two balanced, independent journeys.
- * Logging never requires a plan; training is opt-in. Both share one history.
+ * Aujourd'hui: what to do now. A live séance first, then one button to start
+ * any séance, today's form and plan, the week at a glance, and — only without
+ * a programme — an invitation to follow one.
  */
 export const metadata = { title: "LEBLOND — Your climbing, your way" };
-
 
 export default async function HomePage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   const j = journeyDictionary(locale);
+  const a = areasDictionary(locale).today;
   const today = localDate_(new Date());
+  const monday = mondayOf(today);
+  const week = Array.from({ length: 7 }, (_, i) => dateForPlanDay(monday, i));
   const dateLabel = formatDate(today + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" });
-  const [{ data: live }, { data: training }, { count: plans }, { data: dayCheck }] = await Promise.all([
+  // A day earlier than Monday in UTC, so a séance just after midnight in Paris is not missed.
+  const since = new Date(Date.parse(monday + "T00:00:00Z") - 86_400_000).toISOString();
+  const [{ data: live }, { data: training }, { count: plans }, { data: dayCheck }, { data: weekTraining }, { data: weekClimbs }] = await Promise.all([
     viewer.supabase.from("sessions").select("id, gyms(name)").is("ended_at", null).limit(1).maybeSingle(),
     viewer.supabase.from("training_sessions").select("id, title").eq("status", "IN_PROGRESS").limit(1).maybeSingle(),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
     viewer.supabase.from("training_day_checks").select("outcome").eq("check_date", today).limit(1).maybeSingle(),
+    viewer.supabase.from("training_sessions").select("id, title, status, scheduled_date, scheduled_time, planned_minutes")
+      .gte("scheduled_date", week[0]).lte("scheduled_date", week[6]).order("scheduled_time", { ascending: true }),
+    viewer.supabase.from("sessions").select("id, started_at").gte("started_at", since).not("ended_at", "is", null),
   ]);
   const outcome = dayCheck?.outcome;
+  const plannedToday = (weekTraining ?? []).filter((s) => s.scheduled_date === today && s.status === "PLANNED");
+  const days = week.map((date) => {
+    const training = (weekTraining ?? []).filter((s) => s.scheduled_date === date);
+    const planned = training.filter((s) => s.status === "PLANNED").length;
+    const done = training.filter((s) => s.status === "COMPLETED").length
+      + (weekClimbs ?? []).filter((s) => localDate_(new Date(s.started_at)) === date).length;
+    return { date, planned, done };
+  });
+  const count = (n: number, one: string, many: string) => (n === 1 ? one : fmt(many, { n }));
 
   return <div className="space-y-8">
     <div>
@@ -47,15 +65,19 @@ export default async function HomePage() {
         className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4 text-accent hover:border-accent">
         <span><span className="block text-xs font-bold uppercase tracking-[0.12em]"><LiveDot /> {t.home.liveSession}</span>
           <strong className="block text-base text-ink">{live.gyms?.name ?? (fr ? "Séance de grimpe" : "Climbing session")}</strong></span>
-        <span className="text-sm font-extrabold">{fr ? "Reprendre" : "Resume"} <IconNext /></span>
+        <span className="shrink-0 whitespace-nowrap text-sm font-bold">{fr ? "Reprendre" : "Resume"} <IconNext /></span>
       </Link> : null}
       {training ? <Link href={`/train/sessions/${training.id}`}
         className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4 text-accent hover:border-accent">
         <span><span className="block text-xs font-bold uppercase tracking-[0.12em]"><LiveDot /> {fr ? "Entraînement en cours" : "Training in progress"}</span>
           <strong className="block text-base text-ink">{training.title}</strong></span>
-        <span className="text-sm font-extrabold">{fr ? "Reprendre" : "Resume"} <IconNext /></span>
+        <span className="shrink-0 whitespace-nowrap text-sm font-bold">{fr ? "Reprendre" : "Resume"} <IconNext /></span>
       </Link> : null}
     </section> : null}
+
+    <Link href="/session/new" className={buttonClass("primary", "xl", "w-full")}>
+      <PAGE_ICONS.newSession aria-hidden="true" /> {a.newSession}
+    </Link>
 
     <section aria-labelledby="your-day" className="space-y-4">
       <h2 id="your-day" className="text-lg font-bold tracking-tight text-ink-2">{t.home.yourDay}</h2>
@@ -63,48 +85,61 @@ export default async function HomePage() {
         <AreaCard href="/train/today" icon={<PAGE_ICONS.dayCheck />} title={t.nav.dayCheck}
           description={t.home.dayCheckText} emphasis={!outcome}
           note={outcome ? fmt(j.hub.dayDone, { outcome: j.outcomes[outcome].toLowerCase() }) : j.hub.dayBadge} />
-        <AreaCard href="/calendar" icon={<PAGE_ICONS.calendar />} title={t.nav.calendar}
-          description={t.home.agendaText} />
+        <div className="rounded-2xl border border-line bg-surface p-5">
+          <h3 className="flex items-center gap-2 text-base font-bold"><PAGE_ICONS.calendar aria-hidden="true" className="size-6 text-accent" />{a.planned}</h3>
+          {plannedToday.length ? <ul className="mt-3 space-y-2">
+            {plannedToday.map((s) => <li key={s.id}>
+              <Link href={`/train/sessions/${s.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2 hover:bg-accent-soft">
+                <span className="min-w-0">
+                  <strong className="line-clamp-2 text-sm">{s.title}</strong>
+                  <span className="text-xs text-ink-2">{[s.scheduled_time, s.planned_minutes ? `${s.planned_minutes} min` : null].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className="shrink-0 whitespace-nowrap text-sm font-bold text-accent">{a.open} <IconNext /></span>
+              </Link>
+            </li>)}
+          </ul> : <p className="mt-2 text-sm text-ink-2">{a.nothingPlanned}</p>}
+        </div>
       </div>
     </section>
 
-    <section aria-labelledby="choose-path" className="space-y-4">
-      <h2 id="choose-path" className="text-lg font-bold tracking-tight text-ink-2">
-        {fr ? "Que veux-tu faire aujourd’hui ?" : "What do you want to do today?"}
-      </h2>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <article className="leblond-premium-surface flex flex-col p-6 sm:p-7" aria-labelledby="journey-log">
-          <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">{fr ? "Grimper librement" : "Just climb"}</span>
-          <h3 id="journey-log" className="mt-3 text-2xl font-bold tracking-tight">
-            {fr ? "Enregistrer ma grimpe" : "Log my climbing"}
-          </h3>
-          <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-2">
-            {fr ? "Note tes séances, essais, réussites et projets. Aucun programme nécessaire."
-                : "Record sessions, attempts, sends and projects. No structured program required."}
-          </p>
-          <div className="leblond-actions mt-6">
-            <Link href="/session/new" className={buttonClass("primary")}>{fr ? "Commencer une séance de grimpe" : "Start a climbing session"} <IconNext /></Link>
-            <Link href="/session" className={buttonClass("secondary")}>{fr ? "Mon carnet de grimpe" : "View my climbing journal"}</Link>
-          </div>
-        </article>
-        <article className="leblond-premium-surface flex flex-col p-6 sm:p-7" aria-labelledby="journey-train">
-          <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">{fr ? "S’entraîner vers un objectif" : "Train toward a goal"}</span>
-          <h3 id="journey-train" className="mt-3 text-2xl font-bold tracking-tight">
-            {fr ? "Suivre un programme" : "Follow a training plan"}
-          </h3>
-          <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-2">
-            {fr ? "Évalue ton niveau, identifie tes priorités, prépare un programme et suis ta progression."
-                : "Assess your current level, identify development priorities, prepare a plan and track progression."}
-          </p>
-          <div className="leblond-actions mt-6">
-            <Link href="/train" className={buttonClass("primary")}>{fr ? "Commencer mon parcours d’entraînement" : "Start my training journey"} <IconNext /></Link>
-            <Link href={(plans ?? 0) > 0 ? "/training-plans" : "/train/sessions"} className={buttonClass("secondary")}>
-              {(plans ?? 0) > 0 ? (fr ? "Voir mon programme" : "View my current plan") : (fr ? "Mes séances d’entraînement" : "My training sessions")}
-            </Link>
-          </div>
-        </article>
+    <section aria-labelledby="week-heading" className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="week-heading" className="text-lg font-bold tracking-tight text-ink-2">{a.week}</h2>
+        <Link href="/calendar" className={cn(linkClass, "text-sm")}>{a.openAgenda} <IconNext /></Link>
       </div>
+      <ol className="grid grid-cols-7 gap-1.5">
+        {days.map((d) => {
+          const isToday = d.date === today;
+          const label = formatDate(d.date + "T12:00:00", locale, { weekday: "long", day: "numeric" });
+          const detail = [d.planned ? count(d.planned, a.plannedOne, a.plannedMany) : null,
+            d.done ? count(d.done, a.doneOne, a.doneMany) : null].filter(Boolean).join(", ") || a.rest;
+          return <li key={d.date}>
+            <Link href={`/calendar?month=${d.date.slice(0, 7)}`} aria-current={isToday ? "date" : undefined}
+              className={cn("flex min-h-18 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 transition-colors hover:border-accent",
+                isToday ? "border-accent bg-accent-soft" : "border-line bg-surface")}>
+              <span aria-hidden="true" className="text-xs font-semibold uppercase text-ink-3">
+                {formatDate(d.date + "T12:00:00", locale, { weekday: "narrow" })}
+              </span>
+              <span aria-hidden="true" className={cn("leblond-number text-lg", isToday ? "text-accent" : "text-ink")}>{Number(d.date.slice(8))}</span>
+              <span aria-hidden="true" className="flex h-2 items-center gap-1">
+                {d.done ? <span className="size-2 rounded-full bg-accent" /> : null}
+                {d.planned ? <span className="size-2 rounded-full border-2 border-accent" /> : null}
+              </span>
+              <span className="sr-only">{label} : {detail}</span>
+            </Link>
+          </li>;
+        })}
+      </ol>
     </section>
+
+    {(plans ?? 0) === 0 ? <section aria-labelledby="follow-heading"
+      className="leblond-premium-surface flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div>
+        <h2 id="follow-heading" className="flex items-center gap-2 text-lg font-bold"><AREA_ICONS.programmes aria-hidden="true" className="size-5 text-accent" />{a.followTitle}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-ink-2">{a.followText}</p>
+      </div>
+      <Link href="/programmes" className={buttonClass("secondary", "md", "shrink-0")}>{a.followCta} <IconNext /></Link>
+    </section> : null}
 
     <section className="leblond-hero-panel grid grid-cols-1 gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center sm:p-7">
       <div className="space-y-3">

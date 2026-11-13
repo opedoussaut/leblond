@@ -54,7 +54,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   } : null;
 
   return <div className="space-y-6">
-    <Link href="/train/sessions" className={cn(linkClass, "text-sm")}><IconBack /> {t.backToList}</Link>
+    <Link href="/session?type=training" className={cn(linkClass, "text-sm")}><IconBack /> {t.backToList}</Link>
     <header>
       <p className="leblond-eyebrow text-accent">{t.status[session.status]}
         {session.scheduledDate ? " · " + formatDate(session.scheduledDate + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) : ""}

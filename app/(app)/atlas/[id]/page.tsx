@@ -155,10 +155,10 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
     </Card> : null}
 
     <section aria-label={a.useMethod} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {executable ? <Link href={"/train/sessions?method=" + encodeURIComponent(entry.id)} className={buttonClass("primary", "md")}>
+      {executable ? <Link href={"/session/new?kind=train&method=" + encodeURIComponent(entry.id)} className={buttonClass("primary", "md")}>
         <IconPlay /> {ts.startFromAtlas}
       </Link> : null}
-      {executable ? <Link href={"/training-plans?add=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
+      {executable ? <Link href={"/programmes?add=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
         + {ts.addToPlan}
       </Link> : null}
       <Link href={"/calendar?method=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>

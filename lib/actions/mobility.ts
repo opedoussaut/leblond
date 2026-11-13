@@ -19,6 +19,7 @@ const settingsSchema = z.object({
 
 function revalidateMobility() {
   revalidatePath("/train", "layout");
+  revalidatePath("/programmes");
   revalidatePath("/follow-up", "layout");
   revalidatePath("/patrick");
   revalidatePath("/home");

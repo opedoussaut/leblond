@@ -42,7 +42,7 @@ export function SignPactForm({ locale, plans, today, boulderGrades, routeGrades,
   if (!plans.length) return <section className="leblond-premium-surface p-5 sm:p-6">
     <h2 className="text-lg font-bold">{t.signTitle}</h2>
     <p className="mt-1 text-sm text-ink-2">{t.noPlan}</p>
-    <Link href="/training-plans" className={buttonClass("primary", "md", "mt-4")}>{t.createPlan}</Link>
+    <Link href="/programmes#plans-heading" className={buttonClass("primary", "md", "mt-4")}>{t.createPlan}</Link>
   </section>;
 
   function submit(e: React.FormEvent) {

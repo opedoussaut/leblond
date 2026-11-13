@@ -37,7 +37,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }
               const selected = id === currentArea;
               const isPage = selected && isAreaOverview(area, pathname);
               const Icon = AREA_ICONS[id];
-              const live = (id === "climbing" && hasLiveSession) || (id === "training" && hasLiveTraining);
+              const live = id === "sessions" && (hasLiveSession || hasLiveTraining);
               return (
                 <li key={id}>
                   <Link href={href}
@@ -90,7 +90,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }
             const selected = currentArea === id;
             const isPage = selected && isAreaOverview(area, pathname);
             const Icon = AREA_ICONS[id];
-            const live = (id === "climbing" && hasLiveSession) || (id === "training" && hasLiveTraining);
+            const live = id === "sessions" && (hasLiveSession || hasLiveTraining);
             return (
               <li key={id} className="min-w-0">
                 <Link href={href} aria-current={isPage ? "page" : selected ? "true" : undefined}

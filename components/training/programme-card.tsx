@@ -74,7 +74,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
             <span className="font-bold">{j.days[s.day]}</span> · {sessionTitle(s)}{s.place ? " · " + j.places[s.place] : ""} · {s.minutes} min
           </li>)}
         </ul>
-        <Link href="/training-plans" className={cn(linkClass, "mt-2 min-h-11 text-sm")}>{h.edit} <IconNext /></Link>
+        <Link href="/programmes#plans-heading" className={cn(linkClass, "mt-2 min-h-11 text-sm")}>{h.edit} <IconNext /></Link>
       </> : <div className="mt-2 space-y-2">
         <p className="text-sm text-ink-2">{h.noPlan}</p>
         <CreateProgrammeButton locale={locale} assessmentId={view.assessmentId} />

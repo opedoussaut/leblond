@@ -45,7 +45,7 @@ export default async function TrainingHistoryPage() {
       </div>)}
     </div>
     {ordered.length === 0 ? <p className="text-sm text-ink-2">{t.nothingDone}{" "}
-      <Link href="/train/sessions" className={linkClass}>{t.newSession}</Link></p> : null}
+      <Link href="/session/new?kind=train" className={linkClass}>{t.newSession}</Link></p> : null}
     {ordered.map(([monday, list]) => {
       const a = adherence(list, today);
       return <section key={monday} aria-label={monday} className="space-y-2">
