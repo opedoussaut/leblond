@@ -16,7 +16,7 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
     ?"La cotation de travail est recalculée sur les 60 jours précédant chaque point. Le trait en pointillés montre ton objectif personnel, pas une prévision. Les semaines sans données fiables sont volontairement absentes."
     :"The working grade is recalculated from the preceding 60 days at each point. The dashed line is your personal goal, not a forecast. Weeks without reliable data are deliberately absent.";
   if(points.length===0) return <section className="rounded-2xl border border-line bg-surface p-4">
-    <h3 className="font-black">{heading}</h3>
+    <h3 className="font-bold">{heading}</h3>
     <p className="mt-3 text-sm text-ink-2">{fr?"Aucune cotation de travail fiable pour cette période.":"No reliable working grade in this period."}</p>
     <p className="mt-2 text-xs text-ink-3">{caption}</p>
   </section>;
@@ -35,7 +35,7 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
     else groups.push([point]);
   }
   return <section className="rounded-2xl border border-line bg-surface p-4">
-    <h3 className="font-black">{heading}</h3>
+    <h3 className="font-bold">{heading}</h3>
     <p className="mt-1 text-xs text-ink-3">{system}</p>
     <svg viewBox={"0 0 "+width+" "+height} className="mt-4 w-full" role="img" aria-label={heading}>
       {Array.from(new Set([0,Math.round(horizonWeeks/4),Math.round(horizonWeeks/2),Math.round(horizonWeeks*3/4),horizonWeeks])).map(week=><text key={week}

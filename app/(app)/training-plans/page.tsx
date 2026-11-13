@@ -10,8 +10,12 @@ import { PLAN_COLUMNS, planFromRow, type SavedTrainingPlan } from "@/lib/trainin
 import { localDate_, mondayOf } from "@/lib/training/sessions";
 import { parseContext } from "@/lib/training/assessment-protocol";
 import { healthFromContext } from "@/lib/training/health";
+import { IconBack } from "@/components/ui/icons";
+import { buttonClass, linkClass } from "@/components/ui/button";
+import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { cn } from "@/components/ui/cn";
 
-export const metadata = { title: "Training plans" };
+export const metadata = { title: "Programmes" };
 
 export default async function TrainingPlansPage({ searchParams }: PageProps<"/training-plans">) {
   const viewer = await requireViewer();
@@ -36,10 +40,15 @@ export default async function TrainingPlansPage({ searchParams }: PageProps<"/tr
 
   return (
     <div>
-      <Link href="/train" className="text-sm font-bold text-accent underline underline-offset-4">← {t.back}</Link>
+      <Link href="/train" className={cn(linkClass, "text-sm")}><IconBack /> {t.back}</Link>
       <div className="mt-5">
         <PageHeader icon={<PAGE_ICONS.trainingPlans />} title={t.planTitle} subtitle={t.plansSubtitle} />
       </div>
+      {/* The full assessment builds or re-adjusts a programme, so it is one tap away from here. */}
+      <Link href="/train/assess" className={buttonClass("secondary", "sm", "mb-5")}>
+        <PAGE_ICONS.assessment aria-hidden="true" />
+        {assessment ? journeyDictionary(locale).hub.fullAgain : journeyDictionary(locale).hub.fullCta}
+      </Link>
       {error ? (
         <p role="alert" className="mt-5 rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{t.unavailable}</p>
       ) : (

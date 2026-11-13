@@ -1,6 +1,7 @@
 "use client";
 
 import type { Locale } from "@/lib/i18n";
+import { IconCheck } from "@/components/ui/icons";
 
 /**
  * A deliberate two-language choice is clearer than a country flag or a
@@ -68,7 +69,7 @@ export function LanguagePicker({
                     selected ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface",
                   ].join(" ")}
                 >
-                  {selected ? "✓" : null}
+                  {selected ? <IconCheck /> : null}
                 </span>
               </div>
               <span className="text-lg font-bold tracking-tight text-ink">{option.name}</span>

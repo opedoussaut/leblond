@@ -2,15 +2,15 @@ import type { Locale } from "./index";
 
 /** Strings for coach sessions (session list, player) and the coach key (Settings). */
 const fr = {
-  group: "Séances du coach",
+  group: "Modèles de séance",
   atlasGroup: "Méthodes de l’Atlas",
-  title: "Séances du coach",
+  title: "Modèles de séance",
   subtitle: "Des séances complètes, écrites par le coach à partir des meilleures sources d’entraînement. Choisis-en une pour la lancer ou la planifier.",
   sharedBadge: "pour tous",
   exercises: "{n} exercices",
   choose: "Choisir cette séance",
   remove: "Retirer",
-  removeConfirm: "Retirer cette séance du coach de ta liste ? Les séances déjà faites restent dans ton historique.",
+  removeConfirm: "Retirer ce modèle de séance de ta liste ? Les séances déjà faites restent dans ton historique.",
   preview: "Voir les exercices",
   sources: "Sources",
   durationFromCoach: "Durée prévue par le coach : {d}",
@@ -24,7 +24,7 @@ const fr = {
   proposalNote: "Charges et volumes proposés par le coach, pas une prescription : adapte ou passe un exercice à tout moment.",
   keys: {
     title: "Accès du coach",
-    intro: "Une clé personnelle permet à ton coach (Claude, en dehors de l’application) d’ajouter, mettre à jour ou retirer tes séances du coach. Elle ne donne accès à rien d’autre : ni ton historique, ni tes évaluations, ni ton profil.",
+    intro: "Une clé personnelle permet à ton coach (Claude, en dehors de l’application) d’ajouter, mettre à jour ou retirer tes modèles de séance. Elle ne donne accès à rien d’autre : ni ton historique, ni tes évaluations, ni ton profil.",
     label: "Nom de la clé",
     labelDefault: "Claude",
     create: "Créer une clé",
@@ -45,15 +45,15 @@ const fr = {
 };
 
 const en: typeof fr = {
-  group: "Coach sessions",
+  group: "Session templates",
   atlasGroup: "Atlas methods",
-  title: "Coach sessions",
+  title: "Session templates",
   subtitle: "Complete sessions written by the coach from the best training sources. Pick one to start or schedule it.",
   sharedBadge: "for everyone",
   exercises: "{n} exercises",
   choose: "Choose this session",
   remove: "Remove",
-  removeConfirm: "Remove this coach session from your list? Sessions already done stay in your history.",
+  removeConfirm: "Remove this session template from your list? Sessions already done stay in your history.",
   preview: "See the exercises",
   sources: "Sources",
   durationFromCoach: "Duration set by the coach: {d}",
@@ -67,7 +67,7 @@ const en: typeof fr = {
   proposalNote: "Loads and volumes proposed by the coach, not a prescription: adapt or skip an exercise at any time.",
   keys: {
     title: "Coach access",
-    intro: "A personal key lets your coach (Claude, outside the app) add, update or remove your coach sessions. It gives access to nothing else: not your history, your assessments or your profile.",
+    intro: "A personal key lets your coach (Claude, outside the app) add, update or remove your session templates. It gives access to nothing else: not your history, your assessments or your profile.",
     label: "Key name",
     labelDefault: "Claude",
     create: "Create a key",

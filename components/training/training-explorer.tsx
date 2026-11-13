@@ -6,6 +6,9 @@ import { AtlasRadar } from "@/components/training/atlas-radar";
 import { TRAINING_CATALOGUE, type TrainingCategory, type TrainingEntry, type TrainingGoal } from "@/lib/training/catalogue";
 import { trainingDictionary } from "@/lib/i18n/training";
 import type { Locale } from "@/lib/i18n";
+import { IconExternal, IconNext } from "@/components/ui/icons";
+import { linkClass, toggleClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 const DEFAULT_SELECTION: Record<TrainingCategory, string[]> = {
   methods: ["technique", "max-hangs"],
@@ -54,7 +57,7 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
             key={item}
             onClick={() => pickCategory(item)}
             aria-pressed={category === item}
-            className={"min-h-11 rounded-full border px-5 py-2 text-sm font-bold transition-colors " + (category === item ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2 hover:border-accent")}
+            className={toggleClass(category === item)}
           >
             {t.groups[item]} <span className="opacity-70">({TRAINING_CATALOGUE.filter((entry) => entry.category === item).length})</span>
           </button>
@@ -63,10 +66,10 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
       <AtlasRadar entries={selectedEntries} locale={locale} heading={t.compare} />
       <div className="mt-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-black">{t.groups[category]}</h2>
+          <h2 className="text-lg font-bold">{t.groups[category]}</h2>
           <p className="text-sm text-ink-3">{selected.length}/3 {t.selected} · {t.max}</p>
         </div>
-        <button type="button" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline underline-offset-4" onClick={() => setSelected([])}>{t.clear}</button>
+        <button type="button" className={cn(linkClass, "min-h-11 text-sm")} onClick={() => setSelected([])}>{t.clear}</button>
       </div>
       <div className="my-5 flex flex-col gap-3 sm:flex-row">
         <input
@@ -109,9 +112,9 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
                   {t.select}
                 </label>
               </div>
-              <h3 className="mt-4 text-lg font-black">
-                <Link href={"/atlas/" + entry.id} className="underline-offset-4 hover:text-accent hover:underline">
-                  {entry.title} ↗
+              <h3 className="mt-4 text-lg font-bold">
+                <Link href={"/atlas/" + entry.id} className={cn(linkClass, "hover:text-accent hover:underline")}>
+                  {entry.title} <IconExternal />
                 </Link>
               </h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-2">{entry.description[locale]}</p>
@@ -119,11 +122,11 @@ export function TrainingExplorer({ locale }: { locale: Locale }) {
               <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
                 <span className="text-xs font-semibold text-ink-3">{t.goals[entry.goals[0]]}</span>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Link href={"/atlas/" + entry.id} className="text-xs font-bold text-accent underline underline-offset-4">
-                    {locale === "fr" ? "Fiche détaillée" : "Full guide"} →
+                  <Link href={"/atlas/" + entry.id} className={cn(linkClass, "text-xs")}>
+                    {locale === "fr" ? "Fiche détaillée" : "Full guide"} <IconNext />
                   </Link>
-                  <a href={entry.source.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-accent underline underline-offset-4" title={entry.source.label}>
-                    {t.sources} ↗
+                  <a href={entry.source.url} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "text-xs")} title={entry.source.label}>
+                    {t.sources} <IconExternal />
                   </a>
                 </div>
               </div>

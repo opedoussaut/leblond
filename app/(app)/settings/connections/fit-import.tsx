@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { linkActivityToSession } from "@/lib/actions/wearables";
+import { IconCheck, IconNext } from "@/components/ui/icons";
 
 type Result =
   | { kind: "inserted"; activityId: string; suggestedSessionId: string | null }
@@ -105,8 +106,8 @@ export function FitImport() {
           ) : null}
           {linked && result.suggestedSessionId ? (
             <p className="mt-1">
-              ✓ {t.connections.fitLinkedHint}{" "}
-              <Link className="underline" href={`/session/${result.suggestedSessionId}`}>{t.session.title} →</Link>
+              <IconCheck /> {t.connections.fitLinkedHint}{" "}
+              <Link className="underline" href={`/session/${result.suggestedSessionId}`}>{t.session.title} <IconNext /></Link>
             </p>
           ) : null}
         </Notice>

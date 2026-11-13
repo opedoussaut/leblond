@@ -3,6 +3,7 @@
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import type { GradeSystem } from "@/lib/climbing/types";
+import { segmentClass, segmentGroupClass } from "@/components/ui/button";
 
 /**
  * The scale new boulders of this session are logged in, when the gym has more
@@ -27,7 +28,7 @@ export function ScaleSwitch({
       <div
         role="radiogroup"
         aria-label={t.grades.scale}
-        className={cn("grid gap-1 rounded-2xl bg-surface-2 p-1", systems.length === 2 ? "grid-cols-2" : "grid-cols-3")}
+        className={cn(segmentGroupClass, systems.length === 2 ? "grid-cols-2" : "grid-cols-3")}
       >
         {systems.map((s) => (
           <button
@@ -37,10 +38,7 @@ export function ScaleSwitch({
             aria-checked={value === s}
             disabled={pending}
             onClick={() => value !== s && onChange(s)}
-            className={cn(
-              "min-h-11 rounded-xl px-2 text-sm font-bold disabled:opacity-60",
-              value === s ? "bg-surface text-ink shadow-sm" : "text-ink-2",
-            )}
+            className={segmentClass(value === s, "px-2")}
           >
             {t.grades.scaleShort[s]}
           </button>

@@ -2,13 +2,14 @@
 
 import { useActionState, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass, linkClass, segmentClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/field";
 import { formatInviteCode } from "@/lib/auth/invite-code";
 import { fmt } from "@/lib/i18n";
 import { getBrowserClient } from "@/lib/supabase/client";
 import { registerWithEmail, resetLogin, sendCode, signInPassword, verifyCode, type LoginState } from "./actions";
+import { cn } from "@/components/ui/cn";
 
 async function codeReducer(prev: LoginState, formData: FormData): Promise<LoginState> {
   if (formData.get("intent") === "reset") return resetLogin();
@@ -138,11 +139,10 @@ export function LoginForm({ next, googleEnabled, invite = null }: { next: string
   return (
     <div className="space-y-5">
       {invite ? <Notice tone="ok">{fmt(t.auth.inviteWelcome, { code: formatInviteCode(invite) })}</Notice> : null}
-      <div role="tablist" aria-label={t.auth.authMode} className="flex rounded-xl border border-line bg-surface-2 p-1">
+      <div role="tablist" aria-label={t.auth.authMode} className="flex gap-1 rounded-full bg-surface-2 p-1">
         {(["signin", "register"] as const).map(item => (
           <button key={item} type="button" role="tab" aria-selected={mode === item}
-            onClick={() => setMode(item)} className={"flex-1 rounded-xl px-3 py-2.5 text-sm font-bold " +
-              (mode === item ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
+            onClick={() => setMode(item)} className={segmentClass(mode === item, "flex-1")}>
             {item === "signin" ? t.auth.signInPassword : t.auth.registerTab}
           </button>
         ))}
@@ -155,7 +155,7 @@ export function LoginForm({ next, googleEnabled, invite = null }: { next: string
         <>
           <div className="flex items-center gap-3 text-xs text-ink-3"><span className="h-px flex-1 bg-line"/>{t.auth.or}<span className="h-px flex-1 bg-line"/></div>
           <button type="button" onClick={startGoogle} disabled={!googleEnabled || oauthPending}
-            className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-55">
+            className={buttonClass("secondary", "md", "w-full")}>
             <span aria-hidden="true" className="font-black text-lg">G</span>
             {t.auth.continueGoogle}
           </button>
@@ -163,7 +163,7 @@ export function LoginForm({ next, googleEnabled, invite = null }: { next: string
           {oauthError ? <Notice tone="error">{t.auth.unknownError}</Notice> : null}
         </>
       )}
-      <button type="button" className="min-h-11 w-full text-center text-sm font-semibold text-accent underline underline-offset-4"
+      <button type="button" className={cn(linkClass, "min-h-11 w-full text-center text-sm")}
         onClick={() => setMode(mode === "code" ? "signin" : "code")}>
         {mode === "code" ? t.auth.backToPassword : t.auth.useEmailCode}
       </button>

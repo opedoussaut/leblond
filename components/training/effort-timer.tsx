@@ -7,6 +7,8 @@ import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { scheduleBeeps, setSoundEnabled, soundEnabled, unlockSound } from "@/lib/training/beeper";
 import type { TrainingExercise } from "@/lib/training/sessions";
 import { spokenDuration, timerBeeps, timerPlan, timerState } from "@/lib/training/timer";
+import { IconAgain, IconCheck, IconPlay, IconStop } from "@/components/ui/icons";
+import { buttonClass, iconButtonClass } from "@/components/ui/button";
 
 /** Keeps the screen on while `active` (where the browser allows it), so the phone can lie on the floor. */
 export function useWakeLock(active: boolean) {
@@ -52,7 +54,7 @@ export function SoundToggle({ locale, on, onChange }: { locale: Locale; on: bool
   return (
     <button type="button" aria-pressed={on} onClick={() => { if (!on) unlockSound(); onChange(!on); }}
       aria-label={on ? t.soundOn : t.soundOff} title={on ? t.soundOn : t.soundOff}
-      className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-line bg-surface text-ink-2">
+      className={iconButtonClass("text-ink-2")}>
       <Icon aria-hidden="true" className="h-5 w-5" />
     </button>
   );
@@ -135,21 +137,21 @@ export function EffortTimer({ locale, exercise, sound }: { locale: Locale; exerc
       {big !== null ? (
         <div className="text-center">
           <p className="text-sm font-bold uppercase tracking-[0.12em] text-accent" aria-live="polite">{label}</p>
-          <p className="mt-1 text-6xl font-black tabular-nums text-ink">{big}</p>
-          <button type="button" onClick={stop} className="mt-3 min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold text-ink-2">
-            ■ {t.timerStop}
+          <p className="mt-1 leblond-number text-6xl text-ink">{big}</p>
+          <button type="button" onClick={stop} className={buttonClass("secondary", "md", "mt-3")}>
+            <IconStop /> {t.timerStop}
           </button>
         </div>
       ) : state?.done ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base font-black text-accent" role="status">✓ {t.timerDone}</p>
-          <button type="button" onClick={start} className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold">↻ {t.timerAgain}</button>
+          <p className="text-base font-black text-accent" role="status"><IconCheck /> {t.timerDone}</p>
+          <button type="button" onClick={start} className={buttonClass("secondary", "md")}><IconAgain /> {t.timerAgain}</button>
         </div>
       ) : (
         <>
           <button type="button" onClick={start}
-            className="min-h-14 w-full rounded-2xl bg-accent px-5 text-lg font-black text-accent-ink active:scale-[0.99]">
-            ▶ {fmt(t.timerStart, { what })}
+            className={buttonClass("primary", "xl", "w-full")}>
+            <IconPlay /> {fmt(t.timerStart, { what })}
           </button>
           <p className="mt-2 text-xs text-ink-2">{sound ? t.timerHint : t.timerSilent}</p>
           {sound && ios ? <p className="mt-1 text-xs text-ink-3">{t.iosSilent}</p> : null}

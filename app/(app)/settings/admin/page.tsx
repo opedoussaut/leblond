@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, linkClass } from "@/components/ui/button";
 import { Card, Notice, PageHeader, SectionTitle } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/field";
 import { createBetaInvite, revokeBetaInvite, setBetaUserActive } from "@/lib/actions/admin";
@@ -114,7 +114,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/settings/a
                 {fmt(t.admin.topoListItem, { n: topo.problems_count, date: day.format(new Date(topo.updated_at)) })}
                 {topo.credit ? ` · ${topo.credit}` : ""}
                 {" · "}
-                <Link href={`/settings/admin/topos/${topo.gym_id}`} className="font-bold text-accent underline underline-offset-2">
+                <Link href={`/settings/admin/topos/${topo.gym_id}`} className={linkClass}>
                   {topoEditorDictionary(locale).editLink}
                 </Link>
               </li>

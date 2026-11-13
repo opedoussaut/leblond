@@ -41,9 +41,34 @@
   --color-danger: var(--danger);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  /* One scale for the whole app, so sizes cannot drift from page to page:
-     controls round at xl, cards at 2xl, and headings use two weights. */
+  /* Titles, grades and numbers. */
+  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  /*
+   * One scale for the whole app, so sizes cannot drift from page to page.
+   * Shapes: pills (rounded-full) for buttons, chips and tabs; 20 px (2xl) for
+   * cards and sheets; 12 px (xl) for fields and small tiles.
+   * Text: 12 · 14 · 16 · 20 · 28 · 40, and 72 for timers. lg and xl are the
+   * same step, so are 3xl and 4xl, and 5xl and 6xl.
+   */
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.75rem;
   --radius-2xl: 1.25rem;
+  --radius-3xl: 1.25rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.15;
+  --text-3xl: 2.5rem;
+  --text-3xl--line-height: 1.05;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.05;
+  --text-5xl: 4.5rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 4.5rem;
+  --text-6xl--line-height: 1;
+  --font-weight-medium: 600;
   --font-weight-extrabold: 700;
   --font-weight-black: 800;
   --tracking-tight: -0.015em;
@@ -59,6 +84,38 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   min-height: 100dvh;
+}
+
+/* Titles are set in Archivo, slightly wide, for a scoreboard feel; text stays in Inter.
+   In the base layer, so a utility on a title (tracking, size) still wins. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    font-stretch: 112%;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+  }
+
+  /* Big numbers (timers, scores, grades) use the same face, with figures of equal width. */
+  .leblond-number {
+    font-family: var(--font-display);
+    font-stretch: 100%;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
 }
 
 /* A native date or time field must never push a form wider than the screen. */
@@ -134,12 +191,11 @@ select {
   }
 }
 
-/* Soft light effects and polished product-like surfaces; no heavy shadows. */
+/* Calm surfaces: depth comes from the border and surface tints, not from shadows. */
 .leblond-premium-surface {
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 1.25rem;
-  box-shadow: 0 18px 55px -42px rgba(20, 50, 87, 0.32);
 }
 
 .leblond-hero-panel {
@@ -163,7 +219,9 @@ select {
 }
 
 .leblond-eyebrow {
-  letter-spacing: 0.12em;
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-size: 0.75rem;
   font-weight: 700;

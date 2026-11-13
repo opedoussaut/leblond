@@ -22,7 +22,7 @@ export default async function OfflinePage() {
   return (
     <main className="mx-auto max-w-md px-5 py-10">
       <Wordmark />
-      <h1 className="mt-8 text-2xl font-black tracking-tight md:text-3xl">{t.pwa.offlineTitle}</h1>
+      <h1 className="mt-8 text-2xl font-bold tracking-tight md:text-3xl">{t.pwa.offlineTitle}</h1>
       <p className="mt-2 text-ink-2">{t.pwa.offlineBody}</p>
       {/* A full page load on purpose: the service worker then serves the session's kept copy. */}
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}

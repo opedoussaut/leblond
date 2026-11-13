@@ -12,16 +12,17 @@ import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { formatDuration } from "@/lib/duration";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { TrainingStatus } from "@/lib/training/sessions";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
+import { IconNext, IconPlay } from "@/components/ui/icons";
 
 type LiveError = { liveId?: string };
 
 function LiveNotice({ locale, liveId }: { locale: Locale; liveId?: string }) {
   const t = trainingSessionDictionary(locale);
   return <p role="alert" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
-    {t.liveElsewhere}{liveId ? <> <Link className="font-bold text-accent underline" href={"/train/sessions/" + liveId}>{t.goLive}</Link></> : null}
+    {t.liveElsewhere}{liveId ? <> <Link className={linkClass} href={"/train/sessions/" + liveId}>{t.goLive}</Link></> : null}
   </p>;
 }
 
@@ -46,18 +47,18 @@ export function SessionLifecycleActions({ locale, id, status }: { locale: Locale
       {status === "PLANNED" || status === "INTERRUPTED" ? (
         <button type="button" disabled={pending} onClick={() => run(() => startTrainingSession(id))}
           className={buttonClass("primary", "md", "flex-1 sm:flex-none")}>
-          ▶ {status === "INTERRUPTED" ? t.resume : t.start}
+          <IconPlay /> {status === "INTERRUPTED" ? t.resume : t.start}
         </button>
       ) : null}
       {status === "PLANNED" ? <>
         <button type="button" disabled={pending} onClick={() => run(() => changeTrainingStatus(id, "SKIPPED"))}
-          className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-sm font-bold">{t.skip}</button>
+          className={buttonClass("secondary", "md")}>{t.skip}</button>
         <button type="button" disabled={pending} onClick={() => run(() => changeTrainingStatus(id, "CANCELED"))}
-          className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-sm font-bold">{t.cancel}</button>
+          className={buttonClass("secondary", "md")}>{t.cancel}</button>
       </> : null}
       {status === "SKIPPED" || status === "CANCELED" ? (
         <button type="button" disabled={pending} onClick={() => run(() => changeTrainingStatus(id, "PLANNED"))}
-          className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-sm font-bold">{t.reschedule}</button>
+          className={buttonClass("secondary", "md")}>{t.reschedule}</button>
       ) : null}
 
     </div>
@@ -125,7 +126,7 @@ export function QuickSessionForm({ locale, today, presetMethod = "", coachSessio
     {error ? (error.msg === "live" ? <LiveNotice locale={locale} liveId={error.liveId} /> :
       <p role="alert" className="text-sm font-semibold text-danger">{error.msg}</p>) : null}
     <div className="leblond-actions">
-      <button type="submit" disabled={pending} className={buttonClass("primary", "md")}>▶ {t.startNow}</button>
+      <button type="submit" disabled={pending} className={buttonClass("primary", "md")}><IconPlay /> {t.startNow}</button>
       <button type="button" disabled={pending} onClick={() => create(false)} className={buttonClass("secondary", "md")}>{t.schedule}</button>
     </div>
     <p className="text-xs text-ink-3">{t.safetyNote}</p>
@@ -140,7 +141,7 @@ export function CalendarEntrySessionButton({ locale, entryId, sessionId }: { loc
   const [error, setError] = useState("");
   if (sessionId) {
     return <Link href={"/train/sessions/" + sessionId}
-      className={buttonClass("primary", "sm")}>{t.openSession} →</Link>;
+      className={buttonClass("primary", "sm")}>{t.openSession} <IconNext /></Link>;
   }
   return <>
     <button type="button" disabled={pending}
@@ -150,7 +151,7 @@ export function CalendarEntrySessionButton({ locale, entryId, sessionId }: { loc
         if (!r.ok) { setError(t.error); return; }
         router.push("/train/sessions/" + r.data.id);
       })}
-      className={buttonClass("primary", "sm")}>{t.prepare} →</button>
+      className={buttonClass("primary", "sm")}>{t.prepare} <IconNext /></button>
     {error ? <span role="alert" className="text-xs text-danger">{error}</span> : null}
   </>;
 }
@@ -168,7 +169,7 @@ export function PlanSessionControls({ locale, planId, sessions, today, monday, p
   const [pending, start] = useTransition();
   const days = locale === "fr" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   return <section className="space-y-4 rounded-2xl border border-accent/25 bg-accent-soft p-4" aria-label={t.scheduleThisWeek}>
-    <div className="flex flex-wrap items-end gap-3 [&>label]:min-w-0 [&>label]:flex-1">
+    <div className="flex flex-wrap items-end gap-3 [&>label]:min-w-40 [&>label]:flex-1">
       <label className="text-sm font-semibold">{t.weekOf}
         <input type="date" className={field} value={week} onChange={(e) => setWeek(e.target.value)} />
       </label>
@@ -192,7 +193,7 @@ export function PlanSessionControls({ locale, planId, sessions, today, monday, p
             router.push("/train/sessions/" + r.data.id);
           })}
           className={buttonClass("secondary", "sm", "w-full !justify-start !text-left")}>
-          ▶ {days[s.day]} · {s.title ?? METHODS_FOR_PLANS.find((m) => m.id === s.methodId)?.title} · {s.minutes} min
+          <IconPlay /> {days[s.day]} · {s.title ?? METHODS_FOR_PLANS.find((m) => m.id === s.methodId)?.title} · {s.minutes} min
         </button>
       </li>)}
     </ul>

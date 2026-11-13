@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="flex flex-col justify-center p-6 sm:p-9 lg:p-12">
           <header className="mb-7">
             <span className="leblond-eyebrow text-accent">THE CLIMBING INTELLIGENCE STUDIO</span>
-            <h1 className="mt-4 text-ink text-2xl font-black tracking-tight md:text-3xl">{t.auth.title}</h1>
+            <h1 className="mt-4 text-ink text-2xl font-bold tracking-tight md:text-3xl">{t.auth.title}</h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-2">{t.auth.subtitle}</p>
           </header>
           <section aria-label={t.auth.title}>

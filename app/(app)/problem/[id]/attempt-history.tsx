@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, linkClass } from "@/components/ui/button";
 import { correctAttempt, deleteLatestAttempt } from "@/lib/actions/sessions";
 import { ATTEMPT_RESULTS, type AttemptResult } from "@/lib/climbing/types";
 import { formatDateTime } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/database.types";
+import { cn } from "@/components/ui/cn";
+import { IconNext } from "@/components/ui/icons";
 
 export function AttemptHistory({ attempts }: { attempts: Tables<"attempts">[] }) {
   const { t, locale } = useI18n();
@@ -38,7 +40,7 @@ export function AttemptHistory({ attempts }: { attempts: Tables<"attempts">[] })
               <span className="text-xs text-ink-3">{formatDateTime(a.created_at, locale)}</span>
               <button
                 type="button"
-                className="ml-auto min-h-11 px-2 text-sm text-accent"
+                className={cn(linkClass, "ml-auto min-h-11 px-2 text-sm")}
                 onClick={() => setEditing(editing === a.id ? null : a.id)}
               >
                 {t.session.tapToChange}
@@ -54,7 +56,7 @@ export function AttemptHistory({ attempts }: { attempts: Tables<"attempts">[] })
                       disabled={pending}
                       onClick={() => act(() => correctAttempt({ attemptId: a.id, result: r }))}
                     >
-                      → {t.results[r]}
+                      <IconNext /> {t.results[r]}
                     </Button>
                   ),
                 )}

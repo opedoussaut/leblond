@@ -7,6 +7,7 @@ import { Card, Notice } from "@/components/ui/card";
 import { Label, Select, Textarea } from "@/components/ui/field";
 import { updateProject } from "@/lib/actions/projects";
 import { PROJECT_STATUSES, type ProjectStatus } from "@/lib/climbing/types";
+import { IconCheck } from "@/components/ui/icons";
 
 export function ProjectForm({ projectId, status, notes }: { projectId: string; status: ProjectStatus; notes: string }) {
   const { t } = useI18n();
@@ -28,7 +29,7 @@ export function ProjectForm({ projectId, status, notes }: { projectId: string; s
           <Label htmlFor="proj-notes">{t.projects.notes}</Label>
           <Textarea id="proj-notes" name="notes" defaultValue={notes} maxLength={4000} />
         </div>
-        {state?.ok ? <Notice tone="ok">✓</Notice> : state ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
+        {state?.ok ? <Notice tone="ok"><IconCheck /> {t.common.saved}</Notice> : state ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : t.common.save}
         </Button>

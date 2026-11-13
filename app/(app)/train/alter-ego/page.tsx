@@ -15,6 +15,9 @@ import { fmt } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { getI18n } from "@/lib/i18n/server";
 import { localDate_ } from "@/lib/training/sessions";
+import { IconBack } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 export const metadata = { title: "LEBLOND — Alter ego" };
 
@@ -25,7 +28,7 @@ export default async function AlterEgoPage() {
   const fr = locale === "fr";
   const today = localDate_(new Date());
   const pact = await loadOpenPact(viewer.supabase);
-  const back = <Link href="/train" className="text-sm font-bold text-accent underline underline-offset-4">← {fr ? "S’entraîner" : "Training"}</Link>;
+  const back = <Link href="/train" className={cn(linkClass, "text-sm")}><IconBack /> {fr ? "S’entraîner" : "Training"}</Link>;
 
   if (!pact) {
     const { data: plans } = await viewer.supabase.from("training_plans").select("id, name, weeks").order("updated_at", { ascending: false });

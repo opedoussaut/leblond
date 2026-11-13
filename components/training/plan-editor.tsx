@@ -19,9 +19,11 @@ import {
 } from "@/lib/training/plans";
 import { PlanSessionControls } from "./session-actions";
 import { PatrickPlanForm } from "./patrick-plan-form";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, dangerLinkClass, linkClass, tileClass, toggleClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
+import { IconExternal, IconWarn } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 /** The editor works on phases always; a one-phase plan is saved as before (a weekly template). */
 type Draft = { id?: string; name: string; goal: string; mode: PlanMode; duration: PlanDuration; phases: PlanPhase[] };
@@ -179,7 +181,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
       {plans.map((plan) => (
         <button type="button" key={plan.id} onClick={() => selectPlan(plan.id)}
           aria-pressed={!choosing && !patrickForm && draft.id === plan.id}
-          className={"min-h-12 rounded-full border px-5 py-2 text-sm font-semibold " + (!choosing && !patrickForm && draft.id === plan.id ? "border-accent bg-surface-2" : "border-line bg-surface")}
+          className={toggleClass(!choosing && !patrickForm && draft.id === plan.id)}
         >{plan.name}</button>
       ))}
     </div>
@@ -193,7 +195,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
           <legend className="text-lg font-bold">{m.modeQuestion}</legend>
           {(["MANUAL", "ASSISTED", "PATRICK"] as const).map((mode) => (
             <button key={mode} type="button" onClick={() => startNew(mode)}
-              className="block w-full rounded-2xl border border-line bg-surface p-4 text-left hover:border-accent focus-visible:border-accent">
+              className={tileClass(false, "block w-full")}>
               <span className="block font-bold">{m.modes[mode].title}</span>
               <span className="mt-1 block text-sm leading-relaxed text-ink-2">{m.modes[mode].text}</span>
             </button>
@@ -276,7 +278,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
             <ul className="mt-2 space-y-1.5 text-sm">
               {hints.map((h, i) => (
                 <li key={i} className={h.level === "warn" ? "font-semibold text-ink" : "text-ink-2"}>
-                  <span aria-hidden="true">{h.level === "warn" ? "⚠ " : "• "}</span>{hintText(h)}
+                  {h.level === "warn" ? <IconWarn /> : <span aria-hidden="true">•</span>} {hintText(h)}
                 </li>
               ))}
             </ul>
@@ -297,7 +299,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
             <div className="flex flex-wrap gap-2" role="tablist">
               {draft.phases.map((p, i) => (
                 <button key={i} type="button" role="tab" aria-selected={i === phaseIndex} onClick={() => setPhaseIndex(i)}
-                  className={"min-h-11 rounded-full border px-4 text-sm font-semibold " + (i === phaseIndex ? "border-accent bg-surface-2" : "border-line bg-surface")}>
+                  className={toggleClass(i === phaseIndex)}>
                   {p.name} · {fmt(m.weeksShort, { n: p.weeks })}
                 </button>
               ))}
@@ -324,7 +326,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
               </label>
               <div className="sm:col-span-3 text-right">
                 <button type="button" disabled={pending} onClick={() => removePhase(phaseIndex)}
-                  className="inline-flex min-h-11 items-center text-sm font-bold text-danger underline">{m.removePhase}</button>
+                  className={dangerLinkClass}>{m.removePhase}</button>
               </div>
             </div>
             <h3 className="font-bold">{fmt(m.phaseSessions, { name: current.name })}</h3>
@@ -365,9 +367,9 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
                 </select>
               </label>
             </div>
-            {session.methodId ? <Link className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-accent underline underline-offset-4"
+            {session.methodId ? <Link className={cn(linkClass, "mt-1 min-h-11 text-sm")}
               href={"/atlas/" + session.methodId}>
-              {locale === "fr" ? "Voir la fiche complète de cette méthode" : "Open full method guide"} ↗
+              {locale === "fr" ? "Voir la fiche complète de cette méthode" : "Open full method guide"} <IconExternal />
             </Link> : <label className="mt-3 block text-sm font-semibold">
               {j.planEditor.title}
               <input type="text" maxLength={80} value={session.title ?? ""} className={field}
@@ -385,7 +387,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
               </label>
               <button type="button" disabled={current.sessions.length <= 1 || pending}
                 onClick={() => setPhase(phaseIndex, { sessions: current.sessions.filter((_, i) => i !== index) })}
-                className="inline-flex min-h-11 items-center text-sm font-bold text-danger underline disabled:opacity-40">{t.delete}</button>
+                className={dangerLinkClass}>{t.delete}</button>
             </div>
           </div>
         ))}
@@ -399,7 +401,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
         <button type="button" disabled={pending || !draft.name.trim() || draft.phases.some((p) => !p.name.trim() || p.sessions.length < 1)}
           onClick={save} className={buttonClass("primary")}>{t.save}</button>
-        {draft.id ? <button type="button" disabled={pending} onClick={remove} className="inline-flex min-h-11 items-center text-sm font-bold text-danger underline">{t.delete}</button> : null}
+        {draft.id ? <button type="button" disabled={pending} onClick={remove} className={dangerLinkClass}>{t.delete}</button> : null}
       </div>
       {notice ? <p role="status" className="text-sm font-semibold text-ink-2">{notice}</p> : null}
       <p className="text-xs leading-relaxed text-ink-3">{t.safety}</p>

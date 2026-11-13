@@ -10,6 +10,9 @@ import { getI18n } from "@/lib/i18n/server";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { painDefaults, type DayCheckInput, type DayRecommendation, type DayReason } from "@/lib/training/day-check";
 import { localDate_ } from "@/lib/training/sessions";
+import { IconBack, IconNext } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 export const metadata = { title: "LEBLOND — Forme du jour" };
 
@@ -35,12 +38,12 @@ export default async function DayCheckPage() {
   } : null;
 
   return <div className="space-y-6 pb-12">
-    <Link href="/home" className="text-sm font-bold text-accent underline underline-offset-4">← {j.day.back}</Link>
+    <Link href="/home" className={cn(linkClass, "text-sm")}><IconBack /> {j.day.back}</Link>
     <PageHeader icon={<PAGE_ICONS.dayCheck />} title={j.day.title} subtitle={j.day.subtitle} />
     {state.replan.suggested ? <ReplanBanner locale={locale} replan={state.replan} /> : null}
     <DayCheck locale={locale} today={today} initial={initial} saved={saved} hasProgramme={!!view}
       prefilledPain={!state.todayCheck && prefill.length > 0} scheduledId={state.scheduledToday?.id ?? null}
       mobilityEnrolled={!!mobility && mobility.status === "ACTIVE"} />
-    <p className="text-sm text-ink-2">{j.hub.fullText} <Link href="/train/assess" className="font-bold text-accent underline underline-offset-4">{j.hub.fullTitle} →</Link></p>
+    <p className="text-sm text-ink-2">{j.hub.fullText} <Link href="/train/assess" className={linkClass}>{j.hub.fullTitle} <IconNext /></Link></p>
   </div>;
 }

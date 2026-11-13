@@ -13,6 +13,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_, type TrainingSession } from "@/lib/training/sessions";
+import { IconNext } from "@/components/ui/icons";
 
 export const metadata = { title: "LEBLOND — Training sessions" };
 
@@ -44,7 +45,7 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
           {s.status === "COMPLETED" && s.actualMinutes !== null ? ` · ${s.actualMinutes} ${t.minutesShort}` : s.plannedMinutes ? ` · ${s.plannedMinutes} ${t.minutesShort}` : ""}
         </span>
       </span>
-      <span className="shrink-0 text-sm font-bold text-accent">{cta} →</span>
+      <span className="shrink-0 text-sm font-bold text-accent">{cta} <IconNext /></span>
     </Link>
   </li>;
 
@@ -53,13 +54,13 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
     {sessions === null ? <p role="alert" className="rounded-xl border border-warn p-4 text-sm">{t.error}</p> : null}
 
     {live.length ? <section aria-labelledby="live-heading" className="space-y-3">
-      <h2 id="live-heading" className="text-lg font-extrabold">{t.inProgress}</h2>
+      <h2 id="live-heading" className="text-lg font-bold">{t.inProgress}</h2>
       <ul className="space-y-2">{live.map((s) => row(s, t.resume))}</ul>
     </section> : null}
 
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
       <section aria-labelledby="new-heading" className="leblond-premium-surface p-5 sm:p-6">
-        <h2 id="new-heading" className="text-lg font-extrabold">{t.newSession}</h2>
+        <h2 id="new-heading" className="text-lg font-bold">{t.newSession}</h2>
         <p className="mt-1 text-sm text-ink-2">{t.newSessionHint}</p>
         <div className="mt-4"><QuickSessionForm key={presetMethod} locale={locale} today={today} presetMethod={presetMethod}
           coachSessions={coachSessions.map((s) => ({ id: s.id, title: s.title, minutes: s.minutes }))} /></div>
@@ -71,17 +72,17 @@ export default async function TrainingSessionsPage({ searchParams }: PageProps<"
       </section>
       <div className="space-y-6">
         {coachSessions.length ? <section aria-labelledby="coach-heading" className="space-y-3">
-          <h2 id="coach-heading" className="text-lg font-extrabold">{c.title}</h2>
+          <h2 id="coach-heading" className="text-lg font-bold">{c.title}</h2>
           <p className="text-sm text-ink-2">{c.subtitle}</p>
           <CoachSessionsList locale={locale} sessions={coachSessions} viewerId={viewer.userId} />
         </section> : null}
         <section aria-labelledby="upcoming-heading" className="space-y-3">
-          <h2 id="upcoming-heading" className="text-lg font-extrabold">{t.upcoming}</h2>
+          <h2 id="upcoming-heading" className="text-lg font-bold">{t.upcoming}</h2>
           {upcoming.length ? <ul className="space-y-2">{upcoming.slice(0, 12).map((s) => row(s, t.open))}</ul>
             : <p className="text-sm text-ink-3">{t.nothingUpcoming}</p>}
         </section>
         <section aria-labelledby="done-heading" className="space-y-3">
-          <h2 id="done-heading" className="text-lg font-extrabold">{t.history}</h2>
+          <h2 id="done-heading" className="text-lg font-bold">{t.history}</h2>
           {done.length ? <ul className="space-y-2">{done.map((s) => row(s, t.review))}</ul>
             : <p className="text-sm text-ink-3">{t.nothingDone}</p>}
         </section>

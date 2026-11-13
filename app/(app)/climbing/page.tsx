@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/card";
 import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { buttonClass } from "@/components/ui/button";
+import { IconNext, IconPast } from "@/components/ui/icons";
 
 export const metadata = { title: "LEBLOND — Grimper" };
 export default async function ClimbingHome() {
@@ -19,11 +20,11 @@ export default async function ClimbingHome() {
         : "Your climbing log, bouldering and routes. Sessions, attempts and projects, with no training plan required."}/>
     <Link href="/session/new"
       className={buttonClass("primary", "md", "sm:inline-flex")}>
-      {fr ? "Commencer une séance de grimpe" : "Start a climbing session"} →
+      {fr ? "Commencer une séance de grimpe" : "Start a climbing session"} <IconNext />
     </Link>
     <Link href="/session/new?where=past"
       className={buttonClass("secondary", "md", "ml-0 sm:ml-3 sm:inline-flex")}>
-      ↺ {fr ? "Ajouter une séance déjà faite" : "Add a session you already did"}
+      <IconPast /> {fr ? "Ajouter une séance déjà faite" : "Add a session you already did"}
     </Link>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <AreaCard href="/session" icon={<PAGE_ICONS.session />}

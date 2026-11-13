@@ -18,7 +18,8 @@ import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { HIP_PROGRAMME, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_ } from "@/lib/training/sessions";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
+import { IconCheck, IconNext } from "@/components/ui/icons";
 
 export const metadata = { title: "LEBLOND — Training journey" };
 
@@ -75,25 +76,13 @@ export default async function TrainingHome() {
 
     {programme.replan.suggested ? <ReplanBanner locale={locale} replan={programme.replan} /> : null}
 
-    <section aria-label={h.entriesTitle} className="space-y-3">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
-          <div>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink"><PAGE_ICONS.dayCheck aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.dayTitle}</h3>
-              <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-accent">{h.dayBadge}</span>
-            </div>
-            <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.dayText}</p>
-            {programme.todayCheck ? <p className="mt-2 text-sm font-bold text-ink">{fmt(h.dayDone, { outcome: j.outcomes[programme.todayCheck.outcome].toLowerCase() })}</p> : null}
-          </div>
-          <Link href="/train/today" className={buttonClass(programme.todayCheck ? "secondary" : "primary", "md")}>
-            {programme.todayCheck ? h.dayRedo : h.dayCta} →
-          </Link>
-        </div>
+    {/* Forme du jour lives on Aujourd’hui only; here, the full assessment that builds the programme. */}
+    <section aria-label={h.fullTitle} className="space-y-3">
+      <div className="grid grid-cols-1 gap-4">
         <div className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
           <div>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink"><PAGE_ICONS.assessment aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.fullTitle}</h3>
+              <h3 className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.assessment aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.fullTitle}</h3>
               <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
             </div>
             <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
@@ -102,7 +91,7 @@ export default async function TrainingHome() {
             </p> : null}
           </div>
           <Link href="/train/assess" className={buttonClass(view && !view.reassessmentDue ? "secondary" : "primary", "md")}>
-            {view ? h.fullAgain : h.fullCta} →
+            {view ? h.fullAgain : h.fullCta} <IconNext />
           </Link>
         </div>
       </div>
@@ -111,7 +100,7 @@ export default async function TrainingHome() {
     <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="mobility-heading" className="flex items-center gap-2 text-lg font-extrabold text-ink"><PAGE_ICONS.mobility aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{mob.hubTitle}</h2>
+          <h2 id="mobility-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.mobility aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{mob.hubTitle}</h2>
           <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{mob.hubBadge}</span>
         </div>
         <p className="mt-1 text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
@@ -119,14 +108,14 @@ export default async function TrainingHome() {
           {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
         </p> : null}
       </div>
-      <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} →</Link>
+      <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
     </section>
 
     <ProgrammeCard locale={locale} view={view} today={today} />
 
     <section aria-labelledby="today-heading" className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
-        <h2 id="today-heading" className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">
+        <h2 id="today-heading" className="text-xs font-bold uppercase tracking-[0.12em] text-accent">
           {live ? (fr ? "Séance en cours" : "Session in progress") : (fr ? "Prochaine séance au calendrier" : "Next session in the calendar")}
         </h2>
         {featured ? <>
@@ -137,7 +126,7 @@ export default async function TrainingHome() {
           </p>
           <Link href={"/train/sessions/" + featured.id}
             className={buttonClass("primary", "md", "mt-4")}>
-            {live ? (fr ? "Reprendre" : "Resume") : (fr ? "Ouvrir et démarrer" : "Open and start")} →
+            {live ? (fr ? "Reprendre" : "Resume") : (fr ? "Ouvrir et démarrer" : "Open and start")} <IconNext />
           </Link>
         </> : <>
           <p className="mt-2 text-lg font-bold text-ink">{fr ? "Aucune séance planifiée." : "No session planned."}</p>
@@ -146,7 +135,7 @@ export default async function TrainingHome() {
       </div>
       <div className="leblond-premium-surface flex flex-col justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h2 className="text-lg font-extrabold">{fr ? "Séance ponctuelle" : "One-off session"}</h2>
+          <h2 className="text-lg font-bold">{fr ? "Séance ponctuelle" : "One-off session"}</h2>
           <p className="mt-1 text-sm text-ink-2">{fr ? "Pas besoin de programme : choisis une méthode et commence." : "No plan needed: pick a method and go."}</p>
         </div>
         <Link href="/train/sessions" className={buttonClass("secondary", "md")}>
@@ -170,13 +159,13 @@ export default async function TrainingHome() {
       </section>}
 
     <section aria-labelledby="journey-heading" className="space-y-4">
-      <h2 id="journey-heading" className="text-lg font-extrabold">{fr ? "Mon parcours, étape par étape" : "My journey, step by step"}</h2>
+      <h2 id="journey-heading" className="text-lg font-bold">{fr ? "Mon parcours, étape par étape" : "My journey, step by step"}</h2>
       <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {steps.map((step) => <li key={step.no}>
           <Link href={step.href}
             className="group flex h-full gap-4 rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent">
             <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums " +
-              (step.done ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent")} aria-hidden="true">{step.done ? "✓" : step.no}</span>
+              (step.done ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent")} aria-hidden="true">{step.done ? <IconCheck /> : step.no}</span>
             <span className="block">
               <strong className="block text-base font-extrabold text-ink">{step.title}{step.done ? <span className="sr-only"> ({fr ? "fait" : "done"})</span> : null}</strong>
               <span className="mt-1 block text-sm leading-relaxed text-ink-2">{step.detail}</span>
@@ -196,7 +185,7 @@ export default async function TrainingHome() {
     </section>
     <p className="text-sm text-ink-2">
       {fr ? "Tu veux simplement grimper ? " : "Just want to climb? "}
-      <Link href="/climbing" className="font-bold text-accent underline underline-offset-4">{fr ? "Ouvrir le carnet de grimpe" : "Open your climbing journal"} →</Link>
+      <Link href="/climbing" className={linkClass}>{fr ? "Ouvrir le carnet de grimpe" : "Open your climbing journal"} <IconNext /></Link>
     </p>
   </div>;
 }

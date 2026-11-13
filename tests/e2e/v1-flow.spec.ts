@@ -197,7 +197,7 @@ test("problem enrichment: Font estimate kept separate + photo upload", async ({ 
   await page.getByLabel("Font").selectOption("6C");
   await page.getByLabel("Confiance").selectOption("confident");
   await page.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(page.getByText("✓").first()).toBeVisible();
+  await expect(page.getByText("Enregistré.").first()).toBeVisible();
   // Native grade unchanged.
   await expect(page.getByText("Cotation native de la salle · Couleurs Arkose")).toBeVisible();
 

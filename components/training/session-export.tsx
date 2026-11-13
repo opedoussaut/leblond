@@ -109,7 +109,7 @@ export function SessionExport({ locale, session, exercises }: { locale: Locale; 
   }
 
   return <section aria-labelledby="export-heading" className="rounded-2xl border border-line bg-surface p-4">
-    <h2 id="export-heading" className="text-sm font-extrabold">{t.exportTitle}</h2>
+    <h2 id="export-heading" className="text-sm font-bold">{t.exportTitle}</h2>
     <p className="mt-1 text-xs text-ink-3">{t.exportHint}</p>
     <div className="leblond-actions mt-3">
       <button type="button" onClick={png} className={buttonClass("secondary", "sm")}>{t.exportPng}</button>

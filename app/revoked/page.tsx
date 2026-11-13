@@ -8,7 +8,7 @@ export default async function RevokedPage() {
   return (
     <main className="pt-safe mx-auto max-w-md px-5 py-8">
       <Wordmark />
-      <h1 className="mt-8 text-2xl font-black tracking-tight md:text-3xl">{t.auth.revokedTitle}</h1>
+      <h1 className="mt-8 text-2xl font-bold tracking-tight md:text-3xl">{t.auth.revokedTitle}</h1>
       <p className="mt-2 text-ink-2">{t.auth.revokedBody}</p>
       <form action={signOut} className="mt-6">
         <Button type="submit" variant="secondary">

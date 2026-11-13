@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, toggleClass } from "@/components/ui/button";
 import { Card, Notice, SectionTitle } from "@/components/ui/card";
-import { cn } from "@/components/ui/cn";
 import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { deleteProblem, updateProblem } from "@/lib/actions/sessions";
 import { STYLE_TAGS, WALL_ANGLES, type GradeSystem, type StyleTag, type WallAngle } from "@/lib/climbing/types";
 import { ESTIMATE_CONFIDENCE_PRESETS, FONT_SCALE, RELIABLE_CONFIDENCE, type EstimateConfidencePreset } from "@/lib/grading";
+import { IconCheck } from "@/components/ui/icons";
 
 const URL_PATTERN = String.raw`https://\S+`;
 
@@ -130,10 +130,7 @@ export function ProblemEditor({
                   type="button"
                   aria-pressed={on}
                   onClick={() => setTags((cur) => (on ? cur.filter((x) => x !== s) : [...cur, s]))}
-                  className={cn(
-                    "min-h-11 rounded-full border px-3 text-sm",
-                    on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
-                  )}
+                  className={toggleClass(on)}
                 >
                   {t.styles[s]}
                 </button>
@@ -207,7 +204,7 @@ export function ProblemEditor({
             </div>
           </fieldset>
         ) : null}
-        {saved === "ok" ? <Notice tone="ok">✓</Notice> : saved === "error" ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
+        {saved === "ok" ? <Notice tone="ok"><IconCheck /> {t.common.saved}</Notice> : saved === "error" ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : t.common.save}
         </Button>

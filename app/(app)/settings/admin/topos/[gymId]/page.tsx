@@ -6,6 +6,9 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { topoEditorDictionary } from "@/lib/i18n/topo-editor";
 import { TopoEditor } from "./topo-editor";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
+import { IconBack } from "@/components/ui/icons";
 
 export const metadata = { title: "Topo" };
 
@@ -29,7 +32,7 @@ export default async function TopoEditorPage({ params }: PageProps<"/settings/ad
 
   return (
     <div className="space-y-4">
-      <Link href="/settings/admin" className="text-sm font-semibold text-accent underline">{e.back}</Link>
+      <Link href="/settings/admin" className={cn(linkClass, "text-sm")}><IconBack /> {e.back}</Link>
       <PageHeader title={`${e.title} · ${area.name}`} subtitle={e.intro} />
       <TopoEditor gymId={gymId} initial={(problems ?? []) as TopoProblemRow[]} logged={logged} />
     </div>

@@ -7,9 +7,10 @@ import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { buttonClass } from "@/components/ui/button";
+import { IconNext } from "@/components/ui/icons";
 
 export const metadata: Metadata = {
-  title: "Training Lab",
+  title: "Training methods",
   description: "LEBLOND climbing training method and tool comparison atlas.",
 };
 
@@ -28,25 +29,25 @@ export default async function TrainingLabPage() {
       </header>
       <section className="py-10 sm:py-16">
         <p className="mb-3 text-xs font-black uppercase tracking-[0.12em] text-accent">{t.eyebrow}</p>
-        <h1 className="max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{t.title}</h1>
+        <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl">{t.title}</h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">{t.subtitle}</p>
       </section>
       <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link href="/training/evaluate" className="rounded-2xl border border-accent bg-accent-soft p-5 text-ink hover:opacity-90">
-          <p className="text-lg font-black">{a.publicEvaluate} →</p>
+          <p className="text-lg font-black">{a.publicEvaluate} <IconNext /></p>
           <p className="mt-2 text-sm">{a.publicPrivacy}</p>
         </Link>
         <Link href="/training-assessment" className="rounded-2xl border border-line bg-surface p-5 hover:bg-surface-2">
-          <p className="text-lg font-black">{a.privateTracking} →</p>
+          <p className="text-lg font-black">{a.privateTracking} <IconNext /></p>
           <p className="mt-2 text-sm text-ink-2">{a.subtitle}</p>
         </Link>
       </section>
       <TrainingExplorer locale={locale} />
       <section className="mt-12 rounded-2xl border border-line bg-surface p-6 sm:p-9">
-        <h2 className="text-2xl font-black">{t.saveIntro}</h2>
+        <h2 className="text-2xl font-bold">{t.saveIntro}</h2>
         <p className="mt-2 max-w-2xl text-ink-2">{t.saveDescription}</p>
         <Link href="/training-plans" className={buttonClass("primary", "md", "mt-5")}>
-          {t.myPlans} →
+          {t.myPlans} <IconNext />
         </Link>
       </section>
       <p className="mt-8 text-xs leading-relaxed text-ink-3">{t.safety}</p>
