@@ -1111,5 +1111,6 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
   await page.reload();
   await expect(page.getByText("À ta portée · Sans pitié")).toBeVisible();
-  await expect(page.getByText(/La douleur arrête la course/)).toBeVisible();
+  // The climber manages load and pain: no safety footnote under the feed.
+  await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);
 });
