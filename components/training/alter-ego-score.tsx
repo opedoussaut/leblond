@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Pact, PactProgress } from "@/lib/analytics/alter-ego";
+import { boulderGrade } from "@/lib/grading/display";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { IconNext } from "@/components/ui/icons";
@@ -26,7 +27,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
     { label: t.minutes, you: s.you.minutes, ego: s.ego.minutes },
   ];
   const paces = [
-    { label: t.boulder, pace: progress.boulderPace, you: observed?.boulder ?? null },
+    { label: t.boulder, pace: progress.boulderPace && boulderGrade(progress.boulderPace), you: observed?.boulder ? boulderGrade(observed.boulder) : null },
     { label: t.route, pace: progress.routePace, you: observed?.route ?? null },
   ].filter((p) => p.pace);
   return <section aria-labelledby="ego-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">

@@ -2,7 +2,7 @@ import { gradeToScore, scoreToGrade } from "@/lib/grading/ordering";
 import { sessionTitle } from "@/lib/training/programme";
 import { mondayOf } from "@/lib/training/sessions";
 import {
-  boulderPace, climberLedger, egoLedger, egoSchedule, egoSessionLedger, pactClock, standing,
+  boulderPace, climberLedger, egoDays, egoLedger, egoSchedule, egoSessionLedger, pactClock, standing,
   type ClimberWork, type Ledger, type Pact, type Standing,
 } from "./alter-ego";
 
@@ -70,7 +70,7 @@ export function levelLedger(level: RivalLevel, plan: Ledger, you: Ledger): Ledge
 /** The score against the rival at its level. */
 export function rivalStanding(pact: Pact, settings: Pick<RivalSettings, "level">, work: ClimberWork[], today: string): Standing {
   const you = climberLedger(work, pact.startDate);
-  return standing(you, levelLedger(settings.level, egoLedger(pact, pactClock(pact, today)), you));
+  return standing(you, levelLedger(settings.level, egoLedger(pact, pactClock(pact, today), work), you));
 }
 
 /**
@@ -116,12 +116,12 @@ const weekOf = (work: ClimberWork[], monday: string): Ledger =>
 export function weeklyDuels(pact: Pact, settings: Pick<RivalSettings, "level">, work: ClimberWork[], today: string): Duel[] {
   const clock = pactClock(pact, today);
   const first = mondayOf(pact.startDate);
-  const schedule = egoSchedule(pact);
+  const days = egoDays(pact, clock, work);
   const out: Duel[] = [];
   for (let week = 0; week < pact.horizonWeeks; week++) {
     const monday = addDays(first, week * 7);
     if (addDays(monday, 7) > clock) break;
-    const plan = schedule.filter((s) => s.week === week).map((s) => egoSessionLedger(s, pact.progression))
+    const plan = days.filter((d) => d.week === week).map((d) => d.ledger)
       .reduce((a, b) => ({ sessions: a.sessions + b.sessions, reps: a.reps + b.reps, minutes: a.minutes + b.minutes }), { sessions: 0, reps: 0, minutes: 0 });
     const you = weekOf(work.filter((w) => w.date >= pact.startDate), monday);
     const rival = levelLedger(settings.level, plan, you);
