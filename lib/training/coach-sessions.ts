@@ -41,7 +41,7 @@ export function musclewikiUrl(slug: string | undefined | null): string | null {
  * for exercises MuscleWiki has no page for. A demo link must point to one of them.
  */
 export const DEMO_HOSTS = [
-  "workoutlabs.com", "www.bodbot.com", "latticetraining.com", "www.caliverse.app", "sworkit.com", "www.acefitness.org",
+  "workoutlabs.com", "latticetraining.com", "www.caliverse.app", "sworkit.com", "www.acefitness.org",
 ] as const;
 const demoHosts: ReadonlySet<string> = new Set(DEMO_HOSTS);
 
