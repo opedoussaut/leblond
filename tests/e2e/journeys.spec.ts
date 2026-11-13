@@ -1100,7 +1100,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await page.getByLabel("Nom de ton alter ego").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();
-  await expect(page.getByRole("heading", { name: /^Max/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^Max/ })).toBeVisible();
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
