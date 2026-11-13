@@ -82,7 +82,7 @@ export function EditTrainingForm({ locale, session, today }: {
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         className={buttonClass("secondary", "md")}><IconEdit /> {t.edit}</button>
       <button type="button" disabled={pending}
-        onClick={() => { if (window.confirm(t.deleteConfirm)) start(async () => { const r = await deleteTrainingSession(session.id); if (r.ok) router.push("/train/sessions"); else setError(t.error); }); }}
+        onClick={() => { if (window.confirm(t.deleteConfirm)) start(async () => { const r = await deleteTrainingSession(session.id); if (r.ok) router.push("/session?type=training"); else setError(t.error); }); }}
         className={buttonClass("danger", "md")}>{t.delete}</button>
     </div>
     {open ? <form aria-label={t.editTitle} className="leblond-premium-surface space-y-4 p-5" onSubmit={(e) => {

@@ -293,9 +293,9 @@ test("history is preserved and private: another tester sees nothing", async ({ p
   await page.getByLabel("Prénom ou pseudo").fill("Sam");
   for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Continuer" }).click();
   await page.getByRole("button", { name: "Aller à l’accueil" }).click();
-  await expect(page.getByRole("heading", { name: "Que veux-tu faire aujourd’hui ?" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Commencer une séance de grimpe/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Commencer mon parcours d’entraînement/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Nouvelle séance", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ma semaine" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Suivre un programme" })).toBeVisible();
   await page.goto("/session");
   await expect(page.getByText("Aucune séance pour l’instant.")).toBeVisible();
   const res = await page.goto(new URL(arkoseSessionUrl).pathname);

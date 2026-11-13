@@ -20,8 +20,8 @@ import { cn } from "@/components/ui/cn";
 
 
 
-export async function TrainingAssessmentView({ backHref }: { backHref: "/train" | "/follow-up" }) {
-  const doing = backHref === "/train";
+export async function TrainingAssessmentView({ backHref }: { backHref: "/programmes" | "/follow-up" }) {
+  const doing = backHref === "/programmes";
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const a = assessmentDictionary(locale);
@@ -101,7 +101,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
-        <Link href={backHref} className={cn(linkClass, "text-sm")}><IconBack /> {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Progrès" : "Progress")}</Link>
+        <Link href={backHref} className={cn(linkClass, "text-sm")}><IconBack /> {backHref === "/programmes" ? "Programmes" : (locale === "fr" ? "Progrès" : "Progress")}</Link>
         <Link href="/progress" className={cn(linkClass, "text-sm")}>{locale==="fr"?"Mes résultats":"My results"} <IconNext /></Link>
       </div>
       <div className="mt-6">

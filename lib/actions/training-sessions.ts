@@ -27,6 +27,10 @@ const MAX_SESSIONS = 3000;
 
 function revalidateTraining(sessionId?: string) {
   revalidatePath("/train", "layout");
+  revalidatePath("/session");
+  revalidatePath("/session/new");
+  revalidatePath("/programmes");
+  revalidatePath("/home");
   revalidatePath("/patrick");
   revalidatePath("/calendar");
   revalidatePath("/follow-up", "layout");

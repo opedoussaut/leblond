@@ -37,16 +37,17 @@ test("signed-in climbers can compare methods and assess their own skills", async
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
   await expect(nav.getByRole("link", { name: "Agenda", exact: true })).toHaveAttribute("aria-current", "page");
   // Progressive disclosure: only the selected area's pages are listed.
-  await expect(nav.getByRole("link", { name: "Projets", exact: true })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "Aujourd’hui", exact: true })).toHaveAttribute("data-active-area", "true");
+  await expect(nav.getByRole("link", { name: "Projets", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Mes programmes", exact: true })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Séances", exact: true })).toHaveAttribute("data-active-area", "true");
   await nav.getByRole("link", { name: "Progrès", exact: true }).click();
   await expect(page).toHaveURL(/\/follow-up/);
   await expect(page.locator("#app-main h1")).toBeFocused();
   await expect(nav.getByRole("link", { name: "Progrès", exact: true })).toHaveAttribute("data-active-area", "true");
   await expect(nav.getByRole("link", { name: "Agenda", exact: true })).toHaveCount(0);
-  await nav.getByRole("link", { name: "S’entraîner", exact: true }).click();
-  await expect(page).toHaveURL(/\/train/);
-  await expect(page.getByRole("link", { name: /Training Atlas/ })).toBeVisible();
+  await nav.getByRole("link", { name: "Programmes", exact: true }).click();
+  await expect(page).toHaveURL(/\/programmes$/);
+  await expect(page.getByRole("link", { name: /Ouvrir la bibliothèque/ })).toBeVisible();
   await page.goto("/training");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Mieux s'entraîner");
   await expect(page.getByRole("img", { name: "Comparer sur le radar" })).toBeVisible();

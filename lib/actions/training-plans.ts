@@ -32,7 +32,7 @@ export async function saveTrainingPlan(input: unknown): Promise<PlanResult> {
       .select("id").single();
   const { data, error } = await query;
   if (error || !data) return { ok: false, error: "unknown" };
-  revalidatePath("/training-plans");
+  revalidatePath("/programmes");
   return { ok: true, id: data.id };
 }
 
@@ -44,6 +44,6 @@ export async function deleteTrainingPlan(id: string): Promise<{ ok: boolean }> {
     .delete()
     .eq("id", id).eq("user_id", viewer.userId);
   if (error) return { ok: false };
-  revalidatePath("/training-plans");
+  revalidatePath("/programmes");
   return { ok: true };
 }

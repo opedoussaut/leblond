@@ -34,6 +34,7 @@ export async function removeCoachSession(id: string): Promise<Result> {
   const { error, count } = await viewer.supabase.from("coach_sessions").delete({ count: "exact" }).eq("id", id);
   if (error) return { ok: false, error: "unknown" };
   if (!count) return { ok: false, error: "not_found" };
-  revalidatePath("/train/sessions");
+  revalidatePath("/atlas");
+  revalidatePath("/session/new");
   return { ok: true, data: undefined };
 }

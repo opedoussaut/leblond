@@ -37,7 +37,7 @@ export default async function HipMobilityPage() {
   const planned = state.upcoming.filter((u) => u.status !== "IN_PROGRESS");
 
   return <div className="space-y-6">
-    <p className="text-sm"><Link href="/train" className={linkClass}><IconBack /> {locale === "fr" ? "S’entraîner" : "Training"}</Link></p>
+    <p className="text-sm"><Link href="/programmes" className={linkClass}><IconBack /> Programmes</Link></p>
     <PageHeader icon={<PAGE_ICONS.mobility />} title={m.title} subtitle={m.subtitle} />
 
     {plan.clinician.recommended ? <div role="alert" className="rounded-2xl border border-danger/40 bg-danger/10 p-5">
