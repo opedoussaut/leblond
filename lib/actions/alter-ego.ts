@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PROGRESSION_V1, pactTransition } from "@/lib/analytics/alter-ego";
+import { RIVAL_LEVELS, RIVAL_PORTRAITS, RIVAL_TONES } from "@/lib/analytics/rival";
 import { requireViewer } from "@/lib/auth/viewer";
 import { changePactSchema, pactFromRow, signPactSchema } from "@/lib/training/alter-ego";
 import { planSessionSchema } from "@/lib/training/plans";
@@ -52,6 +53,30 @@ export async function changePact(input: unknown): Promise<{ ok: boolean }> {
   if (!update) return { ok: false };
   const { error } = await viewer.supabase.from("alter_ego_pacts").update(update).eq("id", id).eq("user_id", viewer.userId);
   if (error) return { ok: false };
+  revalidatePact();
+  return { ok: true };
+}
+
+const rivalSettingsSchema = z.object({
+  id: z.guid(),
+  portrait: z.enum(RIVAL_PORTRAITS),
+  tone: z.enum(RIVAL_TONES),
+  level: z.enum(RIVAL_LEVELS),
+  chaseProjects: z.boolean(),
+  goalDate: z.iso.date().nullable(),
+}).strict().refine((v) => v.level !== "GOAL" || v.goalDate !== null, "The goal level needs a date");
+
+/** The rival's face, voice and level. The signed terms (name, programme, duration) never change. */
+export async function updateRivalSettings(input: unknown): Promise<{ ok: boolean }> {
+  const viewer = await requireViewer();
+  const parsed = rivalSettingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false };
+  const v = parsed.data;
+  if (v.goalDate && v.goalDate <= localDate_(new Date())) return { ok: false };
+  const { data, error } = await viewer.supabase.from("alter_ego_pacts").update({
+    portrait: v.portrait, tone: v.tone, level: v.level, chase_projects: v.chaseProjects, goal_date: v.goalDate,
+  }).eq("id", v.id).eq("user_id", viewer.userId).select("id");
+  if (error || !data?.length) return { ok: false };
   revalidatePact();
   return { ok: true };
 }

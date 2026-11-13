@@ -37,9 +37,10 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
     </header>
     <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
       fromWatch={view.session.timing_source === "ACTIVITY"} today={utcToZoned(new Date()).date} />
-    <section aria-label={e.logTitle} className="space-y-3">
+    {/* A board séance's climbs are corrected on the séance page itself. */}
+    {view.session.discipline === "BOARD" ? null : <section aria-label={e.logTitle} className="space-y-3">
       <SessionLogger viewer={viewer} view={view} mode="edit" />
-    </section>
+    </section>}
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
       <Link href={`/session/${id}`} className="inline-flex min-h-12 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-surface">
         <IconCheck /> {e.done}

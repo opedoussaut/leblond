@@ -20,7 +20,7 @@ export type Phase = { kind: PhaseKind; seconds: number; rep: number };
 export type TimerPlan = { modality: Modality; reps: number; workSeconds: number; recoverSeconds: number; phases: Phase[] };
 
 /** pip: a short tick before a change · go: start · stop: let go (interval recovery) · end: finished. */
-export type Tone = "pip" | "go" | "stop" | "end";
+export type Tone = "pip" | "go" | "stop" | "end" | "rival";
 export type Beep = { at: number; tone: Tone };
 
 /** The timer a timed exercise gets (holds, timed blocks, intervals), or null (reps, routes, free). */

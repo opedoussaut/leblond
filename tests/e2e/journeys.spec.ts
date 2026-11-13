@@ -1026,3 +1026,90 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   await expect(timer.getByText("Ensuite : Tractions lestées")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tractions lestées" })).toBeVisible();
 });
+
+test("I — board séance on the Kilter, BoardLib import, board projects and progress", async ({ page }) => {
+  page.on("dialog", (d) => void d.accept());
+  await signInWithPassword(page, "free@leblond.local");
+  await page.goto("/session/new?where=board");
+  await expect(page.getByRole("heading", { name: "Séance sur board" })).toBeVisible();
+  await expect(page.getByTestId("board-angle")).toHaveText("40°");
+  await page.getByRole("button", { name: "Monter l’angle de 5°" }).click();
+  await expect(page.getByTestId("board-angle")).toHaveText("45°");
+  await page.getByRole("button", { name: "Commencer la séance" }).click();
+  await expect(page.getByRole("heading", { name: "Kilter Board · Original" })).toBeVisible();
+
+  // A sent climb, then one not sent yet, kept as a project.
+  await page.getByTestId("board-climb-name").fill("Arête du lundi");
+  await page.getByTestId("board-grade").selectOption("6B+");
+  await page.getByRole("button", { name: "+1" }).click();
+  await page.getByRole("button", { name: "+1" }).click();
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByTestId("board-climbs")).toContainText("Arête du lundi");
+  await expect(page.getByTestId("board-climbs")).toContainText("45° · 3 essai(s)");
+  await page.getByTestId("board-climb-name").fill("Réglette 40");
+  await page.getByTestId("board-grade").selectOption("6C");
+  await page.getByRole("button", { name: "Pas encore" }).click();
+  await page.getByRole("button", { name: "Garder comme projet" }).click();
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByTestId("board-climbs")).toContainText("Réglette 40");
+  await expect(page.getByText(/en attente/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Terminer la séance" }).click();
+  await expect(page.getByText("Séance terminée")).toBeVisible();
+
+  await page.goto("/session?type=climb");
+  await expect(page.getByText("Kilter · 45°").first()).toBeVisible();
+  await page.goto("/projects");
+  await expect(page.getByRole("region", { name: "Projets sur board" })).toContainText("Réglette 40");
+  await page.goto("/progress");
+  await expect(page.getByText("Kilter Board · 45° · Font")).toBeVisible();
+
+  // A BoardLib file: read on the device, imported once, never twice.
+  const csv = [
+    "board,angle,climb_name,date,logged_grade,displayed_grade,is_benchmark,tries,is_mirror,is_ascent,comment",
+    "kilter,40,Dalle test,2026-04-02 18:42:11,6a/V3,6a/V3,False,1,False,True,",
+    "kilter,40,Toit test,2026-04-02 19:01:00,6b/V4,6b/V4,True,4,False,True,",
+  ].join("\n");
+  await page.goto("/session/board-import");
+  await page.getByTestId("board-import-file").setInputFiles({ name: "kilter.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await expect(page.getByTestId("board-import-preview")).toHaveText("2 bloc(s) lus sur 1 jour(s), 0 ligne(s) ignorée(s).");
+  await page.getByRole("button", { name: "Importer", exact: true }).click();
+  await expect(page.getByTestId("board-import-done")).toContainText("2 bloc(s) ajouté(s), 0 déjà importé(s), 1 séance(s) créée(s).");
+  await page.getByRole("button", { name: "Importer", exact: true }).click();
+  await expect(page.getByTestId("board-import-done")).toContainText("0 bloc(s) ajouté(s), 2 déjà importé(s), 0 séance(s) créée(s).");
+});
+
+test("J — any programme can be the one in progress, and the rival has a face, a voice and a level", async ({ page }) => {
+  page.on("dialog", (d) => void d.accept());
+  await signInWithPassword(page, "guided@leblond.local");
+  await page.goto("/programmes");
+  const follow = page.getByRole("region", { name: "Programme suivi" });
+  const pick = follow.getByLabel("Choisir le programme");
+  const options = await pick.locator("option").allTextContents();
+  expect(options.length).toBeGreaterThan(1);
+  // Choose a programme other than the one followed now.
+  const current = await pick.inputValue();
+  const other = await pick.locator("option").evaluateAll((els, cur) => els.map((e) => (e as HTMLOptionElement).value).find((v) => v !== cur), current);
+  await pick.selectOption(other!);
+  await follow.getByRole("button", { name: "Suivre ce programme" }).click();
+  await expect(follow.getByTestId("followed-since")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Programme suivi" }).getByLabel("Choisir le programme")).toHaveValue(other!);
+
+  // A new pact: the rival shows its portrait, its "fictif" label, its feed and its settings.
+  await page.goto("/train/alter-ego");
+  await page.getByLabel("Nom de ton alter ego").fill("Max");
+  await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
+  await page.getByRole("button", { name: "Signer le pacte" }).click();
+  await expect(page.getByRole("heading", { name: /^Max/ })).toBeVisible();
+  await expect(page.getByText("fictif", { exact: true })).toBeVisible();
+  await expect(page.getByText("Fil de Max")).toBeVisible();
+  await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
+  await page.getByText("Réglages du rival").click();
+  await page.getByRole("button", { name: "Sans pitié" }).click();
+  await page.getByRole("button", { name: "Portrait 4" }).click();
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("À ta portée · Sans pitié")).toBeVisible();
+  await expect(page.getByText(/La douleur arrête la course/)).toBeVisible();
+});

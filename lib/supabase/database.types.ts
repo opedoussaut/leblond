@@ -73,6 +73,11 @@ export type Database = {
           paused_days: number;
           created_at: string;
           updated_at: string;
+          portrait: "p1" | "p2" | "p3" | "p4" | "p5" | "p6";
+          tone: "SYMPA" | "PIQUANT" | "SANS_PITIE";
+          level: "REACH" | "RELENTLESS" | "GOAL";
+          chase_projects: boolean;
+          goal_date: string | null;
         };
         Insert: {
           id?: string;
@@ -93,6 +98,11 @@ export type Database = {
           paused_days?: number;
           created_at?: string;
           updated_at?: string;
+          portrait?: "p1" | "p2" | "p3" | "p4" | "p5" | "p6";
+          tone?: "SYMPA" | "PIQUANT" | "SANS_PITIE";
+          level?: "REACH" | "RELENTLESS" | "GOAL";
+          chase_projects?: boolean;
+          goal_date?: string | null;
         };
         Update: {
           id?: string;
@@ -113,6 +123,11 @@ export type Database = {
           paused_days?: number;
           created_at?: string;
           updated_at?: string;
+          portrait?: "p1" | "p2" | "p3" | "p4" | "p5" | "p6";
+          tone?: "SYMPA" | "PIQUANT" | "SANS_PITIE";
+          level?: "REACH" | "RELENTLESS" | "GOAL";
+          chase_projects?: boolean;
+          goal_date?: string | null;
         };
         Relationships: [];
       };
@@ -215,6 +230,7 @@ export type Database = {
           phases: Json;
           created_at: string;
           updated_at: string;
+          followed_since: string | null;
         };
         Insert: {
           id?: string;
@@ -230,6 +246,7 @@ export type Database = {
           phases?: Json;
           created_at?: string;
           updated_at?: string;
+          followed_since?: string | null;
         };
         Update: {
           id?: string;
@@ -245,6 +262,7 @@ export type Database = {
           phases?: Json;
           created_at?: string;
           updated_at?: string;
+          followed_since?: string | null;
         };
         Relationships: [
           {
@@ -314,6 +332,134 @@ export type Database = {
             referencedColumns: ["user_id", "id"];
           },
         ];
+      };
+      board_ascents: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string;
+          client_id: string;
+          board: "KILTER" | "TENSION" | "MOON";
+          climb_name: string;
+          climb_key: string;
+          angle: number;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          tries: number;
+          result: "FLASH" | "SENT" | "ATTEMPT";
+          is_benchmark: boolean;
+          is_mirror: boolean;
+          notes: string;
+          climbed_at: string;
+          source: "MANUAL" | "BOARDLIB";
+          external_ref: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          session_id: string;
+          client_id: string;
+          board: "KILTER" | "TENSION" | "MOON";
+          climb_name: string;
+          climb_key: string;
+          angle: number;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          tries?: number;
+          result: "FLASH" | "SENT" | "ATTEMPT";
+          is_benchmark?: boolean;
+          is_mirror?: boolean;
+          notes?: string;
+          climbed_at?: string;
+          source?: "MANUAL" | "BOARDLIB";
+          external_ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_id?: string;
+          client_id?: string;
+          board?: "KILTER" | "TENSION" | "MOON";
+          climb_name?: string;
+          climb_key?: string;
+          angle?: number;
+          grade?: string;
+          grade_scale?: "FONT" | "V";
+          tries?: number;
+          result?: "FLASH" | "SENT" | "ATTEMPT";
+          is_benchmark?: boolean;
+          is_mirror?: boolean;
+          notes?: string;
+          climbed_at?: string;
+          source?: "MANUAL" | "BOARDLIB";
+          external_ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_ascents_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          board: "KILTER" | "TENSION" | "MOON";
+          climb_name: string;
+          climb_key: string;
+          angle: number;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          status: "ACTIVE" | "SENT" | "ABANDONED";
+          notes: string;
+          started_at: string;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          board: "KILTER" | "TENSION" | "MOON";
+          climb_name: string;
+          climb_key: string;
+          angle: number;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          status?: "ACTIVE" | "SENT" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          board?: "KILTER" | "TENSION" | "MOON";
+          climb_name?: string;
+          climb_key?: string;
+          angle?: number;
+          grade?: string;
+          grade_scale?: "FONT" | "V";
+          status?: "ACTIVE" | "SENT" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       route_projects: {
         Row: {
@@ -1765,7 +1911,7 @@ export type Database = {
       };
       sessions: {
         Row: {
-          discipline: "BOULDER" | "ROUTE";
+          discipline: "BOULDER" | "ROUTE" | "BOARD";
           title: string | null;
           created_at: string;
           duration_minutes: number | null;
@@ -1785,9 +1931,12 @@ export type Database = {
           updated_at: string;
           user_id: string;
           wearable_activity_id: string | null;
+          board: "KILTER" | "TENSION" | "MOON" | null;
+          board_layout: string | null;
+          board_angle: number | null;
         };
         Insert: {
-          discipline?: "BOULDER" | "ROUTE";
+          discipline?: "BOULDER" | "ROUTE" | "BOARD";
           title?: string | null;
           created_at?: string;
           duration_minutes?: number | null;
@@ -1807,9 +1956,12 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
+          board?: "KILTER" | "TENSION" | "MOON" | null;
+          board_layout?: string | null;
+          board_angle?: number | null;
         };
         Update: {
-          discipline?: "BOULDER" | "ROUTE";
+          discipline?: "BOULDER" | "ROUTE" | "BOARD";
           title?: string | null;
           created_at?: string;
           duration_minutes?: number | null;
@@ -1829,6 +1981,9 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
+          board?: "KILTER" | "TENSION" | "MOON" | null;
+          board_layout?: string | null;
+          board_angle?: number | null;
         };
         Relationships: [
           {

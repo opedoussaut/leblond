@@ -23,6 +23,7 @@ import { VARIANTS, VARIANT_NAMES, type Variant } from "@/lib/training/hip-mobili
 import { scheduleBeeps, unlockSound } from "@/lib/training/beeper";
 import { restBeeps } from "@/lib/training/timer";
 import { AlterEgoLane } from "./alter-ego-lane";
+import type { RivalPortrait as RivalPortraitId } from "@/lib/analytics/rival";
 import { EffortTimer, SoundToggle, useSoundSetting, useWakeLock } from "./effort-timer";
 import { MobilityIllustration } from "./mobility-illustrations";
 import { IconBack, IconCheck, IconExternal, IconNext, IconPause, IconPlay } from "@/components/ui/icons";
@@ -68,7 +69,7 @@ const sameSet = (a: Pick<SaveSetInput, "exerciseId" | "setIndex">, b: Pick<SaveS
 
 export function TrainingPlayer({ locale, session, exercises: initial, climbs, ego = null }: {
   locale: Locale; session: TrainingSession; exercises: TrainingExercise[]; climbs: ClimbOption[];
-  ego?: { name: string; factor: number; easeOff: boolean } | null;
+  ego?: { name: string; factor: number; easeOff: boolean; portrait?: RivalPortraitId } | null;
 }) {
   const t = trainingSessionDictionary(locale);
   const c = coachSessionsDictionary(locale);
@@ -302,7 +303,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         {fmt(t.exerciseOf, { n: index + 1, total: exercises.length })} · {progress}%
       </p>
       {ego ? <AlterEgoLane locale={locale} name={ego.name} phases={egoPhases} exerciseNames={initial.map((e) => e.name)}
-        elapsed={elapsed} youFraction={progress / 100} easeOff={ego.easeOff} /> : null}
+        elapsed={elapsed} youFraction={progress / 100} easeOff={ego.easeOff} portrait={ego.portrait} /> : null}
     </section>
 
     {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">

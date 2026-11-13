@@ -6,7 +6,8 @@ import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
 import { loadFactor, pactClock, pactWeek, shouldEaseOff } from "@/lib/analytics/alter-ego";
-import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { REACH_MARGIN } from "@/lib/analytics/rival";
 import { utcToZoned } from "@/lib/time";
 import { localDate_ } from "@/lib/training/sessions";
 import { requireViewer } from "@/lib/auth/viewer";
@@ -46,11 +47,15 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   const running = session.status === "IN_PROGRESS";
   const finished = session.status === "COMPLETED" || session.status === "INTERRUPTED";
   const climbs = running ? await recentClimbs(viewer.supabase) : [];
-  const pact = running ? await loadOpenPact(viewer.supabase) : null;
-  const ego = pact?.status === "ACTIVE" ? {
+  const rival = running ? await loadOpenRival(viewer.supabase) : null;
+  const pact = rival?.pact ?? null;
+  const factor = pact ? loadFactor(pactWeek(pact, pactClock(pact, localDate_(new Date()))), pact.progression) : 1;
+  const ego = pact?.status === "ACTIVE" && rival ? {
     name: pact.displayName,
-    factor: loadFactor(pactWeek(pact, pactClock(pact, localDate_(new Date()))), pact.progression),
+    // Within reach, it stays at most 10 % ahead in the lane too.
+    factor: rival.settings.level === "REACH" ? Math.min(factor, 1 + REACH_MARGIN) : factor,
     easeOff: shouldEaseOff(await loadClimberWork(viewer.supabase)),
+    portrait: rival.settings.portrait,
   } : null;
 
   return <div className="space-y-6">

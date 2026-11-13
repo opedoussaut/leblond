@@ -133,8 +133,9 @@ export function methodSuggestions(ratings: SkillRatings, health: Health, limit =
 // ── Programme in progress ───────────────────────────────────────────────────
 
 export type ProgrammeAssessment = {
-  id: string; methodId: string; horizonWeeks: number; sessionsPerWeek: number; goal: string;
-  /** Local start date (YYYY-MM-DD) of the assessment that set the programme. */
+  /** Null for a programme followed without a full assessment. */
+  id: string | null; methodId: string; horizonWeeks: number; sessionsPerWeek: number; goal: string;
+  /** Local start date (YYYY-MM-DD) of the programme (week 1). */
   startDate: string;
   context: AssessmentContext | null;
 };
@@ -147,7 +148,7 @@ export type NextSession = {
 };
 
 export type ProgrammeView = {
-  assessmentId: string;
+  assessmentId: string | null;
   methodId: string;
   goal: string;
   discipline: Discipline;

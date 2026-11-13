@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
+import { setFollowedPlan } from "@/lib/data/programme";
 import { planRow, trainingPlanSchema } from "@/lib/training/plans";
 
 type PlanResult = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "unknown" };
@@ -46,4 +47,18 @@ export async function deleteTrainingPlan(id: string): Promise<{ ok: boolean }> {
   if (error) return { ok: false };
   revalidatePath("/programmes");
   return { ok: true };
+}
+
+/**
+ * Makes a programme the one in progress, from today (week 1), or stops
+ * following any programme (`planId` null). One followed programme at a time;
+ * hip mobility is separate and keeps running alongside.
+ */
+export async function followTrainingPlan(planId: string | null, today: string): Promise<{ ok: boolean }> {
+  const viewer = await requireViewer();
+  if ((planId !== null && !z.guid().safeParse(planId).success) || !z.iso.date().safeParse(today).success) return { ok: false };
+  const ok = await setFollowedPlan(viewer.supabase, viewer.userId, planId, today);
+  revalidatePath("/programmes");
+  revalidatePath("/home");
+  return { ok };
 }
