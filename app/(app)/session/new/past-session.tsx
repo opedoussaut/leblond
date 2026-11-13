@@ -12,7 +12,7 @@ import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import type { Tables } from "@/lib/supabase/database.types";
 import { utcToZoned } from "@/lib/time";
 import { loggingDictionary } from "@/lib/i18n/logging";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 
@@ -62,7 +62,7 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
 
   return <div className="space-y-4">
     <div>
-      <h2 className="text-lg font-extrabold">{e.pastTitle}</h2>
+      <h2 className="text-lg font-bold">{e.pastTitle}</h2>
       <p className="mt-1 text-sm text-ink-2">{e.pastHint}</p>
     </div>
     {place ? (
@@ -70,13 +70,13 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
         <div className="flex items-center justify-between gap-3">
           <p><span className="block text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{e.chosen}</span>
             <strong className="text-lg">{place.name}</strong></p>
-          <button type="button" onClick={() => setPlace(null)} className="min-h-11 rounded-full border border-line px-4 text-sm font-bold text-accent">{e.change}</button>
+          <button type="button" onClick={() => setPlace(null)} className={buttonClass("secondary", "sm")}>{e.change}</button>
         </div>
         {place.hasBouldering && place.hasRoutes ? <fieldset>
           <legend className="text-sm font-semibold">{e.discipline}</legend>
-          <div className="mt-1 grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1">
+          <div className={cn(segmentGroupClass, "mt-1 grid-cols-2")}>
             {(["BOULDER", "ROUTE"] as const).map((d) => <button key={d} type="button" aria-pressed={discipline === d} onClick={() => setDiscipline(d)}
-              className={cn("min-h-11 rounded-xl text-sm font-bold", discipline === d ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
+              className={segmentClass(discipline === d)}>
               {d === "BOULDER" ? e.boulder : e.route}</button>)}
           </div>
         </fieldset> : null}
@@ -100,9 +100,9 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
         </button>
       </form>
     ) : <>
-      <div role="group" aria-label={e.where} className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1">
+      <div role="group" aria-label={e.where} className={cn(segmentGroupClass, "grid-cols-2")}>
         {(["gym", "outdoor"] as const).map((w) => <button key={w} type="button" aria-pressed={where === w} onClick={() => setWhere(w)}
-          className={cn("min-h-11 rounded-xl text-sm font-bold", where === w ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
+          className={segmentClass(where === w)}>
           {w === "gym" ? e.gymTab : e.outdoorTab}</button>)}
       </div>
       {where === "gym"

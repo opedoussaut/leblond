@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LinkButton } from "@/components/ui/button";
+import { LinkButton, linkClass } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { routeProjectProgress } from "@/lib/analytics/routes";
@@ -10,6 +10,8 @@ import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { RouteProjectEditor } from "./route-project-editor";
+import { IconBack, IconStar } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 export const metadata = { title: "Projet de voie" };
 
@@ -29,10 +31,10 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
   const progress = routeProjectProgress(ascents);
 
   return <div className="space-y-5">
-    <Link href="/projects" className="text-sm font-bold text-accent underline underline-offset-4">← {t.projects.title}</Link>
+    <Link href="/projects" className={cn(linkClass, "text-sm")}><IconBack /> {t.projects.title}</Link>
     <header>
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">★ {r.projectsTitle} · {r.projectStatus[project.status]}</p>
-      <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{project.route_name}</h1>
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent"><IconStar /> {r.projectsTitle} · {r.projectStatus[project.status]}</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{project.route_name}</h1>
       <p className="mt-1 text-sm text-ink-2">
         <strong className="text-lg tabular-nums text-ink">{project.grade}</strong> · {project.gyms?.name} · {r.goalStyle} : {r.styles[project.goal_style]}
       </p>
@@ -56,7 +58,7 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
           {ascents.map((a, i) => <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm">
             <span><span className="text-ink-3 tabular-nums">#{i + 1}</span> <strong>{r.results[a.result]}</strong>
               <span className="ml-2 text-ink-2">{r.styles[a.style]}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}</span></span>
-            <Link href={`/session/${a.sessionId}`} className="text-xs font-semibold text-accent underline">{formatDate(a.createdAt, locale)}</Link>
+            <Link href={`/session/${a.sessionId}`} className={cn(linkClass, "text-xs")}>{formatDate(a.createdAt, locale)}</Link>
           </li>)}
         </ol>}
       <p className="text-xs text-ink-3">{r.autoSentRule}</p>

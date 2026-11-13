@@ -14,7 +14,8 @@ import { DEFAULT_SKILLS, RATING_ANCHORS, SKILL_PROMPTS, elapsedWeeks, expectedRa
 import { METHODS_FOR_PLANS, TRAINING_AXES, type TrainingAxis } from "@/lib/training/catalogue";
 import { EVIDENCE_LABELS, OBSERVED_LABELS, PROTOCOL_TESTS, compareMeasurements, parseContext, parseMeasurements, type ObservedEvidence } from "@/lib/training/assessment-protocol";
 import { EvidenceBadge, StructuredAssessment } from "./structured-assessment";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, dangerLinkClass, toggleClass } from "@/components/ui/button";
+import { LiveDot } from "@/components/ui/icons";
 
 const LINE_COLORS = { baseline: "#8093a8", expected: "#297cc8", actual: "#173e66" } as const;
 
@@ -36,7 +37,7 @@ export function ProfileRadar({ locale, baseline, expected, actual }: {
   const a = assessmentDictionary(locale);
   return (
     <div className="rounded-2xl border border-line bg-surface p-3 sm:p-5">
-      <h3 className="text-base font-black">{a.radar}</h3>
+      <h3 className="text-base font-bold">{a.radar}</h3>
       <svg viewBox="0 0 680 462" className="mt-1 w-full" role="img" aria-label={a.radar}>
         {[1,2,3,4,5].map(n => <polygon key={n}
           points={radarPolygon(Object.fromEntries(TRAINING_AXES.map(axis => [axis,n])) as SkillRatings)}
@@ -101,7 +102,7 @@ export function TrendChart({ locale, axis, baseline, selected, checkins }: {
   }));
   const real=[{week:0,value:baseline[axis]}, ...checkins.map(c=>({week:c.week,value:c.ratings[axis]}))].sort((x,y)=>x.week-y.week);
   return <div className="rounded-2xl border border-line bg-surface p-4">
-    <h3 className="font-black">{a.timeline}</h3>
+    <h3 className="font-bold">{a.timeline}</h3>
     <svg viewBox={"0 0 "+w+" "+h} className="mt-3 w-full" role="img" aria-label={a.timeline}>
       {[1,2,3,4,5].map(level=><g key={level}>
         <line x1={left} x2={w-right} y1={py(level)} y2={py(level)} stroke="currentColor" strokeOpacity=".15"/>
@@ -120,7 +121,7 @@ export function TrendChart({ locale, axis, baseline, selected, checkins }: {
     </svg>
     <div className="mt-1 flex flex-wrap justify-center gap-4 text-xs font-semibold">
       <span className="text-accent">— {a.estimated}</span>
-      <span style={{color:LINE_COLORS.actual}}>● {a.actual}</span>
+      <span style={{color:LINE_COLORS.actual}}><LiveDot /> {a.actual}</span>
     </div>
   </div>;
 }
@@ -228,7 +229,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
       {assessments.length ? <nav className="leblond-scroll-row -mx-1 flex gap-2 overflow-x-auto px-1" aria-label={a.history}>
         {assessments.map(item=><button type="button" key={item.id} onClick={()=>openAssessment(item)}
           aria-pressed={!formMode && selectedId===item.id}
-          className={"min-h-11 shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold " + (!formMode && selectedId===item.id?"border-accent bg-accent-soft text-ink":"border-line bg-surface text-ink-2")}>
+          className={toggleClass(!formMode && selectedId === item.id, "shrink-0")}>
           {METHODS_FOR_PLANS.find(m=>m.id===item.methodId)?.title??a.noMethod} · {new Date(item.createdAt).toLocaleDateString(locale==="fr"?"fr-FR":"en-GB")}
         </button>)}
       </nav> : null}
@@ -296,7 +297,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         target={gradeTarget} horizonWeeks={chosen.horizonWeeks} system={gradeSystem}/>
       <p className="rounded-xl border border-line bg-surface-2 p-4 text-xs leading-relaxed text-ink-2">{a.formula} {a.limits}</p>
       <section className="rounded-2xl border border-line bg-surface-2 p-5">
-        <h2 className="text-lg font-black">{a.checkin}</h2>
+        <h2 className="text-lg font-bold">{a.checkin}</h2>
         <p className="mt-2 text-xs leading-relaxed text-ink-2">{a.checkinHint}</p>
         <p className="mt-2 text-xs leading-relaxed text-ink-2">{locale==="fr"
           ?"Protocole de répétition : compare les 4 dernières semaines avec ton évaluation précédente, dans des conditions aussi similaires que possible. Pour chaque dimension, garde la même échelle de 1 à 5 ; distingue les faits enregistrés de ton ressenti."
@@ -330,7 +331,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         </>}
       </section>
       <button type="button" disabled={pending} onClick={remove}
-        className="text-sm font-bold text-danger underline underline-offset-4 disabled:opacity-50">{a.deleteLabel}</button>
+        className={dangerLinkClass}>{a.deleteLabel}</button>
     </> : <p className="text-sm text-ink-2">{a.none}</p>}
     {notice ? <p role="status" className="text-sm font-bold text-ink-2">{notice}</p> : null}
     {assessments.length ? <section aria-labelledby="reset-heading" className="rounded-2xl border border-line bg-surface p-4">
@@ -358,7 +359,7 @@ function EvidencePanel({ locale, record, baseline }: { locale: Locale; record: S
   const ratingDelta = (axis: TrainingAxis) => isBaseline ? null : record.ratings[axis] - baseline!.ratings[axis];
   return <section aria-labelledby="evidence-heading" className="space-y-4 rounded-2xl border border-line bg-surface p-4 sm:p-5">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 id="evidence-heading" className="text-lg font-black">{fr ? "Profil par niveau de preuve" : "Profile by evidence level"}</h2>
+      <h2 id="evidence-heading" className="text-lg font-bold">{fr ? "Profil par niveau de preuve" : "Profile by evidence level"}</h2>
       <span className="text-xs font-semibold text-ink-3">
         {record.kind === "STRUCTURED" ? (fr ? "Évaluation structurée" : "Structured assessment") : record.kind === "BASIC" ? (fr ? "Évaluation de base" : "Basic assessment") : (fr ? "Auto-évaluation (v1)" : "Self-assessment (v1)")}
         {!isBaseline ? (fr ? " · comparée à l’évaluation initiale du " : " · compared with baseline of ") + new Date(baseline!.createdAt).toLocaleDateString(fr ? "fr-FR" : "en-GB") : ""}

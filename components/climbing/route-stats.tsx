@@ -3,6 +3,7 @@ import { routeAscentsInLastDays, routeWorkingGrade, summarizeRoutes, type RouteA
 import { formatRatio } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import { routeDictionary } from "@/lib/i18n/routes";
+import { linkClass } from "@/components/ui/button";
 
 /** Observed route statistics (French sport grades), always separate from bouldering. */
 export function RouteStats({ locale, ascents, now, days = 30, title }: {
@@ -16,13 +17,13 @@ export function RouteStats({ locale, ascents, now, days = 30, title }: {
   const max = Math.max(1, ...s.pyramid.map((p) => p.clean));
   return <section aria-labelledby="route-stats-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 id="route-stats-heading" className="text-lg font-extrabold">{title ?? r.sectionTitle}</h2>
+      <h2 id="route-stats-heading" className="text-lg font-bold">{title ?? r.sectionTitle}</h2>
       <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-bold text-ink-2">
         {fr ? "Observé · carnet de voie" : "Observed · route log"}
       </span>
     </div>
     {s.ascents === 0 ? <p className="text-sm text-ink-2">{r.noRoutes}{" "}
-      <Link href="/session/new" className="font-bold text-accent underline">{fr ? "Commencer une séance" : "Start a session"}</Link></p>
+      <Link href="/session/new" className={linkClass}>{fr ? "Commencer une séance" : "Start a session"}</Link></p>
       : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           [fr ? "Voies" : "Routes", String(s.ascents), `${s.lead} ${r.styles.LEAD.toLowerCase()} · ${s.toprope + s.autobelay} ${fr ? "autres" : "other"}`],
@@ -31,7 +32,7 @@ export function RouteStats({ locale, ascents, now, days = 30, title }: {
           [r.highestLead, s.highestLeadClean ?? "—", s.highestOnsight ? `${r.highestOnsight} ${s.highestOnsight}` : undefined],
         ].map(([label, value, hint]) => <div key={label} className="rounded-2xl bg-surface-2 p-4">
           <p className="text-xs font-semibold text-ink-3">{label}</p>
-          <p className="mt-1 text-2xl font-black tabular-nums">{value}</p>
+          <p className="mt-1 leblond-number text-2xl">{value}</p>
           {hint ? <p className="mt-1 text-xs text-ink-3">{hint}</p> : null}
         </div>)}
       </div>}

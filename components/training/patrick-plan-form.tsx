@@ -6,9 +6,8 @@ import { trainingDictionary } from "@/lib/i18n/training";
 import { planModesDictionary } from "@/lib/i18n/training-plans";
 import type { PlanRequest, ProposalAdjustment } from "@/lib/training/plan-proposal";
 import { DURATION_MAX, DURATION_UNITS, durationWeeks, type DurationUnit, type TrainingPlanInput } from "@/lib/training/plans";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, toggleClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
-import { cn } from "@/components/ui/cn";
 import { fieldClass as field } from "@/components/ui/field";
 
 type ProposalResponse = { plan?: TrainingPlanInput; adjustments?: ProposalAdjustment[]; error?: string };
@@ -63,8 +62,7 @@ export function PatrickPlanForm({ locale, onProposal }: {
             return (
               <button key={i} type="button" aria-pressed={on} aria-label={t.days[i]}
                 onClick={() => set({ [key]: on ? chosen.filter((x) => x !== i) : [...chosen, i].sort() } as Partial<PlanRequest>)}
-                className={cn("min-h-11 min-w-12 rounded-full border px-3 text-sm font-semibold",
-                  on ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface text-ink-2")}>
+                className={toggleClass(on, "min-w-12 px-3")}>
                 {d}
               </button>
             );

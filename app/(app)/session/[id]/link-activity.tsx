@@ -10,6 +10,7 @@ import { applyActivityTiming, linkActivityToSession } from "@/lib/actions/wearab
 import { formatDate, formatDuration } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { compareTiming, type TimingComparison } from "@/lib/integrations/wearables/timing";
+import { IconEdit } from "@/components/ui/icons";
 
 type SessionTiming = { startedAt: string; endedAt: string | null; durationMinutes: number | null };
 type ActivityTimingInput = { startedAt: string; durationSeconds: number };
@@ -105,7 +106,7 @@ export function ActivityTiming({ sessionId, activity, session, timingSource }: {
   const note = reasonText(cmp, t);
   return (
     <div className="mt-3 space-y-2">
-      <p className="text-sm font-semibold text-ink-2">✎ {t.session.timingManual}</p>
+      <p className="text-sm font-semibold text-ink-2"><IconEdit /> {t.session.timingManual}</p>
       {note ? <p className="text-sm text-ink-2">{note}</p> : null}
       {cmp.usable ? (
         <Button

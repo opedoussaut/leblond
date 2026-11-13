@@ -7,6 +7,7 @@ import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { utcToZoned } from "@/lib/time";
 import { SessionLogger } from "../session-logger";
 import { DeleteSessionButton, SessionMetaForm } from "./session-meta-form";
+import { IconCheck } from "@/components/ui/icons";
 
 export const metadata = { title: "Modifier la séance" };
 
@@ -27,11 +28,11 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{e.editing}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{e.editTitle}</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{e.editTitle}</h1>
         <p className="text-sm text-ink-2">{view.gym.name}</p>
       </div>
       <Link href={`/session/${id}`} className="inline-flex min-h-12 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-surface">
-        ✓ {e.done}
+        <IconCheck /> {e.done}
       </Link>
     </header>
     <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
@@ -41,7 +42,7 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
     </section>
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
       <Link href={`/session/${id}`} className="inline-flex min-h-12 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-surface">
-        ✓ {e.done}
+        <IconCheck /> {e.done}
       </Link>
       <DeleteSessionButton sessionId={id} />
     </div>

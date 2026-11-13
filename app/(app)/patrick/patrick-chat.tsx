@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { PatrickAvatar } from "@/components/brand/wordmark";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, tileClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { Select } from "@/components/ui/field";
@@ -183,7 +183,7 @@ export function PatrickChat({
       <header className="flex items-start gap-3">
         <PatrickAvatar size={48} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-black">{t.patrick.title}</h1>
+          <h1 className="text-xl font-bold">{t.patrick.title}</h1>
           <p className="text-sm text-ink-2">{t.patrick.subtitle}</p>
         </div>
         {messages.length ? (
@@ -210,7 +210,7 @@ export function PatrickChat({
                   type="button"
                   disabled={!configured || busy}
                   onClick={() => quick(a)}
-                  className="min-h-14 rounded-2xl border border-line bg-surface px-4 text-left text-sm font-semibold hover:bg-surface-2 disabled:opacity-50"
+                  className={tileClass(false, "min-h-14 text-sm font-semibold")}
                 >
                   {t.patrick.quick[a]}
                 </button>

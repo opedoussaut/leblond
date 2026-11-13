@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GradeChip } from "@/components/climbing/grade-chip";
-import { LinkButton } from "@/components/ui/button";
+import { LinkButton, linkClass } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { requireViewer } from "@/lib/auth/viewer";
@@ -11,6 +11,8 @@ import { loggingDictionary } from "@/lib/i18n/logging";
 import { getI18n } from "@/lib/i18n/server";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { ProjectForm } from "./project-form";
+import { IconNext, IconStar } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 export default async function ProjectPage({ params }: PageProps<"/projects/[id]">) {
   const { id } = await params;
@@ -49,14 +51,14 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
   return (
     <div className="space-y-5">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">★ {t.problem.isProject}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent"><IconStar /> {t.problem.isProject}</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
         <div className="mt-1 flex items-center gap-3">
           <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           <span className="text-sm text-ink-3">{problem.gyms?.name}</span>
         </div>
         <p className="mt-2 text-sm text-ink-2">
-          {openedIn ? <Link className="font-semibold text-accent underline-offset-2 hover:underline" href={`/session/${openedIn.id}`}>
+          {openedIn ? <Link className={cn(linkClass, "hover:underline")} href={`/session/${openedIn.id}`}>
             {fmt(L.openedIn, { date: formatDateTime(openedIn.started_at, locale) })} ›
           </Link> : L.openedInNone}
         </p>
@@ -77,7 +79,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
         <ul className="mt-2 space-y-1 text-sm">
           {[...sessions.entries()].map(([sid, at]) => (
             <li key={sid}>
-              <Link className="text-accent underline-offset-2 hover:underline" href={`/session/${sid}`}>
+              <Link className={cn(linkClass, "hover:underline")} href={`/session/${sid}`}>
                 {formatDateTime(at, locale)}
               </Link>{" "}
               · {(attempts ?? []).filter((a) => a.session_id === sid).length} × {t.results.ATTEMPT.toLowerCase()}
@@ -105,8 +107,8 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
 
       <ProjectForm projectId={project.id} status={project.status} notes={project.notes ?? ""} />
 
-      <Link href={`/problem/${problem.id}`} className="block text-sm text-accent underline-offset-2 hover:underline">
-        {t.session.viewProblem} →
+      <Link href={`/problem/${problem.id}`} className={cn(linkClass, "block text-sm hover:underline")}>
+        {t.session.viewProblem} <IconNext />
       </Link>
     </div>
   );

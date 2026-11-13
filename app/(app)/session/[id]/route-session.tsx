@@ -7,7 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { endSession } from "@/lib/actions/sessions";
 import { deleteRouteAscent, deleteRouteAscents, logRouteAscent, updateRouteAscent, type RouteAscentRow } from "@/lib/actions/routes";
-import { ResultBadge, routeTone, toneButtonStyle } from "@/components/climbing/result-badge";
+import { ResultBadge, ResultIcon, routeTone, toneButtonStyle } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { createRouteProject } from "@/lib/actions/route-projects";
 import { ROUTE_RESULTS, ROUTE_STYLES, completesProject, isClean, routeKey, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
@@ -20,7 +20,8 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
 import { isColourSystem } from "@/lib/grading/conversions";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, dangerLinkClass, iconButtonClass, linkClass, segmentClass, segmentGroupClass, toggleClass } from "@/components/ui/button";
+import { IconComment, IconStar, LiveDot } from "@/components/ui/icons";
 
 type Grade = (typeof FRENCH_ROUTE_GRADES)[number];
 
@@ -193,12 +194,12 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
   return <div className="space-y-5 pb-6">
     {mode === "live" ? <header className="flex items-start justify-between gap-3">
       <div>
-        <p className="leblond-eyebrow text-accent">● {r.routeSession}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{gymName}</h1>
+        <p className="leblond-eyebrow text-accent"><LiveDot /> {r.routeSession}</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{gymName}</h1>
       </div>
       <p className="text-right"><span className="block text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.session.elapsed}</span>
-        <span className="text-2xl font-black tabular-nums" role="timer">{formatClock(elapsed)}</span></p>
-    </header> : <h2 className="text-lg font-black">{gymName} · {r.routeSession}</h2>}
+        <span className="leblond-number text-2xl" role="timer">{formatClock(elapsed)}</span></p>
+    </header> : <h2 className="text-lg font-bold">{gymName} · {r.routeSession}</h2>}
 
     <section aria-labelledby="route-log" className="leblond-premium-surface space-y-5 p-4 sm:p-6">
       <h2 id="route-log" className="sr-only">{r.logHint}</h2>
@@ -208,9 +209,8 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         <div className="mt-2 flex flex-wrap gap-2">
           {projects.map((p) => <button key={p.id} type="button" aria-pressed={project?.id === p.id}
             onClick={() => chooseProject(project?.id === p.id ? null : p)}
-            className={cn("min-h-11 rounded-full border px-4 text-sm font-bold",
-              project?.id === p.id ? "border-accent bg-accent text-accent-ink" : "border-accent/30 bg-accent-soft text-accent")}>
-            ★ {p.route_name} · {p.grade}
+            className={toggleClass(project?.id === p.id)}>
+            <IconStar /> {p.route_name} · {p.grade}
           </button>)}
         </div>
       </fieldset> : null}
@@ -219,7 +219,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         <div className="mt-2 grid grid-cols-4 gap-2">
           {colours.map((g) => <button key={g.id} type="button" aria-pressed={colour === g.id} onClick={() => chooseColour(g.id)}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
-            className={cn("min-h-12 rounded-xl border px-1 text-xs font-extrabold uppercase",
+            className={cn("min-h-12 rounded-xl border px-1 text-xs font-bold uppercase",
               colour === g.id ? "ring-4 ring-accent ring-offset-2" : "border-line")}>
             {(t.grades.colors as Record<string, string>)[g.id] ?? g.id}
           </button>)}
@@ -230,7 +230,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         {colours.length ? <p className="mt-1 text-xs text-ink-3">{e.frenchHint}</p> : null}
         <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-9">
           {quickGrades.map((g) => <button key={g} type="button" aria-pressed={grade === g} onClick={() => setGrade(g)}
-            className={cn("min-h-12 rounded-xl border text-base font-extrabold tabular-nums",
+            className={cn("leblond-number min-h-12 rounded-xl border text-base",
               grade === g ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface")}>{g}</button>)}
         </div>
         <label className="mt-2 flex items-center gap-2 text-sm text-ink-2">{r.moreGrades}
@@ -242,9 +242,9 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
       </fieldset>
       <fieldset>
         <legend className="text-sm font-bold">{r.style}</legend>
-        <div className="mt-2 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
+        <div className={cn(segmentGroupClass, "mt-2 grid-cols-3")}>
           {ROUTE_STYLES.map((s) => <button key={s} type="button" aria-pressed={style === s} onClick={() => setStyle(s)}
-            className={cn("min-h-12 rounded-xl text-sm font-bold", style === s ? "bg-surface text-ink shadow-sm" : "text-ink-2")}>
+            className={segmentClass(style === s)}>
             {r.styles[s]}</button>)}
         </div>
       </fieldset>
@@ -263,23 +263,23 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
         <span className="text-sm font-bold" id="falls-label">{r.falls}</span>
         <div className="flex items-center gap-2" role="group" aria-labelledby="falls-label">
           <button type="button" aria-label={r.removeFall} onClick={() => setFalls((f) => Math.max(0, f - 1))}
-            className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold">−</button>
-          <span className="w-8 text-center text-xl font-black tabular-nums" aria-live="polite">{falls}</span>
+            className={iconButtonClass()}>−</button>
+          <span className="leblond-number w-8 text-center text-xl" aria-live="polite">{falls}</span>
           <button type="button" aria-label={r.addFall} onClick={() => setFalls((f) => Math.min(50, f + 1))}
-            className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold">+</button>
+            className={iconButtonClass()}>+</button>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {ROUTE_RESULTS.map((res) => <button key={res} type="button" disabled={pending || (isFirstGo(res) && tries > 1)} onClick={() => log(res)}
           style={toneButtonStyle(routeTone(res))}
           className="min-h-16 rounded-2xl border px-3 py-2 text-left disabled:opacity-40 sm:text-center">
-          <strong className="block text-base"><span aria-hidden>{routeSymbol(res)} </span>{r.results[res]}</strong>
+          <strong className="block text-base font-semibold"><ResultIcon tone={routeTone(res)} /> {r.results[res]}</strong>
           <span className="block text-xs opacity-80">{isFirstGo(res) && tries > 1 ? L.flashOnlyOne : r.resultHints[res]}</span>
         </button>)}
         <button type="button" disabled={pending || count > 1} onClick={() => log(falls > 0 ? "TOP_WITH_REST" : "ATTEMPT", true)}
           style={toneButtonStyle("project")}
           className="min-h-16 rounded-2xl border px-3 py-2 text-left disabled:opacity-40 sm:text-center">
-          <strong className="block text-base"><span aria-hidden>★ </span>{L.project}</strong>
+          <strong className="block text-base font-semibold"><IconStar /> {L.project}</strong>
           <span className="block text-xs opacity-80">{fmt(L.routeProjectName, { grade })}</span>
         </button>
       </div>
@@ -289,10 +289,10 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
 
     <section aria-labelledby="route-list" className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="route-list" className="text-sm font-extrabold">{r.thisSession} · {ascents.length}</h2>
+        <h2 id="route-list" className="text-sm font-bold">{r.thisSession} · {ascents.length}</h2>
         {ascents.length > 0 ? <button type="button" aria-pressed={selecting}
           onClick={() => { setSelecting((on) => !on); setSelected([]); setConfirmMany(false); }}
-          className="min-h-11 rounded-full px-3 text-sm font-bold text-accent underline underline-offset-2">
+          className={cn(linkClass, "min-h-11 rounded-full px-3 text-sm")}>
           {selecting ? L.selectDone : L.select}
         </button> : null}
       </div>
@@ -301,7 +301,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
           {fmt(plural(locale, selected.length, { one: L.selectedOne, other: L.selectedOther }), { n: selected.length })}
         </span>
         <button type="button" onClick={() => setSelected(ascents.map((a) => a.id))}
-          className="min-h-11 px-2 font-bold text-accent underline underline-offset-2">{L.selectAll}</button>
+          className={cn(linkClass, "min-h-11 px-2")}>{L.selectAll}</button>
         <button type="button" disabled={pending || selected.length === 0} onClick={() => setConfirmMany(true)}
           className={buttonClass("danger", "sm", "ml-auto")}>{fmt(L.removeSelected, { n: selected.length })}</button>
       </div> : null}
@@ -323,7 +323,7 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
               onChange={() => setSelected((list) => (list.includes(a.id) ? list.filter((x) => x !== a.id) : [...list, a.id]))} /> : null}
             <span className="min-w-0 flex-1">
               {a.native_grade && a.native_grade_system ? <GradeChip t={t} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
-              <strong className="text-lg tabular-nums">{a.grade}</strong>
+              <strong className="leblond-number text-lg">{a.grade}</strong>
               <ResultBadge tone={routeTone(a.result)} label={r.results[a.result]} className="ml-2" />
               {a.route_project_id ? <ResultBadge tone="project" label={L.project} className="ml-1" /> : null}
               <span className="block truncate text-xs text-ink-2">{r.styles[a.style]}{a.tries > 1 ? ` · ${fmt(L.triesShort, { n: a.tries })}` : ""}{a.falls ? ` · ${a.falls} ${r.falls.toLowerCase()}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>
@@ -334,10 +334,10 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
                   className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-2 text-sm" />
                 <button type="button" onClick={saveComment} className={buttonClass("primary", "sm")}>{L.save}</button>
               </span> : <button type="button" onClick={() => setEditing({ id: a.id, notes: a.notes })}
-                className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{a.notes ? L.editComment : L.addComment}</button>}
+                className={cn(linkClass, "mt-1 mr-3 text-xs")}><IconComment /> {a.notes ? L.editComment : L.addComment}</button>}
               {a.route_name && !a.route_project_id ? <button type="button" disabled={pending} onClick={() => trackAsProject(a)}
-                className="mt-1 mr-3 text-xs font-bold text-accent underline underline-offset-2">{r.followAsProject}</button> : null}
-              <Link href={`/route/${a.id}`} className="mt-1 inline-block text-xs font-bold text-accent underline underline-offset-2">{r.details} ›</Link>
+                className={cn(linkClass, "mt-1 mr-3 text-xs")}><IconStar /> {r.followAsProject}</button> : null}
+              <Link href={`/route/${a.id}`} className={cn(linkClass, "mt-1 text-xs")}>{r.details} ›</Link>
             </span>
             {selecting ? null : confirmRemove === a.id ? <span className="flex shrink-0 flex-col items-end gap-1">
               <span className="text-xs font-semibold">{L.routeRemoveTitle}</span>
@@ -347,18 +347,17 @@ export function RouteSession({ sessionId, gymId, gymName, startedAt, initialAsce
                 <button type="button" onClick={() => setConfirmRemove(null)} className={buttonClass("ghost", "sm")}>{t.common.cancel}</button>
               </span>
             </span> : <button type="button" onClick={() => setConfirmRemove(a.id)}
-              className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{r.remove}</button>}
+              className={cn(dangerLinkClass, "text-xs")}>{r.remove}</button>}
           </li>)}
         </ul>}
     </section>
 
     {mode === "live" ? <button type="button" disabled={pending} onClick={finish}
-      className="min-h-14 w-full rounded-2xl bg-ink text-base font-black text-surface disabled:opacity-60">{r.end}</button> : null}
+      className={buttonClass("primary", "xl", "w-full")}>{r.end}</button> : null}
   </div>;
 }
 
 const isFirstGo = (r: RouteResult) => r === "ONSIGHT" || r === "FLASH";
-const routeSymbol = (r: RouteResult) => (isFirstGo(r) ? "⚡" : r === "REDPOINT" || r === "TOP_WITH_REST" ? "✓" : "·");
 
 /** − value + control with large touch targets. */
 export function Stepper({ label, hint, value, min, max, onChange }: {
@@ -369,10 +368,10 @@ export function Stepper({ label, hint, value, min, max, onChange }: {
     <span><span className="block text-sm font-bold" id={id}>{label}</span>{hint ? <span className="block text-xs text-ink-3">{hint}</span> : null}</span>
     <div className="flex items-center gap-2" role="group" aria-labelledby={id}>
       <button type="button" aria-label={label + " −"} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}
-        className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold disabled:opacity-40">−</button>
-      <span className="w-8 text-center text-xl font-black tabular-nums" aria-live="polite">{value}</span>
+        className={iconButtonClass()}>−</button>
+      <span className="leblond-number w-8 text-center text-xl" aria-live="polite">{value}</span>
       <button type="button" aria-label={label + " +"} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}
-        className="h-12 w-12 rounded-full border border-line bg-surface text-xl font-bold disabled:opacity-40">+</button>
+        className={iconButtonClass()}>+</button>
     </div>
   </div>;
 }

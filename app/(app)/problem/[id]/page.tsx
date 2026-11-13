@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { CircuitBadge, ProblemOnMap, TopoAttribution } from "@/components/climbing/outdoor";
 import { MediaUploader } from "@/components/climbing/media-uploader";
-import { Button, LinkButton } from "@/components/ui/button";
+import { Button, LinkButton, linkClass } from "@/components/ui/button";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { createProject } from "@/lib/actions/projects";
 import { computeProblemOutcomes } from "@/lib/analytics";
@@ -22,6 +22,8 @@ import { MEDIA_BUCKET } from "@/lib/media";
 import { AttemptHistory } from "./attempt-history";
 import { MediaGallery } from "@/components/climbing/media-gallery";
 import { ProblemEditor } from "./problem-editor";
+import { IconBack, IconExternal, IconStar } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 export default async function ProblemPage({ params }: PageProps<"/problem/[id]">) {
   const { id } = await params;
@@ -54,7 +56,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
         <p className="text-sm text-ink-3">
           {gym?.name} · {formatDateTime(problem.created_at, locale)}
         </p>
-        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
           {meaning ? <span className="text-sm text-ink-3">{meaning}</span> : null}
@@ -67,8 +69,8 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
           <p className="text-sm text-ink-2">
             {t.problem.topoRef} : {problem.topo_ref ?? ""}{" "}
             {problem.topo_url ? (
-              <a href={problem.topo_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-2 hover:underline">
-                {t.problem.topoSource} ↗
+              <a href={problem.topo_url} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "hover:underline")}>
+                {t.problem.topoSource} <IconExternal />
               </a>
             ) : null}
           </p>
@@ -104,13 +106,13 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
             ) : null}
             <p className="flex flex-wrap gap-4">
               {teamTopo ? null : (
-                <a href={boolderProblemUrl(topo.id, locale)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
-                  {t.outdoor.onBoolder} ↗
+                <a href={boolderProblemUrl(topo.id, locale)} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "hover:underline")}>
+                  {t.outdoor.onBoolder} <IconExternal />
                 </a>
               )}
               {bleau ? (
-                <a href={bleau} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
-                  {t.outdoor.onBleauInfo} ↗
+                <a href={bleau} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "hover:underline")}>
+                  {t.outdoor.onBleauInfo} <IconExternal />
                 </a>
               ) : null}
             </p>
@@ -123,12 +125,12 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
       <div className="flex flex-wrap gap-2">
         {project ? (
           <LinkButton href={`/projects/${project.id}`} variant="secondary">
-            ★ {t.problem.openProject} ({t.projects.status[project.status]})
+            <IconStar /> {t.problem.openProject} ({t.projects.status[project.status]})
           </LinkButton>
         ) : (
           <form action={createProject.bind(null, id)}>
             <Button type="submit" variant="secondary">
-              ★ {t.problem.makeProject}
+              <IconStar /> {t.problem.makeProject}
             </Button>
           </form>
         )}
@@ -178,8 +180,8 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
       />
 
       {lastSessionId ? (
-        <Link href={`/session/${lastSessionId}`} className="block text-sm text-accent underline-offset-2 hover:underline">
-          ← {t.session.title}
+        <Link href={`/session/${lastSessionId}`} className={cn(linkClass, "block text-sm hover:underline")}>
+          <IconBack /> {t.session.title}
         </Link>
       ) : null}
     </div>

@@ -35,7 +35,7 @@ export function SessionMetaForm({ sessionId, initial, today, fromWatch = false }
       if (res.ok) router.refresh();
     });
   }}>
-    <h2 className="font-extrabold">{e.when}</h2>
+    <h2 className="font-bold">{e.when}</h2>
     <label className="block text-sm font-semibold">{L.sessionName}
       <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />
     </label>
@@ -62,5 +62,5 @@ export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   const [pending, start] = useTransition();
   return <button type="button" disabled={pending}
     onClick={() => { if (window.confirm(e.deleteConfirm)) start(async () => { await deleteSession(sessionId); }); }}
-    className="min-h-12 rounded-full border border-danger/40 px-5 text-sm font-bold text-danger disabled:opacity-60">{e.delete}</button>;
+    className={buttonClass("danger", "md")}>{e.delete}</button>;
 }

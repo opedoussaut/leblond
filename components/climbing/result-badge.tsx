@@ -1,9 +1,12 @@
 import { cn } from "@/components/ui/cn";
+import { IconCheck, IconFlash, IconStar, IconTry } from "@/components/ui/icons";
 
 /**
  * One visual language for climbing outcomes, used in both loggers, lists and
- * summaries: ⚡ flash / onsight in orange, ✓ top / redpoint in blue,
- * ★ project in fuchsia. The symbol and the text always accompany the colour.
+ * summaries: flash / onsight in orange (lightning), top / redpoint in blue
+ * (check), project in fuchsia (star). The icon and the text always accompany
+ * the colour. `symbol` is the same mark as text, for places that take no icon
+ * (a dropdown option).
  */
 export type ResultTone = "flash" | "top" | "rest" | "attempt" | "project";
 
@@ -26,11 +29,21 @@ export function routeTone(result: "ONSIGHT" | "FLASH" | "REDPOINT" | "TOP_WITH_R
   return "attempt";
 }
 
+const ICONS: Record<ResultTone, () => React.JSX.Element> = {
+  flash: IconFlash, top: IconCheck, rest: IconCheck, attempt: IconTry, project: IconStar,
+};
+
+/** The icon of a result, inline with its label. */
+export function ResultIcon({ tone }: { tone: ResultTone }) {
+  const Icon = ICONS[tone];
+  return <Icon />;
+}
+
 export function ResultBadge({ tone, label, className }: { tone: ResultTone; label: string; className?: string }) {
   const t = RESULT_TONES[tone];
-  return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-extrabold", className)}
+  return <span className={cn("inline-flex min-h-6 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold", className)}
     style={{ backgroundColor: t.bg, color: t.fg }}>
-    <span aria-hidden>{t.symbol}</span>{label}
+    <ResultIcon tone={tone} />{label}
   </span>;
 }
 

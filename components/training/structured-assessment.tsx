@@ -16,8 +16,10 @@ import { METHODS_FOR_PLANS, TRAINING_AXES } from "@/lib/training/catalogue";
 import { BODY_AREAS, PAIN_LEVELS, healthFromContext, needsProfessional, type BodyArea, type Health, type Injury, type Verdict } from "@/lib/training/health";
 import { methodSuggestions, proposeProgramme, sessionTitle } from "@/lib/training/programme";
 import { SkillSliders } from "./assessment-workspace";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass, tileClass } from "@/components/ui/button";
 import { fieldClass as field } from "@/components/ui/field";
+import { IconBack, IconExternal, IconNext } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 const HORIZONS = [4, 6, 8, 12, 16, 24];
 const FINGER_METHODS = new Set(["max-hangs", "repeaters", "campus"]);
@@ -175,7 +177,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
         {f.steps.map((_, i) => <li key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-accent" : "bg-accent/15")} />)}
       </ol>
     </div>
-    <h2 id="protocol-step" ref={heading} tabIndex={-1} className="text-2xl font-black tracking-tight focus:outline-none">{f.steps[step]}</h2>
+    <h2 id="protocol-step" ref={heading} tabIndex={-1} className="text-2xl font-bold tracking-tight focus:outline-none">{f.steps[step]}</h2>
 
     {step === 0 ? <div className="space-y-4">
       <p className="text-sm leading-relaxed text-ink-2">{f.intro}</p>
@@ -247,7 +249,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
         options={[{ value: true, label: f.doTestsYes }, { value: false, label: f.doTestsNo }]} />
       {testDay ? <>
         <section aria-labelledby="readiness-heading" className="space-y-3 rounded-2xl border border-line bg-surface-2 p-4">
-          <h3 id="readiness-heading" className="text-base font-extrabold">{f.readinessTitle}</h3>
+          <h3 id="readiness-heading" className="text-base font-bold">{f.readinessTitle}</h3>
           {yesNo("rested", rested24h, setRested, f.rested)}
           {yesNo("warm", warmedUp, setWarmed, f.warmed)}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -264,7 +266,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
           const status = statuses[test.id];
           return <article key={test.id} className={"rounded-2xl border p-4 " + (status.allowed ? "border-line bg-surface" : "border-dashed border-line bg-surface-2")}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-base font-extrabold">{test.name[locale]}</h3>
+              <h3 className="text-base font-bold">{test.name[locale]}</h3>
               <span className="text-xs font-semibold text-ink-3">{t.axis[test.dimension]} · {test.unit}</span>
             </div>
             <p className="mt-1 text-sm text-ink-2">{test.rationale[locale]}</p>
@@ -272,7 +274,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
               <p className="mt-1 text-xs text-ink-2"><strong>{f.equipment} :</strong> {test.equipment[locale]}</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-2">{test.procedure.map((p, i) => <li key={i}>{p[locale]}</li>)}</ol>
               <p className="mt-2 text-sm"><strong>{f.stopRules} :</strong> {test.stopRules[locale]}</p>
-              {test.reference ? <a className="mt-2 inline-block text-xs font-semibold text-accent underline" href={test.reference.url} target="_blank" rel="noopener noreferrer">{test.reference.label} ↗</a> : null}
+              {test.reference ? <a className={cn(linkClass, "mt-2 text-xs")} href={test.reference.url} target="_blank" rel="noopener noreferrer">{test.reference.label} <IconExternal /></a> : null}
             </details>
             {status.allowed ? <>
               {status.verdict.status === "adapt" ? <p className="mt-2 rounded-xl border border-warn/40 bg-warn/10 p-2 text-sm">{fmt(f.adapted, { areas: verdictAreas(status.verdict, j) })}</p> : null}
@@ -347,7 +349,7 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
         {suggested.map(({ method, priority, verdict }) => {
           const caution = FINGER_METHODS.has(method.id) && experienceMonths < 24;
           return <button type="button" key={method.id} onClick={() => setMethodId(method.id)} aria-pressed={chosen === method.id}
-            className={"rounded-2xl border p-4 text-left " + (chosen === method.id ? "border-accent bg-accent-soft" : "border-line bg-surface")}>
+            className={tileClass(chosen === method.id)}>
             <strong className="block">{method.title}</strong>
             <span className="mt-1 block text-xs text-ink-2">{f.targets} : {t.axis[priority]}</span>
             {verdict.status === "adapt" ? <span className="mt-1 block text-xs font-semibold text-ink-2">{fmt(f.adaptBadge, { areas: verdictAreas(verdict, j) })}</span> : null}
@@ -361,10 +363,10 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
           {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
         </select>
       </label>
-      <Link href={"/atlas/" + chosen} className="inline-block text-sm font-bold text-accent underline underline-offset-4">{f.readAtlas} ↗</Link>
+      <Link href={"/atlas/" + chosen} className={cn(linkClass, "text-sm")}>{f.readAtlas} <IconExternal /></Link>
 
       <section aria-labelledby="week-heading" className="rounded-2xl border border-line bg-surface p-4">
-        <h3 id="week-heading" className="text-base font-extrabold">{f.weekTitle}</h3>
+        <h3 id="week-heading" className="text-base font-bold">{f.weekTitle}</h3>
         {programme.length ? <>
           <ul className="mt-3 space-y-2">
             {programme.map((s, i) => <li key={i} className="rounded-xl bg-surface-2 px-3 py-2 text-sm">
@@ -394,11 +396,11 @@ export function StructuredAssessment({ locale, today, observed, defaults, previo
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
       <div className="flex gap-2">
         <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}
-          className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold disabled:opacity-40">← {f.back}</button>
-        {onCancel ? <button type="button" onClick={onCancel} className="min-h-12 rounded-full px-4 text-sm font-bold text-ink-2">{f.cancel}</button> : null}
+          className={buttonClass("secondary", "md")}><IconBack /> {f.back}</button>
+        {onCancel ? <button type="button" onClick={onCancel} className={buttonClass("ghost", "md", "text-ink-2")}>{f.cancel}</button> : null}
       </div>
       {step < f.steps.length - 1 ? <button type="button" onClick={() => setStep((s) => Math.min(f.steps.length - 1, s + 1))}
-        className={buttonClass("primary", "md")}>{f.next} →</button> : null}
+        className={buttonClass("primary", "md")}>{f.next} <IconNext /></button> : null}
     </div>
   </section>;
 }

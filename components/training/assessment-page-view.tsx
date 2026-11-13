@@ -14,6 +14,9 @@ import { workingGradeHistory } from "@/lib/training/grade-history";
 import { gradeToScore } from "@/lib/grading";
 import { observedEvidence } from "@/lib/training/assessment-protocol";
 import { localDate_ } from "@/lib/training/sessions";
+import { IconBack, IconNext } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 
 
@@ -98,15 +101,15 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/train" 
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
-        <Link href={backHref} className="text-sm font-bold text-accent underline underline-offset-4">← {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Progrès" : "Progress")}</Link>
-        <Link href="/progress" className="text-sm font-bold text-accent underline underline-offset-4">{locale==="fr"?"Mes résultats":"My results"} →</Link>
+        <Link href={backHref} className={cn(linkClass, "text-sm")}><IconBack /> {backHref === "/train" ? (locale === "fr" ? "Mon parcours" : "My training journey") : (locale === "fr" ? "Progrès" : "Progress")}</Link>
+        <Link href="/progress" className={cn(linkClass, "text-sm")}>{locale==="fr"?"Mes résultats":"My results"} <IconNext /></Link>
       </div>
       <div className="mt-6">
         <PageHeader icon={<PAGE_ICONS.assessment />} title={doing ? j.hub.fullTitle
           : (locale === "fr" ? "Évaluations et évolution" : "Assessments and progress")}
           subtitle={doing ? j.full.intro : a.subtitle} />
       </div>
-      {doing ? <Link href="/train/today" className="mt-2 inline-block text-sm font-bold text-accent underline underline-offset-4">{j.hub.dayTitle} · {j.hub.dayBadge} →</Link> : null}
+      {doing ? <Link href="/train/today" className={cn(linkClass, "mt-2 text-sm")}>{j.hub.dayTitle} · {j.hub.dayBadge} <IconNext /></Link> : null}
       {viewer.profile.target_discipline !== "BOULDER" ? (
         <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink-2">
           {viewer.profile.target_discipline === "BOTH"

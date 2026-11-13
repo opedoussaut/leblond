@@ -18,6 +18,9 @@ import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { demoUrl, musclewikiUrl } from "@/lib/training/coach-sessions";
 import { formatClock, pick } from "@/lib/training/sessions";
 import { fmt } from "@/lib/i18n";
+import { IconBack, IconExternal } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 export const metadata = { title: "LEBLOND — Training session" };
 
@@ -51,12 +54,12 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   } : null;
 
   return <div className="space-y-6">
-    <Link href="/train/sessions" className="text-sm font-bold text-accent underline underline-offset-4">← {t.backToList}</Link>
+    <Link href="/train/sessions" className={cn(linkClass, "text-sm")}><IconBack /> {t.backToList}</Link>
     <header>
       <p className="leblond-eyebrow text-accent">{t.status[session.status]}
         {session.scheduledDate ? " · " + formatDate(session.scheduledDate + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) : ""}
         {session.scheduledTime ? " · " + session.scheduledTime : ""}</p>
-      <h1 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">{session.title}</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">{session.title}</h1>
       {session.objective ? <p className="mt-2 text-sm text-ink-2"><strong>{t.objective} :</strong> {session.objective}</p> : null}
       <p className="mt-1 text-xs text-ink-3">
         {session.plannedMinutes ? `${t.planned} : ${session.plannedMinutes} ${t.minutesShort}` : ""}
@@ -71,11 +74,11 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     {!running ? <SessionExport locale={locale} session={session} exercises={exercises} /> : null}
 
     {!running && !finished ? <section aria-labelledby="exercise-list" className="space-y-3">
-      <h2 id="exercise-list" className="text-lg font-black">{t.exercises}</h2>
+      <h2 id="exercise-list" className="text-lg font-bold">{t.exercises}</h2>
       <ol className="space-y-3">
         {exercises.map((e, i) => <li key={e.id} className="leblond-premium-surface p-4">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{i + 1} · {t.block[e.block]}</p>
-          <h3 className="mt-1 text-base font-extrabold">{e.name}</h3>
+          <h3 className="mt-1 text-base font-bold">{e.name}</h3>
           <p className="mt-1 text-sm font-semibold text-ink">
             {[e.targetSets ? `${e.targetSets} ${e.targetSets > 1 ? t.sets : t.set.toLowerCase()}` : null, e.targetReps ? `${e.targetReps} ${t.reps}` : null,
               e.targetSeconds ? (e.modality === "TIME" || e.modality === "FREE" ? `${Math.round(e.targetSeconds / 60)} ${t.minutesShort}` : `${e.targetSeconds} ${t.seconds}`) : null,
@@ -86,10 +89,10 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
           {e.instructions.summary ? <p className="mt-1 text-sm text-ink-2">{pick(e.instructions.summary, locale)}</p> : null}
           {e.instructions.safety ? <p className="mt-2 text-xs text-ink-2"><strong>{t.safety} :</strong> {pick(e.instructions.safety, locale)}</p> : null}
           {musclewikiUrl(e.instructions.musclewiki) ? <a href={musclewikiUrl(e.instructions.musclewiki)!} target="_blank" rel="noopener noreferrer"
-            className="mr-4 mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
+            className={cn(linkClass, "mr-4 mt-2 text-xs")}>{c.musclewiki} <IconExternal /></a> : null}
           {e.instructions.demo && demoUrl(e.instructions.demo.url) ? <a href={demoUrl(e.instructions.demo.url)!} target="_blank" rel="noopener noreferrer"
-            className="mr-4 mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{fmt(c.demo, { site: e.instructions.demo.label })} ↗</a> : null}
-          {e.methodId ? <Link href={"/atlas/" + e.methodId} className="mt-2 inline-block text-xs font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
+            className={cn(linkClass, "mr-4 mt-2 text-xs")}>{fmt(c.demo, { site: e.instructions.demo.label })} <IconExternal /></a> : null}
+          {e.methodId ? <Link href={"/atlas/" + e.methodId} className={cn(linkClass, "mt-2 text-xs")}>{t.atlasSheet} <IconExternal /></Link> : null}
         </li>)}
       </ol>
     </section> : null}

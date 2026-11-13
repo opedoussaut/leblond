@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, linkClass, segmentClass, tileClass, toggleClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { Input, Label, Select } from "@/components/ui/field";
@@ -23,6 +23,7 @@ import { osmUrl } from "@/lib/integrations/outdoor/osm";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { MapPin } from "./topo-map";
+import { IconCheck, IconExternal, IconStar, IconWarn } from "@/components/ui/icons";
 
 /** Leaflet and the OpenStreetMap tiles load only when a map is asked for. */
 const TopoMap = dynamic(() => import("./topo-map"), {
@@ -246,7 +247,7 @@ export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSi
                   type="button"
                   disabled={pending}
                   onClick={() => onPickSite(site)}
-                  className="flex min-h-16 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-line bg-surface px-4 py-2 text-left hover:bg-surface-2"
+                  className={tileClass(false, "flex min-h-16 min-w-0 flex-1 flex-col justify-center")}
                 >
                   <span className="block truncate font-semibold">{site.name}</span>
                   <span className="block text-xs text-ink-3">{site.city ? `${site.city} · ` : ""}{siteHint(t, site)}</span>
@@ -270,7 +271,7 @@ export function OutdoorPicker({ sites, areas, favouriteGymIds, pending, onPickSi
           <NewOutdoorSiteForm onCancel={() => setAdding(false)} onCreated={(site) => { setAdding(false); onPickSite(site); }} />
         ) : (
           <button type="button" onClick={() => setAdding(true)}
-            className="min-h-11 text-sm font-bold text-accent underline-offset-2 hover:underline">
+            className={cn(linkClass, "min-h-11 text-sm hover:underline")}>
             {t.outdoor.addSite}
           </button>
         )}
@@ -332,8 +333,7 @@ export function AreaPicker({
                 onClick={() => (warning && !open ? setConfirming(a.id) : onPick(a))}
                 aria-expanded={warning ? open : undefined}
                 className={cn(
-                  "flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2 text-left",
-                  open ? "border-danger bg-surface-2" : "border-line bg-surface hover:bg-surface-2",
+                  "flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2 text-left transition-colors", open ? "border-danger bg-surface-2" : "border-line bg-surface hover:border-ink-3",
                 )}
               >
                 <span className="min-w-0">
@@ -348,11 +348,11 @@ export function AreaPicker({
                   </span>
                   {warning ? (
                     <span className="mt-1 block text-xs font-semibold text-danger">
-                      ⚠ {t.outdoor.warning} : {warning}
+                      <IconWarn /> {t.outdoor.warning} : {warning}
                     </span>
                   ) : null}
                 </span>
-                {favouriteGymIds.includes(a.gym_id) ? <span aria-hidden className="text-accent">★</span> : null}
+                {favouriteGymIds.includes(a.gym_id) ? <span className="text-accent"><IconStar /></span> : null}
               </button>
               {open ? (
                 <div className="mt-2 flex gap-2">
@@ -466,10 +466,7 @@ export function BoolderProblemPicker({
             type="button"
             aria-pressed={circuit === c}
             onClick={() => setCircuit(c)}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm",
-              circuit === c ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
-            )}
+            className={toggleClass(circuit === c)}
           >
             {c && c !== "none" ? (
               <span
@@ -499,10 +496,7 @@ export function BoolderProblemPicker({
               type="button"
               aria-pressed={view === v}
               onClick={() => setView(v)}
-              className={cn(
-                "min-h-10 rounded-full px-4 text-sm",
-                view === v ? "bg-accent font-semibold text-accent-ink" : "text-ink-2",
-              )}
+              className={segmentClass(view === v, "px-4")}
             >
               {v === "list" ? t.outdoor.viewList : t.outdoor.viewMap}
             </button>
@@ -530,7 +524,7 @@ export function BoolderProblemPicker({
                 </span>
                 <span className="shrink-0 font-black tabular-nums">{chosen.grade}</span>
               </div>
-              {inSessionLabel(chosen.id) ? <p className="text-xs font-bold text-ok">✓ {inSessionLabel(chosen.id)}</p> : null}
+              {inSessionLabel(chosen.id) ? <p className="text-xs font-bold text-ok"><IconCheck /> {inSessionLabel(chosen.id)}</p> : null}
               <Button className="w-full" disabled={pending} onClick={() => onPick(chosen)}>
                 {t.outdoor.mapPick}
               </Button>
@@ -563,7 +557,7 @@ export function BoolderProblemPicker({
                       {p.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
                       {p.parent_id ? ` · ${t.outdoor.variantOf}` : ""}
                     </span>
-                    {inSessionLabel(p.id) ? <span className="mt-0.5 block text-xs font-bold text-ok">✓ {inSessionLabel(p.id)}</span> : null}
+                    {inSessionLabel(p.id) ? <span className="mt-0.5 block text-xs font-bold text-ok"><IconCheck /> {inSessionLabel(p.id)}</span> : null}
                   </span>
                   <span className="shrink-0 font-black tabular-nums">{p.grade}</span>
                 </button>
@@ -578,7 +572,7 @@ export function BoolderProblemPicker({
         </>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onClick={onNotInTopo} className="inline-flex min-h-11 items-center text-sm text-accent underline-offset-2 hover:underline">
+        <button type="button" onClick={onNotInTopo} className={cn(linkClass, "min-h-11 text-sm hover:underline")}>
           {t.outdoor.notInTopo}
         </button>
         <TopoAttribution source={source} credit={credit} />
@@ -603,8 +597,8 @@ export function ProblemOnMap({ problem }: { problem: CatalogueItem }) {
             {t.outdoor.showMap}
           </Button>
         )}
-        <a href={osmUrl(problem.latitude, problem.longitude)} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
-          {t.outdoor.openInOsm} ↗
+        <a href={osmUrl(problem.latitude, problem.longitude)} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "hover:underline")}>
+          {t.outdoor.openInOsm} <IconExternal />
         </a>
       </p>
     </div>

@@ -8,7 +8,7 @@ import { deleteRouteProject, updateRouteProject } from "@/lib/actions/route-proj
 import { ROUTE_STYLES, type RouteProjectStatus, type RouteStyle } from "@/lib/climbing/routes";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { routeDictionary } from "@/lib/i18n/routes";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, dangerLinkClass } from "@/components/ui/button";
 import { fieldClass as field } from "@/components/ui/field";
 
 
@@ -53,16 +53,16 @@ export function RouteProjectEditor({ project }: {
       <button type="button" disabled={pending} onClick={() => save(project.status)}
         className={buttonClass("primary", "md")}>{r.save}</button>
       {project.status !== "SENT" ? <button type="button" disabled={pending} onClick={() => save("SENT")}
-        className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold">{r.markSent}</button> : null}
+        className={buttonClass("secondary", "md")}>{r.markSent}</button> : null}
       {project.status === "ACTIVE" ? <button type="button" disabled={pending} onClick={() => save("ABANDONED")}
-        className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold">{r.abandon}</button>
+        className={buttonClass("secondary", "md")}>{r.abandon}</button>
         : <button type="button" disabled={pending} onClick={() => save("ACTIVE")}
-          className="min-h-12 rounded-full border border-line bg-surface px-5 text-sm font-bold">{r.reactivate}</button>}
+          className={buttonClass("secondary", "md")}>{r.reactivate}</button>}
     </div>
     {message ? <p role={message.ok ? "status" : "alert"} className={"text-sm font-semibold " + (message.ok ? "text-ink-2" : "text-danger")}>{message.text}</p> : null}
     <button type="button" disabled={pending} onClick={() => {
       if (!window.confirm(r.deleteConfirm)) return;
       start(async () => { const res = await deleteRouteProject(project.id); if (res.ok) router.push("/projects"); });
-    }} className="text-sm font-bold text-danger underline underline-offset-4">{r.deleteProject}</button>
+    }} className={dangerLinkClass}>{r.deleteProject}</button>
   </Card>;
 }

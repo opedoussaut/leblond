@@ -11,8 +11,9 @@ import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { DAY_PLACES, MINUTE_CHOICES, type DayCheckInput, type DayRecommendation } from "@/lib/training/day-check";
 import { BODY_AREAS, PAIN_LEVELS, type BodyArea } from "@/lib/training/health";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { Choice } from "./structured-assessment";
+import { IconNext } from "@/components/ui/icons";
 
 /** Human sentence for a stored reason code such as `pain:shoulder`. */
 export function reasonText(code: string, j: JourneyDictionary): string | null {
@@ -49,27 +50,27 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme, mobilityEnro
   }
 
   return <section aria-labelledby="day-result-heading" className="space-y-4 rounded-2xl border border-accent/30 bg-accent-soft p-5">
-    <h2 id="day-result-heading" className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">{d.resultTitle}</h2>
+    <h2 id="day-result-heading" className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{d.resultTitle}</h2>
     <div>
       <p className="text-2xl font-extrabold tracking-tight text-ink">{j.outcomes[rec.outcome]}</p>
       {what ? <p className="mt-1 text-base font-bold text-ink">{what} · {fmt(d.duration, { minutes: rec.minutes })} · {j.places[rec.place]}</p> : null}
       {rec.planned && rec.outcome !== "AS_PLANNED" ? <p className="mt-1 text-sm text-ink-2">{fmt(d.basedOn, { title: rec.planned.title, minutes: rec.planned.minutes })}</p> : null}
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{j.outcomeHints[rec.outcome]}</p>
-      {rec.outcome === "MOBILITY" ? <p className="mt-2 text-sm"><Link href="/atlas/mobility" className="font-bold text-accent underline underline-offset-4">{d.stretchRoutine} →</Link></p> : null}
+      {rec.outcome === "MOBILITY" ? <p className="mt-2 text-sm"><Link href="/atlas/mobility" className={linkClass}>{d.stretchRoutine} <IconNext /></Link></p> : null}
       {rec.outcome === "MOBILITY" && mobilityEnrolled ? <p className="mt-2 text-sm">{mobilityDictionary(locale).dayMobility}{" "}
-        <Link href="/train/mobility" className="font-bold text-accent underline underline-offset-4">{mobilityDictionary(locale).dayMobilityCta} →</Link></p> : null}
+        <Link href="/train/mobility" className={linkClass}>{mobilityDictionary(locale).dayMobilityCta} <IconNext /></Link></p> : null}
     </div>
     {reasons.length ? <div>
       <h3 className="text-sm font-bold">{d.why}</h3>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-ink-2">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
     </div> : null}
     {injured ? <p role="note" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed">{j.safety}</p> : null}
-    {openScheduled ? <Link href={"/train/sessions/" + scheduledId} className={buttonClass("primary", "md")}>{d.openScheduled} →</Link>
-      : rec.outcome !== "REST" ? <button type="button" disabled={pending} onClick={startSession} className={buttonClass("primary", "md")}>{pending ? "…" : d.start} →</button>
+    {openScheduled ? <Link href={"/train/sessions/" + scheduledId} className={buttonClass("primary", "md")}>{d.openScheduled} <IconNext /></Link>
+      : rec.outcome !== "REST" ? <button type="button" disabled={pending} onClick={startSession} className={buttonClass("primary", "md")}>{pending ? "…" : d.start} <IconNext /></button>
       : null}
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error.msg}
-      {error.liveId ? <> <Link className="underline" href={"/train/sessions/" + error.liveId}>{j.hub.open} →</Link></> : null}</p> : null}
-    {!hasProgramme ? <p className="text-sm text-ink-2">{d.noProgramme} <Link href="/train/assess" className="font-bold text-accent underline underline-offset-4">{j.hub.fullCta} →</Link></p> : null}
+      {error.liveId ? <> <Link className="underline" href={"/train/sessions/" + error.liveId}>{j.hub.open} <IconNext /></Link></> : null}</p> : null}
+    {!hasProgramme ? <p className="text-sm text-ink-2">{d.noProgramme} <Link href="/train/assess" className={linkClass}>{j.hub.fullCta} <IconNext /></Link></p> : null}
   </section>;
 }
 

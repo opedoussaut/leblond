@@ -148,7 +148,7 @@ export function FitnessCharts({ locale, measured, selfRated }: {
             <h3 className="text-sm font-bold">{s.test.name[locale]}</h3>
             <EvidenceBadge level="measured" locale={locale} />
           </div>
-          <p className="mt-1 text-2xl font-black tabular-nums">{s.latest.value} <span className="text-sm font-semibold text-ink-2">{unit}</span></p>
+          <p className="mt-1 leblond-number text-2xl">{s.latest.value} <span className="text-sm font-semibold text-ink-2">{unit}</span></p>
           <p className="text-xs text-ink-2">{changeLine(s, locale, unit)}</p>
           {s.points.length > 1 ? <MiniLine points={s.points} domain={measuredDomain(s.test, s.points.map((p) => p.value))} locale={locale}
             label={s.test.name[locale]} valueText={(v) => `${v} ${unit}`} /> : null}

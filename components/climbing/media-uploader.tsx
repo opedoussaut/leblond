@@ -10,6 +10,7 @@ import type { MediaType } from "@/lib/climbing/types";
 import { fmt } from "@/lib/i18n";
 import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MEDIA_BUCKET, mediaKind, mediaPath } from "@/lib/media";
 import { getBrowserClient } from "@/lib/supabase/client";
+import { IconPhoto } from "@/components/ui/icons";
 
 async function readVideoMeta(file: File): Promise<{ duration: number | null; width: number | null; height: number | null }> {
   return new Promise((resolve) => {
@@ -111,7 +112,7 @@ export function MediaUploader({
   return (
     <div className={cn(compact ? "flex flex-wrap items-center gap-2" : "space-y-3")}>
       <label htmlFor={photoId} className={buttonClass("secondary", "md", "cursor-pointer")}>
-        📷 {busy ? t.problem.uploading : photoLabel ?? t.problem.addPhoto}
+        <IconPhoto /> {busy ? t.problem.uploading : photoLabel ?? t.problem.addPhoto}
       </label>
       <input
         ref={photoRef}

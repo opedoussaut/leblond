@@ -601,7 +601,7 @@ export function AtlasDiagramFigure({ spec, locale, uid, title }: { spec: AtlasDi
   const facts = diagramFacts(spec, locale);
   const titleId = "atlas-diagram-title-" + safeUid, descId = "atlas-diagram-desc-" + safeUid;
   return <figure className="leblond-premium-surface p-4 sm:p-5" aria-labelledby={titleId}>
-    <h2 id={titleId} className="text-lg font-extrabold">{t.diagram}</h2>
+    <h2 id={titleId} className="text-lg font-bold">{t.diagram}</h2>
     <div className="mx-auto mt-4 max-w-[560px] text-ink">
       <svg viewBox={`0 0 ${W} ${drawing.height}`} role="img" aria-label={t.diagramFor.replace("{title}", title)} aria-describedby={descId}
         className="h-auto w-full overflow-visible" style={{ fontFamily: "inherit" }}>

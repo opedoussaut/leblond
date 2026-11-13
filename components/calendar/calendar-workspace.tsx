@@ -10,9 +10,11 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { CalendarEntrySessionButton } from "@/components/training/session-actions";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import type { TrainingStatus } from "@/lib/training/sessions";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, iconButtonClass, linkClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
+import { IconExternal, IconNext } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 export type CalendarTraining = {
   id: string; title: string; status: TrainingStatus; eventDate: string; startTime: string;
@@ -97,9 +99,9 @@ export function CalendarWorkspace({
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
     <section className="leblond-premium-surface p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <button type="button" aria-label={t.previous} onClick={()=>goMonth(-1)} className="min-h-11 rounded-full border border-line px-4 text-lg">‹</button>
-        <h2 className="text-lg font-extrabold capitalize">{new Date(month+"-01T12:00:00Z").toLocaleDateString(t.locale,{month:"long",year:"numeric",timeZone:"UTC"})}</h2>
-        <button type="button" aria-label={t.next} onClick={()=>goMonth(1)} className="min-h-11 rounded-full border border-line px-4 text-lg">›</button>
+        <button type="button" aria-label={t.previous} onClick={()=>goMonth(-1)} className={iconButtonClass()}>‹</button>
+        <h2 className="text-lg font-bold capitalize">{new Date(month+"-01T12:00:00Z").toLocaleDateString(t.locale,{month:"long",year:"numeric",timeZone:"UTC"})}</h2>
+        <button type="button" aria-label={t.next} onClick={()=>goMonth(1)} className={iconButtonClass()}>›</button>
       </div>
       <div className="mt-5 grid grid-cols-7 gap-1 text-center text-xs font-bold text-ink-3">
         {t.weekdays.map((day,i)=><div key={i}>{day}</div>)}
@@ -122,19 +124,19 @@ export function CalendarWorkspace({
     <div className="space-y-5">
     <section ref={detailsRef} tabIndex={-1} aria-label={safeSelected}
       className="space-y-3 rounded-2xl border border-line bg-surface p-5 focus:outline-none">
-      <h2 className="text-lg font-extrabold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
+      <h2 className="text-lg font-bold">{new Date(safeSelected+"T12:00:00Z").toLocaleDateString(t.locale,{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}</h2>
       {selectedEvents.length===0&&selectedSessions.length===0&&selectedTrainings.length===0?<p className="text-sm text-ink-3">{t.empty}</p>:null}
       <button type="button" onClick={() => titleRef.current?.focus()}
-        className="inline-flex min-h-11 items-center rounded-full border border-accent/30 bg-accent-soft px-4 text-xs font-bold text-accent hover:border-accent">
+        className={buttonClass("secondary", "sm")}>
         + {t.add}
       </button>
       {selectedSessions.map(s=><Link key={s.id} href={"/session/"+s.id} className="flex justify-between gap-3 rounded-xl border border-line bg-surface p-4 hover:border-accent">
         <span><strong className="block">{s.title}</strong><span className="text-xs text-ink-2">{t.logged}</span></span>
-        <span className="text-sm font-semibold text-accent">↗</span>
+        <span className="text-sm font-semibold text-accent"><IconExternal /></span>
       </Link>)}
       {selectedTrainings.map(x=><Link key={x.id} href={"/train/sessions/"+x.id} className="flex justify-between gap-3 rounded-xl border border-accent/30 bg-accent-soft p-4 hover:border-accent">
         <span><strong className="block">{x.title}</strong><span className="text-xs text-ink-2">{t.TRAIN} · {ts.status[x.status]}{x.startTime?" · "+x.startTime:""}{x.minutes?" · "+x.minutes+" min":""}</span></span>
-        <span className="text-sm font-semibold text-accent">{x.status==="PLANNED"?ts.open:x.status==="IN_PROGRESS"?ts.resume:ts.review} →</span>
+        <span className="text-sm font-semibold text-accent">{x.status==="PLANNED"?ts.open:x.status==="IN_PROGRESS"?ts.resume:ts.review} <IconNext /></span>
       </Link>)}
       {selectedEvents.map(e=><div key={e.id} className="rounded-xl border border-line bg-surface p-4">
         <div className="flex items-start justify-between gap-2">
@@ -142,21 +144,21 @@ export function CalendarWorkspace({
           <span className="rounded-full bg-accent-soft px-2 py-1 text-xs font-bold text-accent">{t[e.status]}</span>
         </div>
         {e.notes?<p className="mt-3 text-sm text-ink-2">{e.notes}</p>:null}
-        {e.methodId?<Link className="mt-2 inline-block text-sm font-semibold text-accent underline" href={"/atlas/"+e.methodId}>{t.methodDetail} ↗</Link>:null}
+        {e.methodId?<Link className={cn(linkClass, "mt-2 text-sm")} href={"/atlas/"+e.methodId}>{t.methodDetail} <IconExternal /></Link>:null}
         {e.kind==="TRAIN"?<div className="mt-3 flex flex-wrap items-center gap-2">
           {linkedByEntry.get(e.id)?<span className="text-xs font-semibold text-ink-2">{ts.status[linkedByEntry.get(e.id)!.status]}</span>:null}
           <CalendarEntrySessionButton locale={locale} entryId={e.id} sessionId={linkedByEntry.get(e.id)?.id ?? null}/>
         </div>:null}
         <div className="mt-4 flex flex-wrap gap-2">
-          {e.status!=="DONE"&&!(e.kind==="TRAIN")?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markDone}</button>:null}
-          {e.status!=="PLANNED"?<button disabled={pending} onClick={()=>change(e.id,"PLANNED")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markPlanned}</button>:null}
-          {e.status!=="SKIPPED"?<button disabled={pending} onClick={()=>change(e.id,"SKIPPED")} className="min-h-11 rounded-xl border border-line px-3 text-xs font-semibold">{t.markSkipped}</button>:null}
-          <button disabled={pending} onClick={()=>remove(e.id)} className="min-h-11 rounded-xl border border-line px-3 text-xs text-danger">{t.delete}</button>
+          {e.status!=="DONE"&&!(e.kind==="TRAIN")?<button disabled={pending} onClick={()=>change(e.id,"DONE")} className={buttonClass("ghost", "sm", "border border-line")}>{t.markDone}</button>:null}
+          {e.status!=="PLANNED"?<button disabled={pending} onClick={()=>change(e.id,"PLANNED")} className={buttonClass("ghost", "sm", "border border-line")}>{t.markPlanned}</button>:null}
+          {e.status!=="SKIPPED"?<button disabled={pending} onClick={()=>change(e.id,"SKIPPED")} className={buttonClass("ghost", "sm", "border border-line")}>{t.markSkipped}</button>:null}
+          <button disabled={pending} onClick={()=>remove(e.id)} className={buttonClass("danger", "sm")}>{t.delete}</button>
         </div>
       </div>)}
     </section>
     <section className="leblond-premium-surface p-5">
-      <h2 className="text-lg font-extrabold">{t.add}</h2>
+      <h2 className="text-lg font-bold">{t.add}</h2>
       <form onSubmit={submit} className="mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm font-semibold">{t.day}<input className={field} type="date" required min="2020-01-01" max="2100-12-31" value={date} onChange={e=>setDate(e.target.value)}/></label>

@@ -6,12 +6,12 @@ import { GymPicker } from "@/components/climbing/gym-picker";
 import { OutdoorPicker, type AreaItem, type OutdoorSite } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Notice } from "@/components/ui/card";
-import { cn } from "@/components/ui/cn";
 import { startSession } from "@/lib/actions/sessions";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { PastSession } from "./past-session";
 import type { Tables } from "@/lib/supabase/database.types";
+import { segmentClass, tileClass } from "@/components/ui/button";
 
 export function StartSession({
   gyms,
@@ -58,10 +58,7 @@ export function StartSession({
             role="tab"
             aria-selected={tab === key}
             onClick={() => setTab(key)}
-            className={cn(
-              "min-h-11 rounded-xl text-sm font-bold",
-              tab === key ? "bg-surface text-ink shadow-sm" : "text-ink-2",
-            )}
+            className={segmentClass(tab === key)}
           >
             {label}
           </button>
@@ -80,11 +77,11 @@ export function StartSession({
             }} />
           {choice ? (
             <section aria-labelledby="discipline-choice" className="rounded-2xl border border-accent/30 bg-accent-soft p-4">
-              <h2 id="discipline-choice" className="font-extrabold">{choice.name} · {r.chooseDiscipline}</h2>
+              <h2 id="discipline-choice" className="font-bold">{choice.name} · {r.chooseDiscipline}</h2>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {([["BOULDER", r.boulder, r.boulderHint], ["ROUTE", r.route, r.routeHint]] as const).map(([d, label, hint]) => (
                   <button key={d} type="button" disabled={pending} onClick={() => begin(choice.id, d)}
-                    className="min-h-20 rounded-2xl border border-line bg-surface p-4 text-left hover:border-accent disabled:opacity-60">
+                    className={tileClass(false, "min-h-20")}>
                     <strong className="block text-lg">{label}</strong>
                     <span className="mt-1 block text-sm text-ink-2">{hint}</span>
                   </button>

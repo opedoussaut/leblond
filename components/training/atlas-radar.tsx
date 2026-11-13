@@ -3,6 +3,8 @@
 import type { Locale } from "@/lib/i18n";
 import { ATLAS_AXES, ATLAS_LABELS, ATLAS_SCORES } from "@/lib/training/atlas";
 import type { TrainingEntry } from "@/lib/training/catalogue";
+import { IconExternal } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
 
 const PALETTE=["#2677c8","#718aa4","#19456e"] as const;
 function point(i:number,r:number) {
@@ -14,7 +16,7 @@ function points(values:readonly number[],r=180) {
 }
 export function AtlasRadar({ entries, locale, heading }: {entries: readonly TrainingEntry[];locale: Locale;heading:string}) {
   return <section className="leblond-premium-surface p-3 sm:p-5">
-    <h2 className="text-lg font-extrabold">{heading}</h2>
+    <h2 className="text-lg font-bold">{heading}</h2>
     <p className="mt-1 text-xs leading-relaxed text-ink-2">{locale==="fr"
       ?"12 dimensions descriptives, estimées par LEBLOND sur une échelle 0 à 5. La surface représente la priorité d'entraînement, pas l'efficacité ou les performances mesurées."
       :"12 editorial training-emphasis dimensions, from 0 to 5. The shape illustrates focus, not verified effectiveness or measured performance."}</p>
@@ -37,7 +39,7 @@ export function AtlasRadar({ entries, locale, heading }: {entries: readonly Trai
     <p className="mt-4 text-xs text-ink-3">{locale==="fr"
       ?"Repère externe : Lattice publie un profil de tests sur 4 domaines (force des doigts, endurance des avant-bras, force, mobilité). Ces résultats mesurés ne doivent pas être confondus avec ce radar comparatif éditorial."
       :"External reference: Lattice publishes tests across four capacities (finger strength, forearm endurance, strength, flexibility). Those measured tests are distinct from this editorial comparison."}
-      {" "}<a href="https://www.latticetraining.com/docs/latticeplan-testing" target="_blank" rel="noopener noreferrer" className="text-accent underline">Lattice ↗</a>
+      {" "}<a href="https://www.latticetraining.com/docs/latticeplan-testing" target="_blank" rel="noopener noreferrer" className={linkClass}>Lattice <IconExternal /></a>
     </p>
   </section>;
 }
