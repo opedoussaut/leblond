@@ -339,7 +339,7 @@ export type Database = {
           user_id: string;
           session_id: string;
           client_id: string;
-          board: "KILTER" | "TENSION" | "MOON";
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name: string;
           climb_key: string;
           angle: number;
@@ -361,7 +361,7 @@ export type Database = {
           user_id?: string;
           session_id: string;
           client_id: string;
-          board: "KILTER" | "TENSION" | "MOON";
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name: string;
           climb_key: string;
           angle: number;
@@ -383,7 +383,7 @@ export type Database = {
           user_id?: string;
           session_id?: string;
           client_id?: string;
-          board?: "KILTER" | "TENSION" | "MOON";
+          board?: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name?: string;
           climb_key?: string;
           angle?: number;
@@ -414,7 +414,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          board: "KILTER" | "TENSION" | "MOON";
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name: string;
           climb_key: string;
           angle: number;
@@ -430,7 +430,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id?: string;
-          board: "KILTER" | "TENSION" | "MOON";
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name: string;
           climb_key: string;
           angle: number;
@@ -446,7 +446,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          board?: "KILTER" | "TENSION" | "MOON";
+          board?: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
           climb_name?: string;
           climb_key?: string;
           angle?: number;
@@ -1931,7 +1931,7 @@ export type Database = {
           updated_at: string;
           user_id: string;
           wearable_activity_id: string | null;
-          board: "KILTER" | "TENSION" | "MOON" | null;
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA" | null;
           board_layout: string | null;
           board_angle: number | null;
         };
@@ -1956,7 +1956,7 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
-          board?: "KILTER" | "TENSION" | "MOON" | null;
+          board?: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA" | null;
           board_layout?: string | null;
           board_angle?: number | null;
         };
@@ -1981,7 +1981,7 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
           wearable_activity_id?: string | null;
-          board?: "KILTER" | "TENSION" | "MOON" | null;
+          board?: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA" | null;
           board_layout?: string | null;
           board_angle?: number | null;
         };

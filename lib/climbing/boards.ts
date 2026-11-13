@@ -2,22 +2,33 @@ import { z } from "zod";
 import { FONT_SCALE } from "@/lib/grading/systems";
 
 /**
- * Training boards (Kilter, Tension, MoonBoard). A board séance is its own kind
+ * Training boards (Kilter, Tension, MoonBoard and the other Aurora boards a
+ * BoardLib logbook can come from). A board séance is its own kind
  * of climbing séance: the climber types the name shown in the board app and
  * the grade as the app shows it. Board grades are never mixed with gym colours
  * or route grades, and Font and V grades are never converted into each other.
  */
-export const BOARDS = ["KILTER", "TENSION", "MOON"] as const;
+export const BOARDS = ["KILTER", "TENSION", "MOON", "DECOY", "GRASSHOPPER", "TOUCHSTONE", "SOILL", "AURORA"] as const;
 export type Board = (typeof BOARDS)[number];
 
-export const BOARD_NAMES: Record<Board, string> = { KILTER: "Kilter Board", TENSION: "Tension Board", MOON: "MoonBoard" };
-export const BOARD_SHORT: Record<Board, string> = { KILTER: "Kilter", TENSION: "Tension", MOON: "Moon" };
+export const BOARD_NAMES: Record<Board, string> = {
+  KILTER: "Kilter Board", TENSION: "Tension Board", MOON: "MoonBoard",
+  DECOY: "Decoy Board", GRASSHOPPER: "Grasshopper Board", TOUCHSTONE: "Touchstone Board", SOILL: "So iLL Board", AURORA: "Aurora Board",
+};
+export const BOARD_SHORT: Record<Board, string> = {
+  KILTER: "Kilter", TENSION: "Tension", MOON: "Moon",
+  DECOY: "Decoy", GRASSHOPPER: "Grasshopper", TOUCHSTONE: "Touchstone", SOILL: "So iLL", AURORA: "Aurora",
+};
 
-/** The layouts a climber can pick; the first one is offered by default. */
+/**
+ * The layouts a climber can pick; the first one is offered by default. Boards
+ * whose layouts LEBLOND does not know offer none (the séance has no layout).
+ */
 export const BOARD_LAYOUTS: Record<Board, readonly string[]> = {
   KILTER: ["Original", "Homewall"],
   TENSION: ["TB2 Mirror", "TB2 Spray", "TB1"],
-  MOON: ["2016", "2017", "2019", "2024", "Mini"],
+  MOON: ["2016", "2017", "2019", "2020", "2024", "Mini"],
+  DECOY: [], GRASSHOPPER: [], TOUCHSTONE: [], SOILL: [], AURORA: [],
 };
 
 /** Boards whose apps offer a mirrored version of each climb. */
@@ -26,8 +37,8 @@ export const hasMirror = (board: Board) => board === "TENSION";
 export const ANGLE_STEP = 5;
 /**
  * The angles offered for a board, in 5° steps like the board apps. Kilter goes
- * from 0° to 70°; the same range is offered for Tension (its exact range is not
- * confirmed); a MoonBoard is built at 25° or 40°.
+ * from 0° to 70°; the same range is offered for Tension and the other Aurora
+ * boards (their exact ranges are not confirmed); a MoonBoard is built at 25° or 40°.
  */
 export function boardAngles(board: Board): number[] {
   if (board === "MOON") return [25, 40];

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { boardCoachSummary, boardPyramids, climbHistory, repeatIds, summarizeBoardSession, type BoardAscentFact } from "@/lib/analytics/boards";
 import { importBatches, parseBoardLibCsv, parseCsv } from "@/lib/climbing/boardlib-csv";
+import { boardLibCommands, boardLibName } from "@/lib/climbing/boardlib-command";
 import {
   boardAngles, clampAngle, climbKey, logBoardAscentSchema, normaliseBoardGrade, startBoardSessionSchema,
 } from "@/lib/climbing/boards";
@@ -118,5 +119,26 @@ describe("BoardLib import", () => {
     for (const b of batches) expect(b.length).toBeLessThanOrEqual(2);
     expect(batches.flat()).toHaveLength(rows.length);
     expect(batches[0].every((r) => r.date === "2026-04-02")).toBe(true);
+  });
+
+  it("reads the board names BoardLib writes, MoonBoard versions and the other Aurora boards included", () => {
+    const head = "board,angle,climb_name,date,logged_grade,displayed_grade,tries,is_ascent\n";
+    const lines = ["moon2024", "moon2016", "decoy", "grasshopper", "touchstone", "soill", "aurora", "woody"]
+      .map((b, i) => `${b},40,Climb ${i},2026-11-10 18:0${i}:00,6A,6A,1,True`).join("\n");
+    const r = parseBoardLibCsv(head + lines);
+    expect(r.rows.map((x) => x.board)).toEqual(["MOON", "MOON", "DECOY", "GRASSHOPPER", "TOUCHSTONE", "SOILL", "AURORA"]);
+    expect(r.rejected.map((x) => x.reason)).toEqual(["board"]);
+  });
+
+  it("builds the BoardLib commands: no database for Kilter and Moon, a database first for Aurora boards", () => {
+    expect(boardLibCommands("KILTER", "EMAIL")).toEqual(["boardlib logbook kilter --username=EMAIL --output=kilter.csv"]);
+    expect(boardLibName("MOON", "2019")).toBe("moon2019");
+    expect(boardLibCommands("MOON", "ME", "2017")).toEqual(["boardlib logbook moon2017 --username=ME --output=moon2017.csv"]);
+    expect(boardLibCommands("TENSION", "ME")).toEqual([
+      "boardlib database tension tension.db --username=ME",
+      "boardlib logbook tension --username=ME --output=tension.csv --database-path=tension.db",
+    ]);
+    expect(boardLibName("SOILL")).toBe("soill");
+    expect(startBoardSessionSchema.safeParse({ board: "DECOY", layout: "", angle: 40, gymId: null }).success).toBe(true);
   });
 });
