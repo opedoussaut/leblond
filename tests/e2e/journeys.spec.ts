@@ -1097,6 +1097,11 @@ test("J — any programme can be the one in progress, and the rival has a face, 
 
   // A new pact: the rival shows its portrait, its "fictif" label, its feed and its settings.
   await page.goto("/train/alter-ego");
+  // The avatar: the lowest of four pillars; with no hip assessment it is White and flexibility is to unlock.
+  const avatar = page.getByRole("region", { name: "Ton avatar" });
+  await expect(avatar.getByTestId("avatar-colour")).toContainText("Blanc");
+  await expect(avatar.getByRole("img", { name: "Ton avatar, niveau Blanc" })).toBeVisible();
+  await expect(avatar.locator('[data-pillar="flexibility"]')).toContainText("à débloquer");
   await page.getByLabel("Nom de ton alter ego").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();
