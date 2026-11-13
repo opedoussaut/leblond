@@ -90,6 +90,17 @@ describe("coach sessions", () => {
     const rows = coachExerciseRows(coachSessionSchema.parse({ ...session,
       exercises: [{ block: "COOLDOWN", name: "Hip flexor", demo: { label: "WorkoutLabs", url: "https://workoutlabs.com/exercise-guide/kneeling-hip-flexor-stretch/" } }] }));
     expect(rows[0].instructions.demo?.label).toBe("WorkoutLabs");
+    expect(withDemo("https://www.bodbot.com/Exercises/96/Wall_Ankle-Mobilizations")).toBe(false);
+  });
+
+  it("shows LEBLOND's own drawings only by known id, and copies them into the session", () => {
+    const withDrawing = (illustration: string) => coachSessionSchema.safeParse({ ...session,
+      exercises: [{ block: "WARMUP", name: "Genou au mur", illustration }] });
+    expect(withDrawing("knee-to-wall").success).toBe(true);
+    expect(withDrawing("../../etc/passwd").success).toBe(false);
+    const rows = coachExerciseRows(coachSessionSchema.parse({ ...session,
+      exercises: [{ block: "WARMUP", name: "Genou au mur", illustration: "knee-to-wall" }] }));
+    expect(rows[0].instructions.illustration).toBe("knee-to-wall");
   });
 
   it("can be started as a training session", () => {

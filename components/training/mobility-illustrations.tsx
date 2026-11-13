@@ -1,14 +1,12 @@
 /*
- * Original line drawings for the hip-mobility exercises and tests (drawn for
- * LEBLOND, no external source). Simple figures in currentColor so they follow
- * the light and dark themes; the accent marks the movement.
+ * Original line drawings for the hip-mobility exercises and tests and for
+ * coach-session exercises no approved demo site shows (drawn for LEBLOND, no
+ * external source). Simple figures in currentColor so they follow the light
+ * and dark themes; the accent marks the movement.
  */
+import { isIllustration, type IllustrationId } from "@/lib/training/illustrations";
 
-type Drawing = "supine-knee-sways" | "seated-hip-rotations" | "adductor-rock-backs" | "low-step-placements"
-  | "lateral-weight-shifts" | "butterfly" | "wall-step";
-
-const DRAWINGS: ReadonlySet<string> = new Set(["supine-knee-sways", "seated-hip-rotations", "adductor-rock-backs", "low-step-placements",
-  "lateral-weight-shifts", "butterfly", "wall-step"]);
+type Drawing = IllustrationId;
 const TEST_DRAWINGS: Record<string, Drawing> = { A: "seated-hip-rotations", B: "butterfly", C: "low-step-placements", D: "wall-step" };
 
 function Arrow({ d, both = false }: { d: string; both?: boolean }) {
@@ -58,6 +56,39 @@ function Figure({ id }: { id: Drawing }) {
       <path d="M94 32 L98 62 M95 36 L112 18 M98 62 L106 88 M98 62 L86 50 L110 52" />
       <Arrow d="M74 70 Q78 52 96 46" />
     </>;
+    // Facing the wall in a split stance, the front knee goes to the wall, heel down.
+    case "knee-to-wall": return <>
+      <path d="M134 6 L134 88" />
+      <circle cx={98} cy={18} r={7} />
+      <path d="M98 26 L94 56 M97 34 L130 40 M94 56 L126 64 L112 88 L124 88 M94 56 L78 72 L62 86" />
+      <path d="M106 92 L118 92" stroke="var(--color-accent, #1769b9)" strokeDasharray="2 2" />
+      <Arrow d="M104 76 Q116 66 126 64" />
+    </>;
+    // Seen from the feet, lying on a mat, feet wide: the right knee drops inwards (the left foot then rests on it).
+    case "supine-hip-internal-rotation": return <>
+      <path d="M30 88 L130 88 L110 8 L50 8 Z" strokeOpacity={0.3} strokeWidth={2} />
+      <circle cx={80} cy={18} r={6} />
+      <path d="M80 24 L80 64 M80 34 L62 52 M80 34 L98 52 M68 66 L92 66" />
+      <path d="M68 66 L52 38 L40 86" />
+      <path d="M92 66 L72 78 L120 86" />
+      <path d="M92 66 L108 38 L120 86" strokeDasharray="3 4" strokeOpacity={0.45} />
+      <Arrow d="M112 32 Q104 62 78 74" />
+    </>;
+    // Facing the wall, forearms on it, the arms slide up without shrugging.
+    case "wall-slides": return <>
+      <path d="M120 6 L120 88" />
+      <circle cx={96} cy={22} r={7} />
+      <path d="M96 30 L96 60 M96 60 L92 88 M96 60 L102 88 M97 36 L116 44 L116 18" />
+      <Arrow d="M128 50 L128 14" />
+    </>;
+    // Seen from the feet: lying with the buttocks at the wall, the legs open along the wall.
+    case "wall-straddle": return <>
+      <rect x={14} y={6} width={132} height={66} rx={2} strokeOpacity={0.35} />
+      <circle cx={80} cy={80} r={6} />
+      <path d="M80 72 L46 16 M80 72 L114 16 M78 76 L52 86 M82 76 L108 86" />
+      <Arrow d="M42 22 Q30 34 28 50" />
+      <Arrow d="M118 22 Q130 34 132 50" />
+    </>;
   }
 }
 
@@ -65,7 +96,7 @@ export function MobilityIllustration({ exerciseId, test, title, className = "" }
   exerciseId?: string; test?: string; title: string; className?: string;
 }) {
   const id = (test ? TEST_DRAWINGS[test] : exerciseId) as Drawing | undefined;
-  if (!id || !DRAWINGS.has(id)) return null;
+  if (!isIllustration(id)) return null;
   return <svg viewBox="0 0 160 96" role="img" aria-label={title}
     className={"h-auto w-full max-w-xs text-ink " + className}>
     <title>{title}</title>
