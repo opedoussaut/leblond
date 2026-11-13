@@ -2,7 +2,7 @@ import { gradeToScore, scoreToGrade } from "@/lib/grading/ordering";
 import { sessionTitle } from "@/lib/training/programme";
 import { mondayOf } from "@/lib/training/sessions";
 import {
-  boulderPace, climberLedger, egoLedger, egoSchedule, egoSessionLedger, pactClock, shouldEaseOff, standing,
+  boulderPace, climberLedger, egoLedger, egoSchedule, egoSessionLedger, pactClock, standing,
   type ClimberWork, type Ledger, type Pact, type Standing,
 } from "./alter-ego";
 
@@ -13,8 +13,7 @@ import {
  * in the background. Times and efforts come from a fixed hash of the date, so
  * the feed reads the same every time it is opened.
  *
- * Safety, whatever the tone or level: pain stops the race (the rival goes
- * quiet), it never asks for more load or shorter rests than the programme,
+ * Safety, whatever the tone or level: it never asks for more load or shorter rests than the programme,
  * and it never comments on a body or an injury.
  */
 
@@ -90,7 +89,7 @@ export function rivalBoulderGrade(pact: Pact, settings: Pick<RivalSettings, "lev
   return scoreToGrade("FONT", Math.round(from + (to - from) * Math.min(1, week / weeks)));
 }
 
-export type RivalMessage = "skipped" | "passedYou" | "youPassed" | "beforeSession" | "monday" | "quiet";
+export type RivalMessage = "skipped" | "passedYou" | "youPassed" | "beforeSession" | "monday";
 
 export type FeedItem =
   | { kind: "session"; date: string; time: string; title: string; minutes: number; effort: number }
@@ -153,13 +152,12 @@ export type FeedInput = {
 
 /**
  * What the rival did and said over the last days, newest first. When the
- * climber reported pain, or the pact is paused or over, it goes quiet.
+ * pact is paused or over, it goes quiet. Pain never stops the race: the climber decides.
  */
 export function rivalFeed(input: FeedInput): FeedItem[] {
   const { pact, settings, work, today, weekdays } = input;
   const days = input.days ?? 7;
   if (pact.status !== "ACTIVE") return [];
-  if (shouldEaseOff(work)) return [{ kind: "message", date: today, time: "08:00", message: "quiet", vars: { name: pact.displayName } }];
 
   const from = addDays(today, -(days - 1));
   const items: FeedItem[] = [];

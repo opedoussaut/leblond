@@ -66,9 +66,9 @@ describe("rival feed and duels", () => {
     expect(feed.map((i) => i.date + i.time)).toEqual([...feed.map((i) => i.date + i.time)].sort().reverse());
   });
 
-  it("goes quiet when the climber reported pain, and stays silent when paused", () => {
+  it("keeps racing after reported pain (the climber decides), and stays silent when paused", () => {
     const feed = rivalFeed({ pact, settings: RIVAL_DEFAULTS, work: [done("2026-11-11", 60, 4)], today: "2026-11-13", projects: [], board: null, weekdays });
-    expect(feed).toEqual([expect.objectContaining({ kind: "message", message: "quiet" })]);
+    expect(feed.some((i) => i.kind === "session")).toBe(true);
     expect(rivalFeed({ pact: { ...pact, status: "PAUSED" }, settings: RIVAL_DEFAULTS, work: [], today: "2026-11-13", projects: [], board: null, weekdays })).toEqual([]);
   });
 
