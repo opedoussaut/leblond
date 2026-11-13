@@ -5,8 +5,8 @@ import { SessionExport } from "@/components/training/session-export";
 import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
-import { loadFactor, pactClock, pactWeek, shouldEaseOff } from "@/lib/analytics/alter-ego";
-import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { loadFactor, pactClock, pactWeek } from "@/lib/analytics/alter-ego";
+import { loadOpenRival } from "@/lib/data/alter-ego";
 import { REACH_MARGIN } from "@/lib/analytics/rival";
 import { utcToZoned } from "@/lib/time";
 import { localDate_ } from "@/lib/training/sessions";
@@ -54,7 +54,6 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     name: pact.displayName,
     // Within reach, it stays at most 10 % ahead in the lane too.
     factor: rival.settings.level === "REACH" ? Math.min(factor, 1 + REACH_MARGIN) : factor,
-    easeOff: shouldEaseOff(await loadClimberWork(viewer.supabase)),
     portrait: rival.settings.portrait,
   } : null;
 

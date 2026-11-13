@@ -69,7 +69,7 @@ const sameSet = (a: Pick<SaveSetInput, "exerciseId" | "setIndex">, b: Pick<SaveS
 
 export function TrainingPlayer({ locale, session, exercises: initial, climbs, ego = null }: {
   locale: Locale; session: TrainingSession; exercises: TrainingExercise[]; climbs: ClimbOption[];
-  ego?: { name: string; factor: number; easeOff: boolean; portrait?: RivalPortraitId } | null;
+  ego?: { name: string; factor: number; portrait?: RivalPortraitId } | null;
 }) {
   const t = trainingSessionDictionary(locale);
   const c = coachSessionsDictionary(locale);
@@ -303,7 +303,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         {fmt(t.exerciseOf, { n: index + 1, total: exercises.length })} · {progress}%
       </p>
       {ego ? <AlterEgoLane locale={locale} name={ego.name} phases={egoPhases} exerciseNames={initial.map((e) => e.name)}
-        elapsed={elapsed} youFraction={progress / 100} easeOff={ego.easeOff} portrait={ego.portrait} /> : null}
+        elapsed={elapsed} youFraction={progress / 100} portrait={ego.portrait} /> : null}
     </section>
 
     {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">

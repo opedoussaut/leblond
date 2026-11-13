@@ -35,7 +35,6 @@ const fr = {
       youPassed: "Bien joué, tu es devant. Je vais devoir m’accrocher.",
       beforeSession: "Aujourd’hui c’est {title}. Je m’y mets aussi, on se motive ?",
       monday: "Bilan de la semaine {week} : saison {rival}–{you}. Belle semaine qui commence !",
-      quiet: "Tu as signalé une douleur : la course s’arrête. Repose-toi, je t’attends.",
     },
     PIQUANT: {
       skipped: "{day}, j’ai fait ta séance à ta place. Tu reviens quand ?",
@@ -43,7 +42,6 @@ const fr = {
       youPassed: "D’accord, tu es devant. Profite, ça ne va pas durer.",
       beforeSession: "{title} aujourd’hui. Je suis déjà en chaussons.",
       monday: "Semaine {week} terminée. Saison : moi {rival}, toi {you}.",
-      quiet: "Douleur signalée : je lève le pied. On reprend la course quand tu vas bien.",
     },
     SANS_PITIE: {
       skipped: "{day} : séance faite. La tienne aussi, du coup.",
@@ -51,7 +49,6 @@ const fr = {
       youPassed: "Tu es devant. Pour l’instant.",
       beforeSession: "{title} aujourd’hui. Je ne t’attendrai pas.",
       monday: "Semaine {week}. Saison {rival}–{you}. Je compte.",
-      quiet: "Douleur signalée : la course est en pause. Soigne-toi d’abord, le reste attendra.",
     },
   },
   safety: "La douleur arrête la course. {name} ne te demandera jamais plus de charge ou moins de repos que ton programme, et les exercices de doigts et maximaux ne sont jamais augmentés.",
@@ -100,7 +97,6 @@ const en: typeof fr = {
       youPassed: "Well done, you’re ahead. I’ll have to hang on.",
       beforeSession: "{title} today. I’m on it too, shall we?",
       monday: "Week {week} done: season {rival}–{you}. A new week starts!",
-      quiet: "You reported pain: the race stops. Rest, I’ll wait for you.",
     },
     PIQUANT: {
       skipped: "{day}, I did your session for you. When are you coming back?",
@@ -108,7 +104,6 @@ const en: typeof fr = {
       youPassed: "Fine, you’re ahead. Enjoy it, it won’t last.",
       beforeSession: "{title} today. My shoes are already on.",
       monday: "Week {week} done. Season: me {rival}, you {you}.",
-      quiet: "Pain reported: I’m easing off. We race again when you’re fine.",
     },
     SANS_PITIE: {
       skipped: "{day}: session done. Yours too, then.",
@@ -116,7 +111,6 @@ const en: typeof fr = {
       youPassed: "You’re ahead. For now.",
       beforeSession: "{title} today. I won’t wait for you.",
       monday: "Week {week}. Season {rival}–{you}. I’m counting.",
-      quiet: "Pain reported: the race is paused. Look after yourself first, the rest can wait.",
     },
   },
   safety: "Pain stops the race. {name} will never ask you for more load or less rest than your programme, and finger and maximal exercises never scale.",
