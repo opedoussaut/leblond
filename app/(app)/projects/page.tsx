@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BoardProjects } from "@/components/climbing/board-projects";
+import { loadBoardProjects } from "@/lib/data/boards";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { EmptyState, PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
@@ -25,11 +27,12 @@ export default async function ProjectsPage() {
     ? await viewer.supabase.from("attempts").select("problem_id").in("problem_id", ids)
     : { data: [] };
   const r = routeDictionary(locale);
-  const [{ data: routeProjects }, { data: routeGoes }, { gyms }] = await Promise.all([
+  const [{ data: routeProjects }, { data: routeGoes }, { gyms }, boardProjects] = await Promise.all([
     viewer.supabase.from("route_projects").select("id, route_name, grade, goal_style, status, started_at, gyms(name)")
       .order("status").order("started_at", { ascending: false }),
     viewer.supabase.from("route_ascents").select("route_project_id").not("route_project_id", "is", null),
     listGymsWithFavourites(viewer.supabase, viewer.userId),
+    loadBoardProjects(viewer.supabase),
   ]);
   const routeGyms = gyms.filter((g) => g.has_routes)
     .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base", ignorePunctuation: true }))
@@ -85,6 +88,8 @@ export default async function ProjectsPage() {
           <div className="mt-3"><RouteProjectForm gyms={routeGyms} /></div>
         </details>
       </section>
+
+      <BoardProjects locale={locale} projects={boardProjects} />
     </div>
   );
 }

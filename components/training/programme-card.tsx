@@ -41,7 +41,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div>
         <h2 id="programme-heading" className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{h.programmeTitle}</h2>
-        <p className="mt-1 text-2xl font-extrabold tracking-tight">{method}</p>
+        <p className="mt-1 text-2xl font-extrabold tracking-tight">{!view.assessmentId && view.plan ? view.plan.name : method}</p>
         <p className="text-sm text-ink-2">{j.disciplines[view.discipline].label}{view.goal ? " · " + view.goal : ""}</p>
       </div>
       <p className="rounded-full bg-accent-soft px-3 py-1 text-sm font-black tabular-nums text-accent">{fmt(h.week, { week: view.week, total: view.horizonWeeks })}</p>
@@ -77,7 +77,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
         <Link href="/programmes#plans-heading" className={cn(linkClass, "mt-2 min-h-11 text-sm")}>{h.edit} <IconNext /></Link>
       </> : <div className="mt-2 space-y-2">
         <p className="text-sm text-ink-2">{h.noPlan}</p>
-        <CreateProgrammeButton locale={locale} assessmentId={view.assessmentId} />
+        {view.assessmentId ? <CreateProgrammeButton locale={locale} assessmentId={view.assessmentId} /> : null}
       </div>}
     </div>
 

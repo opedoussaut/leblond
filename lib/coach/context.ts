@@ -1,3 +1,4 @@
+import type { boardCoachSummary } from "@/lib/analytics/boards";
 import type { coachSummary } from "@/lib/analytics/alter-ego";
 import {
   DEFAULT_TREND_RULE,
@@ -62,8 +63,9 @@ export type QuickAction = (typeof QUICK_ACTIONS)[number];
 
 export interface RecentSessionInput {
   id: string;
-  /** BOULDER sessions carry problems/tops/flashes/attempts; ROUTE sessions carry `routes`. */
-  discipline?: "BOULDER" | "ROUTE";
+  /** BOULDER sessions carry problems/tops/flashes/attempts; ROUTE sessions carry `routes`; BOARD sessions carry `board`. */
+  discipline?: "BOULDER" | "ROUTE" | "BOARD";
+  board?: { name: string; angle: number | null; climbs: number; sends: number; flashes: number; top: { grade: string; scale: string }[] } | null;
   routes?: { climbed: number; clean: number; onsights: number; hardestClean: string | null } | null;
   startedAt: string;
   gymName: string;
@@ -324,6 +326,8 @@ export interface CoachContextInput {
   activeRouteProjects?: Array<{ name: string; grade: string; goalStyle: string; gymName: string; goes: number }>;
   quickAction?: QuickAction | null;
   alterEgo?: ReturnType<typeof coachSummary> | null;
+  /** Board work, already computed by lib/analytics/boards (Patrick reads it, never computes it). */
+  boards?: ReturnType<typeof boardCoachSummary> | null;
   training?: CoachTrainingInput | null;
   mobility?: CoachMobilityInput | null;
   now: Date;
@@ -521,6 +525,7 @@ export function buildCoachContext(input: CoachContextInput) {
       : null,
     quickAction: input.quickAction ?? null,
     alterEgo: input.alterEgo ?? null,
+    boards: input.boards && input.boards.sessions > 0 ? input.boards : null,
     training: trainingContext(input.training),
     mobility: mobilityContext(input.mobility),
   };

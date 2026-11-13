@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
 import { AlterEgoScore } from "@/components/training/alter-ego-score";
+import { FollowProgramme } from "@/components/training/follow-programme";
 import { PlanEditor } from "@/components/training/plan-editor";
 import { ProgrammeCard, ReplanBanner } from "@/components/training/programme-card";
 import { PageHeader } from "@/components/ui/card";
@@ -9,7 +10,8 @@ import { cn } from "@/components/ui/cn";
 import { IconCheck, IconNext } from "@/components/ui/icons";
 import { pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
-import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { rivalStanding } from "@/lib/analytics/rival";
 import { loadProgramme } from "@/lib/data/programme";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
@@ -47,10 +49,10 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
   const addMethod = typeof sp.add === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.add) ? sp.add : "";
   const today = localDate_(new Date());
 
-  const [sessions, { count: assessments }, pact, work, programme, { data: mobility }, { data: assessment }, plansResult] = await Promise.all([
+  const [sessions, { count: assessments }, rival, work, programme, { data: mobility }, { data: assessment }, plansResult] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
     viewer.supabase.from("training_assessments").select("id", { count: "exact", head: true }),
-    loadOpenPact(viewer.supabase),
+    loadOpenRival(viewer.supabase),
     loadClimberWork(viewer.supabase),
     loadProgramme(viewer.supabase, today),
     viewer.supabase.from("mobility_enrollments").select("working_level,status").eq("programme", HIP_PROGRAMME).maybeSingle(),
@@ -58,6 +60,10 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
     viewer.supabase.from("training_assessments").select("context").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     viewer.supabase.from("training_plans").select(`${PLAN_COLUMNS}, updated_at`).order("updated_at", { ascending: false }).limit(20),
   ]);
+  // Kept apart so the page still works before the followed-programme migration.
+  const { data: followedRow } = await viewer.supabase.from("training_plans").select("id, followed_since")
+    .not("followed_since", "is", null).limit(1).maybeSingle();
+  const followed = followedRow?.followed_since ? { id: followedRow.id, since: followedRow.followed_since } : null;
   const health = healthFromContext(parseContext(assessment?.context ?? null));
   const plans: SavedTrainingPlan[] = (plansResult.data ?? []).flatMap((row) => {
     const parsed = planFromRow(row);
@@ -93,8 +99,10 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
     {programme.replan.suggested ? <ReplanBanner locale={locale} replan={programme.replan} /> : null}
 
     <ProgrammeCard locale={locale} view={view} today={today} />
+    <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: p.name }))} followed={followed} today={today} />
 
-    {pact ? <AlterEgoScore locale={locale} pact={pact} progress={pactProgress(pact, work, today)} href="/train/alter-ego" />
+    {rival ? <AlterEgoScore locale={locale} pact={rival.pact} portrait={rival.settings.portrait} href="/train/alter-ego"
+      progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today) }} />
       : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>

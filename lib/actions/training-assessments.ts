@@ -12,6 +12,8 @@ import { healthFromContext } from "@/lib/training/health";
 import type { PlanSession } from "@/lib/training/plans";
 import { availabilityOf, proposeProgramme } from "@/lib/training/programme";
 import type { Viewer } from "@/lib/auth/viewer";
+import { setFollowedPlan } from "@/lib/data/programme";
+import { localDate_ } from "@/lib/training/sessions";
 
 type Result = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "not_found" | "unknown" };
 /** `planId` is null when the weekly template could not be saved (e.g. the 20-plan limit). */
@@ -28,7 +30,10 @@ async function insertProgrammePlan(viewer: Viewer, assessmentId: string, goal: s
   const { data, error } = await viewer.supabase.from("training_plans")
     .insert({ user_id: viewer.userId, name, goal, weeks: Math.min(52, weeks), sessions, assessment_id: assessmentId })
     .select("id").single();
-  return error || !data ? null : data.id;
+  if (error || !data) return null;
+  // A new full assessment's programme becomes the one in progress, as before.
+  await setFollowedPlan(viewer.supabase, viewer.userId, data.id, localDate_(new Date()));
+  return data.id;
 }
 
 export async function createTrainingAssessment(input: unknown): Promise<AssessmentResult> {

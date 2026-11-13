@@ -10,6 +10,8 @@ import { startSession } from "@/lib/actions/sessions";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { PastSession } from "./past-session";
+import { BoardStart } from "@/components/climbing/board-start";
+import { boardsDictionary } from "@/lib/i18n/boards";
 import type { Tables } from "@/lib/supabase/database.types";
 import { segmentClass, tileClass } from "@/components/ui/button";
 
@@ -24,7 +26,7 @@ export function StartSession({
   favouriteIds: string[];
   areas: AreaItem[];
   sites: OutdoorSite[];
-  initialTab: "gym" | "outdoor" | "past";
+  initialTab: "gym" | "outdoor" | "board" | "past";
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -32,7 +34,7 @@ export function StartSession({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState(false);
-  const [tab, setTab] = useState<"gym" | "outdoor" | "past">(initialTab);
+  const [tab, setTab] = useState<"gym" | "outdoor" | "board" | "past">(initialTab);
   const e = sessionEditDictionary(locale);
 
   const begin = (gymId: string, discipline: "BOULDER" | "ROUTE" = "BOULDER") =>
@@ -44,11 +46,12 @@ export function StartSession({
 
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label={t.session.whereToday} className="grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
+      <div role="tablist" aria-label={t.session.whereToday} className="grid grid-cols-4 gap-1 rounded-2xl bg-surface-2 p-1">
         {(
           [
             ["gym", t.outdoor.tabGym],
             ["outdoor", t.outdoor.tabOutdoor],
+            ["board", boardsDictionary(locale).tab],
             ["past", e.pastTab],
           ] as const
         ).map(([key, label]) => (
@@ -67,6 +70,9 @@ export function StartSession({
       {error ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
       {tab === "past" ? (
         <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} />
+      ) : tab === "board" ? (
+        <BoardStart gyms={[...gyms].sort((x, y) => Number(favouriteIds.includes(y.id)) - Number(favouriteIds.includes(x.id)))
+          .map((g) => ({ id: g.id, name: g.name }))} />
       ) : tab === "gym" ? (
         <>
           <GymPicker mode="pick" gyms={gyms} favouriteIds={favouriteIds} pending={pending}

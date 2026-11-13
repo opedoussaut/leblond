@@ -6,11 +6,15 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { routeAscentsInLastDays, routeWorkingGrade, summarizeRoutes } from "@/lib/analytics/routes";
 import { coachSummary, pactProgress } from "@/lib/analytics/alter-ego";
-import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { rivalStanding } from "@/lib/analytics/rival";
 import { loadProgramme } from "@/lib/data/programme";
 import { currentPlan, loadMobility } from "@/lib/data/mobility";
 import { resolveNormalized } from "@/lib/grading";
 import { localDate_ } from "@/lib/training/sessions";
+import { boardCoachSummary, summarizeBoardSession } from "@/lib/analytics/boards";
+import { BOARD_NAMES, type Board } from "@/lib/climbing/boards";
+import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
 
 /**
@@ -22,7 +26,10 @@ export async function assembleCoachContext(
   opts: { sessionId?: string | null; projectId?: string | null; routeProjectId?: string | null; quickAction?: QuickAction | null },
 ) {
   const now = new Date();
-  const [data, routeAscents] = await Promise.all([loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase)]);
+  const [data, routeAscents, boardRows] = await Promise.all([
+    loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
+  ]);
+  const boardFacts = boardRows.map(toBoardFact);
   const routes = routeAscents ?? [];
   const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
   const snapshot30 = computeSnapshot(data, target, now, 30);
@@ -32,7 +39,7 @@ export async function assembleCoachContext(
 
   const { data: sessionRows } = await viewer.supabase
     .from("sessions")
-    .select("id, started_at, ended_at, gym_id, discipline, duration_minutes, perceived_energy_before, perceived_energy_after, fatigue, motivation, notes")
+    .select("id, started_at, ended_at, gym_id, discipline, duration_minutes, perceived_energy_before, perceived_energy_after, fatigue, motivation, notes, board, board_angle")
     .order("started_at", { ascending: false })
     .limit(8);
 
@@ -41,9 +48,11 @@ export async function assembleCoachContext(
     const c = countActivity(data.attempts.filter((a) => a.sessionId === s.id));
     const g = gymById.get(s.gym_id);
     const rs = s.discipline === "ROUTE" ? summarizeRoutes(routes.filter((a) => a.sessionId === s.id)) : null;
+    const bs = s.discipline === "BOARD" ? summarizeBoardSession(boardFacts.filter((f) => f.sessionId === s.id)) : null;
     return {
       id: s.id,
       discipline: s.discipline,
+      board: bs && s.board ? { name: BOARD_NAMES[s.board as Board], angle: s.board_angle, climbs: bs.climbs, sends: bs.sends, flashes: bs.flashes, top: bs.top } : null,
       routes: rs ? { climbed: rs.ascents, clean: rs.clean, onsights: rs.onsights, hardestClean: rs.highestClean?.grade ?? null } : null,
       startedAt: s.started_at,
       gymName: g?.name ?? "",
@@ -77,7 +86,7 @@ export async function assembleCoachContext(
     const { data: row } = await viewer.supabase.from("sessions").select("id, started_at, ended_at, gym_id, discipline, notes")
       .eq("id", focusSessionId).maybeSingle();
     if (row?.discipline === "ROUTE") routeFocusRow = { ...row, duration_minutes: null, perceived_energy_before: null,
-      perceived_energy_after: null, fatigue: null, motivation: null };
+      perceived_energy_after: null, fatigue: null, motivation: null, board: null, board_angle: null };
   }
   if (routeFocusRow?.discipline === "ROUTE") {
     const { data: rows } = await viewer.supabase.from("route_ascents")
@@ -196,9 +205,12 @@ export async function assembleCoachContext(
     }
   }
 
-  const pact = await loadOpenPact(viewer.supabase);
+  const rival = await loadOpenRival(viewer.supabase);
+  const pact = rival?.pact ?? null;
   const today = localDate_(now);
-  const pactState = pact ? pactProgress(pact, await loadClimberWork(viewer.supabase), today) : null;
+  const climberWork = pact ? await loadClimberWork(viewer.supabase) : [];
+  // The gap at the rival's level, computed here; Patrick only reads it.
+  const pactState = rival ? { ...pactProgress(rival.pact, climberWork, today), standing: rivalStanding(rival.pact, rival.settings, climberWork, today) } : null;
   const [programme, mobility] = await Promise.all([loadProgramme(viewer.supabase, today), loadMobility(viewer.supabase, today)]);
   const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobility.records.length > 0;
 
@@ -225,6 +237,7 @@ export async function assembleCoachContext(
     focusRouteProject,
     activeRouteProjects,
     quickAction: opts.quickAction ?? null,
+    boards: boardFacts.length ? boardCoachSummary(boardFacts, now) : null,
     alterEgo: pact && pactState ? coachSummary(pact, today, pactState.standing, pactState.easeOff) : null,
     training: { view: programme.view, lastCheck: programme.recentChecks[0] ?? null, replanSuggested: programme.replan.suggested },
     mobility: mobilityUsed ? {

@@ -5,7 +5,13 @@ import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
-import { loadClimberWork, loadOpenPact } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { RivalFeed } from "@/components/training/rival-feed";
+import { RivalSettingsForm } from "@/components/training/rival-settings";
+import { rivalBoulderGrade, rivalFeed, rivalStanding, weeklyDuels } from "@/lib/analytics/rival";
+import { BOARD_NAMES, BOARD_SHORT, type Board } from "@/lib/climbing/boards";
+import { loadBoardAscents, loadBoardProjects } from "@/lib/data/boards";
+import { addDays } from "@/lib/training/programme";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { formatDate } from "@/lib/format";
@@ -26,7 +32,8 @@ export default async function AlterEgoPage() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const t = alterEgoDictionary(locale);
   const today = localDate_(new Date());
-  const pact = await loadOpenPact(viewer.supabase);
+  const rival = await loadOpenRival(viewer.supabase);
+  const pact = rival?.pact ?? null;
   const back = <Link href="/programmes" className={cn(linkClass, "text-sm")}><IconBack /> Programmes</Link>;
 
   if (!pact) {
@@ -49,21 +56,42 @@ export default async function AlterEgoPage() {
   }
 
   const now = new Date();
-  const [work, dataset, routes] = await Promise.all([
+  const settings = rival!.settings;
+  const [work, dataset, routes, boardRows, boardProjects, { data: boulderProjects }, { data: routeProjects }] = await Promise.all([
     loadClimberWork(viewer.supabase), loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase),
+    loadBoardAscents(viewer.supabase, 500), loadBoardProjects(viewer.supabase, "ACTIVE"),
+    viewer.supabase.from("projects").select("problems(name, native_grade)").eq("status", "ACTIVE").limit(20),
+    viewer.supabase.from("route_projects").select("route_name").eq("status", "ACTIVE").limit(20),
   ]);
-  const progress = pactProgress(pact, work, today);
+  const base = pactProgress(pact, work, today);
+  // The score at the rival's level (À ta portée never runs away).
+  const progress = { ...base, standing: rivalStanding(pact, settings, work, today) };
+  const lastBoard = boardRows[boardRows.length - 1];
+  const projects = [
+    ...(boulderProjects ?? []).map((p) => p.problems?.name || p.problems?.native_grade || "").filter(Boolean),
+    ...(routeProjects ?? []).map((p) => p.route_name),
+    ...boardProjects.map((p) => `${p.climb_name} (${BOARD_SHORT[p.board as Board]} ${p.angle}°)`),
+  ];
+  const weekdays = Array.from({ length: 7 }, (_, i) => formatDate(`2026-11-${String(16 + i).padStart(2, "0")}T12:00:00`, locale, { weekday: "long" }));
+  const feed = rivalFeed({ pact, settings, work, today, projects, weekdays,
+    board: lastBoard ? { name: BOARD_NAMES[lastBoard.board as Board], angle: lastBoard.angle } : null });
+  const duels = weeklyDuels(pact, settings, work, today);
+  const lastGym = dataset.sessions.length ? dataset.gyms.find((g) => g.id === dataset.sessions[dataset.sessions.length - 1]?.gymId)?.name ?? null : null;
   const snapshot = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 60);
 
   return <div className="space-y-5">
     {back}
     <PageHeader title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={progress.easeOff ? null : rivalBoulderGrade(pact, settings, today)}
+      gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress}
       observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
     {progress.next && !progress.easeOff ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
       {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}
     </p> : null}
     {progress.easeOff ? null : <p className="text-sm font-semibold text-ink-2">{t.gapNote}</p>}
+    <RivalSettingsForm locale={locale} pactId={pact.id} initial={settings} today={today}
+      hasBoulderGrades={!!pact.startBoulderGrade && !!pact.targetBoulderGrade} />
     <PactControls locale={locale} id={pact.id} status={pact.status} over={progress.over} />
     <p className="text-xs leading-relaxed text-ink-3">
       {fmt(t.trained, { gain: Math.round(pact.progression.maxGain * 100) })} {t.fiction}
