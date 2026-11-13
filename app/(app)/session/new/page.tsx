@@ -61,7 +61,7 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
     ]);
     const where = sp.where;
     const initialTab =
-      where === "past" ? "past"
+      where === "past" ? "past" : where === "board" ? "board"
       : where === "outdoor" || (where !== "gym" && last?.gyms?.external_provider) ? "outdoor" : "gym";
     return (
       <div>

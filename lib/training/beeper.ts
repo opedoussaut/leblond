@@ -18,6 +18,11 @@ const TONES: Record<Tone, Note[]> = {
   pip: [{ hz: 880, seconds: 0.09, offset: 0 }],
   go: [{ hz: 1320, seconds: 0.4, offset: 0 }],
   stop: [{ hz: 660, seconds: 0.3, offset: 0 }],
+  // The rival passing you: two quick falling notes, unlike any timer beep.
+  rival: [
+    { hz: 988, seconds: 0.12, offset: 0 },
+    { hz: 740, seconds: 0.2, offset: 0.14 },
+  ],
   end: [
     { hz: 1320, seconds: 0.15, offset: 0 },
     { hz: 1320, seconds: 0.15, offset: 0.22 },

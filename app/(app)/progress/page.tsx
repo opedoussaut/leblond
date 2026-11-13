@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { BoardProgress } from "@/components/climbing/board-progress";
+import { boardPyramids } from "@/lib/analytics/boards";
+import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { RatioBars } from "@/components/charts/ratio-bars";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
@@ -25,8 +28,14 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const sp = await searchParams;
   const periodKey = (typeof sp.period === "string" && sp.period in PERIODS ? sp.period : "90") as keyof typeof PERIODS;
-  const [data, routes] = await Promise.all([loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase)]);
+  const [data, routes, boardRows] = await Promise.all([
+    loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
+  ]);
   const now = new Date();
+  const days = PERIODS[periodKey];
+  const boardSince = days === null ? 0 : now.getTime() - days * 86_400_000;
+  const pyramids = boardPyramids(boardRows.map(toBoardFact).filter((f) => f.climbedAt.getTime() >= boardSince));
+  const periodLabel = periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all;
   const snap = computeSnapshot(
     data,
     { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system },
@@ -298,6 +307,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
       )}
       {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
         title={(locale === "fr" ? "Voie" : "Routes") + " · " + (periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all)} /> : null}
+      <BoardProgress locale={locale} pyramids={pyramids} title={"Board · " + periodLabel} />
     </div>
   );
 }

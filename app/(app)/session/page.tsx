@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { summarizeBoardSession } from "@/lib/analytics/boards";
+import { BOARD_SHORT, type Board } from "@/lib/climbing/boards";
+import { BOARD_ASCENT_COLUMNS, toBoardFact, type BoardAscentRow } from "@/lib/data/boards";
+import { boardsDictionary } from "@/lib/i18n/boards";
 import { LinkButton, chipClass, linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -39,18 +43,23 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
   const [{ data: sessions }, training] = await Promise.all([
     viewer.supabase
       .from("sessions")
-      .select("id, started_at, ended_at, duration_minutes, discipline, title, gyms(name, brand)")
+      .select("id, started_at, ended_at, duration_minutes, discipline, title, board, board_angle, gyms(name, brand)")
       .order("started_at", { ascending: false })
       .limit(50),
     listTrainingSessions(viewer.supabase, 100),
   ]);
   const ids = (sessions ?? []).map((s) => s.id);
-  const [{ data: attempts }, { data: routeRows }] = ids.length
+  const boardIds = (sessions ?? []).filter((s) => s.discipline === "BOARD").map((s) => s.id);
+  const [{ data: attempts }, { data: routeRows }, { data: boardRows }] = ids.length
     ? await Promise.all([
       viewer.supabase.from("attempts").select("*").in("session_id", ids),
       viewer.supabase.from("route_ascents").select("id, session_id, grade, style, result, falls, created_at").in("session_id", ids),
+      boardIds.length ? viewer.supabase.from("board_ascents").select(BOARD_ASCENT_COLUMNS).in("session_id", boardIds)
+        : Promise.resolve({ data: [] as BoardAscentRow[] }),
     ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] as BoardAscentRow[] }];
+  const boardFacts = ((boardRows ?? []) as BoardAscentRow[]).map(toBoardFact);
+  const b = boardsDictionary(locale);
   const facts = (attempts ?? []).map(toAttemptFact);
   const routeFacts = (routeRows ?? []).map((x) => ({ id: x.id, sessionId: x.session_id, grade: x.grade, style: x.style,
     result: x.result, falls: x.falls, createdAt: new Date(x.created_at) }));
@@ -178,15 +187,20 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
               const s = item.s;
               const c = countActivity(facts.filter((f) => f.sessionId === s.id));
               const rs = s.discipline === "ROUTE" ? summarizeRoutes(routeFacts.filter((f) => f.sessionId === s.id)) : null;
+              const bs = s.discipline === "BOARD" ? summarizeBoardSession(boardFacts.filter((f) => f.sessionId === s.id)) : null;
+              const boardName = s.board ? fmt(b.journalLabel, { board: BOARD_SHORT[s.board as Board], angle: s.board_angle ?? "" }) : "";
               return (
                 <li key={"c" + s.id}>
                   <Link href={`/session/${s.id}`} className={rowClass}>
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate font-semibold">{s.title ? `${s.title} · ${s.gyms?.name ?? ""}` : s.gyms?.name}</span>
+                      <span className="truncate font-semibold">{bs ? boardName : s.title ? `${s.title} · ${s.gyms?.name ?? ""}` : s.gyms?.name}</span>
                       {kindChip("climb")}
                     </div>
                     <p className="mt-1 text-sm tabular-nums text-ink-2">
-                      {formatDateTime(s.started_at, locale)} · {rs ? <>
+                      {formatDateTime(s.started_at, locale)} · {bs ? <>
+                        {s.gyms?.name} · {formatDuration(s.duration_minutes)} · {fmt(b.journalSummary, { climbs: bs.climbs, sends: bs.sends })}
+                        {bs.top.length ? ` · max ${bs.top.map((x) => x.grade).join(" / ")}` : ""}
+                      </> : rs ? <>
                         {r.route} · {formatDuration(s.duration_minutes)} · {rs.ascents} {r.climbed} · {rs.clean} {r.clean}
                         {rs.highestClean ? ` · max ${rs.highestClean.grade}` : ""}
                       </> : <>

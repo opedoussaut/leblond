@@ -3,12 +3,14 @@ import type { Pact, PactProgress } from "@/lib/analytics/alter-ego";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { IconNext } from "@/components/ui/icons";
+import type { RivalPortrait as RivalPortraitId } from "@/lib/analytics/rival";
+import { RivalPortrait } from "./rival-portrait";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href }: {
-  locale: Locale; pact: Pact; progress: PactProgress;
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait }: {
+  locale: Locale; pact: Pact; progress: PactProgress; portrait?: RivalPortraitId;
   observed?: { boulder: string | null; route: string | null }; href?: "/train/alter-ego";
 }) {
   const t = alterEgoDictionary(locale);
@@ -25,11 +27,14 @@ export function AlterEgoScore({ locale, pact, progress, observed, href }: {
     { label: t.route, pace: progress.routePace, you: observed?.route ?? null },
   ].filter((p) => p.pace);
   return <section aria-labelledby="ego-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-    <div>
+    <div className="flex items-center gap-3">
+      {portrait ? <RivalPortrait portrait={portrait} size={48} /> : null}
+      <div>
       <h2 id="ego-heading" className="text-lg font-bold">{fmt(t.scoreTitle, { name })}</h2>
       <p className="mt-1 text-sm text-ink-2">
         {fmt(t.weekOf, { week: progress.week + 1, total: pact.horizonWeeks })}{pact.status === "PAUSED" ? ` · ${t.paused}` : ""}
       </p>
+      </div>
     </div>
     <p className={"rounded-xl px-4 py-3 text-sm font-semibold " + (progress.easeOff ? "bg-surface-2 text-ink" : "bg-accent-soft text-ink")}>{verdict}</p>
     <table className="w-full text-sm">
