@@ -8,7 +8,7 @@
  */
 import {
   BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
-  Mountain, PersonStanding, Play, Plug, Settings, ShieldCheck, Sun, Target, TrendingUp, UserRound,
+  Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, Sun, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionId, SubPageKey } from "@/lib/navigation/sections";
@@ -17,20 +17,19 @@ export type { LucideIcon };
 
 export const AREA_ICONS: Record<SectionId, LucideIcon> = {
   today: Sun,
-  climbing: Mountain,
-  training: Dumbbell,
+  sessions: Mountain,
+  programmes: Layers,
   progress: TrendingUp,
   patrick: MessageCircle,
 };
 
-export const PAGE_ICONS: Record<SubPageKey, LucideIcon> = {
-  dayCheck: HeartPulse,
+/** Pages named in the navigation, plus a few pages reached from inside an area. */
+export const PAGE_ICONS: Record<SubPageKey | "dayCheck" | "newSession" | "training", LucideIcon> = {
+  journal: List,
   calendar: CalendarDays,
-  session: List,
   projects: Target,
-  trainingSessions: Play,
-  trainingPlans: Layers,
-  atlas: BookOpen,
+  myProgrammes: Layers,
+  library: BookOpen,
   // Under Progrès, the climbing and training pages reuse their domain icon;
   // the area they sit in is shown by colour.
   climbingProgress: Mountain,
@@ -40,6 +39,9 @@ export const PAGE_ICONS: Record<SubPageKey, LucideIcon> = {
   profile: UserRound,
   connections: Plug,
   settings: Settings,
+  dayCheck: HeartPulse,
+  newSession: Plus,
+  training: Dumbbell,
 };
 
 export const AdminIcon = ShieldCheck;

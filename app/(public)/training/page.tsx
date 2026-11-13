@@ -23,7 +23,7 @@ export default async function TrainingLabPage() {
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6">
       <header className="flex items-center justify-between gap-4 border-b border-line pb-5">
         <Link href="/" aria-label="LEBLOND home"><Wordmark /></Link>
-        <Link href="/training-plans" className={buttonClass("primary", "sm")}>
+        <Link href="/programmes" className={buttonClass("primary", "sm")}>
           {t.myPlans}
         </Link>
       </header>
@@ -46,7 +46,7 @@ export default async function TrainingLabPage() {
       <section className="mt-12 rounded-2xl border border-line bg-surface p-6 sm:p-9">
         <h2 className="text-2xl font-bold">{t.saveIntro}</h2>
         <p className="mt-2 max-w-2xl text-ink-2">{t.saveDescription}</p>
-        <Link href="/training-plans" className={buttonClass("primary", "md", "mt-5")}>
+        <Link href="/programmes" className={buttonClass("primary", "md", "mt-5")}>
           {t.myPlans} <IconNext />
         </Link>
       </section>

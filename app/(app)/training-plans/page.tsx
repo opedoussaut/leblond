@@ -1,59 +1,7 @@
-import Link from "next/link";
-import { PAGE_ICONS } from "@/components/layout/nav-icons";
-import { PlanEditor } from "@/components/training/plan-editor";
-import { PageHeader } from "@/components/ui/card";
-import { requireViewer } from "@/lib/auth/viewer";
-import { getI18n } from "@/lib/i18n/server";
-import { trainingDictionary } from "@/lib/i18n/training";
-import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
-import { PLAN_COLUMNS, planFromRow, type SavedTrainingPlan } from "@/lib/training/plans";
-import { localDate_, mondayOf } from "@/lib/training/sessions";
-import { parseContext } from "@/lib/training/assessment-protocol";
-import { healthFromContext } from "@/lib/training/health";
-import { IconBack } from "@/components/ui/icons";
-import { buttonClass, linkClass } from "@/components/ui/button";
-import { journeyDictionary } from "@/lib/i18n/training-journey";
-import { cn } from "@/components/ui/cn";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Programmes" };
-
-export default async function TrainingPlansPage({ searchParams }: PageProps<"/training-plans">) {
-  const viewer = await requireViewer();
-  const { locale } = await getI18n(viewer.profile.preferred_language);
-  const t = trainingDictionary(locale);
+/** Old programmes address: the editor now lives in Programmes; `?add=` (from a method sheet) keeps working. */
+export default async function TrainingPlansRedirect({ searchParams }: PageProps<"/training-plans">) {
   const sp = await searchParams;
-  const addMethod = typeof sp.add === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.add) ? sp.add : "";
-  const today = localDate_(new Date());
-  // Declared health (latest full assessment) feeds the assisted mode's hints.
-  const { data: assessment } = await viewer.supabase.from("training_assessments").select("context")
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
-  const health = healthFromContext(parseContext(assessment?.context ?? null));
-  const { data, error } = await viewer.supabase.from("training_plans")
-    .select(`${PLAN_COLUMNS}, updated_at`)
-    .order("updated_at", { ascending: false })
-    .limit(20);
-
-  const plans: SavedTrainingPlan[] = (data ?? []).flatMap((row) => {
-    const parsed = planFromRow(row);
-    return parsed ? [{ ...parsed, id: row.id, updatedAt: row.updated_at }] : [];
-  });
-
-  return (
-    <div>
-      <Link href="/train" className={cn(linkClass, "text-sm")}><IconBack /> {t.back}</Link>
-      <div className="mt-5">
-        <PageHeader icon={<PAGE_ICONS.trainingPlans />} title={t.planTitle} subtitle={t.plansSubtitle} />
-      </div>
-      {/* The full assessment builds or re-adjusts a programme, so it is one tap away from here. */}
-      <Link href="/train/assess" className={buttonClass("secondary", "sm", "mb-5")}>
-        <PAGE_ICONS.assessment aria-hidden="true" />
-        {assessment ? journeyDictionary(locale).hub.fullAgain : journeyDictionary(locale).hub.fullCta}
-      </Link>
-      {error ? (
-        <p role="alert" className="mt-5 rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{t.unavailable}</p>
-      ) : (
-        <PlanEditor initialPlans={plans} locale={locale} addMethod={addMethod} today={today} monday={mondayOf(today)} health={health} />
-      )}
-    </div>
-  );
+  redirect(typeof sp.add === "string" ? `/programmes?add=${encodeURIComponent(sp.add)}` : "/programmes");
 }

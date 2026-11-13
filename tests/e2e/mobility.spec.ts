@@ -27,8 +27,8 @@ async function register(page: Page, name: string, email: string) {
 test("I — hip mobility: join from Training, run a session, assess, follow up", async ({ page }) => {
   await register(page, "Mobility Starter", "mobility@leblond.local");
 
-  // Offered directly in Training, with no full assessment.
-  await page.goto("/train");
+  // Offered directly in Programmes, with no full assessment.
+  await page.goto("/programmes");
   const card = page.getByRole("region", { name: "Mobilité des hanches — niveau débutant" });
   await expect(card).toBeVisible();
   await card.getByRole("link", { name: /Découvrir le programme/ }).click();

@@ -11,7 +11,7 @@ import { localDate_ } from "@/lib/training/sessions";
 type Result = { ok: true; id: string } | { ok: false; error: "invalid" | "grades" | "open_pact" | "not_found" | "unknown" };
 
 function revalidatePact() {
-  revalidatePath("/train");
+  revalidatePath("/programmes");
   revalidatePath("/train/alter-ego");
 }
 

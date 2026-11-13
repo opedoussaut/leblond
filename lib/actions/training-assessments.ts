@@ -138,8 +138,7 @@ export async function resetTrainingAssessments(confirmation: unknown): Promise<{
 function revalidateAssessments() {
   revalidatePath("/training-assessment");
   revalidatePath("/train/assess");
-  revalidatePath("/train");
+  revalidatePath("/programmes");
   revalidatePath("/train/today");
-  revalidatePath("/training-plans");
   revalidatePath("/follow-up");
 }

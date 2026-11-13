@@ -98,7 +98,7 @@ export default async function FollowUpHome() {
         : recent.length === 0 ? <p className="text-sm text-ink-2">
           {fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
               : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
-          <Link href="/train" className={linkClass}>{fr ? "Découvrir l’entraînement" : "Explore training"}</Link>
+          <Link href="/programmes" className={linkClass}>{fr ? "Découvrir les programmes" : "Explore programmes"}</Link>
         </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
             hint={adh.completionRate === null ? undefined : `${Math.round(adh.completionRate * 100)} %`} />

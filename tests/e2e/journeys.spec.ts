@@ -119,7 +119,7 @@ async function runProtocol(page: Page, hangSeconds: number, pullUps: number) {
 
 test("A — free climber logs a session and sees it in Follow-up without any plan", async ({ page }) => {
   await register(page, "Free Climber", "free@leblond.local");
-  await page.getByRole("link", { name: /Commencer une séance de grimpe/ }).click();
+  await page.getByRole("link", { name: "Nouvelle séance", exact: true }).click();
   await expect(page).toHaveURL(/\/session\/new/);
   await chooseGym(page, "Demo Arkose");
   await expect(page.getByRole("heading", { name: "Demo Arkose" })).toBeVisible();
@@ -427,8 +427,11 @@ test("A6 — faster logging: session name, several problems/routes, tries, comme
 test("A7 — training: record a strength session after the fact, edit it, delete it", async ({ page }) => {
   await signInWithPassword(page, "past@leblond.local");
   const yesterday = parisDate(new Date(Date.now() - 86_400_000));
+  // The old address lands in the journal, filtered to training.
   await page.goto("/train/sessions");
-  await page.getByText("+ Enregistrer une séance déjà faite").click();
+  await expect(page).toHaveURL(/\/session\?type=training$/);
+  await page.getByRole("link", { name: /Ajouter une séance déjà faite/ }).click();
+  await expect(page).toHaveURL(/\/session\/new\?kind=train/);
   const form = page.getByRole("form", { name: "Enregistrer une séance déjà faite" });
   await expect(form.getByLabel("Type de séance")).toHaveValue("strength-conditioning");
   await form.getByLabel("Titre (facultatif)").fill("Renforcement");
@@ -468,7 +471,7 @@ test("A7 — training: record a strength session after the fact, edit it, delete
   // Delete.
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Supprimer", exact: true }).click();
-  await expect(page).toHaveURL(/\/train\/sessions$/);
+  await expect(page).toHaveURL(/\/session\?type=training$/);
   await expect(page.getByRole("link", { name: /Renforcement/ })).toHaveCount(0);
 });
 
@@ -487,19 +490,24 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.setViewportSize(DESKTOP);
   await register(page, "Guided Climber", "guided@leblond.local");
 
-  await page.getByRole("link", { name: /Commencer mon parcours d’entraînement/ }).click();
-  await expect(page).toHaveURL(/\/train$/);
+  // Without a programme, Aujourd’hui invites to follow one.
+  await page.getByRole("link", { name: /Voir les programmes/ }).click();
+  await expect(page).toHaveURL(/\/programmes$/);
   await page.getByRole("link", { name: /Faire mon évaluation complète/ }).first().click();
   await expect(page).toHaveURL(/\/train\/assess/);
   await runProtocol(page, 25, 8);
   await expect(page.getByRole("region", { name: "Profil par niveau de preuve" }).getByText("25 s")).toBeVisible();
 
-  // The full assessment created the programme: S'entraîner shows it, and step 03 is done.
-  await page.goto("/train");
+  // The full assessment created the programme: Programmes shows it, and step 03 is done.
+  await page.goto("/programmes");
   const programme = page.getByRole("region", { name: "Programme en cours" });
   await expect(programme.getByText("Semaine 1 sur 8")).toBeVisible();
   await expect(programme.getByText("Prochaine évaluation complète")).toBeVisible();
+  await page.getByText("Évaluation complète, programme, séances : comment ça s’articule").click();
   await expect(page.getByRole("link", { name: /Choisir mon programme \(fait\)/ })).toBeVisible();
+  // Aujourd’hui no longer invites to follow a programme.
+  await page.goto("/home");
+  await expect(page.getByRole("link", { name: /Voir les programmes/ })).toHaveCount(0);
 
   // Daily readiness (forme du jour): adapts today's session only. It lives on Aujourd’hui.
   await page.goto("/home");
@@ -520,7 +528,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.goto("/atlas/max-hangs");
   await expect(page.getByRole("heading", { name: "Séance type et charge de départ" })).toBeVisible();
   await page.getByRole("link", { name: /Ajouter à un programme/ }).click();
-  await expect(page).toHaveURL(/\/training-plans\?add=max-hangs/);
+  await expect(page).toHaveURL(/\/programmes\?add=max-hangs/);
   await expect(page.getByText(/Méthode ajoutée au programme/)).toBeVisible();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Enregistré en privé")).toBeVisible();
@@ -638,19 +646,18 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
   const area = (name: string) => nav.getByRole("link", { name, exact: true });
   // Five areas, no "Vue d'ensemble" entries: an area link opens its overview.
-  for (const name of ["Aujourd’hui", "Grimper", "S’entraîner", "Progrès", "Patrick"]) await expect(area(name)).toBeVisible();
+  for (const name of ["Aujourd’hui", "Séances", "Programmes", "Progrès", "Patrick"]) await expect(area(name)).toBeVisible();
   await expect(nav.getByRole("link", { name: /Vue d’ensemble/ })).toHaveCount(0);
 
   const steps: Array<{ click: () => Promise<void>; url: RegExp; h1: RegExp; active: string; current: string; visible: string[]; hidden: string[] }> = [
-    { click: () => area("Grimper").click(), url: /\/climbing$/, h1: /Grimper/, active: "Grimper", current: "Grimper", visible: ["Séances", "Projets"], hidden: ["Atlas", "Grimpe"] },
-    { click: () => area("S’entraîner").click(), url: /\/train$/, h1: /S’entraîner/, active: "S’entraîner", current: "S’entraîner", visible: ["Séances", "Programmes", "Atlas"], hidden: ["Projets", "Agenda"] },
-    { click: () => nav.getByRole("link", { name: "Atlas", exact: true }).click(), url: /\/atlas$/, h1: /Training Atlas/, active: "S’entraîner", current: "Atlas", visible: ["Atlas"], hidden: ["Projets"] },
-    { click: () => nav.getByRole("link", { name: "Séances", exact: true }).click(), url: /\/train\/sessions$/, h1: /Séances d’entraînement/, active: "S’entraîner", current: "Séances", visible: ["Programmes"], hidden: ["Évaluations"] },
-    { click: () => area("Aujourd’hui").click(), url: /\/home$/, h1: /Bonjour/, active: "Aujourd’hui", current: "Aujourd’hui", visible: ["Forme du jour", "Agenda"], hidden: ["Atlas"] },
-    { click: () => nav.getByRole("link", { name: "Agenda", exact: true }).click(), url: /\/calendar$/, h1: /Mon agenda/, active: "Aujourd’hui", current: "Agenda", visible: ["Forme du jour"], hidden: ["Programmes"] },
-    { click: () => area("Progrès").click(), url: /\/follow-up$/, h1: /^Progrès$/, active: "Progrès", current: "Progrès", visible: ["Grimpe", "Entraînement", "Évaluations"], hidden: ["Atlas", "Séances"] },
-    { click: () => nav.getByRole("link", { name: "Évaluations", exact: true }).click(), url: /\/training-assessment$/, h1: /Évaluations/, active: "Progrès", current: "Évaluations", visible: ["Grimpe"], hidden: ["Atlas"] },
-    { click: () => area("Patrick").click(), url: /\/patrick$/, h1: /.+/, active: "Patrick", current: "Patrick", visible: [], hidden: ["Grimpe", "Atlas"] },
+    { click: () => area("Séances").click(), url: /\/session$/, h1: /^Journal$/, active: "Séances", current: "Journal", visible: ["Journal", "Agenda", "Projets"], hidden: ["Bibliothèque", "Grimpe"] },
+    { click: () => nav.getByRole("link", { name: "Agenda", exact: true }).click(), url: /\/calendar$/, h1: /Mon agenda/, active: "Séances", current: "Agenda", visible: ["Journal"], hidden: ["Mes programmes"] },
+    { click: () => area("Programmes").click(), url: /\/programmes$/, h1: /^Programmes$/, active: "Programmes", current: "Mes programmes", visible: ["Mes programmes", "Bibliothèque"], hidden: ["Projets", "Agenda"] },
+    { click: () => nav.getByRole("link", { name: "Bibliothèque", exact: true }).click(), url: /\/atlas$/, h1: /^Bibliothèque$/, active: "Programmes", current: "Bibliothèque", visible: ["Mes programmes"], hidden: ["Projets"] },
+    { click: () => area("Aujourd’hui").click(), url: /\/home$/, h1: /Bonjour/, active: "Aujourd’hui", current: "Aujourd’hui", visible: [], hidden: ["Bibliothèque", "Agenda"] },
+    { click: () => area("Progrès").click(), url: /\/follow-up$/, h1: /^Progrès$/, active: "Progrès", current: "Progrès", visible: ["Grimpe", "Entraînement", "Évaluations"], hidden: ["Bibliothèque", "Journal"] },
+    { click: () => nav.getByRole("link", { name: "Évaluations", exact: true }).click(), url: /\/training-assessment$/, h1: /Évaluations/, active: "Progrès", current: "Évaluations", visible: ["Grimpe"], hidden: ["Bibliothèque"] },
+    { click: () => area("Patrick").click(), url: /\/patrick$/, h1: /.+/, active: "Patrick", current: "Patrick", visible: [], hidden: ["Grimpe", "Bibliothèque"] },
   ];
   for (const s of steps) {
     await s.click();
@@ -672,20 +679,28 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await expect(page).toHaveURL(/\/training-assessment$/);
   await expect(area("Progrès")).toHaveAttribute("data-active-area", "true");
   await page.goto("/atlas/repeaters");
-  await expect(nav.getByRole("link", { name: "Atlas", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(area("S’entraîner")).toHaveAttribute("aria-current", "true");
+  await expect(nav.getByRole("link", { name: "Bibliothèque", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(area("Programmes")).toHaveAttribute("aria-current", "true");
   // Old URLs keep working and land in their new area.
   await page.goto("/train/assess");
-  await expect(area("Progrès")).toHaveAttribute("data-active-area", "true");
-  await expect(nav.getByRole("link", { name: "Évaluations", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(area("Programmes")).toHaveAttribute("data-active-area", "true");
+  await expect(nav.getByRole("link", { name: "Mes programmes", exact: true })).toHaveAttribute("aria-current", "page");
   await page.goto("/train/today");
   await expect(area("Aujourd’hui")).toHaveAttribute("data-active-area", "true");
-  await expect(nav.getByRole("link", { name: "Forme du jour", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(area("Aujourd’hui")).toHaveAttribute("aria-current", "true");
+  for (const [from, to, owner] of [["/climbing", /\/session\?type=climb$/, "Séances"], ["/train", /\/programmes$/, "Programmes"],
+    ["/training-plans", /\/programmes$/, "Programmes"], ["/train/sessions", /\/session\?type=training$/, "Séances"]] as const) {
+    await page.goto(from);
+    await expect(page).toHaveURL(to);
+    await expect(area(owner)).toHaveAttribute("data-active-area", "true");
+  }
+  await page.goto("/train/sessions?method=max-hangs");
+  await expect(page).toHaveURL(/\/session\/new\?kind=train&method=max-hangs$/);
 
   // Keyboard: activate an area with Enter; focus lands on the new heading.
-  await area("Grimper").focus();
+  await area("Séances").focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/climbing$/);
+  await expect(page).toHaveURL(/\/session$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
 
   // Account menu at the foot of the sidebar: aria-expanded, keyboard, Esc.
@@ -729,20 +744,25 @@ test("C — mobile: bottom bar, every sub-page on screen, account menu in the he
   const bottom = page.getByRole("navigation", { name: "Navigation principale" });
   const sub = page.getByRole("navigation", { name: "Pages de cette section" });
   await expect(bottom.getByRole("link")).toHaveCount(5);
-  await expect(sub.getByRole("link", { name: "Forme du jour" })).toBeVisible();
+  // Aujourd’hui has no sub-pages.
+  await expect(sub).toHaveCount(0);
+  await bottom.getByRole("link", { name: "Séances" }).click();
+  await expect(page).toHaveURL(/\/session$/);
+  await expect(page.locator("#app-main h1")).toBeFocused();
+  await expect(sub.getByRole("link", { name: "Journal" })).toHaveAttribute("aria-current", "page");
   await expect(sub.getByRole("link", { name: "Agenda" })).toBeVisible();
-  await bottom.getByRole("link", { name: "S’entraîner" }).click();
-  await expect(page).toHaveURL(/\/train$/);
+  await expect(sub.getByRole("link", { name: "Bibliothèque" })).toHaveCount(0);
+  await bottom.getByRole("link", { name: "Programmes" }).click();
+  await expect(page).toHaveURL(/\/programmes$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
-  await expect(sub.getByRole("link", { name: "Atlas" })).toBeVisible();
   await expect(sub.getByRole("link", { name: "Projets" })).toHaveCount(0);
-  await sub.getByRole("link", { name: "Programmes" }).click();
-  await expect(page).toHaveURL(/\/training-plans$/);
+  await sub.getByRole("link", { name: "Bibliothèque" }).click();
+  await expect(page).toHaveURL(/\/atlas$/);
   await expect(page.locator("#app-main h1")).toBeFocused();
-  await expect(sub.getByRole("link", { name: "Programmes" })).toHaveAttribute("aria-current", "page");
+  await expect(sub.getByRole("link", { name: "Bibliothèque" })).toHaveAttribute("aria-current", "page");
   await bottom.getByRole("link", { name: "Progrès" }).click();
   await expect(page).toHaveURL(/\/follow-up$/);
-  await expect(sub.getByRole("link", { name: "Programmes" })).toHaveCount(0);
+  await expect(sub.getByRole("link", { name: "Bibliothèque" })).toHaveCount(0);
   await expect(bottom.locator("[data-active-area=true]")).toHaveText(/Progrès/);
   // Every page of the area is on screen at 375 px: nothing is hidden off to the side.
   for (const name of ["Grimpe", "Entraînement", "Évaluations"]) {
@@ -793,7 +813,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   await signInWithPassword(page, "guided@leblond.local");
   for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
-    for (const p of ["/home", "/climbing", "/session", "/session/new", "/projects", "/train", "/train/today", "/train/assess", "/train/sessions", "/training-plans",
+    for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
       "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
       "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
@@ -818,7 +838,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   }
   // Mobile training controls are large enough for chalky fingers.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/train/sessions");
+  await page.goto("/session/new?kind=train");
   await page.getByRole("button", { name: /Commencer maintenant/ }).click();
   await expect(page.getByRole("timer")).toBeVisible();
   for (const name of [/Valider la série/, /Exercice suivant/, /Pause/]) {
@@ -838,7 +858,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
 
 test("F — alter ego: sign a pact, train alongside it, pause and leave", async ({ page }) => {
   await signInWithPassword(page, "guided@leblond.local");
-  await page.goto("/train");
+  await page.goto("/programmes");
   await page.getByRole("link", { name: "Signer un pacte" }).click();
   await expect(page).toHaveURL(/\/train\/alter-ego/);
   await page.getByLabel("Nom de ton alter ego").fill("Double");
@@ -850,10 +870,11 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
   await expect(page.getByText("L’écart n’est qu’un score.", { exact: false })).toBeVisible();
 
-  // The score is on the training page, and the ego trains through the running session.
-  await page.goto("/train");
+  // The score is on the Programmes page, and the ego trains through the running session.
+  await page.goto("/programmes");
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
-  await page.getByRole("link", { name: /Reprendre/ }).click();
+  await page.goto("/session");
+  await page.getByRole("link", { name: /Entraînement en cours/ }).click();
   await expect(page.getByRole("timer")).toBeVisible();
   const lane = page.getByRole("group", { name: "Double s’entraîne avec toi" });
   await expect(lane).toBeVisible();
@@ -861,7 +882,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
 
   // Nothing overflows at the narrowest phone width.
   await page.setViewportSize({ width: 360, height: 740 });
-  for (const p of ["/train/alter-ego", "/train"]) {
+  for (const p of ["/train/alter-ego", "/programmes"]) {
     await page.goto(p);
     await expect(page.locator("#app-main h1")).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -873,8 +894,8 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await page.getByRole("button", { name: "Mettre le pacte en pause" }).click();
   await expect(page.getByRole("button", { name: "Reprendre le pacte" })).toBeVisible();
   await expect(page.getByText(/En pause/)).toBeVisible();
-  await page.goto("/train");
-  await page.getByRole("link", { name: /Reprendre/ }).click();
+  await page.goto("/session");
+  await page.getByRole("link", { name: /Entraînement en cours/ }).click();
   await expect(page.getByRole("timer")).toBeVisible();
   await expect(page.getByRole("group", { name: "Double s’entraîne avec toi" })).toHaveCount(0);
 
@@ -893,7 +914,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
 
 test("G — training plans: assisted mode with phases, then a plan proposed by Patrick", async ({ page }) => {
   await register(page, "Plan Builder", "plans@leblond.local");
-  await page.goto("/training-plans");
+  await page.goto("/programmes");
 
   // No plan yet: choose how to build it.
   await expect(page.getByRole("group", { name: "Comment veux-tu construire ce programme ?" })).toBeVisible();
@@ -983,8 +1004,8 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   // The key opens nothing else.
   expect((await request.post("/api/coach", { headers: auth, data: {} })).status()).toBe(401);
 
-  // The climber finds it in the session list and runs it.
-  await page.goto("/train/sessions");
+  // The climber finds it in the Bibliothèque and runs it.
+  await page.goto("/atlas");
   const coach = page.getByRole("region", { name: "Modèles de séance" });
   await expect(coach.getByText("Haut et bas test")).toBeVisible();
   await coach.getByText("Voir les exercices").click();

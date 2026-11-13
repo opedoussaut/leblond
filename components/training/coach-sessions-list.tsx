@@ -58,7 +58,7 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
         </span>)}</p> : null}
       </details>
       <div className="leblond-actions mt-3">
-        <Link href={`/train/sessions?coach=${s.id}#new-heading`} className={buttonClass("primary", "sm")}>{c.choose}</Link>
+        <Link href={`/session/new?kind=train&coach=${s.id}#new-heading`} className={buttonClass("primary", "sm")}>{c.choose}</Link>
         {s.ownerId === viewerId ? <button type="button" disabled={pending} onClick={() => remove(s.id)} className={buttonClass("ghost", "sm")}>{c.remove}</button> : null}
       </div>
     </li>)}

@@ -25,10 +25,9 @@ export default async function AlterEgoPage() {
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const t = alterEgoDictionary(locale);
-  const fr = locale === "fr";
   const today = localDate_(new Date());
   const pact = await loadOpenPact(viewer.supabase);
-  const back = <Link href="/train" className={cn(linkClass, "text-sm")}><IconBack /> {fr ? "S’entraîner" : "Training"}</Link>;
+  const back = <Link href="/programmes" className={cn(linkClass, "text-sm")}><IconBack /> Programmes</Link>;
 
   if (!pact) {
     const { data: plans } = await viewer.supabase.from("training_plans").select("id, name, weeks").order("updated_at", { ascending: false });
