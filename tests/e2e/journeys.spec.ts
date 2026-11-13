@@ -1102,7 +1102,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await page.getByRole("button", { name: "Signer le pacte" }).click();
   await expect(page.getByRole("heading", { name: /^Max/ })).toBeVisible();
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
-  await expect(page.getByText("Fil de Max")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
   await page.getByText("Réglages du rival").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
