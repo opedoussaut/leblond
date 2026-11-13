@@ -48,6 +48,5 @@ export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, tod
         </li>)}
       </ol> : <p className="mt-2 text-sm text-ink-3">{fmt(r.feedEmpty, { name })}</p>}
     </div>
-    <p className="text-xs leading-relaxed text-ink-3">{fmt(r.safety, { name })}</p>
   </section>;
 }
