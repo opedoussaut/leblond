@@ -34,6 +34,18 @@ select pg_temp.expect_error($$insert into public.sessions (gym_id, discipline, b
 select pg_temp.expect_error($$insert into public.sessions (gym_id, discipline, board)
   select id, 'BOARD', 'WOODY' from public.gyms where external_id = 'home' and external_provider = 'leblond-board'$$, 'an unknown board');
 
+-- The other Aurora boards a BoardLib logbook can come from are accepted.
+insert into public.sessions (id, gym_id, discipline, board, board_angle)
+select 'c7100000-0000-0000-0000-00000000000d', id, 'BOARD', 'DECOY', 40
+from public.gyms where external_id = 'home' and external_provider = 'leblond-board';
+insert into public.board_ascents (session_id, client_id, board, climb_name, climb_key, angle, grade, grade_scale, result)
+values ('c7100000-0000-0000-0000-00000000000d', gen_random_uuid(), 'DECOY', 'Bleu', 'bleu', 40, '6A', 'FONT', 'ATTEMPT');
+insert into public.board_projects (board, climb_name, climb_key, angle, grade, grade_scale)
+values ('TOUCHSTONE', 'Arête', 'arete', 30, 'V4', 'V');
+select pg_temp.expect((select count(*) = 1 from public.board_ascents where board = 'DECOY'), 'a Decoy board climb is stored');
+delete from public.board_projects where board = 'TOUCHSTONE';
+delete from public.sessions where id = 'c7100000-0000-0000-0000-00000000000d';
+
 insert into public.sessions (id, gym_id, discipline, board, board_layout, board_angle)
 select 'c7100000-0000-0000-0000-00000000000a', id, 'BOARD', 'KILTER', 'Original', 40
 from public.gyms where external_id = 'home' and external_provider = 'leblond-board';

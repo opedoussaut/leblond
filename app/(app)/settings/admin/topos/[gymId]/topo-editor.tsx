@@ -13,6 +13,7 @@ import { FONT_SCALE, type FontGrade } from "@/lib/grading/systems";
 import { fmt } from "@/lib/i18n";
 import { topoEditorDictionary, type TopoEditorError } from "@/lib/i18n/topo-editor";
 import { CIRCUIT_COLORS, searchable, type CircuitColor } from "@/lib/integrations/outdoor/boolder";
+import { boulderGrade } from "@/lib/grading/display";
 
 const STEEPNESS = ["", "slab", "wall", "overhang", "roof", "traverse", "other"] as const;
 type Steepness = (typeof STEEPNESS)[number];
@@ -89,7 +90,7 @@ export function TopoEditor({ gymId, initial, logged }: { gymId: string; initial:
                     {logged[r.id] ? `${r.latitude === null ? " · " : ""}${fmt(e.logged, { n: logged[r.id] })}` : ""}
                   </span>
                 </span>
-                <span className="shrink-0 font-black tabular-nums">{r.grade}</span>
+                <span className="shrink-0 font-black tabular-nums">{boulderGrade(r.grade)}</span>
                 <Button size="sm" variant="ghost" aria-label={`${e.edit} ${r.name}`} onClick={() => { setEditing(r.id); setStatus(null); }}>{e.edit}</Button>
               </div>
             )}
@@ -162,7 +163,7 @@ function ProblemForm({ gymId, row, logged = 0, onSaved, onDeleted, onCancel }: {
         <div>
           <Label htmlFor={`${idp}-grade`}>{e.grade}</Label>
           <Select id={`${idp}-grade`} value={grade} onChange={(ev) => setGrade(ev.target.value as FontGrade)}>
-            {grades.map((g) => <option key={g} value={g}>{g}</option>)}
+            {grades.map((g) => <option key={g} value={g}>{boulderGrade(g)}</option>)}
           </Select>
         </div>
         <div>

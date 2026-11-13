@@ -10,6 +10,7 @@ import { importBatches, parseBoardLibCsv, type BoardLibParse } from "@/lib/climb
 import { BOARD_SHORT, BOARDS, type Board } from "@/lib/climbing/boards";
 import { fmt } from "@/lib/i18n";
 import { boardsDictionary } from "@/lib/i18n/boards";
+import { boulderGrade } from "@/lib/grading/display";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -71,7 +72,7 @@ export function BoardImport() {
           <ul className="space-y-1">{parsed.rejected.slice(0, 50).map((r) => <li key={r.line}>{fmt(b.importRejectedLine, { line: r.line, reason: b.importReasons[r.reason] })}</li>)}</ul>
         </details> : null}
         {parsed.rows.length ? <ul className="max-h-64 space-y-1 overflow-auto rounded-xl bg-surface-2 p-3 text-xs">
-          {parsed.rows.slice(0, 30).map((r) => <li key={r.ref}>{r.date} · {BOARD_SHORT[r.board]} {r.angle}° · {r.name} · {r.grade} · {b.results[r.result]}</li>)}
+          {parsed.rows.slice(0, 30).map((r) => <li key={r.ref}>{r.date} · {BOARD_SHORT[r.board]} {r.angle}° · {r.name} · {boulderGrade(r.grade)} · {b.results[r.result]}</li>)}
         </ul> : <p className="text-sm text-ink-3">{b.importEmpty}</p>}
       </div> : null}
     {progress ? <p role="status" className="text-sm font-semibold">{fmt(b.importing, progress)}</p> : null}

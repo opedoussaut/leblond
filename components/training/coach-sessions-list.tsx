@@ -9,6 +9,7 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { demoUrl, musclewikiUrl, type CoachSession } from "@/lib/training/coach-sessions";
+import { MobilityIllustration } from "./mobility-illustrations";
 import { formatClock } from "@/lib/training/sessions";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { IconExternal } from "@/components/ui/icons";
@@ -46,6 +47,7 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
             return <li key={i} className="border-l-2 border-line pl-3">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.block[e.block]}</span>
               <span className="block font-semibold">{e.name}{dose ? <span className="font-normal text-ink-2"> — {dose}</span> : null}</span>
+              {e.illustration ? <MobilityIllustration exerciseId={e.illustration} title={e.name} className="my-1 max-w-[12rem]" /> : null}
               {e.restAfterSeconds && i < s.exercises.length - 1 ? <span className="block text-xs text-ink-2">{fmt(c.restAfter, { d: formatClock(e.restAfterSeconds) })}</span> : null}
               {link ? <a href={link} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "mr-3 text-xs")}>{c.musclewiki} <IconExternal /></a> : null}
               {e.demo && demoUrl(e.demo.url) ? <a href={demoUrl(e.demo.url)!} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "text-xs")}>{fmt(c.demo, { site: e.demo.label })} <IconExternal /></a> : null}

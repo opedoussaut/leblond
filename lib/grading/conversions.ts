@@ -1,5 +1,6 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { FONT_SCALE, gradeSystemKind, type FontGrade } from "./systems";
+import { boulderGrade } from "./display";
 
 /**
  * Indicative Fontainebleau ranges for gym colour circuits.
@@ -66,8 +67,9 @@ export function fontRangeFor(system: GradeSystem, grade: string): FontRange | nu
 }
 
 export function formatFontRange(range: FontRange): string {
-  if (range.openEnded) return `≥ ${range.from}`;
-  return range.from === range.to ? `≈ ${range.from}` : `≈ ${range.from}–${range.to}`;
+  const from = boulderGrade(range.from), to = boulderGrade(range.to);
+  if (range.openEnded) return `≥ ${from}`;
+  return from === to ? `≈ ${from}` : `≈ ${from}–${to}`;
 }
 
 /** Midpoint of a range on the Font scale (used only to order estimates, never as a grade). */

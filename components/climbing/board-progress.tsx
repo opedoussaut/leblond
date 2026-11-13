@@ -2,6 +2,7 @@ import type { BoardPyramid } from "@/lib/analytics/boards";
 import { BOARD_NAMES } from "@/lib/climbing/boards";
 import { fmt, type Locale } from "@/lib/i18n";
 import { boardsDictionary } from "@/lib/i18n/boards";
+import { boulderGrade } from "@/lib/grading/display";
 
 /** Board progress: one pyramid per board, angle and scale (figures from lib/analytics/boards). */
 export function BoardProgress({ locale, pyramids, title }: { locale: Locale; pyramids: BoardPyramid[]; title?: string }) {
@@ -20,7 +21,7 @@ export function BoardProgress({ locale, pyramids, title }: { locale: Locale; pyr
           </figcaption>
           <ul className="mt-3 space-y-1.5">
             {p.rows.map((r) => <li key={r.grade} className="grid grid-cols-[3rem_1fr_auto] items-center gap-2 text-sm">
-              <span className="font-display font-black tabular-nums">{r.grade}</span>
+              <span className="font-display font-black tabular-nums">{boulderGrade(r.grade)}</span>
               <span className="flex justify-center" aria-hidden="true">
                 <span className="h-3 rounded-full bg-accent" style={{ width: `${Math.max(8, Math.round((r.sends / max) * 100))}%` }} />
               </span>

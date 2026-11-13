@@ -47,6 +47,7 @@ import {
 import { listGrades } from "@/lib/grading";
 import { fmt, plural } from "@/lib/i18n";
 import { IconBack, IconCheck, IconComment, IconFlash, IconStar, IconUndo, IconWarn, LiveDot } from "@/components/ui/icons";
+import { boulderGrade } from "@/lib/grading/display";
 
 export type { LiveProblemItem };
 type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
@@ -832,7 +833,7 @@ function TopoQuickAdd({
             {item.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
           </span>
         </span>
-        <span className="leblond-number shrink-0">{item.grade}</span>
+        <span className="leblond-number shrink-0">{boulderGrade(item.grade)}</span>
       </div>
       {priorTries > 0 ? (
         <p className="text-xs text-ink-2">{plural(locale, priorTries, { one: L.priorOne, other: L.priorOther })}</p>
@@ -842,7 +843,7 @@ function TopoQuickAdd({
         <legend className="mb-1.5 text-sm font-semibold">{L.grade}</legend>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" aria-pressed={!own} onClick={() => setOwn(false)} className={choiceClass(!own)}>
-            {fmt(L.gradeTopo, { grade: item.grade })}
+            {fmt(L.gradeTopo, { grade: boulderGrade(item.grade) })}
           </button>
           <button type="button" aria-pressed={own} onClick={() => setOwn(true)} className={choiceClass(own)}>
             {L.gradeMine}
@@ -992,7 +993,7 @@ function GradeGrid({
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
             <span className={cn(levels ? "leblond-number text-2xl" : "text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
-              {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}
+              {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : boulderGrade(g.id)}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-xs font-medium">{t.grades.mystery}</span> : null}
             {fontRangeFor(system, g.id) ? <span className="text-xs font-medium opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}

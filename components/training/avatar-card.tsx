@@ -6,6 +6,7 @@ import { TEST_BY_ID } from "@/lib/training/hip-mobility/assessment";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { AVATAR_RING, AvatarPortrait } from "./avatar-portrait";
+import { boulderGrade } from "@/lib/grading/display";
 
 /**
  * The avatar at a glance: the current colour, the four pillars with their own
@@ -31,9 +32,9 @@ export function AvatarCard({ locale, progress }: { locale: Locale; progress: Ava
     }
     if (!state.next) return <p className="text-xs text-ink-3">{t.pillarTop}</p>;
     return <p className="text-xs text-ink-2">{fmt(pillar === "boulder" ? t.boulderNext : t.routeNext, {
-      grade: state.next.grade, climbs: Math.min(state.next.climbs, CLIMB_RULE.minClimbs), needClimbs: CLIMB_RULE.minClimbs,
+      grade: pillar === "boulder" ? boulderGrade(state.next.grade) : state.next.grade, climbs: Math.min(state.next.climbs, CLIMB_RULE.minClimbs), needClimbs: CLIMB_RULE.minClimbs,
       sessions: Math.min(state.next.sessions, CLIMB_RULE.minSessions), needSessions: CLIMB_RULE.minSessions,
-    })}</p>;
+    })}{pillar === "boulder" ? <>{" "}<Link href="/session/board-plan" className={cn(linkClass, "text-xs")}>{t.boardPlanLink}</Link></> : null}</p>;
   }
 
   return <section aria-labelledby="avatar-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">

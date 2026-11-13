@@ -57,7 +57,8 @@ export type BoardLibParse = {
 
 const BOARD_BY_NAME: Record<string, Board> = {
   kilter: "KILTER", kilterboard: "KILTER", tension: "TENSION", tension2: "TENSION", tensionboard: "TENSION",
-  moon: "MOON", moonboard: "MOON",
+  moon: "MOON", moonboard: "MOON", moon2016: "MOON", moon2017: "MOON", moon2019: "MOON", moon2020: "MOON", moon2024: "MOON",
+  decoy: "DECOY", grasshopper: "GRASSHOPPER", touchstone: "TOUCHSTONE", soill: "SOILL", aurora: "AURORA",
 };
 const truthy = (v: string | undefined) => /^(true|1|yes|y)$/i.test((v ?? "").trim());
 const blank = (v: string | undefined) => { const s = (v ?? "").trim(); return s === "" || /^(none|nan|null)$/i.test(s); };

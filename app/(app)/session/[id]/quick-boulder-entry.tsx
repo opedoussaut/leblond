@@ -14,6 +14,7 @@ import { fmt } from "@/lib/i18n";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { Stepper } from "./route-session";
 import { IconFlash } from "@/components/ui/icons";
+import { boulderGrade } from "@/lib/grading/display";
 
 type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
 export type QuickChoice = { grade: string; count: number; tries: number; outcome: Outcome; notes: string };
@@ -65,7 +66,7 @@ export function QuickBoulderEntry({ system, onSubmit, onClose }: {
             levels ? "min-h-14 leblond-number text-2xl" : "min-h-12 text-xs font-bold",
             isColorSystem(system) && "uppercase",
             grade === g.id ? cn("ring-4 ring-accent ring-offset-2", levels && "border-accent bg-accent text-accent-ink") : "border-line")}>
-          <span>{isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}</span>
+          <span>{isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : boulderGrade(g.id)}</span>
           {fontRangeFor(system, g.id) ? <span className="text-xs font-medium normal-case opacity-90">{formatFontRange(fontRangeFor(system, g.id)!)}</span> : null}
         </button>)}
       </div>

@@ -2,6 +2,7 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import { getGradeDefinition } from "./ordering";
 import { isColorSystem } from "./systems";
+import { boulderGrade } from "./display";
 
 /**
  * Human label for a native grade ("Rouge", "6C+", "Rose", "Niv. 7").
@@ -13,6 +14,7 @@ export function gradeLabel(t: Dictionary, system: GradeSystem, grade: string): s
     return (t.grades.colors as Record<string, string>)[grade] ?? grade;
   }
   if (system === "CLIMBING_DISTRICT_LEVEL") return fmt(t.grades.level, { n: grade });
+  if (system === "FONT") return boulderGrade(grade);
   return grade;
 }
 
