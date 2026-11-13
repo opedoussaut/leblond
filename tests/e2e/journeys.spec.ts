@@ -1105,9 +1105,9 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await page.getByLabel("Nom de ton alter ego").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();
-  await expect(page.getByRole("heading", { name: /^Max/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^Max/ })).toBeVisible();
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
-  await expect(page.getByText("Fil de Max")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
   await page.getByText("Réglages du rival").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
@@ -1116,5 +1116,6 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
   await page.reload();
   await expect(page.getByText("À ta portée · Sans pitié")).toBeVisible();
-  await expect(page.getByText(/La douleur arrête la course/)).toBeVisible();
+  // The climber manages load and pain: no safety footnote under the feed.
+  await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);
 });
