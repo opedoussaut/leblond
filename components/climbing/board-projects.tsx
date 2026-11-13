@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import { fmt, type Locale } from "@/lib/i18n";
 import { boardsDictionary } from "@/lib/i18n/boards";
 import { useI18n } from "@/components/i18n-provider";
+import { boulderGrade } from "@/lib/grading/display";
 
 /** Board projects: a climb (board, name, angle) not sent yet. Sending it in a séance closes it. */
 export function BoardProjects({ locale, projects }: { locale: Locale; projects: BoardProjectRow[] }) {
@@ -29,7 +30,7 @@ export function BoardProjects({ locale, projects }: { locale: Locale; projects: 
     {projects.length ? <ul className="space-y-2">
       {projects.map((p) => <li key={p.id} className="rounded-2xl border border-line bg-surface p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-display text-lg font-black tabular-nums">{p.grade}</span>
+          <span className="font-display text-lg font-black tabular-nums">{boulderGrade(p.grade)}</span>
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{b.projectStatus[p.status as BoardProjectStatus]}</span>
         </div>
         <p className="mt-1 font-semibold">{p.climb_name}</p>

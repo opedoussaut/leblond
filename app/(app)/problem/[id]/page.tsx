@@ -24,6 +24,7 @@ import { MediaGallery } from "@/components/climbing/media-gallery";
 import { ProblemEditor } from "./problem-editor";
 import { IconBack, IconExternal, IconStar } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
+import { boulderGrade } from "@/lib/grading/display";
 
 export default async function ProblemPage({ params }: PageProps<"/problem/[id]">) {
   const { id } = await params;
@@ -101,7 +102,7 @@ export default async function ProblemPage({ params }: PageProps<"/problem/[id]">
             </p>
             {topo.grade !== problem.native_grade ? (
               <p className="text-ink-2">
-                {fmt(teamTopo ? t.outdoor.topoGradeChangedTeam : t.outdoor.topoGradeChanged, { grade: topo.grade })}
+                {fmt(teamTopo ? t.outdoor.topoGradeChangedTeam : t.outdoor.topoGradeChanged, { grade: boulderGrade(topo.grade) })}
               </p>
             ) : null}
             <p className="flex flex-wrap gap-4">

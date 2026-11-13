@@ -10,6 +10,7 @@ import { deleteProblem, updateProblem } from "@/lib/actions/sessions";
 import { STYLE_TAGS, WALL_ANGLES, type GradeSystem, type StyleTag, type WallAngle } from "@/lib/climbing/types";
 import { ESTIMATE_CONFIDENCE_PRESETS, FONT_SCALE, RELIABLE_CONFIDENCE, type EstimateConfidencePreset } from "@/lib/grading";
 import { IconCheck } from "@/components/ui/icons";
+import { boulderGrade } from "@/lib/grading/display";
 
 const URL_PATTERN = String.raw`https://\S+`;
 
@@ -98,7 +99,7 @@ export function ProblemEditor({
             <div>
               <Label htmlFor="p-grade">{t.problem.grade}</Label>
               <Select id="p-grade" name="nativeGrade" defaultValue={problem.nativeGrade}>
-                {FONT_SCALE.map((g) => <option key={g} value={g}>{g}</option>)}
+                {FONT_SCALE.map((g) => <option key={g} value={g}>{boulderGrade(g)}</option>)}
               </Select>
             </div>
           ) : null}
@@ -150,7 +151,7 @@ export function ProblemEditor({
                   <option value="">{t.common.none}</option>
                   {FONT_SCALE.map((g) => (
                     <option key={g} value={g}>
-                      {g}
+                      {boulderGrade(g)}
                     </option>
                   ))}
                 </Select>

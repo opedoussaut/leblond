@@ -1081,6 +1081,25 @@ test("I — board séance on the Kilter, BoardLib import, board projects and pro
   await expect(page.getByTestId("board-import-done")).toContainText("2 bloc(s) ajouté(s), 0 déjà importé(s), 1 séance(s) créée(s).");
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByTestId("board-import-done")).toContainText("0 bloc(s) ajouté(s), 2 déjà importé(s), 0 séance(s) créée(s).");
+
+  // A guided séance: grades toward the next colour, fitted to the time, then ticked as climbs are logged.
+  await page.goto("/session/board-plan");
+  await expect(page.getByTestId("plan-target")).toContainText("Cotation cible :");
+  await expect(page.getByTestId("plan-minutes")).toHaveText("90 min");
+  await page.getByRole("button", { name: "−15 min" }).click();
+  await expect(page.getByTestId("plan-minutes")).toHaveText("75 min");
+  await expect(page.getByTestId("plan-slots").getByText("Échauffement")).toBeVisible();
+  await page.getByRole("button", { name: "Commencer cette séance" }).click();
+  await expect(page.getByRole("heading", { name: "Ta séance prévue" })).toBeVisible();
+  const slots = page.getByTestId("plan-live-slots").getByRole("button");
+  const total = await slots.count();
+  expect(total).toBeGreaterThan(5);
+  await expect(page.getByTestId("plan-progress")).toHaveText(`0/${total} blocs`);
+  await slots.first().click();
+  if (!(await page.getByTestId("board-climb-name").inputValue())) await page.getByTestId("board-climb-name").fill("Échauffement guidé");
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByTestId("plan-progress")).toHaveText(`1/${total} blocs`);
+  await expect(slots.first()).toHaveAttribute("aria-pressed", "true");
 });
 
 test("J — any programme can be the one in progress, and the rival has a face, a voice and a level", async ({ page }) => {
