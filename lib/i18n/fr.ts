@@ -9,6 +9,7 @@ export const fr = {
     patrick: "Patrick “Le Blond”",
     save: "Enregistrer",
     saving: "Enregistrement…",
+    saved: "Enregistré.",
     cancel: "Annuler",
     delete: "Supprimer",
     confirmDelete: "Confirmer la suppression",

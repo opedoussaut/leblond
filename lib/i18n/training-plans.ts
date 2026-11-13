@@ -2,7 +2,7 @@ import type { Locale } from "./index";
 
 /** Strings for the plan editor's three modes, durations, phases, hints and Patrick's proposal. */
 const fr = {
-  modeQuestion: "Comment veux-tu construire ce plan ?",
+  modeQuestion: "Comment veux-tu construire ce programme ?",
   modes: {
     MANUAL: { title: "Je le construis", text: "Tu fixes l’objectif, la durée et chaque séance toi-même." },
     ASSISTED: { title: "Je le construis, avec des conseils", text: "Même éditeur, et LEBLOND te signale au fur et à mesure ce qui mérite attention : récupération, charge, blessures déclarées, structure." },
@@ -10,13 +10,13 @@ const fr = {
   },
   modeBadge: { MANUAL: "Construit par toi", ASSISTED: "Construit avec conseils", PATRICK: "Proposé par Patrick" },
   showHints: "Afficher les conseils pendant que je construis",
-  duration: "Durée du plan",
+  duration: "Durée du programme",
   durationUnit: "Unité de durée",
   durationUnits: { WEEKS: "semaines", MONTHS: "mois", YEARS: "ans" },
   weeksShort: "{n} sem.",
   durationWeeks: "soit {n} semaines",
   phases: "Phases",
-  phasesHint: "Un plan long se découpe en phases (fondations, spécifique, semaine allégée, affûtage…). Chaque phase répète sa propre semaine type.",
+  phasesHint: "Un programme long se découpe en phases (fondations, spécifique, semaine allégée, affûtage…). Chaque phase répète sa propre semaine type.",
   phasesCover: "{planned} semaines planifiées sur {total}.",
   addPhase: "+ Ajouter une phase",
   removePhase: "Supprimer cette phase",
@@ -42,7 +42,7 @@ const fr = {
     longSinglePhase: "{total} semaines avec la même semaine type : découpe en phases de 3 à 5 semaines pour faire évoluer l’entraînement.",
     noRecoveryWeek: "Aucune semaine allégée : prévois-en une entre les blocs pour récupérer et garder la motivation.",
     longBlock: "Bloc de {planned} semaines sans pause : au-delà de 6 semaines, une semaine allégée aide à récupérer.",
-    noTaper: "Le plan finit sur un bloc chargé : une semaine d’affûtage (même séances, moins de volume) avant l’objectif évite d’y arriver fatigué.",
+    noTaper: "Le programme finit sur un bloc chargé : une semaine d’affûtage (même séances, moins de volume) avant l’objectif évite d’y arriver fatigué.",
     noObjective: "Pas d’objectif pour cette phase : fixe-toi quelque chose de vérifiable à la fin.",
     noRestDay: "Aucun jour de repos dans la semaine.",
     intenseInARow: "Deux séances intenses à la suite ({days}) : laisse un jour entre les deux.",
@@ -70,11 +70,11 @@ const fr = {
     asking: "Patrick prépare ta proposition… cela peut prendre une minute.",
     proposal: "Proposition de Patrick : relis-la, modifie ce que tu veux, puis enregistre. Ce n’est pas une prédiction de tes progrès.",
     adjustments: {
-      unknownMethod: "Des exercices hors Atlas ont été gardés comme séances libres.",
+      unknownMethod: "Des exercices hors Atlas ont été gardés sans méthode.",
       healthSwap: "Des séances qui sollicitaient une zone déclarée douloureuse ont été remplacées.",
       weeksFitted: "Les semaines des phases ont été ajustées à la durée choisie.",
       sessionsDropped: "Des séances illisibles ont été retirées.",
-      phasesTrimmed: "Le plan a été limité à 12 phases.",
+      phasesTrimmed: "Le programme a été limité à 12 phases.",
     },
     errors: {
       not_configured: "Patrick n’est pas disponible sur cette installation.",
@@ -91,7 +91,7 @@ const fr = {
 export type PlanModesDictionary = typeof fr;
 
 const en: PlanModesDictionary = {
-  modeQuestion: "How do you want to build this plan?",
+  modeQuestion: "How do you want to build this programme?",
   modes: {
     MANUAL: { title: "I build it", text: "You set the goal, the duration and every session yourself." },
     ASSISTED: { title: "I build it, with hints", text: "Same editor, and LEBLOND flags what deserves attention as you go: recovery, load, declared injuries, structure." },
@@ -99,13 +99,13 @@ const en: PlanModesDictionary = {
   },
   modeBadge: { MANUAL: "Built by you", ASSISTED: "Built with hints", PATRICK: "Proposed by Patrick" },
   showHints: "Show hints while I build",
-  duration: "Plan duration",
+  duration: "Programme duration",
   durationUnit: "Duration unit",
   durationUnits: { WEEKS: "weeks", MONTHS: "months", YEARS: "years" },
   weeksShort: "{n} wk",
   durationWeeks: "that is {n} weeks",
   phases: "Phases",
-  phasesHint: "A long plan is split into phases (base, specific, deload week, taper…). Each phase repeats its own weekly template.",
+  phasesHint: "A long programme is split into phases (base, specific, deload week, taper…). Each phase repeats its own weekly template.",
   phasesCover: "{planned} of {total} weeks planned.",
   addPhase: "+ Add a phase",
   removePhase: "Remove this phase",
@@ -131,7 +131,7 @@ const en: PlanModesDictionary = {
     longSinglePhase: "{total} weeks of the same weekly template: split it into 3 to 5-week phases so the training evolves.",
     noRecoveryWeek: "No deload week: plan one between blocks to recover and stay motivated.",
     longBlock: "A {planned}-week block with no break: past 6 weeks, a deload week helps recovery.",
-    noTaper: "The plan ends on a hard block: a taper week (same sessions, less volume) before the goal avoids arriving tired.",
+    noTaper: "The programme ends on a hard block: a taper week (same sessions, less volume) before the goal avoids arriving tired.",
     noObjective: "No objective for this phase: set something you can check at its end.",
     noRestDay: "No rest day in the week.",
     intenseInARow: "Two intense sessions in a row ({days}): leave a day between them.",
@@ -159,11 +159,11 @@ const en: PlanModesDictionary = {
     asking: "Patrick is preparing your proposal… this can take a minute.",
     proposal: "Patrick’s proposal: review it, change what you like, then save. It is not a prediction of your progress.",
     adjustments: {
-      unknownMethod: "Exercises outside the Atlas were kept as free sessions.",
+      unknownMethod: "Exercises outside the Atlas were kept without a method.",
       healthSwap: "Sessions loading an area you declared painful were replaced.",
       weeksFitted: "The phases’ weeks were adjusted to the chosen duration.",
       sessionsDropped: "Unreadable sessions were removed.",
-      phasesTrimmed: "The plan was limited to 12 phases.",
+      phasesTrimmed: "The programme was limited to 12 phases.",
     },
     errors: {
       not_configured: "Patrick is not available on this installation.",

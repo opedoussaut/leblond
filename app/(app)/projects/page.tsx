@@ -38,7 +38,7 @@ export default async function ProjectsPage() {
   return (
     <div>
       <PageHeader icon={<PAGE_ICONS.projects />} title={t.projects.title} />
-      <h2 className="mb-3 text-lg font-extrabold">{r.boulderProjects}</h2>
+      <h2 className="mb-3 text-lg font-bold">{r.boulderProjects}</h2>
       {projects?.length ? (
         <ul className="space-y-2">
           {projects.map((p) => (
@@ -64,7 +64,7 @@ export default async function ProjectsPage() {
       )}
 
       <section aria-labelledby="route-projects" className="mt-8 space-y-3">
-        <h2 id="route-projects" className="text-lg font-extrabold">{r.projectsTitle}</h2>
+        <h2 id="route-projects" className="text-lg font-bold">{r.projectsTitle}</h2>
         {routeProjects?.length ? <ul className="space-y-2">
           {routeProjects.map((p) => <li key={p.id}>
             <Link href={`/projects/routes/${p.id}`} className="block rounded-2xl border border-line bg-surface p-4 hover:bg-surface-2">

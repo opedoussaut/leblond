@@ -16,7 +16,7 @@ import {
   activeSeconds, formatClock, pick, restRemaining,
   type SaveSetInput, type TrainingExercise, type TrainingSession, type TrainingSet,
 } from "@/lib/training/sessions";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, dangerLinkClass, linkClass, toggleClass } from "@/components/ui/button";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { WARNING_FLAGS, type WarningFlag } from "@/lib/training/hip-mobility/assessment";
 import { VARIANTS, VARIANT_NAMES, type Variant } from "@/lib/training/hip-mobility/prescription";
@@ -25,6 +25,8 @@ import { restBeeps } from "@/lib/training/timer";
 import { AlterEgoLane } from "./alter-ego-lane";
 import { EffortTimer, SoundToggle, useSoundSetting, useWakeLock } from "./effort-timer";
 import { MobilityIllustration } from "./mobility-illustrations";
+import { IconBack, IconCheck, IconExternal, IconNext, IconPause, IconPlay } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 type LoggedValues = Pick<TrainingSet, "reps" | "seconds" | "loadKg" | "edgeMm">
   & Partial<Pick<TrainingSet, "side" | "variant" | "controlled" | "discomfort" | "flags">>;
@@ -280,13 +282,13 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{pausedAt ? t.paused : t.elapsed}</p>
-          <p className="text-3xl font-black tabular-nums tracking-tight" role="timer" aria-live="off">{formatClock(elapsed)}</p>
+          <p className="leblond-number text-3xl tracking-tight" role="timer" aria-live="off">{formatClock(elapsed)}</p>
         </div>
         <div className="flex items-center gap-2">
           <SoundToggle locale={locale} on={sound} onChange={changeSound} />
           <button type="button" onClick={togglePause} aria-pressed={!!pausedAt}
             className={buttonClass("secondary", "md")}>
-            {pausedAt ? "▶ " + t.resumeTimer : "❚❚ " + t.pause}
+            {pausedAt ? <><IconPlay /> {t.resumeTimer}</> : <><IconPause /> {t.pause}</>}
           </button>
         </div>
       </div>
@@ -305,14 +307,14 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
 
     {rest > 0 ? <section role="status" aria-live="polite" className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-center">
       <p className="text-sm font-bold uppercase tracking-[0.12em] text-accent">{betweenExercises ? c.restBetween : t.restTimer}</p>
-      <p className="mt-1 text-5xl font-black tabular-nums text-accent">{formatClock(rest)}</p>
+      <p className="mt-1 leblond-number text-5xl text-accent">{formatClock(rest)}</p>
       {betweenExercises ? <p className="mt-1 text-sm font-semibold text-accent">{fmt(c.nextUp, { name: current.name })}</p> : null}
-      <button type="button" onClick={clearRest} className="mt-3 min-h-12 rounded-full border border-accent/30 bg-surface px-5 text-sm font-bold text-accent">{t.skipRest}</button>
+      <button type="button" onClick={clearRest} className={buttonClass("secondary", "md", "mt-3")}>{t.skipRest}</button>
     </section> : null}
 
     <article className="leblond-premium-surface p-5 sm:p-6" aria-labelledby="current-exercise">
       <p className="leblond-eyebrow text-accent">{t.block[current.block]} · {t.exStatus[current.status]}</p>
-      <h2 id="current-exercise" className="mt-2 text-2xl font-black tracking-tight">{current.name}</h2>
+      <h2 id="current-exercise" className="mt-2 text-2xl font-bold tracking-tight">{current.name}</h2>
       {mob ? <MobilityIllustration exerciseId={mob.exerciseId} title={current.name} className="mt-3" /> : null}
       {targetLine ? <p className="mt-2 text-base font-bold text-ink">{targetLine}</p> : null}
       {current.intensity ? <p className="mt-1 text-sm text-ink-2"><span className="font-semibold">{t.intensity} :</span> {current.intensity}</p> : null}
@@ -331,9 +333,9 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         </details>
       </div> : null}
       {musclewikiUrl(instr.musclewiki) ? <a href={musclewikiUrl(instr.musclewiki)!} target="_blank" rel="noopener noreferrer"
-        className="mr-4 mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{c.musclewiki} ↗</a> : null}
+        className={cn(linkClass, "mr-4 mt-3 text-sm")}>{c.musclewiki} <IconExternal /></a> : null}
       {instr.demo && demoUrl(instr.demo.url) ? <a href={demoUrl(instr.demo.url)!} target="_blank" rel="noopener noreferrer"
-        className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{fmt(c.demo, { site: instr.demo.label })} ↗</a> : null}
+        className={cn(linkClass, "mt-3 text-sm")}>{fmt(c.demo, { site: instr.demo.label })} <IconExternal /></a> : null}
       {instr.steps?.length || instr.safety || instr.adaptation || current.methodId ? <details className="mt-3 rounded-xl border border-line bg-surface-2 px-3 open:pb-3">
         <summary className="cursor-pointer py-3 text-sm font-bold text-accent">{t.howTo}</summary>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
@@ -347,18 +349,18 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
         </> : null}
         {instr.safety ? <p className="mt-3 text-sm text-ink"><strong>{t.safety} :</strong> {pick(instr.safety, locale)}</p> : null}
         {instr.adaptation ? <p className="mt-2 text-sm text-ink-2"><strong>{t.adaptation} :</strong> {pick(instr.adaptation, locale)}</p> : null}
-        {current.methodId ? <Link href={"/atlas/" + current.methodId} className="mt-3 inline-block text-sm font-bold text-accent underline underline-offset-4">{t.atlasSheet} ↗</Link> : null}
+        {current.methodId ? <Link href={"/atlas/" + current.methodId} className={cn(linkClass, "mt-3 text-sm")}>{t.atlasSheet} <IconExternal /></Link> : null}
       </details> : null}
 
       {warned ? <div role="alert" className="mt-4 rounded-2xl border border-danger/40 bg-danger/10 p-4">
         <p className="text-sm font-black text-danger">{m.stopTitle}</p>
         <p className="mt-1 text-sm text-ink">{m.stopText}</p>
         <button type="button" onClick={() => settle(current.sets.some((s) => s.completed) ? "MODIFIED" : "SKIPPED")}
-          className={buttonClass("secondary", "md", "mt-3")}>{m.skipRestOfExercise} →</button>
+          className={buttonClass("secondary", "md", "mt-3")}>{m.skipRestOfExercise} <IconNext /></button>
       </div> : null}
 
       <div className="mt-5 border-t border-line pt-5">
-        <h3 className="text-sm font-extrabold">{t.set} {nextSetIndex}{current.targetSets ? ` / ${current.targetSets}` : ""}</h3>
+        <h3 className="text-sm font-bold">{t.set} {nextSetIndex}{current.targetSets ? ` / ${current.targetSets}` : ""}</h3>
         {/* Holds, hangs, stretches, repeaters, timed blocks: a timer that beeps. New for every set. */}
         <EffortTimer key={current.id + ":" + nextSetIndex} locale={locale} exercise={current} sound={sound} />
         {mob ? <MobilitySetLogger key={current.id} locale={locale} exercise={current} onLog={logSet} />
@@ -380,7 +382,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
                     ...(mob ? (s.flags ?? []).map((f) => "⚠ " + m.flagNames[f]) : [])].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <button type="button" onClick={() => removeSet(s.setIndex)} className="min-h-11 rounded-xl px-3 text-xs font-bold text-danger">{t.removeSet}</button>
+              <button type="button" onClick={() => removeSet(s.setIndex)} className={dangerLinkClass}>{t.removeSet}</button>
             </li>)}
           </ul>}
       </div>
@@ -390,24 +392,23 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
 
     <div className="grid grid-cols-1 gap-3">
       <button type="button" onClick={nextExercise}
-        className="min-h-16 w-full rounded-2xl bg-ink px-6 text-lg font-black text-surface">
-        {index < exercises.length - 1 ? t.next + " →" : t.finish}
+        className={buttonClass("primary", "xl", "w-full")}>
+        {index < exercises.length - 1 ? <>{t.next} <IconNext /></> : t.finish}
       </button>
       <div className="grid grid-cols-2 gap-3">
         <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0}
-          className="min-h-14 rounded-2xl border border-line bg-surface text-sm font-bold disabled:opacity-40">← {t.previous}</button>
+          className={buttonClass("secondary", "lg")}><IconBack /> {t.previous}</button>
         <button type="button" onClick={() => settle("SKIPPED")}
-          className="min-h-14 rounded-2xl border border-line bg-surface text-sm font-bold text-ink-2">{t.markSkipped}</button>
+          className={buttonClass("ghost", "lg", "border border-line")}>{t.markSkipped}</button>
       </div>
     </div>
 
     <nav aria-label={t.exercises} className="leblond-premium-surface p-4">
-      <h2 className="text-sm font-extrabold">{t.exercises}</h2>
+      <h2 className="text-sm font-bold">{t.exercises}</h2>
       <ol className="mt-3 space-y-1.5">
         {exercises.map((e, i) => <li key={e.id}>
           <button type="button" onClick={() => goTo(i)} aria-current={i === index ? "step" : undefined}
-            className={"flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm " +
-              (i === index ? "bg-accent-soft font-bold text-accent" : "hover:bg-surface-2")}>
+            className={"flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm transition-colors " + (i === index ? "bg-accent-soft font-semibold text-accent" : "hover:bg-surface-2")}>
             <span>{i + 1}. {e.name}</span>
             <span className="text-xs font-semibold text-ink-3">{t.exStatus[e.status]} · {e.sets.length}</span>
           </button>
@@ -418,7 +419,7 @@ export function TrainingPlayer({ locale, session, exercises: initial, climbs, eg
     {finishing ? <FinishForm locale={locale} sessionId={session.id} climbs={climbs} onCancel={() => setFinishing(false)} onDone={() => { clearRest(); router.refresh(); }} />
       : <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={() => setFinishing(true)} className={buttonClass("primary", "md")}>{t.finish}</button>
-        <button type="button" onClick={stopEarly} className="min-h-12 rounded-full px-4 text-sm font-bold text-danger underline underline-offset-4">{t.stopEarly}</button>
+        <button type="button" onClick={stopEarly} className={dangerLinkClass}>{t.stopEarly}</button>
       </div>}
   </div>;
 }
@@ -443,14 +444,14 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
     });
   }
   return <form onSubmit={submit} className="leblond-premium-surface space-y-4 p-5" aria-labelledby="finish-title">
-    <h2 id="finish-title" className="text-lg font-black">{t.finishTitle}</h2>
+    <h2 id="finish-title" className="text-lg font-bold">{t.finishTitle}</h2>
     <p className="text-sm text-ink-2">{t.finishHint}</p>
     <fieldset>
       <legend className="text-sm font-semibold">{t.rpe}</legend>
       <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-10">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) =>
           <button type="button" key={n} aria-pressed={rpe === n} onClick={() => setRpe(n)}
-            className={"min-h-12 rounded-xl border text-base font-bold " + (rpe === n ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface")}>{n}</button>)}
+            className={cn("leblond-number min-h-12 rounded-xl border text-lg transition-colors", rpe === n ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface hover:border-ink-3")}>{n}</button>)}
       </div>
     </fieldset>
     <label className="block text-sm font-semibold">{t.pain}
@@ -475,7 +476,7 @@ export function FinishForm({ locale, sessionId, climbs, onCancel, onDone }: {
       <button type="submit" disabled={pending} className={buttonClass("primary", "md", "flex-1")}>
         {pending ? t.saving : t.confirmFinish}
       </button>
-      <button type="button" onClick={onCancel} className="min-h-14 rounded-2xl border border-line px-5 text-sm font-bold">{t.previous}</button>
+      <button type="button" onClick={onCancel} className={buttonClass("secondary", "lg")}>{t.previous}</button>
     </div>
   </form>;
 }
@@ -499,7 +500,7 @@ function MobilitySetLogger({ locale, exercise, onLog }: {
   const [controlled, setControlled] = useState<boolean | null>(null);
   const [discomfort, setDiscomfort] = useState(0);
   const [flags, setFlags] = useState<WarningFlag[]>([]);
-  const chip = (on: boolean) => "min-h-11 rounded-full border px-4 text-sm font-bold " + (on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink");
+  const chip = (on: boolean) => toggleClass(on);
   function submit() {
     const n = Number(reps);
     onLog({
@@ -543,12 +544,12 @@ function MobilitySetLogger({ locale, exercise, onLog }: {
       <div className="mt-1 flex flex-wrap gap-2">
         {WARNING_FLAGS.map((f) => <button key={f} type="button" aria-pressed={flags.includes(f)}
           onClick={() => setFlags((list) => list.includes(f) ? list.filter((x) => x !== f) : [...list, f])}
-          className={"min-h-11 rounded-full border px-4 text-sm font-bold " + (flags.includes(f) ? "border-danger bg-danger text-surface" : "border-line bg-surface text-ink")}>
+          className={toggleClass(flags.includes(f), flags.includes(f) ? "border-danger bg-danger" : undefined)}>
           {m.flagNames[f]}</button>)}
       </div>
     </fieldset>
     <button type="button" onClick={submit} className={buttonClass("primary", "md", "w-full text-lg active:scale-[0.99]")}>
-      ✓ {t.logSet}{mob.perSide ? " · " + m.sides[side] : ""}
+      <IconCheck /> {t.logSet}{mob.perSide ? " · " + m.sides[side] : ""}
     </button>
   </div>;
 }
@@ -598,7 +599,7 @@ function SetLogger({ locale, exercise, onLog }: {
           <label htmlFor={"edge-" + exercise.id}>{t.edge}</label>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {[20, 15, 12, 10].map((mm) => <button key={mm} type="button" aria-pressed={edge === String(mm)} onClick={() => setEdge(String(mm))}
-              className={"min-h-11 rounded-full border px-4 text-sm font-bold " + (edge === String(mm) ? "border-accent bg-accent text-surface" : "border-line bg-surface text-ink")}>
+              className={toggleClass(edge === String(mm))}>
               {mm} mm</button>)}
             <input id={"edge-" + exercise.id} className={inputClass + " w-24"} inputMode="numeric" type="number" min={3} max={60} value={edge} onChange={(e) => setEdge(e.target.value)} />
           </div>
@@ -607,7 +608,7 @@ function SetLogger({ locale, exercise, onLog }: {
     </div>
     <button type="button" onClick={submit}
       className={buttonClass("primary", "md", "mt-4 w-full text-lg active:scale-[0.99]")}>
-      ✓ {t.logSet}
+      <IconCheck /> {t.logSet}
     </button>
   </>;
 }

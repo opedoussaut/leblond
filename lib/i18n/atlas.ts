@@ -6,7 +6,7 @@ import {
 
 /** Training Atlas detail page: section headings, diagram labels and the diagram fact list. */
 const fr = {
-  back: "← Training Atlas",
+  back: "Training Atlas",
   inBrief: "En bref",
   trains: "Ce que ça travaille",
   suits: "Pour qui",
@@ -106,7 +106,7 @@ const fr = {
 type Dict = typeof fr;
 
 const en: Dict = {
-  back: "← Training Atlas",
+  back: "Training Atlas",
   inBrief: "At a glance",
   trains: "What it trains",
   suits: "Who it suits",

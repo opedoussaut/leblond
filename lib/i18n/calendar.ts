@@ -32,6 +32,6 @@ export const calendarDictionary = (locale: Locale) => ({
     seeSession:"Open session", methodDetail:"Method details", saved:"Date saved.",
     error:"Unable to save. Please check the fields.", private:"Your calendar is private.",
     weekdays:["M","T","W","T","F","S","S"], locale:"en-GB",
-    planNote:"Plan templates are not scheduled automatically: choose the dates that work for you.",
+    planNote:"Programme templates are not scheduled automatically: choose the dates that work for you.",
   }
 } as const)[locale];

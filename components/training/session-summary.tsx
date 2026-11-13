@@ -4,6 +4,9 @@ import type { Locale } from "@/lib/i18n";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { summarize, type TrainingExercise, type TrainingSession } from "@/lib/training/sessions";
+import { IconExternal } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 function Tile({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl bg-surface-2 p-4">
@@ -34,7 +37,7 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
       x.flags?.length ? "⚠" : null].filter(Boolean).join(" ")).join(" · ");
   };
   return <section aria-labelledby="summary-title" className="space-y-5">
-    <h2 id="summary-title" className="text-lg font-black">{t.summary}</h2>
+    <h2 id="summary-title" className="text-lg font-bold">{t.summary}</h2>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Tile label={t.duration} value={exercises.length
         ? `${formatDuration(s.actualMinutes)}${s.plannedMinutes ? " / " + formatDuration(s.plannedMinutes) : ""}`
@@ -49,7 +52,7 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
       <strong>{t.painReported} : {session.pain}/10.</strong> {session.painNotes}
     </p> : null}
     {session.notes ? <section aria-label={t.descriptionTitle} className="rounded-2xl border border-line bg-surface p-4">
-      <h3 className="text-sm font-extrabold">{t.descriptionTitle}</h3>
+      <h3 className="text-sm font-bold">{t.descriptionTitle}</h3>
       <p className="mt-1 whitespace-pre-line text-sm text-ink-2">{session.notes}</p>
     </section> : null}
     {exercises.length ? <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
@@ -60,7 +63,7 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
         </thead>
         <tbody>
           {exercises.map((e) => <tr key={e.id} className="border-t border-line align-top">
-            <td className="px-4 py-3 font-semibold">{e.name}{e.methodId ? <> <Link className="text-xs text-accent underline" href={"/atlas/" + e.methodId}>Atlas</Link></> : null}</td>
+            <td className="px-4 py-3 font-semibold">{e.name}{e.methodId ? <> <Link className={cn(linkClass, "text-xs")} href={"/atlas/" + e.methodId}>Atlas</Link></> : null}</td>
             <td className="px-4 py-3 tabular-nums text-ink-2">{fmtTarget(e)}</td>
             <td className="px-4 py-3 tabular-nums">{fmtActual(e)}</td>
             <td className="px-4 py-3"><span className="rounded-full bg-accent-soft px-2 py-1 text-xs font-bold text-accent">{t.exStatus[e.status]}</span></td>
@@ -68,6 +71,6 @@ export function SessionSummary({ locale, session, exercises }: { locale: Locale;
         </tbody>
       </table>
     </div> : null}
-    {session.climbingSessionId ? <Link className="inline-block text-sm font-bold text-accent underline underline-offset-4" href={"/session/" + session.climbingSessionId}>{t.linkClimb.split(" (")[0]} ↗</Link> : null}
+    {session.climbingSessionId ? <Link className={cn(linkClass, "text-sm")} href={"/session/" + session.climbingSessionId}>{t.linkClimb.split(" (")[0]} <IconExternal /></Link> : null}
   </section>;
 }

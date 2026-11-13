@@ -5,8 +5,10 @@ import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { ProgrammeView, replanSignal } from "@/lib/training/programme";
 import { sessionTitle } from "@/lib/training/programme";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { CreateProgrammeButton } from "./create-programme-button";
+import { IconNext } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 const day = (date: string, locale: Locale) => formatDate(date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" });
 
@@ -14,10 +16,10 @@ const day = (date: string, locale: Locale) => formatDate(date + "T12:00:00", loc
 export function ReplanBanner({ locale, replan }: { locale: Locale; replan: ReturnType<typeof replanSignal> }) {
   const j = journeyDictionary(locale);
   return <section aria-labelledby="replan-heading" className="space-y-2 rounded-2xl border border-warn/50 bg-warn/10 p-4">
-    <h2 id="replan-heading" className="text-base font-extrabold">{j.day.replanTitle}</h2>
+    <h2 id="replan-heading" className="text-base font-bold">{j.day.replanTitle}</h2>
     <p className="text-sm leading-relaxed">{replan.acute ? j.day.replanAcute : fmt(j.day.replanText, { n: replan.flagged })}</p>
     {replan.areas.length ? <p className="text-sm">{fmt(j.day.replanAreas, { areas: replan.areas.map((a) => j.areas[a].toLowerCase()).join(", ") })}</p> : null}
-    <Link href="/train/assess" className={buttonClass("secondary", "sm")}>{j.day.replanCta} →</Link>
+    <Link href="/train/assess" className={buttonClass("secondary", "sm")}>{j.day.replanCta} <IconNext /></Link>
   </section>;
 }
 
@@ -27,10 +29,10 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
   const h = j.hub;
   if (!view) {
     return <section aria-labelledby="programme-heading" className="rounded-2xl border border-dashed border-line bg-surface p-5">
-      <h2 id="programme-heading" className="text-lg font-extrabold">{h.programmeTitle}</h2>
+      <h2 id="programme-heading" className="text-lg font-bold">{h.programmeTitle}</h2>
       <p className="mt-1 text-sm font-semibold">{h.empty}</p>
       <p className="mt-1 text-sm text-ink-2">{h.emptyHint}</p>
-      <Link href="/train/assess" className={buttonClass("primary", "sm", "mt-3")}>{h.fullCta} →</Link>
+      <Link href="/train/assess" className={buttonClass("primary", "sm", "mt-3")}>{h.fullCta} <IconNext /></Link>
     </section>;
   }
   const method = METHODS_FOR_PLANS.find((m) => m.id === view.methodId)?.title ?? view.methodId;
@@ -38,7 +40,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
   return <section aria-labelledby="programme-heading" className="space-y-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <h2 id="programme-heading" className="text-xs font-extrabold uppercase tracking-[0.12em] text-accent">{h.programmeTitle}</h2>
+        <h2 id="programme-heading" className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{h.programmeTitle}</h2>
         <p className="mt-1 text-2xl font-extrabold tracking-tight">{method}</p>
         <p className="text-sm text-ink-2">{j.disciplines[view.discipline].label}{view.goal ? " · " + view.goal : ""}</p>
       </div>
@@ -55,7 +57,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
         <dd className="mt-1 text-sm font-bold">{view.next ? <>
           {view.next.date === today ? h.nextToday : day(view.next.date, locale)} · {view.next.title}
           {view.next.minutes ? ` · ${view.next.minutes} min` : ""}{view.next.place ? ` · ${j.places[view.next.place]}` : ""}
-          {view.next.sessionId ? <> · <Link className="text-accent underline" href={"/train/sessions/" + view.next.sessionId}>{h.open}</Link></> : null}
+          {view.next.sessionId ? <> · <Link className={linkClass} href={"/train/sessions/" + view.next.sessionId}>{h.open}</Link></> : null}
         </> : h.nextNone}</dd>
       </div>
       <div className="rounded-xl bg-surface-2 p-3">
@@ -72,7 +74,7 @@ export function ProgrammeCard({ locale, view, today }: { locale: Locale; view: P
             <span className="font-bold">{j.days[s.day]}</span> · {sessionTitle(s)}{s.place ? " · " + j.places[s.place] : ""} · {s.minutes} min
           </li>)}
         </ul>
-        <Link href="/training-plans" className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-accent underline underline-offset-4">{h.edit} →</Link>
+        <Link href="/training-plans" className={cn(linkClass, "mt-2 min-h-11 text-sm")}>{h.edit} <IconNext /></Link>
       </> : <div className="mt-2 space-y-2">
         <p className="text-sm text-ink-2">{h.noPlan}</p>
         <CreateProgrammeButton locale={locale} assessmentId={view.assessmentId} />

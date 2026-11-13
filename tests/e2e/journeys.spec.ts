@@ -444,7 +444,7 @@ test("A7 — training: record a strength session after the fact, edit it, delete
   await expect(page.getByRole("table")).toHaveCount(0);
 
   // Edit: longer, with pain reported.
-  await page.getByRole("button", { name: "✎ Modifier" }).click();
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
   const edit = page.getByRole("form", { name: "Modifier la séance" });
   await pickDuration(edit, "Temps total", 90);
   await edit.getByLabel(/Douleur/).fill("5");
@@ -501,8 +501,9 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(programme.getByText("Prochaine évaluation complète")).toBeVisible();
   await expect(page.getByRole("link", { name: /Choisir mon programme \(fait\)/ })).toBeVisible();
 
-  // Daily readiness (forme du jour): adapts today's session only.
-  await page.getByRole("link", { name: /Noter ma forme du jour/ }).click();
+  // Daily readiness (forme du jour): adapts today's session only. It lives on Aujourd’hui.
+  await page.goto("/home");
+  await page.getByRole("region", { name: "Ta journée" }).getByRole("link", { name: /Forme du jour/ }).click();
   await expect(page).toHaveURL(/\/train\/today$/);
   await page.getByRole("group", { name: "Ta nuit" }).getByText("Mauvaise").click();
   await page.getByRole("group", { name: "Ta fatigue" }).getByText("Très fatigué").click();
@@ -512,7 +513,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(day.getByText(/Très fatigué : récupérer/)).toBeVisible();
   await page.reload();
   await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
-  await page.goto("/train");
+  await page.goto("/home");
   await expect(page.getByText("Fait aujourd’hui : de la mobilité douce à la place.")).toBeVisible();
 
   // Recommended Atlas method → add to a plan → schedule this week.
@@ -553,7 +554,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   // Hands on the hangboard, eyes off the phone: 3, 2, 1, a beep to start, a beep at the end.
   const hangTimer = page.getByRole("region", { name: "Chrono de l’exercice" });
   await page.evaluate(() => { (window as unknown as { __lbTones: number[] }).__lbTones = []; });
-  await hangTimer.getByRole("button", { name: "▶ Lancer le chrono · 10 s" }).click();
+  await hangTimer.getByRole("button", { name: "Lancer le chrono · 10 s" }).click();
   await expect(hangTimer.getByText("Prêt…")).toBeVisible();
   await expect(hangTimer.getByText("Tiens !")).toBeVisible({ timeout: 5_000 });
   await page.screenshot({ path: "test-results/visual/hang-timer.png" });
@@ -895,16 +896,16 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await page.goto("/training-plans");
 
   // No plan yet: choose how to build it.
-  await expect(page.getByRole("group", { name: "Comment veux-tu construire ce plan ?" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Comment veux-tu construire ce programme ?" })).toBeVisible();
   await page.getByRole("button", { name: /Je le construis, avec des conseils/ }).click();
   await expect(page.getByText("Construit avec conseils")).toBeVisible();
   const hints = page.getByRole("region", { name: "Conseils de LEBLOND" });
-  await page.getByLabel("Nom du plan").fill("Saison 7A");
+  await page.getByLabel("Nom du programme").fill("Saison 7A");
   await page.getByLabel("Objectif", { exact: true }).fill("Progresser");
   await expect(hints.getByText(/gagnerait à être mesurable/)).toBeVisible();
 
   // Three months, in two phases.
-  await page.getByRole("spinbutton", { name: "Durée du plan" }).fill("3");
+  await page.getByRole("spinbutton", { name: "Durée du programme" }).fill("3");
   await page.getByLabel("Unité de durée").selectOption("MONTHS");
   await expect(page.getByText("soit 13 semaines")).toBeVisible();
   await expect(hints.getByText(/13 semaines avec la même semaine type/)).toBeVisible();
@@ -917,7 +918,7 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await page.getByLabel(/Objectif de la phase/).fill("3 × 10 s sur 20 mm");
   await page.getByLabel("Objectif", { exact: true }).fill("Faire 7A en 3 mois");
   await expect(hints.getByText(/gagnerait à être mesurable/)).toHaveCount(0);
-  await expect(hints.getByText(/Le plan finit sur un bloc chargé/)).toBeVisible();
+  await expect(hints.getByText(/Le programme finit sur un bloc chargé/)).toBeVisible();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Enregistré en privé")).toBeVisible();
   await page.reload();
@@ -925,7 +926,7 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await expect(page.getByRole("tab", { name: "Spécifique · 4 sem." })).toBeVisible();
 
   // Patrick mode: a checked draft, reviewed before saving.
-  await page.getByRole("button", { name: "Nouveau plan +" }).click();
+  await page.getByRole("button", { name: "Nouveau programme +" }).click();
   await page.getByRole("button", { name: /Patrick me le propose/ }).click();
   await page.getByLabel("Ton objectif principal").fill("Enchaîner mon premier 7A");
   await page.getByRole("group", { name: "Jours où je grimpe souvent dehors" }).getByRole("button", { name: "Samedi" }).click();
@@ -933,11 +934,11 @@ test("G — training plans: assisted mode with phases, then a plan proposed by P
   await expect(page.getByText(/Proposition de Patrick : relis-la/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("Proposé par Patrick")).toBeVisible();
   await expect(page.getByText("Les semaines des phases ont été ajustées à la durée choisie.")).toBeVisible();
-  await expect(page.getByText("Des exercices hors Atlas ont été gardés comme séances libres.")).toBeVisible();
+  await expect(page.getByText("Des exercices hors Atlas ont été gardés sans méthode.")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Fondations · 4 sem." })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Semaine allégée · 1 sem." })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Spécifique · 8 sem." })).toBeVisible();
-  await expect(page.getByLabel("Nom du plan")).toHaveValue("MOCK PLAN — Enchaîner mon premier 7A");
+  await expect(page.getByLabel("Nom du programme")).toHaveValue("MOCK PLAN — Enchaîner mon premier 7A");
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Enregistré en privé")).toBeVisible();
 });
@@ -984,7 +985,7 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
 
   // The climber finds it in the session list and runs it.
   await page.goto("/train/sessions");
-  const coach = page.getByRole("region", { name: "Séances du coach" });
+  const coach = page.getByRole("region", { name: "Modèles de séance" });
   await expect(coach.getByText("Haut et bas test")).toBeVisible();
   await coach.getByText("Voir les exercices").click();
   await expect(coach.getByRole("link", { name: /Démonstration MuscleWiki/ }).first()).toHaveAttribute("href", "https://musclewiki.com/exercise/band-pull-apart");
@@ -998,7 +999,7 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
 
   // Moving on after a logged set starts the rest between exercises.
   await page.getByRole("button", { name: "Valider la série" }).click();
-  await page.getByRole("button", { name: "Exercice suivant →" }).click();
+  await page.getByRole("button", { name: "Exercice suivant" }).click();
   const timer = page.getByRole("status").filter({ hasText: "Repos avant l’exercice suivant" });
   await expect(timer).toBeVisible();
   await expect(timer.getByText("Ensuite : Tractions lestées")).toBeVisible();

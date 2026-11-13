@@ -1,5 +1,6 @@
 "use client";
 
+import { Hexagon, Mountain, Route } from "lucide-react";
 import { GradeSelect } from "@/components/climbing/grade-select";
 import { RouteGradeSelect } from "@/components/climbing/route-grade-select";
 import type { GradeSystem } from "@/lib/climbing/types";
@@ -33,9 +34,9 @@ export function GoalSelect({
   named?: boolean;
 }) {
   const options = [
-    { id: "BOULDER", label: labels.boulder, symbol: "◧" },
-    { id: "ROUTE", label: labels.route, symbol: "↗" },
-    { id: "BOTH", label: labels.both, symbol: "◈" },
+    { id: "BOULDER", label: labels.boulder, Icon: Hexagon },
+    { id: "ROUTE", label: labels.route, Icon: Route },
+    { id: "BOTH", label: labels.both, Icon: Mountain },
   ] as const;
   return (
     <div className="space-y-5">
@@ -48,12 +49,12 @@ export function GoalSelect({
               <label key={option.id} className={[
                 "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border p-2 text-center",
                 "transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
-                active ? "border-accent bg-accent-soft text-ink shadow-sm" : "border-line bg-surface text-ink-2 hover:border-accent",
+                active ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface text-ink-2 hover:border-ink-3",
               ].join(" ")}>
                 <input className="sr-only" type="radio" name={named ? "targetDiscipline" : idPrefix + "-discipline"}
                   checked={active} value={option.id} onChange={() => onDisciplineChange(option.id)}/>
-                <span className="text-xl text-accent" aria-hidden="true">{option.symbol}</span>
-                <span className="text-xs font-bold sm:text-sm">{option.label}</span>
+                <option.Icon aria-hidden="true" className="size-6 text-accent" strokeWidth={2} />
+                <span className="text-xs font-semibold sm:text-sm">{option.label}</span>
               </label>
             );
           })}

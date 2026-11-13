@@ -3,6 +3,9 @@ import { formatDateTime, formatDuration } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { ActivityTiming, LinkActivity, UnlinkActivity } from "./link-activity";
+import { IconNext } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 type Candidate = { id: string; startedAt: string; durationSeconds: number; device: string | null };
 
@@ -39,8 +42,8 @@ export async function SessionWearable({
         ) : (
           <p className="mt-2 text-sm text-ink-2">
             {t.session.noMatchingActivity}{" "}
-            <a href="/settings/connections" className="text-accent underline-offset-2 hover:underline">
-              {t.connections.fitTitle} →
+            <a href="/settings/connections" className={cn(linkClass, "hover:underline")}>
+              {t.connections.fitTitle} <IconNext />
             </a>
           </p>
         )}

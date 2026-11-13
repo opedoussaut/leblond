@@ -7,7 +7,7 @@ import { gradeSpokenLabel } from "@/lib/grading/labels";
 import { QuickBoulderEntry, type QuickChoice } from "./quick-boulder-entry";
 import { ScaleSwitch } from "./scale-switch";
 import { useBoulderLog, type Rejection } from "./use-boulder-log";
-import { ResultBadge, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
+import { ResultBadge, ResultIcon, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { GradeChip } from "@/components/climbing/grade-chip";
@@ -22,7 +22,7 @@ import {
 } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
 import { Select, fieldClass } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass, dangerLinkClass, iconButtonClass, linkClass, toggleClass } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { countActivity, type AttemptFact } from "@/lib/analytics";
@@ -46,6 +46,7 @@ import {
 } from "@/lib/climbing/types";
 import { listGrades } from "@/lib/grading";
 import { fmt, plural } from "@/lib/i18n";
+import { IconBack, IconCheck, IconComment, IconFlash, IconStar, IconUndo, IconWarn, LiveDot } from "@/components/ui/icons";
 
 export type { LiveProblemItem };
 type Outcome = "FLASH" | "TOP" | "ATTEMPT" | "PROJECT";
@@ -377,7 +378,7 @@ export function LiveSession({
   if (mode === "live" && state.endedAt) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-black leading-tight">{gym.name}</h1>
+        <h1 className="text-xl font-bold leading-tight">{gym.name}</h1>
         <p className="rounded-2xl bg-surface-2 p-4 font-semibold">
           {fmt(logger.online ? L.endedSaving : L.endedOffline, { time: new Date(state.endedAt).toLocaleTimeString(locale === "en" ? "en-GB" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) })}
         </p>
@@ -422,15 +423,15 @@ export function LiveSession({
     <div className="space-y-5">
       <header>
         {mode === "live" ? <>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok">● {t.session.active}</p>
-          <h1 className="mt-1 text-xl font-black leading-tight">{gym.name}</h1>
-        </> : <h2 className="text-lg font-black leading-tight">{gym.name}</h2>}
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok"><LiveDot /> {t.session.active}</p>
+          <h1 className="mt-1 text-xl font-bold leading-tight">{gym.name}</h1>
+        </> : <h2 className="text-lg font-bold leading-tight">{gym.name}</h2>}
         {outdoor && areaWarning(outdoor.area, locale) ? (
           <p className="mt-1 text-sm font-semibold text-danger">
-            ⚠ {t.outdoor.warning} : {areaWarning(outdoor.area, locale)}
+            <IconWarn /> {t.outdoor.warning} : {areaWarning(outdoor.area, locale)}
           </p>
         ) : null}
-        {mode === "live" ? <p className="font-mono text-3xl font-bold tabular-nums" aria-label={t.session.elapsed}>
+        {mode === "live" ? <p className="leblond-number text-3xl" aria-label={t.session.elapsed}>
           {elapsed(startedAt, now)}
         </p> : null}
         <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
@@ -444,7 +445,7 @@ export function LiveSession({
           ).map(([v, label]) => (
             <div key={label} className="rounded-xl bg-surface-2 py-2">
               <dt className="sr-only">{label}</dt>
-              <dd className="text-2xl font-black tabular-nums leading-none">{v}</dd>
+              <dd className="leblond-number text-2xl leading-none">{v}</dd>
               <dd aria-hidden className="mt-1 text-xs uppercase tracking-[0.12em] text-ink-3">
                 {label}
               </dd>
@@ -477,7 +478,7 @@ export function LiveSession({
               {t.results.try}
             </Button>
             <Button size="xl" onClick={() => log("TOP")} aria-label={t.results.TOP} style={toneButtonStyle("top")}>
-              ✓ {t.results.top}
+              <IconCheck /> {t.results.top}
             </Button>
             <Button
               size="xl"
@@ -486,7 +487,7 @@ export function LiveSession({
               aria-label={t.results.FLASH}
               style={toneButtonStyle("flash")}
             >
-              ⚡ {t.results.flash}
+              <IconFlash /> {t.results.flash}
             </Button>
           </div>
           {flashPrompt && flashPrompt.problem_id === current.id && flashPrompt.attempt_number === 1 ? (
@@ -500,17 +501,17 @@ export function LiveSession({
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2 p-2">
             <span className="text-sm font-semibold">{L.tries}</span>
             <button type="button" aria-label={L.tries + " −"} disabled={bulkTries <= 2} onClick={() => setBulkTries((n) => Math.max(2, n - 1))}
-              className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">−</button>
-            <span className="w-6 text-center font-black tabular-nums">{bulkTries}</span>
+              className={iconButtonClass()}>−</button>
+            <span className="leblond-number w-8 text-center text-xl">{bulkTries}</span>
             <button type="button" aria-label={L.tries + " +"} disabled={bulkTries >= 20} onClick={() => setBulkTries((n) => Math.min(20, n + 1))}
-              className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
+              className={iconButtonClass()}>+</button>
             <Button variant="secondary" onClick={() => logTries(bulkTries)}>{fmt(L.logTries, { n: bulkTries })}</Button>
             {projectIds.includes(current.id)
               ? <Link href="/projects" className="ml-auto" title={L.seeProjects}>
                   <ResultBadge tone="project" label={projectLabel(current.id)} />
                 </Link>
               : <button type="button" onClick={makeProject} style={toneButtonStyle("project")}
-                  className="ml-auto min-h-11 rounded-full border px-3 text-sm font-bold">{L.markProject}</button>}
+                  className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold"><IconStar /> {L.markProject}</button>}
           </div>
           <div className="mt-3">
             {commentDraft !== null ? <div className="flex gap-2">
@@ -521,13 +522,13 @@ export function LiveSession({
             </div> : <>
               {current.notes ? <p className="text-sm italic text-ink-2">“{current.notes}”</p> : null}
               <button type="button" onClick={() => setCommentDraft(current.notes ?? "")}
-                className="text-sm font-bold text-accent underline underline-offset-2">{current.notes ? L.editComment : L.addComment}</button>
+                className={cn(linkClass, "text-sm")}><IconComment /> {current.notes ? L.editComment : L.addComment}</button>
             </>}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {currentSessionAttempts.length > 0 ? (
               <Button variant="ghost" onClick={undo}>
-                ↶ {t.session.undo}
+                <IconUndo /> {t.session.undo}
               </Button>
             ) : null}
             {logger.online && !currentUnsent ? (
@@ -542,7 +543,7 @@ export function LiveSession({
               <span className="text-xs text-ink-3">{L.needsNetwork}</span>
             ) : null}
             {currentUnsent ? null : (
-              <Link href={`/problem/${current.id}`} className="ml-auto text-sm text-accent underline-offset-2 hover:underline">
+              <Link href={`/problem/${current.id}`} className={cn(linkClass, "ml-auto text-sm hover:underline")}>
                 {t.session.viewProblem}
               </Link>
             )}
@@ -573,7 +574,7 @@ export function LiveSession({
             </div>
           ) : (
             <button type="button" onClick={() => setConfirmRemoveId(current.id)}
-              className="mt-3 min-h-11 text-sm font-bold text-danger underline underline-offset-2">
+              className={cn(dangerLinkClass, "mt-3")}>
               {L.removeFromSession}
             </button>
           )}
@@ -619,7 +620,7 @@ export function LiveSession({
         // Kept mounted under the form so the search, filters and map stay as they were.
         <div hidden={picked !== null} className="space-y-2">
           {lastAdded ? (
-            <p className="rounded-xl bg-accent-soft px-3 py-2 text-sm font-semibold">✓ {lastAdded}</p>
+            <p className="rounded-xl bg-accent-soft px-3 py-2 text-sm font-semibold"><IconCheck /> {lastAdded}</p>
           ) : null}
           <BoolderProblemPicker
             problems={outdoor.problems}
@@ -650,8 +651,8 @@ export function LiveSession({
           {gym.outdoor ? null : <ScaleSwitch systems={scales} value={scale} onChange={switchScale} pending={false} />}
           <GradeGrid system={scale} onPick={addProblem} onCancel={problems.length ? () => setAdding(false) : undefined} pending={false} />
           {outdoor && outdoor.problems.length > 0 ? (
-            <button type="button" onClick={() => setGradeFallback(false)} className="text-sm text-accent underline-offset-2 hover:underline">
-              ← {t.outdoor.backToTopo}
+            <button type="button" onClick={() => setGradeFallback(false)} className={cn(linkClass, "text-sm hover:underline")}>
+              <IconBack /> {t.outdoor.backToTopo}
             </button>
           ) : null}
         </div>
@@ -667,7 +668,7 @@ export function LiveSession({
         </div>
       ) : (
         <Button size="lg" variant="secondary" className="w-full" onClick={() => { setQuick(true); setAdding(false); }}>
-          ⚡ {L.quickTitle}
+          <IconFlash /> {L.quickTitle}
         </Button>
       )}
 
@@ -677,7 +678,7 @@ export function LiveSession({
             <SectionTitle><span id="in-session-title">{L.inSessionTitle} · {inSession.length}</span></SectionTitle>
             <button type="button" aria-pressed={selecting}
               onClick={() => { setSelecting((on) => !on); setSelected([]); setConfirmMany(false); }}
-              className="min-h-11 rounded-full px-3 text-sm font-bold text-accent underline underline-offset-2">
+              className={cn(linkClass, "min-h-11 rounded-full px-3 text-sm")}>
               {selecting ? L.selectDone : L.select}
             </button>
           </div>
@@ -687,7 +688,7 @@ export function LiveSession({
                 {fmt(plural(locale, selected.length, { one: L.selectedOne, other: L.selectedOther }), { n: selected.length })}
               </span>
               <button type="button" onClick={() => setSelected(inSession.map((p) => p.id))}
-                className="min-h-11 px-2 font-bold text-accent underline underline-offset-2">{L.selectAll}</button>
+                className={cn(linkClass, "min-h-11 px-2")}>{L.selectAll}</button>
               <Button variant="danger" className="ml-auto" disabled={selected.length === 0} onClick={() => setConfirmMany(true)}>
                 {fmt(L.removeSelected, { n: selected.length })}
               </Button>
@@ -735,7 +736,7 @@ export function LiveSession({
 
       {otherProjects.length > 0 && !selecting ? (
         <section className="space-y-2" aria-labelledby="other-projects-title">
-          <SectionTitle><span id="other-projects-title">★ {L.otherProjectsTitle}</span></SectionTitle>
+          <SectionTitle><span id="other-projects-title"><IconStar /> {L.otherProjectsTitle}</span></SectionTitle>
           <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
             {otherProjects.map((p) => (
               <li key={p.id}>
@@ -816,7 +817,7 @@ function TopoQuickAdd({
     { value: "PROJECT", tone: "project", label: L.project },
   ];
   const choiceClass = (on: boolean) =>
-    cn("min-h-11 rounded-full border px-3 text-sm", on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2");
+    toggleClass(on);
 
   return (
     <section ref={box} aria-label={L.topoAddTitle} className="space-y-4 rounded-2xl border-2 border-accent bg-surface p-4">
@@ -831,7 +832,7 @@ function TopoQuickAdd({
             {item.sit_start ? ` · ${t.outdoor.sitStart}` : ""}
           </span>
         </span>
-        <span className="shrink-0 font-black tabular-nums">{item.grade}</span>
+        <span className="leblond-number shrink-0">{item.grade}</span>
       </div>
       {priorTries > 0 ? (
         <p className="text-xs text-ink-2">{plural(locale, priorTries, { one: L.priorOne, other: L.priorOther })}</p>
@@ -870,11 +871,11 @@ function TopoQuickAdd({
               onClick={() => setOutcome(o.value)}
               style={outcome === o.value ? toneButtonStyle(o.tone) : undefined}
               className={cn(
-                "min-h-12 rounded-2xl border px-3 font-bold disabled:opacity-40",
+                "inline-flex min-h-13 items-center justify-center gap-1.5 rounded-2xl border px-3 font-semibold disabled:opacity-40",
                 outcome === o.value ? "" : "border-line",
               )}
             >
-              <span aria-hidden>{RESULT_TONES[o.tone].symbol} </span>
+              <ResultIcon tone={o.tone} />
               {o.label}
             </button>
           ))}
@@ -885,10 +886,10 @@ function TopoQuickAdd({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold">{L.tries}</span>
         <button type="button" aria-label={L.tries + " −"} disabled={n <= 1 || outcome === "FLASH"} onClick={() => setTries((x) => Math.max(1, x - 1))}
-          className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">−</button>
-        <span className="w-8 text-center font-black tabular-nums" aria-live="polite">{n}</span>
+          className={iconButtonClass()}>−</button>
+        <span className="leblond-number w-8 text-center text-xl" aria-live="polite">{n}</span>
         <button type="button" aria-label={L.tries + " +"} disabled={n >= 50 || outcome === "FLASH"} onClick={() => setTries((x) => Math.min(50, x + 1))}
-          className="h-10 w-10 rounded-full border border-line bg-surface font-bold disabled:opacity-40">+</button>
+          className={iconButtonClass()}>+</button>
         <span className="text-xs text-ink-3">{L.topoTriesHint}</span>
       </div>
 
@@ -985,12 +986,12 @@ function GradeGrid({
             onClick={() => onPick(g.id)}
             aria-label={levels ? gradeSpokenLabel(t, system, g.id) : undefined}
             className={cn(
-              "flex flex-col items-center justify-center rounded-2xl border border-line px-1 text-center font-bold disabled:opacity-50",
+              "flex flex-col items-center justify-center rounded-xl border border-line px-1 text-center font-display font-bold disabled:opacity-50",
               isColorSystem(system) || levels ? "min-h-16" : "min-h-12",
             )}
             style={g.swatch ? { backgroundColor: g.swatch, color: g.swatchText } : undefined}
           >
-            <span className={cn(levels ? "text-2xl font-black tabular-nums" : "text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
+            <span className={cn(levels ? "leblond-number text-2xl" : "text-sm tracking-[0.12em]", isColorSystem(system) && "uppercase")}>
               {isColorSystem(system) ? (t.grades.colors as Record<string, string>)[g.id] : g.id}
             </span>
             {g.kind === "MYSTERY" ? <span className="text-xs font-medium">{t.grades.mystery}</span> : null}
@@ -1025,10 +1026,7 @@ function ChipRow({
               type="button"
               aria-pressed={on}
               onClick={() => onToggle(o.value)}
-              className={cn(
-                "min-h-11 rounded-full border px-3 text-sm",
-                on ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2",
-              )}
+              className={toggleClass(on)}
             >
               {o.label}
             </button>
@@ -1067,7 +1065,7 @@ function SyncBar({ log, L, locale }: {
         )}>
           <span className="min-w-0 flex-1">{text}</span>
           {n && log.online && !log.syncing ? (
-            <button type="button" onClick={log.retry} className="min-h-11 rounded-full px-3 font-bold text-accent underline underline-offset-2">
+            <button type="button" onClick={log.retry} className={cn(linkClass, "min-h-11 rounded-full px-3")}>
               {L.sendNow}
             </button>
           ) : null}
@@ -1081,7 +1079,7 @@ function SyncBar({ log, L, locale }: {
               reason: [...new Set(log.rejections.map(reason))].join(", "),
             })}
           </span>
-          <button type="button" onClick={log.dismissRejections} aria-label="OK" className="min-h-11 rounded-full px-3 font-bold">OK</button>
+          <button type="button" onClick={log.dismissRejections} aria-label="OK" className={buttonClass("ghost", "sm")}>OK</button>
         </div>
       ) : null}
     </div>

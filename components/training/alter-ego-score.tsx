@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Pact, PactProgress } from "@/lib/analytics/alter-ego";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
+import { IconNext } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
 export function AlterEgoScore({ locale, pact, progress, observed, href }: {
@@ -59,6 +62,6 @@ export function AlterEgoScore({ locale, pact, progress, observed, href }: {
       </ul>
       <p className="mt-2 text-xs text-ink-3">{t.paceHint}</p>
     </div> : null}
-    {href ? <Link href={href} className="inline-block text-sm font-bold text-accent underline underline-offset-4">{t.see} →</Link> : null}
+    {href ? <Link href={href} className={cn(linkClass, "text-sm")}>{t.see} <IconNext /></Link> : null}
   </section>;
 }

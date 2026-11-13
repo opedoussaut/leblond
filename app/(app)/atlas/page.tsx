@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { buttonClass } from "@/components/ui/button";
+import { IconBack, IconExternal } from "@/components/ui/icons";
 
 export const metadata={title:"LEBLOND — Training Atlas"};
 export default async function AtlasPage(){
@@ -18,13 +19,13 @@ export default async function AtlasPage(){
       :"Methods, tools and coaching systems: detailed guides, comparisons and verifiable sources."}/>
     <div className="flex flex-wrap gap-3 text-sm">
       <Link href="/train" className={buttonClass("secondary", "md")}>
-        ← {locale==="fr"?"S’entraîner":"Train"}
+        <IconBack /> {locale==="fr"?"S’entraîner":"Train"}
       </Link>
       <Link href="/calendar" className={buttonClass("secondary", "md")}>
-        {locale==="fr"?"Mon agenda":"My calendar"} ↗
+        {locale==="fr"?"Mon agenda":"My calendar"} <IconExternal />
       </Link>
       <Link href="/training-plans" className={buttonClass("secondary", "md")}>
-        {t.myPlans} ↗
+        {t.myPlans} <IconExternal />
       </Link>
     </div>
     <TrainingExplorer locale={locale}/>

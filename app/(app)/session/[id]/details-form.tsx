@@ -7,6 +7,7 @@ import { Card, Notice, SectionTitle } from "@/components/ui/card";
 import { Label, Textarea } from "@/components/ui/field";
 import { cn } from "@/components/ui/cn";
 import { deleteSession, updateSessionDetails } from "@/lib/actions/sessions";
+import { IconCheck } from "@/components/ui/icons";
 
 type Scale = number | null;
 
@@ -24,8 +25,7 @@ function ScaleInput({ name, label, value }: { name: string; label: string; value
             aria-pressed={v === n}
             onClick={() => setV(v === n ? null : n)}
             className={cn(
-              "h-11 w-11 rounded-full border font-bold tabular-nums",
-              v === n ? "border-accent bg-accent text-accent-ink" : "border-line text-ink-2",
+              "leblond-number h-11 w-11 rounded-full border text-base transition-colors", v === n ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2 hover:border-ink-3",
             )}
           >
             {n}
@@ -62,7 +62,7 @@ export function SessionDetailsForm({
           <Textarea id="session-notes" name="notes" defaultValue={initial.notes} maxLength={4000} placeholder={t.session.notesPlaceholder} />
         </div>
         {state && !state.ok ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
-        {state?.ok ? <Notice tone="ok">✓</Notice> : null}
+        {state?.ok ? <Notice tone="ok"><IconCheck /> {t.common.saved}</Notice> : null}
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : t.common.save}
         </Button>

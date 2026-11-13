@@ -20,6 +20,7 @@ import { SessionDetailsForm } from "./details-form";
 import { SessionWearable } from "./session-wearable";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
 import { buttonClass } from "@/components/ui/button";
+import { IconEdit, IconStar } from "@/components/ui/icons";
 
 type View = NonNullable<Awaited<ReturnType<typeof loadSessionView>>>;
 
@@ -103,7 +104,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{t.session.summaryTitle}</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{view.session.title || view.gym.name}</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{view.session.title || view.gym.name}</h1>
           {view.session.title ? <p className="text-sm font-semibold text-ink-2">{view.gym.name}</p> : null}
           <p className="text-sm text-ink-3">
             {formatDateTime(view.session.started_at, locale)} · {t.session.source}: {t.session.sourceManual}
@@ -111,12 +112,12 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
         </div>
         <Link href={`/session/${view.session.id}/edit`}
           className={buttonClass("secondary", "md", "shrink-0")}>
-          ✎ {sessionEditDictionary(locale).edit}
+          <IconEdit /> {sessionEditDictionary(locale).edit}
         </Link>
       </header>
 
       <Card>
-        <div className="text-4xl font-black tabular-nums">{formatDuration(summary.durationMinutes)}</div>
+        <div className="leblond-number text-4xl">{formatDuration(summary.durationMinutes)}</div>
         <div className="mt-4 grid grid-cols-4 gap-3">
           <Stat value={summary.problems} label={t.session.problems} />
           <Stat value={summary.tops} label={t.session.tops} />
@@ -180,7 +181,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
 
       {sessionProjects.length ? (
         <section aria-labelledby="session-projects" className="space-y-2">
-          <SectionTitle><span id="session-projects">★ {L.projectsOfSession}</span></SectionTitle>
+          <SectionTitle><span id="session-projects"><IconStar /> {L.projectsOfSession}</span></SectionTitle>
           <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
             {sessionProjects.map(({ problem: p, projectId, here }) => (
               <li key={projectId}>

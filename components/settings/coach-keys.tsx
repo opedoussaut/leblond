@@ -41,7 +41,7 @@ export function CoachKeys({ locale, keys }: { locale: Locale; keys: CoachKey[] }
   }
 
   return <section aria-labelledby="coach-keys-heading" className="leblond-premium-surface mt-8 space-y-4 p-5 sm:p-6">
-    <h2 id="coach-keys-heading" className="text-lg font-extrabold">{t.title}</h2>
+    <h2 id="coach-keys-heading" className="text-lg font-bold">{t.title}</h2>
     <p className="text-sm text-ink-2">{t.intro}</p>
 
     {created ? <div role="status" className="space-y-3 rounded-xl border border-accent/40 bg-accent-soft p-4">
@@ -60,7 +60,7 @@ export function CoachKeys({ locale, keys }: { locale: Locale; keys: CoachKey[] }
     </form>}
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
 
-    <h3 className="text-sm font-extrabold">{t.active}</h3>
+    <h3 className="text-sm font-bold">{t.active}</h3>
     {keys.length ? <ul className="space-y-2">
       {keys.map((k) => <li key={k.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm">
         <span>

@@ -16,6 +16,9 @@ import { loadMobility } from "@/lib/data/mobility";
 import { fmt } from "@/lib/i18n";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
+import { IconNext } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 export const metadata = { title: "LEBLOND — Progrès" };
 
@@ -30,7 +33,7 @@ function Evidence({ kind, fr }: { kind: "observed" | "recorded" | "self"; fr: bo
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return <div className="rounded-2xl bg-surface-2 p-4">
     <p className="text-xs font-semibold text-ink-3">{label}</p>
-    <p className="mt-1 text-2xl font-black tabular-nums">{value}</p>
+    <p className="mt-1 leblond-number text-2xl">{value}</p>
     {hint ? <p className="mt-1 text-xs text-ink-3">{hint}</p> : null}
   </div>;
 }
@@ -65,12 +68,12 @@ export default async function FollowUpHome() {
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="climb-heading" className="text-lg font-extrabold">{fr ? "Bloc · 30 derniers jours" : "Bouldering · last 30 days"}</h2>
+        <h2 id="climb-heading" className="text-lg font-bold">{fr ? "Bloc · 30 derniers jours" : "Bouldering · last 30 days"}</h2>
         <Evidence kind="observed" fr={fr} />
       </div>
       {snap.counts.sessions === 0 ? <p className="text-sm text-ink-2">
         {fr ? "Aucune séance de grimpe enregistrée sur cette période." : "No climbing sessions logged in this period."}{" "}
-        <Link href="/session/new" className="font-bold text-accent underline">{fr ? "Commencer une séance" : "Start a session"}</Link>
+        <Link href="/session/new" className={linkClass}>{fr ? "Commencer une séance" : "Start a session"}</Link>
       </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Tile label={fr ? "Séances" : "Sessions"} value={String(snap.counts.sessions)} />
         <Tile label={fr ? "Essais" : "Attempts"} value={String(snap.counts.attempts)} />
@@ -81,21 +84,21 @@ export default async function FollowUpHome() {
         <strong>{fr ? "Niveau de travail observé" : "Observed working grade"} :</strong>{" "}
         {working.level ? `${working.level} (${working.sampleSize} ${fr ? "blocs, 60 j" : "problems, 60 d"})` : (fr ? "données insuffisantes" : "insufficient data")}
       </p>
-      <Link href="/progress" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} →</Link>
+      <Link href="/progress" className={cn(linkClass, "text-sm")}>{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} <IconNext /></Link>
     </section>
 
     {routes ? <RouteStats locale={locale} ascents={routes} now={now} /> : null}
 
     <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="train-heading" className="text-lg font-extrabold">{fr ? "Entraînement · 8 dernières semaines" : "Training · last 8 weeks"}</h2>
+        <h2 id="train-heading" className="text-lg font-bold">{fr ? "Entraînement · 8 dernières semaines" : "Training · last 8 weeks"}</h2>
         <Evidence kind="recorded" fr={fr} />
       </div>
       {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
         : recent.length === 0 ? <p className="text-sm text-ink-2">
           {fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
               : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
-          <Link href="/train" className="font-bold text-accent underline">{fr ? "Découvrir l’entraînement" : "Explore training"}</Link>
+          <Link href="/train" className={linkClass}>{fr ? "Découvrir l’entraînement" : "Explore training"}</Link>
         </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
             hint={adh.completionRate === null ? undefined : `${Math.round(adh.completionRate * 100)} %`} />
@@ -103,24 +106,24 @@ export default async function FollowUpHome() {
           <Tile label={fr ? "Effort perçu moyen" : "Average RPE"} value={adh.averageRpe === null ? "—" : `${adh.averageRpe} / 10`} />
           <Tile label={fr ? "À venir" : "Upcoming"} value={String(adh.upcoming)} hint={adh.painReports ? (fr ? `${adh.painReports} douleur(s) ≥ 3 signalée(s)` : `${adh.painReports} pain report(s) ≥ 3`) : undefined} />
         </div>}
-      <Link href="/follow-up/training" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Historique d’entraînement" : "Training history"} →</Link>
+      <Link href="/follow-up/training" className={cn(linkClass, "text-sm")}>{fr ? "Historique d’entraînement" : "Training history"} <IconNext /></Link>
     </section>
 
     {mobilityUsed ? <section aria-labelledby="mobility-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="mobility-heading" className="text-lg font-extrabold">{mob.fuCardTitle}</h2>
+        <h2 id="mobility-heading" className="text-lg font-bold">{mob.fuCardTitle}</h2>
         <Evidence kind="recorded" fr={fr} />
       </div>
       <p className="text-sm text-ink-2">{fmt(mob.fuCardText, {
         sessions: mobOverview.sessionsLast28,
         level: LEVEL_LABELS[contentLevel(mobility.enrollment?.workingLevel ?? 0)].name[locale],
       })}</p>
-      <Link href="/follow-up/mobility" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{mob.fuTitle} →</Link>
+      <Link href="/follow-up/mobility" className={cn(linkClass, "text-sm")}>{mob.fuTitle} <IconNext /></Link>
     </section> : null}
 
     <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="assess-heading" className="text-lg font-extrabold">{fr ? "Évaluations" : "Assessments"}</h2>
+        <h2 id="assess-heading" className="text-lg font-bold">{fr ? "Évaluations" : "Assessments"}</h2>
         <Evidence kind="self" fr={fr} />
       </div>
       {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucune évaluation. C’est facultatif." : "No assessments. They are optional."}</p>
@@ -128,7 +131,7 @@ export default async function FollowUpHome() {
           {fr ? `${assessments!.length} évaluation(s) · dernière le ` : `${assessments!.length} assessment(s) · latest on `}
           {formatDate(assessments![0].created_at, locale)}
         </p>}
-      <Link href="/training-assessment" className="inline-block text-sm font-bold text-accent underline underline-offset-4">{fr ? "Comparer mes évaluations" : "Compare my assessments"} →</Link>
+      <Link href="/training-assessment" className={cn(linkClass, "text-sm")}>{fr ? "Comparer mes évaluations" : "Compare my assessments"} <IconNext /></Link>
       <p className="text-xs text-ink-3">{fr
         ? "Les scénarios d’évolution sont illustratifs et ne prédisent pas une cotation. Ils restent séparés des résultats observés."
         : "Progress scenarios are illustrative and do not predict a grade. They stay separate from observed results."}</p>

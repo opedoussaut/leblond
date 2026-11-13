@@ -44,7 +44,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }
                     aria-current={isPage ? "page" : selected ? "true" : undefined}
                     data-active-area={selected ? "true" : undefined}
                     className={cn(
-                      "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors [&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0",
+                      "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors [&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0",
                       isPage ? "bg-accent text-accent-ink"
                         : selected ? "text-accent hover:bg-surface-2"
                         : "text-ink-2 hover:bg-surface-2 hover:text-ink",
@@ -97,7 +97,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }
                   data-active-area={selected ? "true" : undefined}
                   className={cn(
                     "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[11px] leading-tight transition-colors",
-                    selected ? "font-extrabold text-accent" : "font-semibold text-ink-3 hover:text-ink",
+                    selected ? "font-bold text-accent" : "font-medium text-ink-3 hover:text-ink",
                   )}>
                   {selected ? <span aria-hidden="true" className="absolute inset-x-5 top-0 h-[3px] rounded-full bg-accent" /> : null}
                   <Icon aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={selected ? 2.25 : 1.9} />
@@ -126,19 +126,17 @@ export function AreaSubNav() {
   if (pages.length === 0) return null;
   return (
     <nav aria-label={t.nav.subNav} className="mb-5 md:hidden">
-      <ul className="grid auto-cols-fr grid-flow-col gap-1 rounded-2xl border border-line bg-surface p-1">
+      <ul className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-surface-2 p-1">
         {pages.map((child) => {
           const active = currentPage?.href === child.href;
-          const Icon = PAGE_ICONS[child.key];
           return <li key={child.href} className="min-w-0">
             <Link href={child.href} aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-center font-semibold leading-tight transition-colors",
-                // Four segments (Progrès once Mobilité lands) still fit "Entraînement" at 375 px.
-                pages.length >= 4 ? "px-0.5 text-[11px] tracking-tight" : "px-1 text-xs",
-                active ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+                "flex min-h-11 items-center justify-center rounded-full px-1.5 text-center font-semibold leading-tight transition-colors",
+                // Words only, so "Programmes" and "Entraînement" fit at 360 px; four segments step down a size.
+                pages.length >= 4 ? "text-xs tracking-tight" : "text-sm",
+                active ? "bg-surface text-ink shadow-[0_1px_2px_rgb(19_36_56/0.12)]" : "text-ink-2 hover:text-ink",
               )}>
-              <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
               <span className="max-w-full truncate">{t.nav[child.key]}</span>
             </Link>
           </li>;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { deleteMedia } from "@/lib/actions/media";
+import { dangerLinkClass } from "@/components/ui/button";
 
 type Item = { id: string; type: string; mime: string; url: string | null };
 
@@ -33,7 +34,7 @@ export function MediaGallery({ items, photoLabel }: { items: Item[]; photoLabel?
             <button
               type="button"
               disabled={pending}
-              className="min-h-11 px-2 text-danger"
+              className={dangerLinkClass}
               onClick={() =>
                 start(async () => {
                   await deleteMedia(m.id);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import {
@@ -15,6 +15,7 @@ import { MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
 import { EXERCISE_BY_ID, LEVEL_LABELS, NOT_CLINICAL } from "@/lib/training/hip-mobility/content";
 import { VARIANT_NAMES } from "@/lib/training/hip-mobility/prescription";
 import { pick } from "@/lib/training/sessions";
+import { IconBack, IconNext } from "@/components/ui/icons";
 
 export const metadata = { title: "LEBLOND — Hip mobility follow-up" };
 
@@ -62,16 +63,16 @@ export default async function MobilityFollowUpPage() {
   const functional = assessments.flatMap((a) => a.results.filter((r) => r.test === "D" && r.side !== "BOTH").map((r) => ({ a, r })));
 
   return <div className="space-y-6">
-    <p className="text-sm"><Link href="/follow-up" className="font-bold text-accent underline underline-offset-4">← {locale === "fr" ? "Progrès" : "Progress"}</Link></p>
+    <p className="text-sm"><Link href="/follow-up" className={linkClass}><IconBack /> {locale === "fr" ? "Progrès" : "Progress"}</Link></p>
     <PageHeader icon={<PAGE_ICONS.mobility />} title={m.fuTitle} subtitle={m.fuSubtitle} />
 
     {empty ? <div className="rounded-2xl border border-dashed border-line p-6 text-center">
       <p className="text-sm text-ink-2">{m.fuEmpty}</p>
-      <Link href="/train/mobility" className={buttonClass("primary", "md", "mt-4")}>{m.fuStart} →</Link>
+      <Link href="/train/mobility" className={buttonClass("primary", "md", "mt-4")}>{m.fuStart} <IconNext /></Link>
     </div> : <>
       <section aria-labelledby="fu-sessions" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-sessions" className="text-lg font-extrabold">{m.fuSessions}</h2>
+          <h2 id="fu-sessions" className="text-lg font-bold">{m.fuSessions}</h2>
           <Evidence label={m.fuRecorded} />
         </div>
         <p className="text-sm text-ink-2">{fmt(m.fuLast28, { n: overview.sessionsLast28 })} · {fmt(m.fuTotal, { n: overview.sessionsTotal })}</p>
@@ -84,7 +85,7 @@ export default async function MobilityFollowUpPage() {
 
       {exerciseIds.length ? <section aria-labelledby="fu-exercises" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-exercises" className="text-lg font-extrabold">{m.fuExercises}</h2>
+          <h2 id="fu-exercises" className="text-lg font-bold">{m.fuExercises}</h2>
           <Evidence label={m.fuRecorded} />
         </div>
         <p className="text-sm text-ink-2">{m.fuExerciseHint}</p>
@@ -117,7 +118,7 @@ export default async function MobilityFollowUpPage() {
 
       {sides.length ? <section aria-labelledby="fu-sides" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-sides" className="text-lg font-extrabold">{m.fuLeftRight}</h2>
+          <h2 id="fu-sides" className="text-lg font-bold">{m.fuLeftRight}</h2>
           <Evidence label={m.fuRecorded} />
         </div>
         <p className="text-sm text-ink-2">{m.fuLeftRightHint}</p>
@@ -151,7 +152,7 @@ export default async function MobilityFollowUpPage() {
 
       <section aria-labelledby="fu-assess" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-assess" className="text-lg font-extrabold">{m.fuAssessments}</h2>
+          <h2 id="fu-assess" className="text-lg font-bold">{m.fuAssessments}</h2>
           <Evidence label={m.fuMeasured} />
         </div>
         {assessments.length ? <ul className="space-y-1 text-sm">
@@ -182,7 +183,7 @@ export default async function MobilityFollowUpPage() {
             </tbody>
           </table>
         </div> : null}
-        <h3 className="pt-2 text-sm font-extrabold">{m.fuFunctional}</h3>
+        <h3 className="pt-2 text-sm font-bold">{m.fuFunctional}</h3>
         {functional.length ? <ul className="space-y-1 text-sm">
           {functional.map(({ a, r }) => <li key={a.id + r.side}>
             {shortDate(a.date)} · {m.sides[r.side]} : {r.done ? `${m.level.replace("{n}", String(r.level ?? "—"))}${r.value !== null ? ` · ${r.value}` : ""}` : m.skipReasons[r.skipReason ?? "NOT_POSSIBLE"]}
@@ -193,7 +194,7 @@ export default async function MobilityFollowUpPage() {
 
       <section aria-labelledby="fu-discomfort" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-discomfort" className="text-lg font-extrabold">{m.fuDiscomfort}</h2>
+          <h2 id="fu-discomfort" className="text-lg font-bold">{m.fuDiscomfort}</h2>
           <Evidence label={m.fuSelfReported} />
         </div>
         {reports.length ? <ul className="space-y-1 text-sm">
@@ -207,8 +208,8 @@ export default async function MobilityFollowUpPage() {
     </>}
 
     <div className="flex flex-wrap gap-3">
-      <Link href="/train/mobility" className={buttonClass("secondary", "md")}>{m.title} →</Link>
-      <Link href="/patrick?q=mobility" className={buttonClass("secondary", "md")}>{m.patrick} →</Link>
+      <Link href="/train/mobility" className={buttonClass("secondary", "md")}>{m.title} <IconNext /></Link>
+      <Link href="/patrick?q=mobility" className={buttonClass("secondary", "md")}>{m.patrick} <IconNext /></Link>
     </div>
   </div>;
 }

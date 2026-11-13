@@ -11,6 +11,9 @@ import { getI18n } from "@/lib/i18n/server";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { RouteAscentEditor } from "./route-ascent-editor";
+import { IconBack, IconExternal } from "@/components/ui/icons";
+import { linkClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 /** One logged route line: everything about it, editable afterwards, with its photos and videos. */
 export default async function RouteAscentPage({ params }: PageProps<"/route/[id]">) {
@@ -38,7 +41,7 @@ export default async function RouteAscentPage({ params }: PageProps<"/route/[id]
         <p className="text-sm text-ink-3">
           {gym?.name}{ascent.sector ? ` · ${ascent.sector}` : ""} · {formatDateTime(ascent.created_at, locale)}
         </p>
-        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{ascent.route_name || r.ascentTitle}</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{ascent.route_name || r.ascentTitle}</h1>
         <div className="flex flex-wrap items-center gap-2">
           {ascent.native_grade && ascent.native_grade_system ? (
             <GradeChip t={t} system={ascent.native_grade_system} grade={ascent.native_grade} size="lg" />
@@ -51,8 +54,8 @@ export default async function RouteAscentPage({ params }: PageProps<"/route/[id]
           <p className="text-sm text-ink-2">
             {p.topoRef} : {ascent.topo_ref ?? ""}{" "}
             {ascent.topo_url ? (
-              <a href={ascent.topo_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-2 hover:underline">
-                {p.topoSource} ↗
+              <a href={ascent.topo_url} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "hover:underline")}>
+                {p.topoSource} <IconExternal />
               </a>
             ) : null}
           </p>
@@ -90,8 +93,8 @@ export default async function RouteAscentPage({ params }: PageProps<"/route/[id]
         }}
       />
 
-      <Link href={`/session/${ascent.session_id}`} className="block text-sm text-accent underline-offset-2 hover:underline">
-        ← {r.backToSession}
+      <Link href={`/session/${ascent.session_id}`} className={cn(linkClass, "block text-sm hover:underline")}>
+        <IconBack /> {r.backToSession}
       </Link>
     </div>
   );

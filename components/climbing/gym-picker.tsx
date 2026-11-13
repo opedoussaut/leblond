@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/field";
 import { createGym } from "@/lib/actions/gyms";
@@ -138,7 +138,7 @@ export function GymPicker({
                 </div>
                 <button type="button" disabled={pending} onClick={() => onToggle?.(g)}
                   aria-label={t.gyms.remove + " " + g.name}
-                  className="min-h-11 shrink-0 rounded-xl px-3 text-xs font-bold text-accent hover:bg-surface">
+                  className={buttonClass("ghost", "sm", "shrink-0 text-accent")}>
                   {t.gyms.remove}
                 </button>
               </li>

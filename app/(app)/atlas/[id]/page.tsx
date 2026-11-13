@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AtlasDiagramFigure } from "@/components/training/atlas-diagram";
 import { AtlasRadar } from "@/components/training/atlas-radar";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass } from "@/components/ui/button";
 import { requireViewer } from "@/lib/auth/viewer";
 import { atlasDictionary } from "@/lib/i18n/atlas";
 import type { Locale } from "@/lib/i18n";
@@ -13,6 +13,8 @@ import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { atlasDetail } from "@/lib/training/atlas";
 import { METHODS_FOR_PLANS, TRAINING_CATALOGUE, type Localized } from "@/lib/training/catalogue";
 import { templateFor } from "@/lib/training/session-templates";
+import { IconBack, IconExternal, IconPlay } from "@/components/ui/icons";
+import { cn } from "@/components/ui/cn";
 
 export async function generateMetadata({ params }: PageProps<"/atlas/[id]">) {
   const { id } = await params;
@@ -22,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/atlas/[id]">) {
 
 function Card({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return <section className="leblond-premium-surface p-5" aria-labelledby={id}>
-    <h2 id={id} className="text-lg font-extrabold">{title}</h2>
+    <h2 id={id} className="text-lg font-bold">{title}</h2>
     {children}
   </section>;
 }
@@ -45,11 +47,11 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
   const executable = METHODS_FOR_PLANS.some((m) => m.id === entry.id);
 
   return <div className="space-y-6 pb-10">
-    <Link className="text-sm font-semibold text-accent underline" href="/atlas">{a.back}</Link>
+    <Link className={cn(linkClass, "text-sm")} href="/atlas"><IconBack /> {a.back}</Link>
 
     <header>
       <p className="leblond-eyebrow text-accent">{t.groups[entry.category]} · {t.evidence[entry.evidence]}</p>
-      <h1 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">{entry.title}</h1>
+      <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl">{entry.title}</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink-2">{info.summary[locale]}</p>
     </header>
 
@@ -69,7 +71,7 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
 
     {info.video ? <Card id="atlas-video" title={a.video}>
       <a href={info.video.url} rel="noopener noreferrer" target="_blank"
-        className="mt-3 inline-block font-semibold leading-snug text-accent underline underline-offset-2">{info.video.title} ↗</a>
+        className={cn(linkClass, "mt-3 leading-snug")}>{info.video.title} <IconExternal /></a>
       <p className="mt-1 text-xs text-ink-3">{a.videoBy.replace("{author}", info.video.author)}</p>
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{info.video.note[locale]}</p>
     </Card> : null}
@@ -120,14 +122,14 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
         {info.sources.some((s) => s.url === entry.source.url) ? null : <li className="rounded-xl border border-line p-3 text-sm">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{a.mainSource}</p>
           <a href={entry.source.url} rel="noopener noreferrer" target="_blank"
-            className="mt-1 inline-block font-semibold text-accent underline underline-offset-2">{entry.source.label} ↗</a>
+            className={cn(linkClass, "mt-1")}>{entry.source.label} <IconExternal /></a>
         </li>}
         {info.sources.map((source) => <li key={source.url} className="rounded-xl border border-line p-3 text-sm">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
             {a.sourceKinds[source.kind]}{source.url === entry.source.url ? " · " + a.mainSource : ""}
           </p>
           <a href={source.url} rel="noopener noreferrer" target="_blank"
-            className="mt-1 inline-block font-semibold leading-snug text-accent underline underline-offset-2">{source.citation} ↗</a>
+            className={cn(linkClass, "mt-1 leading-snug")}>{source.citation} <IconExternal /></a>
           <p className="mt-2 leading-relaxed text-ink-2">{source.finding[locale]}</p>
         </li>)}
       </ul>
@@ -154,13 +156,13 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
 
     <section aria-label={a.useMethod} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {executable ? <Link href={"/train/sessions?method=" + encodeURIComponent(entry.id)} className={buttonClass("primary", "md")}>
-        ▶ {ts.startFromAtlas}
+        <IconPlay /> {ts.startFromAtlas}
       </Link> : null}
       {executable ? <Link href={"/training-plans?add=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
         + {ts.addToPlan}
       </Link> : null}
       <Link href={"/calendar?method=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
-        {a.scheduleCalendar} ↗
+        {a.scheduleCalendar} <IconExternal />
       </Link>
     </section>
     <p className="text-xs text-ink-3">{t.warning}</p>

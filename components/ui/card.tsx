@@ -26,7 +26,7 @@ export function PageHeader({ title, subtitle, action, icon }: {
           {icon}
         </span> : null}
         <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight md:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
           {subtitle ? <p className="mt-1 text-sm text-ink-2">{subtitle}</p> : null}
         </div>
       </div>

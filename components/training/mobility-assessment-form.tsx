@@ -12,9 +12,10 @@ import {
 } from "@/lib/training/hip-mobility/assessment";
 import { LEVEL_LABELS, NOT_CLINICAL, type Level } from "@/lib/training/hip-mobility/content";
 import { pick } from "@/lib/training/sessions";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, toggleClass } from "@/components/ui/button";
 import { fieldClass } from "@/components/ui/field";
 import { MobilityIllustration } from "./mobility-illustrations";
+import { IconBack, IconNext } from "@/components/ui/icons";
 
 type SideKey = "LEFT" | "RIGHT";
 type SideDraft = Omit<MobilityResult, "test" | "side">;
@@ -24,8 +25,7 @@ const blankSide = (): SideDraft => ({
 });
 
 function chip(on: boolean, danger = false) {
-  return "min-h-11 rounded-full border px-3 text-sm font-bold " +
-    (on ? (danger ? "border-danger bg-danger text-surface" : "border-accent bg-accent text-accent-ink") : "border-line bg-surface text-ink");
+  return toggleClass(on, on && danger ? "border-danger bg-danger" : undefined);
 }
 const num = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? null : Number(v));
 
@@ -133,11 +133,11 @@ export function MobilityAssessmentForm({ locale, today, previous }: {
   }
 
   if (saved !== null) return <section role="status" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
-    <h2 className="text-xl font-black">{m.resultTitle}</h2>
+    <h2 className="text-xl font-bold">{m.resultTitle}</h2>
     <p className="text-lg font-bold">{fmt(m.resultStage, { level: pick(LEVEL_LABELS[saved].name, locale) })}</p>
     <p className="text-sm text-ink-2">{pick(LEVEL_LABELS[saved].detail, locale)}</p>
     <p className="text-xs text-ink-3">{pick(NOT_CLINICAL, locale)}</p>
-    <Link href="/train/mobility" className={buttonClass("primary", "md")}>{m.backToProgramme} →</Link>
+    <Link href="/train/mobility" className={buttonClass("primary", "md")}>{m.backToProgramme} <IconNext /></Link>
   </section>;
 
   return <div className="space-y-5">
@@ -146,7 +146,7 @@ export function MobilityAssessmentForm({ locale, today, previous }: {
     </ol>
 
     {current === "conditions" ? <section className="leblond-premium-surface space-y-4 p-5 sm:p-6" aria-labelledby="cond-title">
-      <h2 id="cond-title" className="text-lg font-extrabold">{m.conditionsTitle}</h2>
+      <h2 id="cond-title" className="text-lg font-bold">{m.conditionsTitle}</h2>
       <p className="text-sm text-ink-2">{m.assessIntro}</p>
       <label className="block text-sm font-semibold">{m.date}
         <input type="date" className={fieldClass} value={date} max={today} onChange={(e) => setDate(e.target.value)} />
@@ -168,7 +168,7 @@ export function MobilityAssessmentForm({ locale, today, previous }: {
 
     {test ? <section className="space-y-4" aria-labelledby={"test-" + test.id}>
       <div className="leblond-premium-surface space-y-3 p-5 sm:p-6">
-        <h2 id={"test-" + test.id} className="text-lg font-extrabold">{pick(test.name, locale)}</h2>
+        <h2 id={"test-" + test.id} className="text-lg font-bold">{pick(test.name, locale)}</h2>
         {test.optional ? <p className="text-sm font-semibold text-accent">{m.optionalTest}</p> : null}
         <MobilityIllustration test={test.id} title={pick(test.name, locale)} />
         <p className="text-sm font-semibold">{pick(test.question, locale)}</p>
@@ -206,7 +206,7 @@ export function MobilityAssessmentForm({ locale, today, previous }: {
     </section> : null}
 
     {current === "review" ? <section className="leblond-premium-surface space-y-4 p-5 sm:p-6" aria-labelledby="review-title">
-      <h2 id="review-title" className="text-lg font-extrabold">{m.saveAssessment}</h2>
+      <h2 id="review-title" className="text-lg font-bold">{m.saveAssessment}</h2>
       <ul className="space-y-1 text-sm">
         {results().filter((r) => r.side !== "BOTH").map((r) => <li key={r.test + r.side} className="flex justify-between gap-3">
           <span>{r.test} · {m.sides[r.side]}</span>
@@ -223,9 +223,9 @@ export function MobilityAssessmentForm({ locale, today, previous }: {
 
     <div className="flex justify-between gap-3">
       <button type="button" disabled={step === 0} onClick={() => { setStep((s) => s - 1); window.scrollTo({ top: 0 }); }}
-        className="min-h-12 rounded-2xl border border-line bg-surface px-5 text-sm font-bold disabled:opacity-40">← {m.previous}</button>
+        className={buttonClass("secondary", "md")}><IconBack /> {m.previous}</button>
       {step < steps.length - 1 ? <button type="button" onClick={() => { setStep((s) => s + 1); window.scrollTo({ top: 0 }); }}
-        className={buttonClass("primary", "md")}>{m.next} →</button> : null}
+        className={buttonClass("primary", "md")}>{m.next} <IconNext /></button> : null}
     </div>
   </div>;
 }

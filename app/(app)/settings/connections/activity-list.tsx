@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, linkClass } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { deleteActivity, linkActivityToSession } from "@/lib/actions/wearables";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { fmt, type Locale } from "@/lib/i18n";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
+import { cn } from "@/components/ui/cn";
 
 type Activity = {
   id: string;
@@ -63,7 +64,7 @@ export function ActivityList({ activities, sessions, locale }: { activities: Act
             </p>
             {linked ? (
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <Link href={`/session/${linked.id}`} className="text-accent underline-offset-2 hover:underline">
+                <Link href={`/session/${linked.id}`} className={cn(linkClass, "hover:underline")}>
                   {fmt(t.connections.linkedTo, { date: formatDateTime(linked.startedAt, locale) })}
                 </Link>
                 <Button variant="ghost" disabled={pending} onClick={() => run(() => linkActivityToSession(a.id, null))}>

@@ -8,10 +8,12 @@ import type { RouteAscentRow } from "@/lib/actions/routes";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatDateTime, formatDuration, formatRatio } from "@/lib/format";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { loggingDictionary } from "@/lib/i18n/logging";
 import { sessionEditDictionary } from "@/lib/i18n/session-edit";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { SessionDetailsForm } from "./details-form";
 import { buttonClass } from "@/components/ui/button";
+import { IconEdit } from "@/components/ui/icons";
 
 /** Summary of a finished ROUTE session (French sport grades only). */
 export function RouteSessionSummary({ locale, session, gymName, ascents }: {
@@ -26,13 +28,13 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
     <header className="flex items-start justify-between gap-3">
       <div>
         <p className="leblond-eyebrow text-accent">{r.summaryTitle}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{session.title || gymName}</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{session.title || gymName}</h1>
         {session.title ? <p className="text-sm font-semibold text-ink-2">{gymName}</p> : null}
         <p className="mt-1 text-sm text-ink-2">{formatDateTime(session.started_at, locale)} · {formatDuration(session.duration_minutes)}</p>
       </div>
       <Link href={`/session/${session.id}/edit`}
         className={buttonClass("secondary", "md", "shrink-0")}>
-        ✎ {sessionEditDictionary(locale).edit}
+        <IconEdit /> {sessionEditDictionary(locale).edit}
       </Link>
     </header>
     <Card>
@@ -58,7 +60,7 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
             <li key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm">
               <span>{a.native_grade && a.native_grade_system ? <GradeChip t={getDictionary(locale)} system={a.native_grade_system} grade={a.native_grade} size="sm" className="mr-2" /> : null}
                 <strong className="text-base tabular-nums">{a.grade}</strong> <ResultBadge tone={routeTone(a.result)} label={r.results[a.result]} className="ml-1" />
-                {a.route_project_id ? <ResultBadge tone="project" label="★" className="ml-1" /> : null}
+                {a.route_project_id ? <ResultBadge tone="project" label={loggingDictionary(locale).project} className="ml-1" /> : null}
                 {a.notes ? <span className="mt-1 block text-xs italic text-ink-2">“{a.notes}”</span> : null}</span>
               <span className="flex flex-col items-end gap-1 text-right text-xs text-ink-2">
                 <span>{r.styles[a.style]}{a.tries > 1 ? ` · ×${a.tries}` : ""}{a.falls ? ` · ${a.falls}` : ""}{a.route_name ? ` · ${a.route_name}` : ""}</span>

@@ -9,6 +9,7 @@ import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { buttonClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
+import { IconEdit } from "@/components/ui/icons";
 
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
 
@@ -79,10 +80,10 @@ export function EditTrainingForm({ locale, session, today }: {
   return <div className="space-y-3">
     <div className="flex flex-wrap gap-3">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className={buttonClass("secondary", "md")}>{t.edit}</button>
+        className={buttonClass("secondary", "md")}><IconEdit /> {t.edit}</button>
       <button type="button" disabled={pending}
         onClick={() => { if (window.confirm(t.deleteConfirm)) start(async () => { const r = await deleteTrainingSession(session.id); if (r.ok) router.push("/train/sessions"); else setError(t.error); }); }}
-        className="min-h-12 rounded-full border border-danger/40 px-5 text-sm font-bold text-danger disabled:opacity-60">{t.delete}</button>
+        className={buttonClass("danger", "md")}>{t.delete}</button>
     </div>
     {open ? <form aria-label={t.editTitle} className="leblond-premium-surface space-y-4 p-5" onSubmit={(e) => {
       e.preventDefault(); setError("");
@@ -93,7 +94,7 @@ export function EditTrainingForm({ locale, session, today }: {
         setOpen(false); router.refresh();
       });
     }}>
-      <h2 className="text-lg font-black">{t.editTitle}</h2>
+      <h2 className="text-lg font-bold">{t.editTitle}</h2>
       <label className="block text-sm font-semibold">{t.sessionTitle}
         <input className={field} required maxLength={120} value={v.title} onChange={(e) => set("title", e.target.value)} />
       </label>

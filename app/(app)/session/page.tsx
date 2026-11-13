@@ -9,6 +9,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { toAttemptFact } from "@/lib/data/climbing";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
+import { IconPast, LiveDot } from "@/components/ui/icons";
 
 export const metadata = { title: "Séances" };
 
@@ -38,7 +39,7 @@ export default async function SessionsPage() {
       <PageHeader icon={<PAGE_ICONS.session />} title={t.session.title} />
       {live ? (
         <Card className="border-accent">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok">● {t.session.active}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ok"><LiveDot /> {t.session.active}</p>
           <p className="mt-1 font-semibold">{live.gyms?.name}</p>
           <LinkButton href={`/session/${live.id}`} size="lg" className="mt-3 w-full">
             {t.session.resume}
@@ -50,7 +51,7 @@ export default async function SessionsPage() {
         </LinkButton>
       )}
       <LinkButton href="/session/new?where=past" variant="secondary" size="lg" className="w-full">
-        ↺ {sessionEditDictionary(locale).pastTitle}
+        <IconPast /> {sessionEditDictionary(locale).pastTitle}
       </LinkButton>
 
       <section className="space-y-3">

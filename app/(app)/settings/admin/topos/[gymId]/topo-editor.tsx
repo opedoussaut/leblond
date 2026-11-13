@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { CircuitTag, circuitColorName } from "@/components/climbing/outdoor";
 import { useI18n } from "@/components/i18n-provider";
-import { Button } from "@/components/ui/button";
+import { Button, toggleClass } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { Input, Label, Select } from "@/components/ui/field";
@@ -67,7 +67,7 @@ export function TopoEditor({ gymId, initial, logged }: { gymId: string; initial:
       <div className="flex flex-wrap gap-1.5" role="group" aria-label={e.circuit}>
         {["all", ...colors, "none"].map((c) => (
           <button key={c} type="button" aria-pressed={circuit === c} onClick={() => setCircuit(c)}
-            className={cn("min-h-11 rounded-full border px-3 text-sm", circuit === c ? "border-accent bg-accent-soft font-semibold" : "border-line text-ink-2")}>
+            className={toggleClass(circuit === c)}>
             {c === "all" ? e.allCircuits : c === "none" ? e.offCircuit : circuitColorName(t, c)}
           </button>
         ))}

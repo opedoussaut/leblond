@@ -6,6 +6,7 @@ import { fmt } from "@/lib/i18n";
 import { durationPresets, durationProblem, durationSuggestions, formatDuration, parseDuration } from "@/lib/duration";
 import { cn } from "./cn";
 import { Input } from "./field";
+import { toggleClass } from "@/components/ui/button";
 
 /**
  * Duration stored in minutes, typed the way people say it ("1h30", "1:30",
@@ -81,8 +82,7 @@ export function DurationField({ label, value, onChange, min = 0, max = 1440, opt
         <div role="group" aria-label={fmt(t.common.durationPresets, { label })} className="mt-2 flex flex-wrap gap-1.5">
           {presets.map((d) => (
             <button key={d} type="button" aria-pressed={parsed === d} onClick={() => pick(d)}
-              className={cn("min-h-9 rounded-full border px-3 text-sm font-semibold",
-                parsed === d ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface text-ink-2")}>
+              className={toggleClass(parsed === d, "px-3")}>
               {formatDuration(d)}
             </button>
           ))}

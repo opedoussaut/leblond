@@ -11,14 +11,15 @@ import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { EXERCISE_BY_ID, LEVEL_SESSIONS, type SessionLength } from "@/lib/training/hip-mobility/content";
 import { doseText } from "@/lib/training/hip-mobility/display";
 import type { SessionPlan } from "@/lib/training/hip-mobility/prescription";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, linkClass, toggleClass } from "@/components/ui/button";
 import { fieldClass } from "@/components/ui/field";
+import { IconPlay } from "@/components/ui/icons";
 
 const STANDARD_MIN = LEVEL_SESSIONS[0]!.STANDARD.minutes;
 const SHORT_MIN = LEVEL_SESSIONS[0]!.SHORT.minutes;
 
 function chip(on: boolean) {
-  return "min-h-11 rounded-full border px-4 text-sm font-bold " + (on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink");
+  return toggleClass(on);
 }
 
 function LengthPicker({ locale, value, onChange }: { locale: Locale; value: SessionLength; onChange: (v: SessionLength) => void }) {
@@ -59,7 +60,7 @@ export function MobilityEnrollForm({ locale }: { locale: Locale }) {
     });
   }
   return <form onSubmit={submit} className="space-y-4" aria-labelledby="enroll-title">
-    <h2 id="enroll-title" className="text-lg font-extrabold">{m.enrollTitle}</h2>
+    <h2 id="enroll-title" className="text-lg font-bold">{m.enrollTitle}</h2>
     <PerWeek locale={locale} value={perWeek} onChange={setPerWeek} id="mob-per-week" />
     <LengthPicker locale={locale} value={length} onChange={setLength} />
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
@@ -111,12 +112,12 @@ export function MobilityNextSession({ locale, plan, today, liveId }: {
     </ol>}
     {plan.excluded.length ? <p className="text-sm text-ink-2">{fmt(m.excluded, { names })}</p> : null}
     {error ? <p role="alert" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
-      {error.msg}{error.liveId ? <> <Link className="font-bold text-accent underline" href={"/train/sessions/" + error.liveId}>{m.openLive}</Link></> : null}
+      {error.msg}{error.liveId ? <> <Link className={linkClass} href={"/train/sessions/" + error.liveId}>{m.openLive}</Link></> : null}
     </p> : null}
-    {liveId ? <p className="text-sm">{m.live} <Link className="font-bold text-accent underline" href={"/train/sessions/" + liveId}>{m.openLive}</Link></p> : null}
+    {liveId ? <p className="text-sm">{m.live} <Link className={linkClass} href={"/train/sessions/" + liveId}>{m.openLive}</Link></p> : null}
     {plan.decisions.length ? <div className="flex flex-wrap gap-3">
       <button type="button" disabled={pending} onClick={() => run("STANDARD")} className={buttonClass("primary", "md", "flex-1 sm:flex-none")}>
-        ▶ {pending ? m.starting : m.startStandard}
+        <IconPlay /> {pending ? m.starting : m.startStandard}
       </button>
       <button type="button" disabled={pending} onClick={() => run("SHORT")} className={buttonClass("secondary", "md", "flex-1 sm:flex-none")}>
         {m.startShort}
@@ -158,7 +159,7 @@ export function MobilityScheduleForm({ locale, today, length, taken }: {
         const on = picked.includes(d);
         return <button key={d} type="button" disabled={busy} aria-pressed={on}
           onClick={() => setPicked((list) => on ? list.filter((x) => x !== d) : [...list, d])}
-          className={"min-h-12 rounded-xl border px-2 text-sm font-bold disabled:opacity-40 " + (on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface")}>
+          className={toggleClass(on, "px-2")}>
           {formatDate(d + "T12:00:00", locale, { weekday: "short", day: "numeric", month: "short" })}
         </button>;
       })}
@@ -191,7 +192,7 @@ export function MobilitySettingsForm({ locale, enrollment }: {
     <div className="flex flex-wrap gap-3">
       <button type="button" disabled={pending} onClick={() => save()} className={buttonClass("secondary", "md")}>{m.saveSettings}</button>
       <button type="button" disabled={pending} onClick={() => save(enrollment.status === "ACTIVE" ? "PAUSED" : "ACTIVE")}
-        className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-sm font-bold">
+        className={buttonClass("secondary", "md")}>
         {enrollment.status === "ACTIVE" ? m.pause : m.resume}
       </button>
     </div>
