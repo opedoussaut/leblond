@@ -16,23 +16,20 @@ grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 insert into public.gyms (id, name, brand, grading_system, has_bouldering, has_routes)
 values ('5e100000-0000-0000-0000-000000000001', 'Limiters Test Gym', 'CLIMBING_DISTRICT', 'CLIMBING_DISTRICT_COLOR', true, true);
 
-set role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","email":"olivier@example.test","role":"authenticated"}', false);
-update public.sessions set ended_at = now() where ended_at is null;
+-- Created as the database owner: this test is about the limiters column, not session creation.
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
 values ('5e200000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', '5e100000-0000-0000-0000-000000000001',
-        now() - interval '2 hours', now() - interval '1 hour', 60);
-reset role;
+        now() - interval '30 days', now() - interval '30 days' + interval '1 hour', 60);
 
 select pg_temp.expect((select limiters = '{}' from public.sessions where id = '5e200000-0000-0000-0000-000000000001'), 'empty by default');
 
 set role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","email":"olivier@example.test","role":"authenticated"}', false);
 update public.sessions set limiters = array['ENDURANCE', 'PAIN'] where id = '5e200000-0000-0000-0000-000000000001';
 select pg_temp.expect((select limiters = array['ENDURANCE', 'PAIN'] from public.sessions where id = '5e200000-0000-0000-0000-000000000001'), 'owner can tick limiters');
 select pg_temp.expect_error($$update public.sessions set limiters = array['LAZY'] where id = '5e200000-0000-0000-0000-000000000001'$$, 'unknown limiter refused');
 
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', false);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","email":"thomas@example.test","role":"authenticated"}', false);
 select pg_temp.expect((select count(*) = 0 from public.sessions where id = '5e200000-0000-0000-0000-000000000001'), 'another climber cannot see them');
 update public.sessions set limiters = array['FATIGUE'] where id = '5e200000-0000-0000-0000-000000000001';
 reset role;
