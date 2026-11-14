@@ -8,6 +8,31 @@ import { Label, Textarea } from "@/components/ui/field";
 import { cn } from "@/components/ui/cn";
 import { deleteSession, updateSessionDetails } from "@/lib/actions/sessions";
 import { IconCheck } from "@/components/ui/icons";
+import { LIMITERS } from "@/lib/analytics/notebook";
+import { notebookDictionary } from "@/lib/i18n/notebook";
+
+function LimitersInput({ value }: { value: readonly string[] }) {
+  const { locale } = useI18n();
+  const n = notebookDictionary(locale);
+  const [picked, setPicked] = useState<string[]>([...value]);
+  const toggle = (l: string) => setPicked((p) => (p.includes(l) ? p.filter((x) => x !== l) : [...p, l]));
+  return (
+    <fieldset>
+      <legend className="mb-1 text-sm font-semibold">{n.limitAsk}</legend>
+      <p className="mb-2 text-xs text-ink-3">{n.limitAskHint}</p>
+      {picked.map((l) => <input key={l} type="hidden" name="limiters" value={l} />)}
+      <div className="flex flex-wrap gap-2">
+        {LIMITERS.map((l) => (
+          <button key={l} type="button" aria-pressed={picked.includes(l)} onClick={() => toggle(l)}
+            className={cn("min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors",
+              picked.includes(l) ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2 hover:border-ink-3")}>
+            {n.limiters[l]}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 type Scale = number | null;
 
@@ -41,7 +66,7 @@ export function SessionDetailsForm({
   initial,
 }: {
   sessionId: string;
-  initial: { notes: string; perceivedEnergyBefore: Scale; perceivedEnergyAfter: Scale; fatigue: Scale; motivation: Scale };
+  initial: { notes: string; perceivedEnergyBefore: Scale; perceivedEnergyAfter: Scale; fatigue: Scale; motivation: Scale; limiters: readonly string[] };
 }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(updateSessionDetails.bind(null, sessionId), null);
@@ -57,6 +82,7 @@ export function SessionDetailsForm({
           <ScaleInput name="fatigue" label={t.session.fatigue} value={initial.fatigue} />
           <ScaleInput name="motivation" label={t.session.motivation} value={initial.motivation} />
         </div>
+        <LimitersInput value={initial.limiters} />
         <div>
           <Label htmlFor="session-notes">{t.session.notes}</Label>
           <Textarea id="session-notes" name="notes" defaultValue={initial.notes} maxLength={4000} placeholder={t.session.notesPlaceholder} />
