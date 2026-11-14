@@ -170,18 +170,65 @@ export function egoSessionLedger(s: EgoSession, progression: Progression): Ledge
 const emptyLedger = (): Ledger => ({ sessions: 0, reps: 0, minutes: 0 });
 const add = (a: Ledger, b: Ledger): Ledger => ({ sessions: a.sessions + b.sessions, reps: a.reps + b.reps, minutes: a.minutes + b.minutes });
 
-/**
- * What the ego has finished by a pact-clock date. Today's session does not
- * count yet: it trains alongside the climber, and it is done once the day is.
- */
-export function egoLedger(pact: Pick<Pact, "plan" | "progression" | "startDate" | "horizonWeeks">, clock: string): Ledger {
-  return egoSchedule(pact).filter((s) => s.date < clock)
-    .map((s) => egoSessionLedger(s, pact.progression)).reduce(add, emptyLedger());
-}
-
 export type ClimberWork = {
   status: TrainingStatus; date: string; actualMinutes: number | null; pain: number | null; reps: number;
+  /** The séance's exercises, which the ego raced alongside in the player. */
+  targets?: WorkTarget[];
 };
+
+export type EgoDay = { date: string; week: number; ledger: Ledger };
+
+/** The ego's version of a séance it raced alongside the climber: the same exercises at its week's load. */
+export function racedLedger(targets: WorkTarget[], factor: number): Ledger {
+  const reps = targets.map((e) => scaleTarget(e, factor))
+    .reduce((n, e) => n + (countsReps(e) ? (e.targetSets ?? 1) * (e.targetReps ?? 0) : 0), 0);
+  return { sessions: 1, reps, minutes: Math.round(timelineSeconds(egoTimeline(targets, factor)) / 60) };
+}
+
+/**
+ * What the ego has done, day by day. A day the climber completed séances, the
+ * ego raced each of them alongside (the lane in the player), so it counts
+ * them as soon as they are recorded, at its week's load. A plan day without a
+ * séance from the climber, it did the plan's séance alone, counted once the
+ * day is over. `clock` is the pact clock; climber dates are real dates.
+ */
+export function egoDays(
+  pact: Pick<Pact, "plan" | "progression" | "startDate" | "horizonWeeks" | "pausedDays">,
+  clock: string, work: ClimberWork[] = [],
+): EgoDay[] {
+  const today = addDays(clock, pact.pausedDays ?? 0);
+  const plan = new Map(egoSchedule(pact).map((s) => [addDays(s.date, pact.pausedDays ?? 0), s] as const));
+  const raced = new Map<string, ClimberWork[]>();
+  for (const w of work) {
+    if (w.status !== "COMPLETED" || w.date < pact.startDate || w.date > today) continue;
+    raced.set(w.date, [...(raced.get(w.date) ?? []), w]);
+  }
+  const out: EgoDay[] = [];
+  for (const [date, sessions] of raced) {
+    const week = pactWeek(pact, addDays(date, -(pact.pausedDays ?? 0)));
+    const factor = loadFactor(week, pact.progression);
+    for (const w of sessions) {
+      if (w.targets?.length) out.push({ date, week, ledger: racedLedger(w.targets, factor) });
+    }
+    // Séances without exercises (nothing to race): the plan's séance of that day, if any, stands in.
+    const planned = plan.get(date);
+    if (!sessions.some((w) => w.targets?.length) && planned && planned.date < clock) {
+      out.push({ date, week: planned.week, ledger: egoSessionLedger(planned, pact.progression) });
+    }
+  }
+  for (const [date, s] of plan) {
+    if (s.date < clock && !raced.has(date)) out.push({ date, week: s.week, ledger: egoSessionLedger(s, pact.progression) });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** What the ego has done by a pact-clock date (see egoDays). Without the climber's work, only the plan counts. */
+export function egoLedger(
+  pact: Pick<Pact, "plan" | "progression" | "startDate" | "horizonWeeks"> & { pausedDays?: number },
+  clock: string, work: ClimberWork[] = [],
+): Ledger {
+  return egoDays({ ...pact, pausedDays: pact.pausedDays ?? 0 }, clock, work).map((d) => d.ledger).reduce(add, emptyLedger());
+}
 
 /** The climber's completed training since signing. Only recorded work counts. */
 export function climberLedger(work: ClimberWork[], startDate: string): Ledger {
@@ -239,7 +286,7 @@ export function pactProgress(pact: Pact, work: ClimberWork[], today: string): Pa
   const next = egoSchedule(pact).find((s) => s.date >= clock);
   return {
     week, over: pactIsOver(pact, clock),
-    standing: standing(climberLedger(work, pact.startDate), egoLedger(pact, clock)),
+    standing: standing(climberLedger(work, pact.startDate), egoLedger(pact, clock, work)),
     easeOff: shouldEaseOff(work),
     next: next ? { ...next, date: addDays(next.date, pact.pausedDays) } : null,
     boulderPace: boulderPace(pact, week), routePace: routePace(pact, week),
