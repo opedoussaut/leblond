@@ -243,6 +243,60 @@ test("A3 — route project: create, log goes, auto-sent, and Patrick reads route
   await expect(page.getByRole("link", { name: /Toit bleu/ })).toContainText("Enchaîné");
 });
 
+test("A3b — outdoor projects: a route and a boulder at a crag, with grade, place, topo and details", async ({ page }) => {
+  await signInWithPassword(page, "routes@leblond.local");
+  await page.goto("/projects");
+
+  // Route project at a new crag, typed in freely.
+  await page.getByText("+ Nouveau projet de voie").click();
+  const routeForm = page.getByRole("form", { name: "Nouveau projet de voie" });
+  await routeForm.getByRole("button", { name: "En extérieur" }).click();
+  await routeForm.getByLabel("Site", { exact: true }).selectOption({ label: "+ Nouveau site (saisie libre)" });
+  await routeForm.getByLabel("Nom du site").fill("Falaise E2E Projets");
+  await routeForm.getByLabel("Nom de la voie").fill("La Fissure E2E");
+  await routeForm.getByLabel("Cotation (française)").selectOption("6b+");
+  await routeForm.getByLabel(/^Secteur/).fill("Secteur Est");
+  await routeForm.getByLabel("Inclinaison").selectOption("VERTICAL");
+  await routeForm.getByLabel(/^Bêta/).fill("Repos au troisième point");
+  await routeForm.getByLabel(/^Référence topo/).fill("Topo test, p. 12, n° 4");
+  await routeForm.getByLabel(/^Lien topo/).fill("https://example.test/topo");
+  await routeForm.getByRole("button", { name: "Créer le projet" }).click();
+  await expect(page).toHaveURL(/\/projects\/routes\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "La Fissure E2E" })).toBeVisible();
+  await expect(page.getByText(/Falaise E2E Projets · Secteur Est/).first()).toBeVisible();
+  await expect(page.getByText("Topo test, p. 12, n° 4").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /voir le topo/ })).toHaveAttribute("href", "https://example.test/topo");
+
+  // Edit: sector and beta.
+  await page.getByLabel(/^Secteur/).fill("Secteur Ouest");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Enregistré.")).toBeVisible();
+  await expect(page.getByText(/Falaise E2E Projets · Secteur Ouest/).first()).toBeVisible();
+
+  // Boulder project at the same crag (reused by name), Font grade kept as entered.
+  await page.goto("/projects");
+  await page.getByText("+ Nouveau projet de bloc en extérieur").click();
+  const boulderForm = page.getByRole("form", { name: "Nouveau projet de bloc en extérieur" });
+  await boulderForm.getByLabel("Site", { exact: true }).selectOption({ label: "+ Nouveau site (saisie libre)" });
+  await boulderForm.getByLabel("Nom du site").fill("Blocs E2E Projets");
+  await boulderForm.getByLabel("Nom du bloc").fill("Le Toit E2E");
+  await boulderForm.getByLabel("Cotation (Font)").selectOption("7A");
+  await boulderForm.getByLabel(/^Secteur/).fill("Pignon");
+  await boulderForm.getByLabel(/^Référence topo/).fill("Topo blocs, n° 8");
+  await boulderForm.getByRole("button", { name: "Créer le projet" }).click();
+  await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Le Toit E2E" })).toBeVisible();
+  await expect(page.getByText(/Blocs E2E Projets · Pignon/).first()).toBeVisible();
+  await page.getByLabel(/^Bêta/).fill("Jeté final");
+  await page.getByRole("button", { name: "Enregistrer" }).last().click();
+  await expect(page.getByText("Enregistré.").last()).toBeVisible();
+  await expect(page.getByText(/Jeté final/).first()).toBeVisible();
+
+  await page.goto("/projects");
+  await expect(page.getByRole("link", { name: /La Fissure E2E/ })).toContainText("Extérieur");
+  await expect(page.getByRole("link", { name: /Le Toit E2E/ })).toContainText("7A");
+});
+
 test("A4 — past sessions: add after the fact, edit, Font ranges, route styles, delete", async ({ page }) => {
   test.setTimeout(180_000);
   await register(page, "Past Climber", "past@leblond.local");

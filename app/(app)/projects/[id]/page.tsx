@@ -11,6 +11,10 @@ import { loggingDictionary } from "@/lib/i18n/logging";
 import { getI18n } from "@/lib/i18n/server";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { ProjectForm } from "./project-form";
+import { OutdoorBoulderEditor } from "./outdoor-boulder-editor";
+import { TopoCitation } from "@/components/climbing/outdoor-project-fields";
+import { outdoorProjectsDictionary } from "@/lib/i18n/outdoor-projects";
+import type { WallAngle } from "@/lib/climbing/types";
 import { IconNext, IconStar } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
 
@@ -20,7 +24,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const { data: project } = await viewer.supabase
     .from("projects")
-    .select("*, problems(*, gyms(name))")
+    .select("*, problems(*, gyms(name, brand))")
     .eq("id", id)
     .maybeSingle();
   if (!project || !project.problems) notFound();
@@ -47,6 +51,8 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
   if (openedIn) sessions.set(openedIn.id, openedIn.started_at);
   for (const a of attempts ?? []) if (a.sessions) sessions.set(a.session_id, a.sessions.started_at);
   const L = loggingDictionary(locale);
+  const d = outdoorProjectsDictionary(locale);
+  const outdoor = problem.gyms?.brand === "OUTDOOR";
 
   return (
     <div className="space-y-5">
@@ -55,8 +61,16 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
         <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{problem.name || t.problem.unnamed}</h1>
         <div className="mt-1 flex items-center gap-3">
           <GradeChip t={t} system={problem.native_grade_system} grade={problem.native_grade} size="lg" showFont />
-          <span className="text-sm text-ink-3">{problem.gyms?.name}</span>
+          <span className="text-sm text-ink-3">
+            {outdoor ? <span className="font-semibold text-ink-2">{d.outdoorBadge} · </span> : null}
+            {problem.gyms?.name}{outdoor && problem.wall_zone ? ` · ${problem.wall_zone}` : ""}
+          </span>
         </div>
+        {outdoor ? <div className="mt-2 space-y-1">
+          {problem.wall_angle !== "UNKNOWN" ? <p className="text-sm text-ink-2">{d.angle} : {t.wallAngles[problem.wall_angle as WallAngle]}</p> : null}
+          <TopoCitation topoRef={problem.topo_ref} topoUrl={problem.topo_url} />
+          {problem.beta ? <p className="whitespace-pre-line text-sm text-ink-2"><strong>{d.beta} :</strong> {problem.beta}</p> : null}
+        </div> : null}
         <p className="mt-2 text-sm text-ink-2">
           {openedIn ? <Link className={cn(linkClass, "hover:underline")} href={`/session/${openedIn.id}`}>
             {fmt(L.openedIn, { date: formatDateTime(openedIn.started_at, locale) })} ›
@@ -106,6 +120,13 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
       ) : null}
 
       <ProjectForm projectId={project.id} status={project.status} notes={project.notes ?? ""} />
+
+      {outdoor ? <OutdoorBoulderEditor problem={{
+        id: problem.id, name: problem.name ?? "", grade: problem.native_grade,
+        details: { sector: problem.wall_zone ?? "", wallAngle: problem.wall_angle as WallAngle, beta: problem.beta ?? "",
+          topoRef: problem.topo_ref ?? "", topoUrl: problem.topo_url ?? "" },
+      }} /> : null}
+      {outdoor ? <p className="text-xs text-ink-3">{d.photoHint}</p> : null}
 
       <Link href={`/problem/${problem.id}`} className={cn(linkClass, "block text-sm hover:underline")}>
         {t.session.viewProblem} <IconNext />
