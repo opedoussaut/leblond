@@ -1,5 +1,6 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { gradeToScore } from "@/lib/grading/ordering";
+import { SUPPORT_METHOD_IDS } from "@/lib/training/assessment";
 import { computeProblemOutcomes } from "./outcomes";
 import { startOfIsoWeekUtc } from "./progress";
 import { DAY_MS, type AttemptFact, type ProblemFact } from "./types";
@@ -106,4 +107,16 @@ export function weeklyTotals(items: ReadonlyArray<{ date: string; minutes: numbe
     out[i].minutes += item.minutes ?? 0;
   }
   return out;
+}
+
+/**
+ * Whether a training session is mobility work: its own method is a support
+ * method (stretching, hip mobility), or it has no method of its own (a coach
+ * session) and at least half of its exercises are support work.
+ */
+export function isMobilityWork(sessionMethodId: string | null, exerciseMethodIds: readonly (string | null)[]): boolean {
+  if (sessionMethodId) return SUPPORT_METHOD_IDS.has(sessionMethodId);
+  if (!exerciseMethodIds.length) return false;
+  const support = exerciseMethodIds.filter((id) => id !== null && SUPPORT_METHOD_IDS.has(id)).length;
+  return support * 2 >= exerciseMethodIds.length;
 }

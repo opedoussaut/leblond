@@ -1921,6 +1921,7 @@ export type Database = {
           grade_system: Database["public"]["Enums"]["grade_system"] | null;
           id: string;
           motivation: number | null;
+          limiters: string[];
           notes: string | null;
           perceived_energy_after: number | null;
           perceived_energy_before: number | null;
@@ -1946,6 +1947,7 @@ export type Database = {
           grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;
           motivation?: number | null;
+          limiters?: string[];
           notes?: string | null;
           perceived_energy_after?: number | null;
           perceived_energy_before?: number | null;
@@ -1971,6 +1973,7 @@ export type Database = {
           grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;
           motivation?: number | null;
+          limiters?: string[];
           notes?: string | null;
           perceived_energy_after?: number | null;
           perceived_energy_before?: number | null;
