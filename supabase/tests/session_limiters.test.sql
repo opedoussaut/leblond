@@ -14,26 +14,26 @@ grant execute on function pg_temp.expect_error(text, text) to authenticated, ano
 grant execute on function pg_temp.expect(boolean, text) to authenticated, anon;
 
 insert into public.gyms (id, name, brand, grading_system, has_bouldering, has_routes)
-values ('c1000000-0000-0000-0000-000000000001', 'Limiters Test Gym', 'CLIMBING_DISTRICT', 'CLIMBING_DISTRICT_COLOR', true, true);
+values ('e7100000-0000-0000-0000-000000000001', 'Limiters Test Gym', 'CLIMBING_DISTRICT', 'CLIMBING_DISTRICT_COLOR', true, true);
 
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","email":"olivier@example.test","role":"authenticated"}', false);
 update public.sessions set ended_at = now() where ended_at is null;
 insert into public.sessions (id, user_id, gym_id, started_at, ended_at, duration_minutes)
-values ('c2000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001',
+values ('e7200000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'e7100000-0000-0000-0000-000000000001',
         now() - interval '2 hours', now() - interval '1 hour', 60);
 reset role;
 
-select pg_temp.expect((select limiters = '{}' from public.sessions where id = 'c2000000-0000-0000-0000-000000000001'), 'empty by default');
+select pg_temp.expect((select limiters = '{}' from public.sessions where id = 'e7200000-0000-0000-0000-000000000001'), 'empty by default');
 
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', false);
-update public.sessions set limiters = array['ENDURANCE', 'PAIN'] where id = 'c2000000-0000-0000-0000-000000000001';
-select pg_temp.expect((select limiters = array['ENDURANCE', 'PAIN'] from public.sessions where id = 'c2000000-0000-0000-0000-000000000001'), 'owner can tick limiters');
-select pg_temp.expect_error($$update public.sessions set limiters = array['LAZY'] where id = 'c2000000-0000-0000-0000-000000000001'$$, 'unknown limiter refused');
+update public.sessions set limiters = array['ENDURANCE', 'PAIN'] where id = 'e7200000-0000-0000-0000-000000000001';
+select pg_temp.expect((select limiters = array['ENDURANCE', 'PAIN'] from public.sessions where id = 'e7200000-0000-0000-0000-000000000001'), 'owner can tick limiters');
+select pg_temp.expect_error($$update public.sessions set limiters = array['LAZY'] where id = 'e7200000-0000-0000-0000-000000000001'$$, 'unknown limiter refused');
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', false);
-select pg_temp.expect((select count(*) = 0 from public.sessions where id = 'c2000000-0000-0000-0000-000000000001'), 'another climber cannot see them');
-update public.sessions set limiters = array['FATIGUE'] where id = 'c2000000-0000-0000-0000-000000000001';
+select pg_temp.expect((select count(*) = 0 from public.sessions where id = 'e7200000-0000-0000-0000-000000000001'), 'another climber cannot see them');
+update public.sessions set limiters = array['FATIGUE'] where id = 'e7200000-0000-0000-0000-000000000001';
 reset role;
-select pg_temp.expect((select limiters = array['ENDURANCE', 'PAIN'] from public.sessions where id = 'c2000000-0000-0000-0000-000000000001'), 'another climber cannot change them');
+select pg_temp.expect((select limiters = array['ENDURANCE', 'PAIN'] from public.sessions where id = 'e7200000-0000-0000-0000-000000000001'), 'another climber cannot change them');
