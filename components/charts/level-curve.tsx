@@ -40,13 +40,13 @@ export function LevelCurve({ t, locale, system, points, now }: {
             title: fmt(c.levelPoint, { date: short.format(new Date(p.weekStart + "T00:00:00Z")), grade: label(p.grade), n: p.sends }),
           })) }]} />
       </div>
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>{c.levelCaption}</caption>
         <thead><tr><th scope="col">{c.week}</th><th scope="col">{c.hardest}</th><th scope="col">{c.sendsCol}</th></tr></thead>
         <tbody>{points.map((p) => <tr key={p.weekStart}>
           <td>{short.format(new Date(p.weekStart + "T00:00:00Z"))}</td><td>{label(p.grade)}</td><td>{p.sends}</td>
         </tr>)}</tbody>
-      </table>
+      </table></div>
     </>}
   </section>;
 }

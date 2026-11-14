@@ -36,12 +36,12 @@ export function GradePyramid({ t, locale, system, rows }: { t: Dictionary; local
         <span className="text-right tabular-nums text-ink-2">{r.sent}<span className="text-ink-3">/{r.sent + r.tried}</span></span>
       </li>)}
     </ul>
-    <table className="sr-only">
+    <div className="sr-only"><table>
       <caption>{c.pyramidTitle}</caption>
       <thead><tr><th scope="col">{c.grade}</th><th scope="col">{c.flashed}</th><th scope="col">{c.sent}</th><th scope="col">{c.tried}</th></tr></thead>
       <tbody>{rows.map((r) => <tr key={r.grade}>
         <td>{gradeLabel(t, system, r.grade)}</td><td>{r.flashed}</td><td>{r.sent}</td><td>{r.tried}</td>
       </tr>)}</tbody>
-    </table>
+    </table></div>
   </section>;
 }

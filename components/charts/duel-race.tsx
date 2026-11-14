@@ -30,10 +30,10 @@ export function DuelRace({ locale, name, race, total }: { locale: Locale; name: 
           { id: "you", label: c.you, tone: "accent", points: race.map((r, i) => ({ x: i, y: r.you, title: `${fmt(c.raceWeek, { n: r.week })} · ${c.you} : ${r.you}` })) },
         ]} />
     </div>
-    <table className="sr-only">
+    <div className="sr-only"><table>
       <caption>{fmt(c.raceCaption, { name })}</caption>
       <thead><tr><th scope="col">{c.week}</th><th scope="col">{c.you}</th><th scope="col">{name}</th></tr></thead>
       <tbody>{race.map((r) => <tr key={r.week}><td>{r.week}</td><td>{r.you}</td><td>{r.rival}</td></tr>)}</tbody>
-    </table>
+    </table></div>
   </section>;
 }
