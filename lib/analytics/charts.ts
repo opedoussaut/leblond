@@ -80,3 +80,30 @@ export function mainSystem(problems: readonly ProblemFact[], attempts: readonly 
   }
   return [...count].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
+
+export type WeekTotal = { weekStart: string; sessions: number; minutes: number };
+
+/**
+ * Sessions and minutes per week (Monday, local dates), oldest first, ending
+ * with the current week; empty weeks included so gaps show as gaps.
+ */
+export function weeklyTotals(items: ReadonlyArray<{ date: string; minutes: number | null }>, today: string, weeks: number): WeekTotal[] {
+  const day = (date: string) => Date.parse(date + "T00:00:00Z");
+  const monday = (date: string) => {
+    const d = new Date(day(date));
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const current = monday(today);
+  const out: WeekTotal[] = Array.from({ length: weeks }, (_, i) => ({
+    weekStart: new Date(day(current) - (weeks - 1 - i) * 7 * DAY_MS).toISOString().slice(0, 10), sessions: 0, minutes: 0,
+  }));
+  const index = new Map(out.map((w, i) => [w.weekStart, i]));
+  for (const item of items) {
+    const i = index.get(monday(item.date));
+    if (i === undefined || item.date > today) continue;
+    out[i].sessions += 1;
+    out[i].minutes += item.minutes ?? 0;
+  }
+  return out;
+}

@@ -134,7 +134,7 @@ test("A — free climber logs a session and sees it in Follow-up without any pla
   await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 
   await page.goto("/follow-up");
-  const climbing = page.getByRole("region", { name: "Bloc · 30 derniers jours" });
+  const climbing = page.getByRole("region", { name: "Grimpe", exact: true });
   await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
   await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
   await expect(climbing.getByText("Blocs réussis", { exact: true }).locator("..")).toContainText("2");
@@ -194,7 +194,7 @@ test("A2 — route climber logs lead / top-rope routes, kept separate from bould
   await page.goto("/follow-up");
   await expect(page.getByRole("region", { name: "Voie · 30 derniers jours" })).toContainText("6b");
   // Bouldering statistics are untouched by the route session.
-  await expect(page.getByRole("region", { name: "Bloc · 30 derniers jours" })).toContainText("Aucune séance de grimpe");
+  await expect(page.getByRole("region", { name: "Grimpe", exact: true })).toContainText("Aucune séance de grimpe");
 });
 
 test("A3 — route project: create, log goes, auto-sent, and Patrick reads routes", async ({ page }) => {
@@ -277,7 +277,7 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   await page.reload();
   await expect(when.getByLabel("Heure de début")).toHaveValue("10:15");
   await page.goto("/follow-up");
-  const climbing = page.getByRole("region", { name: "Bloc · 30 derniers jours" });
+  const climbing = page.getByRole("region", { name: "Grimpe", exact: true });
   await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
   await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
 
@@ -609,7 +609,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.goto("/follow-up/training");
   await expect(page.getByRole("link", { name: /Max hangs/ }).filter({ hasText: "Terminée" })).toBeVisible();
   await page.goto("/follow-up");
-  await expect(page.getByRole("region", { name: "Entraînement · 8 dernières semaines" })).toContainText("min");
+  await expect(page.getByRole("region", { name: "Entraînement", exact: true })).toContainText("min");
 
   // Controlled reassessment: improved hang → compared with the baseline.
   await page.goto("/training-assessment");
