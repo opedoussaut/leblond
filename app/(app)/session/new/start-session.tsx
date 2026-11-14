@@ -13,7 +13,9 @@ import { PastSession } from "./past-session";
 import { BoardStart } from "@/components/climbing/board-start";
 import { boardsDictionary } from "@/lib/i18n/boards";
 import type { Tables } from "@/lib/supabase/database.types";
-import { segmentClass, tileClass } from "@/components/ui/button";
+import { linkClass, segmentClass, tileClass } from "@/components/ui/button";
+import Link from "next/link";
+import { arkoseImportDictionary } from "@/lib/i18n/arkose-import";
 
 export function StartSession({
   gyms,
@@ -69,7 +71,10 @@ export function StartSession({
       </div>
       {error ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
       {tab === "past" ? (
-        <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} />
+        <>
+          <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} />
+          <Link href="/session/arkose-import" className={`${linkClass} text-sm`}>{arkoseImportDictionary(locale).link}</Link>
+        </>
       ) : tab === "board" ? (
         <BoardStart gyms={[...gyms].sort((x, y) => Number(favouriteIds.includes(y.id)) - Number(favouriteIds.includes(x.id)))
           .map((g) => ({ id: g.id, name: g.name }))} />
