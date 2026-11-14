@@ -107,6 +107,11 @@ const fr = {
   importSeeJournal: "Voir le journal",
   plan: {
     link: "Séance guidée : LEBLOND prépare tes blocs",
+    cardTitle: "Séance board guidée",
+    cardText: "Ton temps, ton niveau, ton board : LEBLOND prépare la liste de blocs pour aller vers ta prochaine couleur.",
+    cta: "Préparer une séance board",
+    go: "Préparer",
+    homeLink: "ou une séance board guidée",
     title: "Séance board guidée",
     intro: "Choisis ton board, l’angle et ton temps : LEBLOND te propose une liste de blocs pour aller vers ta prochaine couleur.",
     board: "Board",
@@ -241,6 +246,11 @@ const en: typeof fr = {
   importSeeJournal: "See the journal",
   plan: {
     link: "Guided session: LEBLOND picks your climbs",
+    cardTitle: "Guided board session",
+    cardText: "Your time, your level, your board: LEBLOND lines up the climbs that lead to your next colour.",
+    cta: "Plan a board session",
+    go: "Plan it",
+    homeLink: "or a guided board session",
     title: "Guided board session",
     intro: "Pick your board, the angle and your time: LEBLOND suggests a list of climbs to move towards your next colour.",
     board: "Board",

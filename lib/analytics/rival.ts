@@ -73,6 +73,28 @@ export function rivalStanding(pact: Pact, settings: Pick<RivalSettings, "level">
   return standing(you, levelLedger(settings.level, egoLedger(pact, pactClock(pact, today), work), you));
 }
 
+export type RacePoint = { week: number; you: number; rival: number };
+
+/**
+ * The race so far, for the duel diagram: séances done since signing, by you
+ * and by the rival at its level, at the end of each pact week (the current
+ * week up to today, exactly as the score card shows it).
+ */
+export function duelRace(pact: Pact, settings: Pick<RivalSettings, "level">, work: ClimberWork[], today: string): RacePoint[] {
+  const first = mondayOf(pact.startDate);
+  const out: RacePoint[] = [];
+  for (let week = 0; week < pact.horizonWeeks; week++) {
+    const end = addDays(first, (week + 1) * 7);
+    const current = end > today;
+    const s = current
+      ? rivalStanding(pact, settings, work.filter((w) => w.date <= today), today)
+      : rivalStanding(pact, settings, work.filter((w) => w.date < end), end);
+    out.push({ week: week + 1, you: s.you.sessions, rival: s.ego.sessions });
+    if (current) break;
+  }
+  return out;
+}
+
 /**
  * GOAL level: the boulder grade the rival climbs this week, on a straight line
  * from the pact's start grade to its goal grade on the goal date. A pace the

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IconNext } from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Minus, Plus } from "lucide-react";
@@ -65,6 +66,15 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
   }
 
   return <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); submit(); }} aria-labelledby="board-start-heading">
+    {past ? null : <Link href="/session/board-plan" data-testid="board-plan-card"
+      className="leblond-premium-surface group flex items-center justify-between gap-4 p-4 transition-colors hover:border-accent sm:p-5">
+      <span className="min-w-0">
+        <span className="leblond-eyebrow block text-accent">LEBLOND</span>
+        <strong className="mt-1 block text-base">{b.plan.cardTitle}</strong>
+        <span className="mt-0.5 block text-sm text-ink-2">{b.plan.cardText}</span>
+      </span>
+      <span className={buttonClass("primary", "md", "shrink-0")}>{b.plan.go} <IconNext /></span>
+    </Link>}
     <div>
       <h2 id="board-start-heading" className="text-lg font-bold">{b.startTitle}</h2>
       <p className="mt-1 text-sm text-ink-2">{b.startHint}</p>
@@ -111,7 +121,6 @@ export function BoardStart({ gyms }: { gyms: { id: string; name: string }[] }) {
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{b.error}</p> : null}
     <div className="flex flex-wrap items-center gap-4">
       <button type="submit" disabled={pending} className={buttonClass("primary", "lg")}>{past ? b.record : b.start}</button>
-      <Link href="/session/board-plan" className={cn(linkClass, "text-sm font-semibold")}>{b.plan.link}</Link>
       <Link href="/session/board-import" className={cn(linkClass, "text-sm")}>{b.importLink}</Link>
     </div>
   </form>;

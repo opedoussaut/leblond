@@ -1082,8 +1082,13 @@ test("I — board séance on the Kilter, BoardLib import, board projects and pro
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   await expect(page.getByTestId("board-import-done")).toContainText("0 bloc(s) ajouté(s), 2 déjà importé(s), 0 séance(s) créée(s).");
 
-  // A guided séance: grades toward the next colour, fitted to the time, then ticked as climbs are logged.
-  await page.goto("/session/board-plan");
+  // A guided séance: found from Aujourd'hui and from the board tab, grades toward the next colour,
+  // fitted to the time, then ticked as climbs are logged.
+  await page.goto("/home");
+  await expect(page.getByRole("link", { name: /ou une séance board guidée/ })).toHaveAttribute("href", "/session/board-plan");
+  await page.goto("/session/new?where=board");
+  await page.getByTestId("board-plan-card").click();
+  await expect(page).toHaveURL(/\/session\/board-plan$/);
   await expect(page.getByTestId("plan-target")).toContainText("Cotation cible :");
   await expect(page.getByTestId("plan-minutes")).toHaveText("90 min");
   await page.getByRole("button", { name: "−15 min" }).click();
