@@ -13,6 +13,12 @@ import { areasDictionary } from "@/lib/i18n/areas";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { dateForPlanDay, localDate_, mondayOf } from "@/lib/training/sessions";
 import { IconNext, LiveDot } from "@/components/ui/icons";
+import { DuelBanner } from "@/components/training/duel-banner";
+import { pactClock, pactWeek } from "@/lib/analytics/alter-ego";
+import { rivalStanding } from "@/lib/analytics/rival";
+import { loadAvatar } from "@/lib/data/avatar";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { boardsDictionary } from "@/lib/i18n/boards";
 
 /**
  * Aujourd'hui: what to do now. A live séance first, then one button to start
@@ -42,6 +48,13 @@ export default async function HomePage() {
       .gte("scheduled_date", week[0]).lte("scheduled_date", week[6]).order("scheduled_time", { ascending: true }),
     viewer.supabase.from("sessions").select("id, started_at").gte("started_at", since).not("ended_at", "is", null),
   ]);
+  // The duel, only while a pact is open.
+  const rival = await loadOpenRival(viewer.supabase);
+  const duel = rival ? await (async () => {
+    const [work, avatar] = await Promise.all([loadClimberWork(viewer.supabase), loadAvatar(viewer.supabase)]);
+    return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar: avatar.level,
+      week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
+  })() : null;
   const outcome = dayCheck?.outcome;
   const plannedToday = (weekTraining ?? []).filter((s) => s.scheduled_date === today && s.status === "PLANNED");
   const days = week.map((date) => {
@@ -75,9 +88,18 @@ export default async function HomePage() {
       </Link> : null}
     </section> : null}
 
-    <Link href="/session/new" className={buttonClass("primary", "xl", "w-full")}>
-      <PAGE_ICONS.newSession aria-hidden="true" /> {a.newSession}
-    </Link>
+    <div className="space-y-2">
+      <Link href="/session/new" className={buttonClass("primary", "xl", "w-full")}>
+        <PAGE_ICONS.newSession aria-hidden="true" /> {a.newSession}
+      </Link>
+      <p className="text-center text-sm">
+        <Link href="/session/board-plan" className={linkClass}>{boardsDictionary(locale).plan.homeLink} <IconNext /></Link>
+      </p>
+    </div>
+
+    {rival && duel ? <DuelBanner locale={locale} name={rival.pact.displayName} standing={duel.standing}
+      week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar}
+      paused={rival.pact.status === "PAUSED"} /> : null}
 
     <section aria-labelledby="your-day" className="space-y-4">
       <h2 id="your-day" className="text-lg font-bold tracking-tight text-ink-2">{t.home.yourDay}</h2>

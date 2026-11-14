@@ -3,6 +3,11 @@ import { BoardProgress } from "@/components/climbing/board-progress";
 import { boardPyramids } from "@/lib/analytics/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { RatioBars } from "@/components/charts/ratio-bars";
+import { GradePyramid } from "@/components/charts/grade-pyramid";
+import { LevelCurve } from "@/components/charts/level-curve";
+import { gradePyramid, mainSystem, weeklyHardest } from "@/lib/analytics/charts";
+import { GRADE_SYSTEMS } from "@/lib/climbing/types";
+import { isOrderedSystem } from "@/lib/grading/systems";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
@@ -47,6 +52,10 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
     PERIODS[periodKey],
   );
   const gymName = new Map(data.gyms.map((g) => [g.id, g.name]));
+  // Diagrams on the grading system most of the period's boulders were tried on (native grades only).
+  const since = days === null ? 0 : now.getTime() - days * 86_400_000;
+  const chartSystem = mainSystem(data.problems, data.attempts.filter((x) => x.createdAt.getTime() >= since),
+    GRADE_SYSTEMS.filter(isOrderedSystem));
 
   return (
     <div className="space-y-5">
@@ -72,6 +81,12 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
         <EmptyState body={t.progress.empty} />
       ) : (
         <>
+          {chartSystem ? <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <LevelCurve t={t} locale={locale} system={chartSystem} now={now}
+              points={weeklyHardest(data.problems, data.attempts, chartSystem, now, days)} />
+            <GradePyramid t={t} locale={locale} system={chartSystem}
+              rows={gradePyramid(data.problems, data.attempts, chartSystem, now, days)} />
+          </div> : null}
           <Card>
             <SectionTitle>{t.progress.overview}</SectionTitle>
             <div className="mt-3 grid grid-cols-3 gap-4">

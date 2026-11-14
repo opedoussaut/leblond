@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ClimberWork, Pact } from "@/lib/analytics/alter-ego";
 import {
-  RIVAL_DEFAULTS, levelLedger, raceMargin, rivalBoulderGrade, rivalFeed, rivalSettingsFromRow, rivalStanding, seeded, weeklyDuels,
+  RIVAL_DEFAULTS, duelRace, levelLedger, raceMargin, rivalBoulderGrade, rivalFeed, rivalSettingsFromRow, rivalStanding, seeded, weeklyDuels,
 } from "@/lib/analytics/rival";
 import { PROGRESSION_V1 } from "@/lib/analytics/alter-ego";
 
@@ -87,5 +87,16 @@ describe("rival feed and duels", () => {
   it("states the race result in the player", () => {
     expect(raceMargin(1800, 1640)).toBe(160);
     expect(raceMargin(1800, 1900)).toBe(-100);
+  });
+});
+
+describe("duel race", () => {
+  it("adds up séances week by week and stops at today, matching the score card", () => {
+    const work = [done("2026-11-03"), done("2026-11-05"), done("2026-11-12")];
+    const race = duelRace(pact, { level: "RELENTLESS" }, work, "2026-11-13");
+    expect(race.map((r) => r.week)).toEqual([1, 2]);
+    expect(race.map((r) => r.you)).toEqual([2, 3]);
+    expect(race.at(-1)!.rival).toBe(rivalStanding(pact, { level: "RELENTLESS" }, work, "2026-11-13").ego.sessions);
+    expect(race[1].rival).toBeGreaterThanOrEqual(race[0].rival);
   });
 });
