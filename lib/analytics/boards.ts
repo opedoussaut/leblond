@@ -112,3 +112,43 @@ export function boardCoachSummary(facts: readonly BoardAscentFact[], now: Date, 
     pyramids: boardPyramids(facts).slice(0, 6).map((p) => ({ board: p.board, angle: p.angle, scale: p.scale, top: p.top, climbs: p.climbs })),
   };
 }
+
+export type BoardGoalProgress = {
+  /** Hardest climb sent on that board (and angle, if the goal has one), in the goal's scale; null if none. */
+  best: string | null;
+  /** A climb at or above the goal grade has been sent. */
+  reached: boolean;
+  /** When the first such climb was sent. */
+  reachedAt: Date | null;
+  /** Distinct climbs sent at or above the goal grade. */
+  climbsAtGoal: number;
+};
+
+/**
+ * Progress towards a board level goal ("7A on the Kilter at 40°"). Only climbs
+ * on that board, at that angle (any angle when the goal has none) and graded in
+ * the goal's scale count: Font and V are never converted into each other.
+ */
+export function boardGoalProgress(
+  facts: readonly BoardAscentFact[],
+  goal: { board: Board; angle: number | null; grade: string; gradeScale: BoardScale },
+): BoardGoalProgress {
+  const target = gradeRank(goal.gradeScale, goal.grade);
+  const sends = facts
+    .filter((f) => f.board === goal.board && f.gradeScale === goal.gradeScale && isBoardSend(f.result)
+      && (goal.angle === null || f.angle === goal.angle) && gradeRank(f.gradeScale, f.grade) >= 0)
+    .sort(byTime);
+  let best: string | null = null;
+  let bestRank = -1;
+  let reachedAt: Date | null = null;
+  const atGoal = new Set<string>();
+  for (const f of sends) {
+    const rank = gradeRank(f.gradeScale, f.grade);
+    if (rank > bestRank) { bestRank = rank; best = f.grade; }
+    if (target >= 0 && rank >= target) {
+      reachedAt ??= f.climbedAt;
+      atGoal.add(idOf(f));
+    }
+  }
+  return { best, reached: reachedAt !== null, reachedAt, climbsAtGoal: atGoal.size };
+}
