@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradePyramid, mainSystem, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
+import { gradePyramid, isMobilityWork, mainSystem, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
 import type { AttemptFact, ProblemFact } from "@/lib/analytics/types";
 
 const problem = (id: string, grade: string, system: ProblemFact["nativeGradeSystem"] = "FONT"): ProblemFact =>
@@ -54,5 +54,18 @@ describe("weekly totals", () => {
       { weekStart: "2026-11-02", sessions: 2, minutes: 45 },
       { weekStart: "2026-11-09", sessions: 1, minutes: 60 },
     ]);
+  });
+});
+
+describe("isMobilityWork", () => {
+  it("follows the session's own method when it has one", () => {
+    expect(isMobilityWork("hip-mobility", [])).toBe(true);
+    expect(isMobilityWork("mobility", [])).toBe(true);
+    expect(isMobilityWork("max-hangs", ["mobility", "mobility"])).toBe(false);
+  });
+  it("classifies a coach session by its exercises", () => {
+    expect(isMobilityWork(null, ["mobility", "mobility", null])).toBe(true);
+    expect(isMobilityWork(null, ["mobility", null, null])).toBe(false);
+    expect(isMobilityWork(null, [])).toBe(false);
   });
 });

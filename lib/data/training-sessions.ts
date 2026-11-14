@@ -77,3 +77,14 @@ export async function loadTrainingSession(supabase: ServerSupabase, id: string):
     })),
   };
 }
+
+/** The method of each exercise of the given sessions (RLS scopes them to the viewer). */
+export async function loadExerciseMethods(supabase: ServerSupabase, sessionIds: readonly string[]): Promise<Map<string, (string | null)[]>> {
+  const bySession = new Map<string, (string | null)[]>();
+  for (let i = 0; i < sessionIds.length; i += 30) {
+    const { data } = await supabase.from("training_session_exercises").select("session_id, method_id")
+      .in("session_id", sessionIds.slice(i, i + 30)).limit(1000);
+    for (const e of data ?? []) bySession.set(e.session_id, [...(bySession.get(e.session_id) ?? []), e.method_id]);
+  }
+  return bySession;
+}

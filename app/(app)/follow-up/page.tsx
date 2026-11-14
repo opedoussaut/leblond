@@ -7,12 +7,12 @@ import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { PageHeader } from "@/components/ui/card";
 import { AREA_ICONS } from "@/components/layout/nav-icons";
 import { computeSnapshot } from "@/lib/analytics";
-import { gradePyramid, mainSystem, weeklyHardest, weeklyTotals, type WeekTotal } from "@/lib/analytics/charts";
+import { gradePyramid, isMobilityWork, mainSystem, weeklyHardest, weeklyTotals, type WeekTotal } from "@/lib/analytics/charts";
 import { calculateWeeklyActivity } from "@/lib/analytics/progress";
 import { requireViewer } from "@/lib/auth/viewer";
 import { GRADE_SYSTEMS } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
-import { listTrainingSessions } from "@/lib/data/training-sessions";
+import { listTrainingSessions, loadExerciseMethods } from "@/lib/data/training-sessions";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { isOrderedSystem } from "@/lib/grading/systems";
 import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
@@ -85,12 +85,22 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
     loadMobility(viewer.supabase),
   ]);
-  const mobilityUsed = !!mobility.enrollment || mobility.records.length > 0 || mobility.assessments.length > 0;
+  // Coach sessions carry no method of their own: their exercises say whether they are mobility work.
+  const methodless = (training ?? []).filter((s) => !s.methodId).map((s) => s.id);
+  const exerciseMethods = await loadExerciseMethods(viewer.supabase, methodless);
+  const isMobility = (s: { id: string; methodId: string | null }) => isMobilityWork(s.methodId, exerciseMethods.get(s.id) ?? []);
+  const sessionDate = (s: { scheduledDate: string | null; completedAt: string | null; createdAt: string }) =>
+    s.scheduledDate ?? (s.completedAt ?? s.createdAt).slice(0, 10);
+  // Mobility done outside the hip programme (the programme's own sessions are in mobility.records).
+  const otherMobility = (training ?? []).filter((s) => s.status === "COMPLETED" && s.methodId !== HIP_METHOD_ID && isMobility(s));
+  const mobilityUsed = !!mobility.enrollment || mobility.records.length > 0 || mobility.assessments.length > 0 || otherMobility.length > 0;
   const mobOverview = mobilityOverview(mobility.records, mobility.assessments, mobility.today);
+  const mobSince28 = localDate_(new Date(now.getTime() - 27 * 86_400_000));
+  const mobSessions28 = mobOverview.sessionsLast28 + otherMobility.filter((s) => sessionDate(s) >= mobSince28).length;
   const snap = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, days);
   const today = localDate_(now);
   const since = localDate_(new Date(now.getTime() - days * 86_400_000));
-  const recent = (training ?? []).filter((s) => (s.scheduledDate ?? s.createdAt.slice(0, 10)) >= since && s.methodId !== HIP_METHOD_ID);
+  const recent = (training ?? []).filter((s) => (s.scheduledDate ?? s.createdAt.slice(0, 10)) >= since && !isMobility(s));
   const adh = adherence(recent, today);
   const working = snap.workingGrade;
 
@@ -99,9 +109,12 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const chartSystem = mainSystem(dataset.problems, dataset.attempts.filter((x) => x.createdAt.getTime() >= sinceMs),
     GRADE_SYSTEMS.filter(isOrderedSystem));
   const climbWeeks = calculateWeeklyActivity(dataset.sessions, dataset.attempts, now, weeks);
-  const done = (training ?? []).filter((x) => x.status === "COMPLETED" && x.methodId !== HIP_METHOD_ID);
-  const trainWeeks = weeklyTotals(done.map((x) => ({ date: x.scheduledDate ?? (x.completedAt ?? x.createdAt).slice(0, 10), minutes: x.actualMinutes })), today, weeks);
-  const mobWeeks = weeklyTotals(mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes })), today, weeks);
+  const done = (training ?? []).filter((x) => x.status === "COMPLETED" && !isMobility(x));
+  const trainWeeks = weeklyTotals(done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes })), today, weeks);
+  const mobWeeks = weeklyTotals([
+    ...mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes })),
+    ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
+  ], today, weeks);
 
   return <div className="space-y-8">
     <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={c.psubtitle} />
@@ -159,7 +172,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       </div>
       {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
         : recent.length === 0 ? <p className="text-sm text-ink-2">
-          {(training ?? []).some((s) => s.methodId !== HIP_METHOD_ID)
+          {(training ?? []).some((s) => !isMobility(s))
             ? (fr ? "Pas d’entraînement sur cette période." : "No training in this period.")
             : fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
               : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
@@ -183,7 +196,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
         <Evidence kind="recorded" fr={fr} />
       </div>
       <p className="text-sm text-ink-2">{fmt(mob.fuCardText, {
-        sessions: mobOverview.sessionsLast28,
+        sessions: mobSessions28,
         level: LEVEL_LABELS[contentLevel(mobility.enrollment?.workingLevel ?? 0)].name[locale],
       })}</p>
       <div className="border-t border-line pt-4">
