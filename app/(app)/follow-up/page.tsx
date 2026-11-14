@@ -159,8 +159,10 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       </div>
       {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
         : recent.length === 0 ? <p className="text-sm text-ink-2">
-          {fr ? "Pas d’entraînement sur cette période. Tes progrès en grimpe ci-dessus restent complets sans programme."
-              : "No training in this period. Your climbing progress above is complete without a plan."}{" "}
+          {(training ?? []).some((s) => s.methodId !== HIP_METHOD_ID)
+            ? (fr ? "Pas d’entraînement sur cette période." : "No training in this period.")
+            : fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
+              : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
           <Link href="/programmes" className={linkClass}>{fr ? "Découvrir les programmes" : "Explore programmes"}</Link>
         </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
