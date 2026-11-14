@@ -410,6 +410,48 @@ export type Database = {
           },
         ];
       };
+      board_goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
+          angle: number | null;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          status: "ACTIVE" | "ABANDONED";
+          notes: string;
+          started_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          board: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
+          angle?: number | null;
+          grade: string;
+          grade_scale: "FONT" | "V";
+          status?: "ACTIVE" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          board?: "KILTER" | "TENSION" | "MOON" | "DECOY" | "GRASSHOPPER" | "TOUCHSTONE" | "SOILL" | "AURORA";
+          angle?: number | null;
+          grade?: string;
+          grade_scale?: "FONT" | "V";
+          status?: "ACTIVE" | "ABANDONED";
+          notes?: string;
+          started_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       board_projects: {
         Row: {
           id: string;

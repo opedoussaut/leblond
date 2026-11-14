@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BoardProjects } from "@/components/climbing/board-projects";
+import { BoardProjectsSection } from "@/components/climbing/board-projects-section";
 import { loadBoardProjects } from "@/lib/data/boards";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { EmptyState, PageHeader } from "@/components/ui/card";
@@ -109,7 +109,7 @@ export default async function ProjectsPage() {
         </details>
       </section>
 
-      <BoardProjects locale={locale} projects={boardProjects} />
+      <BoardProjectsSection supabase={viewer.supabase} locale={locale} projects={boardProjects} />
     </div>
   );
 }

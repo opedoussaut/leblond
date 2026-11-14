@@ -1114,6 +1114,28 @@ test("I — board séance on the Kilter, BoardLib import, board projects and pro
   await expect(page.getByText("Kilter · 45°").first()).toBeVisible();
   await page.goto("/projects");
   await expect(page.getByRole("region", { name: "Projets sur board" })).toContainText("Réglette 40");
+
+  // A level goal on the Kilter at 45°, reached by the 6B+ sent above; then a precise climb as a project.
+  const boards = page.getByRole("region", { name: "Projets sur board" });
+  await boards.getByText("+ Nouvel objectif de niveau").click();
+  const goalForm = page.getByRole("form", { name: "Nouvel objectif de niveau" });
+  await goalForm.getByLabel("Board").selectOption("KILTER");
+  await goalForm.getByLabel("Angle").selectOption("45");
+  await goalForm.getByLabel("Cotation").selectOption("6B+");
+  await goalForm.getByRole("button", { name: "Créer l’objectif" }).click();
+  await expect(boards).toContainText("Objectif 6B+");
+  await expect(boards).toContainText("Kilter Board · 45° · Font");
+  await expect(boards).toContainText("Meilleur enchaîné : 6B+");
+  await expect(boards).toContainText(/Atteint le/);
+  await boards.getByText("+ Nouveau projet : un bloc précis").click();
+  const climbForm = page.getByRole("form", { name: "Nouveau projet : un bloc précis" });
+  await climbForm.getByLabel("Board").selectOption("MOON");
+  await climbForm.getByLabel("Nom du bloc").fill("Benchmark E2E");
+  await climbForm.getByLabel("Échelle").selectOption("V");
+  await climbForm.getByLabel("Cotation").selectOption("V5");
+  await climbForm.getByRole("button", { name: "Créer le projet" }).click();
+  await expect(boards).toContainText("Benchmark E2E");
+  await expect(boards).toContainText("Moon · 40°");
   await page.goto("/progress");
   await expect(page.getByText("Kilter Board · 45° · Font")).toBeVisible();
 
