@@ -3,6 +3,7 @@ import { PactControls, SignPactForm } from "@/components/training/alter-ego-form
 import { AlterEgoScore } from "@/components/training/alter-ego-score";
 import { AvatarCard } from "@/components/training/avatar-card";
 import { loadAvatar } from "@/lib/data/avatar";
+import { viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { pactProgress } from "@/lib/analytics/alter-ego";
@@ -67,7 +68,7 @@ export default async function AlterEgoPage() {
     viewer.supabase.from("projects").select("problems(name, native_grade)").eq("status", "ACTIVE").limit(20),
     viewer.supabase.from("route_projects").select("route_name").eq("status", "ACTIVE").limit(20),
   ]);
-  const avatar = await loadAvatar(viewer.supabase, { dataset });
+  const [avatar, photo] = await Promise.all([loadAvatar(viewer.supabase, { dataset }), viewerPhotoUrl()]);
   const base = pactProgress(pact, work, today);
   // The score at the rival's level (À ta portée never runs away).
   const progress = { ...base, standing: rivalStanding(pact, settings, work, today) };
@@ -89,7 +90,7 @@ export default async function AlterEgoPage() {
     <PageHeader title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
     <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today)}
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
-    <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level}
+    <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
       observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">

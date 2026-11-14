@@ -39,6 +39,17 @@ export async function loadBoardProjects(supabase: ServerSupabase, status?: "ACTI
   return error ? [] : ((data ?? []) as BoardProjectRow[]);
 }
 
+export type BoardGoalRow = {
+  id: string; board: string; angle: number | null; grade: string; grade_scale: string; status: string; notes: string; started_at: string;
+};
+
+/** The viewer's board level goals (RLS), newest first. Empty before the goals migration. */
+export async function loadBoardGoals(supabase: ServerSupabase): Promise<BoardGoalRow[]> {
+  const { data, error } = await supabase.from("board_goals")
+    .select("id, board, angle, grade, grade_scale, status, notes, started_at").order("started_at", { ascending: false });
+  return error ? [] : ((data ?? []) as BoardGoalRow[]);
+}
+
 /** The shared "à la maison" venue used for a board at home. */
 export async function homeBoardGymId(supabase: ServerSupabase): Promise<string | null> {
   const { data } = await supabase.from("gyms").select("id").eq("external_provider", "leblond-board").eq("external_id", "home").maybeSingle();

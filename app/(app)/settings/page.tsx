@@ -4,6 +4,8 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getI18n } from "@/lib/i18n/server";
 import { CoachKeys } from "@/components/settings/coach-keys";
 import { listCoachKeys } from "@/lib/data/coach-sessions";
+import { ProfilePhotoEditor } from "@/components/settings/profile-photo-editor";
+import { viewerPicture } from "@/lib/data/profile-picture";
 import { ProfileForm } from "./profile-form";
 
 export const metadata = { title: "Réglages" };
@@ -11,11 +13,12 @@ export const metadata = { title: "Réglages" };
 export default async function SettingsPage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
-  const coachKeys = await listCoachKeys(viewer.supabase);
+  const [coachKeys, picture] = await Promise.all([listCoachKeys(viewer.supabase), viewerPicture()]);
   const p = viewer.profile;
   return (
     <div>
       <PageHeader icon={<PAGE_ICONS.settings />} title={t.settings.title} />
+      <ProfilePhotoEditor locale={locale} userId={viewer.userId} photoUrl={picture.photoUrl} level={picture.level} />
       <ProfileForm
         initial={{
           displayName: p.display_name,

@@ -5,8 +5,8 @@ import { z } from "zod";
 import { requireViewer, type Viewer } from "@/lib/auth/viewer";
 import { importBoardLogbookSchema, type BoardLibRow } from "@/lib/climbing/boardlib-csv";
 import {
-  boardAngles, boardProjectSchema, climbKey, isBoardSend, logBoardAscentSchema, startBoardSessionSchema, updateBoardAscentSchema,
-  BOARD_PROJECT_STATUSES, type Board,
+  boardAngles, boardGoalSchema, boardProjectSchema, climbKey, isBoardSend, logBoardAscentSchema, startBoardSessionSchema, updateBoardAscentSchema,
+  updateBoardGoalSchema, updateBoardProjectNotesSchema, BOARD_PROJECT_STATUSES, type Board,
 } from "@/lib/climbing/boards";
 import { BOARD_ASCENT_COLUMNS, homeBoardGymId, type BoardAscentRow } from "@/lib/data/boards";
 import { zonedToUtc } from "@/lib/time";
@@ -155,6 +155,7 @@ export async function createBoardProject(input: unknown): Promise<ActionResult> 
   if (!key) return { ok: false, error: "invalid" };
   const { error } = await viewer.supabase.from("board_projects").insert({
     user_id: viewer.userId, board: v.board, climb_name: v.climbName, climb_key: key, angle: v.angle, grade: v.grade, grade_scale: v.gradeScale,
+    notes: v.notes,
   });
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "unknownError" };
   revalidatePath("/projects");
@@ -175,6 +176,53 @@ export async function deleteBoardProject(projectId: string): Promise<ActionResul
   const viewer = await requireViewer();
   if (!id.safeParse(projectId).success) return { ok: false, error: "invalid" };
   const { error } = await viewer.supabase.from("board_projects").delete().eq("id", projectId);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/projects");
+  return { ok: true };
+}
+
+export async function updateBoardProjectNotes(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = updateBoardProjectNotesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { error } = await viewer.supabase.from("board_projects").update({ notes: parsed.data.notes }).eq("id", parsed.data.id);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/projects");
+  return { ok: true };
+}
+
+/* ───────────── Board level goals ───────────── */
+
+/** A level goal on a board (one per board and angle; angle null = any angle). */
+export async function createBoardGoal(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = boardGoalSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const { error } = await viewer.supabase.from("board_goals").insert({
+    user_id: viewer.userId, board: v.board, angle: v.angle, grade: v.grade, grade_scale: v.gradeScale, notes: v.notes,
+  });
+  if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "unknownError" };
+  revalidatePath("/projects");
+  return { ok: true };
+}
+
+export async function updateBoardGoal(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = updateBoardGoalSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const { error } = await viewer.supabase.from("board_goals")
+    .update({ grade: v.grade, grade_scale: v.gradeScale, status: v.status, notes: v.notes }).eq("id", v.id);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/projects");
+  return { ok: true };
+}
+
+export async function deleteBoardGoal(goalId: string): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  if (!id.safeParse(goalId).success) return { ok: false, error: "invalid" };
+  const { error } = await viewer.supabase.from("board_goals").delete().eq("id", goalId);
   if (error) return { ok: false, error: "unknownError" };
   revalidatePath("/projects");
   return { ok: true };

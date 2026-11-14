@@ -7,7 +7,14 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { gradeLabel } from "@/lib/grading/labels";
 import { includesBoulder, includesRoute } from "@/lib/climbing/goals";
 import { getI18n } from "@/lib/i18n/server";
+import { fmt } from "@/lib/i18n";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { profilePhotoDictionary } from "@/lib/i18n/profile-photo";
+import { avatarDictionary } from "@/lib/i18n/avatar";
+import { AVATAR_LEVELS } from "@/lib/analytics/avatar";
+import { viewerPicture } from "@/lib/data/profile-picture";
+import { ProfilePicture } from "@/components/training/profile-picture";
+import { linkClass } from "@/components/ui/button";
 
 export const metadata = { title: "Profil" };
 
@@ -15,6 +22,10 @@ export default async function ProfilePage() {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const p = viewer.profile;
+  const picture = await viewerPicture();
+  const ph = profilePhotoDictionary(locale);
+  const av = avatarDictionary(locale);
+  const colour = av.colour[AVATAR_LEVELS[picture.level] ?? "WHITE"];
   const links = [
     { href: "/projects", label: t.nav.projects },
     { href: "/settings", label: t.profile.edit },
@@ -25,6 +36,16 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-5">
       <PageHeader icon={<PAGE_ICONS.profile />} title={p.display_name || t.profile.title} subtitle={viewer.email} />
+      <Card className="flex items-center gap-4">
+        <span className="shrink-0 p-1">
+          <ProfilePicture photoUrl={picture.photoUrl} level={picture.level} size={72}
+            label={picture.photoUrl ? ph.yourPhoto : fmt(av.portraitLabel, { colour })} />
+        </span>
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm text-ink-2">{picture.photoUrl ? ph.usingPhoto : ph.usingAvatar}</p>
+          <Link href="/settings#profile-photo-heading" className={linkClass + " text-sm"}>{ph.edit}</Link>
+        </div>
+      </Card>
       <Card>
         <dl className="divide-y divide-line text-sm">
           <div className="flex justify-between py-2">

@@ -122,12 +122,41 @@ export const updateBoardAscentSchema = z.object({
   result: z.enum(BOARD_RESULTS).optional(),
 }).strict();
 
+/** A precise climb kept as a project: board, name as in the board app, angle, grade as the app shows it. */
 export const boardProjectSchema = z.object({
   board,
   climbName: z.string().trim().min(1).max(120),
   angle,
   grade: z.string().min(1).max(8),
   gradeScale: scale,
+  notes: z.string().trim().max(2000).default(""),
+}).strict().refine(validGrade, "Unknown grade for this scale");
+
+export const updateBoardProjectNotesSchema = z.object({ id: z.guid(), notes: z.string().trim().max(2000) }).strict();
+
+/**
+ * A level goal on a board: reach a grade (in the board's scale, never converted)
+ * at one angle, or at any angle of that board (angle null).
+ */
+export const boardGoalSchema = z.object({
+  board,
+  angle: angle.nullable(),
+  grade: z.string().min(1).max(8),
+  gradeScale: scale,
+  notes: z.string().trim().max(2000).default(""),
+}).strict()
+  .refine(validGrade, "Unknown grade for this scale")
+  .refine((v) => v.angle === null || boardAngles(v.board).includes(v.angle), "Angle not offered by this board");
+
+export const BOARD_GOAL_STATUSES = ["ACTIVE", "ABANDONED"] as const;
+export type BoardGoalStatus = (typeof BOARD_GOAL_STATUSES)[number];
+
+export const updateBoardGoalSchema = z.object({
+  id: z.guid(),
+  grade: z.string().min(1).max(8),
+  gradeScale: scale,
+  status: z.enum(BOARD_GOAL_STATUSES),
+  notes: z.string().trim().max(2000),
 }).strict().refine(validGrade, "Unknown grade for this scale");
 
 export const BOARD_PROJECT_STATUSES = ["ACTIVE", "SENT", "ABANDONED"] as const;
