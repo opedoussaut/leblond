@@ -9,8 +9,10 @@ import { LinePlot } from "./line-plot";
 const WEEK_MS = 7 * 86_400_000;
 
 /** The hardest send of each week as a line, weeks without a send left as gaps in time (figures from lib/analytics/charts). */
-export function LevelCurve({ t, locale, system, points, now }: {
+export function LevelCurve({ t, locale, system, points, now, plain = false }: {
   t: Dictionary; locale: Locale; system: GradeSystem; points: LevelPoint[]; now: Date;
+  /** Inside another card: no frame of its own. */
+  plain?: boolean;
 }) {
   const c = chartsDictionary(locale);
   const label = (grade: string) => gradeLabel(t, system, grade);
@@ -28,8 +30,9 @@ export function LevelCurve({ t, locale, system, points, now }: {
   }
   const dateOf = (index: number) => short.format(new Date(first + index * WEEK_MS));
 
-  return <section aria-labelledby="level-curve-heading" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
-    <h2 id="level-curve-heading" className="text-lg font-bold">{c.levelTitle}</h2>
+  const Heading = plain ? "h3" : "h2";
+  return <section aria-labelledby="level-curve-heading" className={plain ? "" : "rounded-2xl border border-line bg-surface p-5 sm:p-6"}>
+    <Heading id="level-curve-heading" className={plain ? "text-base font-bold" : "text-lg font-bold"}>{c.levelTitle}</Heading>
     <p className="mt-1 text-sm text-ink-2">{c.levelHint}</p>
     {points.length < 2 ? <p className="mt-4 text-sm text-ink-3">{c.levelEmpty}</p> : <>
       <div className="mt-5">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradePyramid, mainSystem, weeklyHardest } from "@/lib/analytics/charts";
+import { gradePyramid, mainSystem, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
 import type { AttemptFact, ProblemFact } from "@/lib/analytics/types";
 
 const problem = (id: string, grade: string, system: ProblemFact["nativeGradeSystem"] = "FONT"): ProblemFact =>
@@ -40,5 +40,19 @@ describe("progress diagrams", () => {
   it("picks the system most problems were tried on", () => {
     expect(mainSystem(problems, attempts, ["FONT", "ARKOSE_COLOR"])).toBe("FONT");
     expect(mainSystem(problems, [], ["FONT"])).toBeNull();
+  });
+});
+
+describe("weekly totals", () => {
+  it("counts sessions and minutes per week, empty weeks kept, nothing after today", () => {
+    const weeks = weeklyTotals([
+      { date: "2026-11-03", minutes: 45 }, { date: "2026-11-05", minutes: null },
+      { date: "2026-11-12", minutes: 60 }, { date: "2026-11-15", minutes: 30 }, { date: "2026-09-01", minutes: 90 },
+    ], "2026-11-14", 3);
+    expect(weeks).toEqual([
+      { weekStart: "2026-10-26", sessions: 0, minutes: 0 },
+      { weekStart: "2026-11-02", sessions: 2, minutes: 45 },
+      { weekStart: "2026-11-09", sessions: 1, minutes: 60 },
+    ]);
   });
 });
