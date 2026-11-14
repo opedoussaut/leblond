@@ -475,6 +475,11 @@ export type Database = {
           started_at: string;
           sent_at: string | null;
           created_at: string;
+          sector: string | null;
+          wall_angle: Database["public"]["Enums"]["wall_angle"];
+          beta: string | null;
+          topo_ref: string | null;
+          topo_url: string | null;
           updated_at: string;
         };
         Insert: {
@@ -490,6 +495,11 @@ export type Database = {
           started_at?: string;
           sent_at?: string | null;
           created_at?: string;
+          sector?: string | null;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+          beta?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -505,6 +515,11 @@ export type Database = {
           started_at?: string;
           sent_at?: string | null;
           created_at?: string;
+          sector?: string | null;
+          wall_angle?: Database["public"]["Enums"]["wall_angle"];
+          beta?: string | null;
+          topo_ref?: string | null;
+          topo_url?: string | null;
           updated_at?: string;
         };
         Relationships: [

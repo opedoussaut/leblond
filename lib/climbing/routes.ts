@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
+import { outdoorDetailsShape, outdoorSiteSchema } from "./outdoor-projects";
 import { WALL_ANGLES } from "./types";
 
 /**
@@ -79,20 +80,35 @@ export function routeKey(name: string): string {
 export const ROUTE_PROJECT_STATUSES = ["ACTIVE", "SENT", "ABANDONED"] as const;
 export type RouteProjectStatus = (typeof ROUTE_PROJECT_STATUSES)[number];
 
+/** French route grade as entered, stored lowercase ("6B+" → "6b+"), never converted. */
+const routeGrade = z.string().trim().transform((g) => g.toLowerCase()).pipe(z.enum(FRENCH_ROUTE_GRADES));
+
+/**
+ * A route project in a gym (gymId) or outdoors: an existing outdoor site
+ * (gymId) or a new one (site.newSite), with sector, angle, beta and topo.
+ */
 export const createRouteProjectSchema = z.object({
-  gymId: z.guid(),
+  gymId: z.guid().optional(),
+  site: outdoorSiteSchema.optional(),
   routeName: z.string().trim().min(1).max(120),
-  grade: z.enum(FRENCH_ROUTE_GRADES),
+  grade: routeGrade,
   goalStyle: z.enum(ROUTE_STYLES),
   notes: z.string().trim().max(2000),
-}).strict();
+  ...outdoorDetailsShape,
+}).strict().refine((v) => Boolean(v.gymId) !== Boolean(v.site), { path: ["gymId"] });
 
 export const updateRouteProjectSchema = z.object({
   id: z.guid(),
-  grade: z.enum(FRENCH_ROUTE_GRADES),
+  routeName: z.string().trim().min(1).max(120).optional(),
+  grade: routeGrade,
   goalStyle: z.enum(ROUTE_STYLES),
   status: z.enum(ROUTE_PROJECT_STATUSES),
   notes: z.string().trim().max(2000),
+  sector: outdoorDetailsShape.sector.optional(),
+  wallAngle: z.enum(WALL_ANGLES).optional(),
+  beta: outdoorDetailsShape.beta.optional(),
+  topoRef: outdoorDetailsShape.topoRef.optional(),
+  topoUrl: outdoorDetailsShape.topoUrl.optional(),
 }).strict();
 
 /**

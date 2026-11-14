@@ -10,6 +10,8 @@ import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { RouteProjectEditor } from "./route-project-editor";
+import { TopoCitation } from "@/components/climbing/outdoor-project-fields";
+import { outdoorProjectsDictionary } from "@/lib/i18n/outdoor-projects";
 import { IconBack, IconStar } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
 
@@ -22,13 +24,15 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const r = routeDictionary(locale);
   const { data: project } = await viewer.supabase.from("route_projects")
-    .select("id, route_name, grade, goal_style, status, notes, started_at, sent_at, gyms(name)").eq("id", id).maybeSingle();
+    .select("id, route_name, grade, goal_style, status, notes, started_at, sent_at, sector, wall_angle, beta, topo_ref, topo_url, gyms(name, brand)").eq("id", id).maybeSingle();
   if (!project) notFound();
   const { data: rows } = await viewer.supabase.from("route_ascents")
     .select("id, session_id, grade, style, result, falls, created_at").eq("route_project_id", id).order("created_at");
   const ascents = (rows ?? []).map((a) => ({ id: a.id, sessionId: a.session_id, grade: a.grade, style: a.style,
     result: a.result, falls: a.falls, createdAt: new Date(a.created_at) }));
   const progress = routeProjectProgress(ascents);
+  const d = outdoorProjectsDictionary(locale);
+  const outdoor = project.gyms?.brand === "OUTDOOR";
 
   return <div className="space-y-5">
     <Link href="/projects" className={cn(linkClass, "text-sm")}><IconBack /> {t.projects.title}</Link>
@@ -36,10 +40,17 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent"><IconStar /> {r.projectsTitle} · {r.projectStatus[project.status]}</p>
       <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{project.route_name}</h1>
       <p className="mt-1 text-sm text-ink-2">
-        <strong className="text-lg tabular-nums text-ink">{project.grade}</strong> · {project.gyms?.name} · {r.goalStyle} : {r.styles[project.goal_style]}
+        <strong className="text-lg tabular-nums text-ink">{project.grade}</strong> ·{" "}
+        {outdoor ? <span className="font-semibold">{d.outdoorBadge} · </span> : null}
+        {project.gyms?.name}{project.sector ? ` · ${project.sector}` : ""} · {r.goalStyle} : {r.styles[project.goal_style]}
       </p>
       <p className="text-xs text-ink-3">{fmt(t.projects.since, { date: formatDate(project.started_at, locale) })}
         {project.sent_at ? ` · ${r.projectStatus.SENT} ${formatDate(project.sent_at, locale)}` : ""}</p>
+      <div className="mt-2 space-y-1">
+        {project.wall_angle !== "UNKNOWN" ? <p className="text-sm text-ink-2">{d.angle} : {t.wallAngles[project.wall_angle]}</p> : null}
+        <TopoCitation topoRef={project.topo_ref} topoUrl={project.topo_url} />
+        {project.beta ? <p className="whitespace-pre-line text-sm text-ink-2"><strong>{d.beta} :</strong> {project.beta}</p> : null}
+      </div>
     </header>
 
     <Card className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -64,6 +75,9 @@ export default async function RouteProjectPage({ params }: PageProps<"/projects/
       <p className="text-xs text-ink-3">{r.autoSentRule}</p>
     </section>
 
-    <RouteProjectEditor project={{ id: project.id, grade: project.grade, goalStyle: project.goal_style, status: project.status, notes: project.notes }} />
+    <RouteProjectEditor outdoor={outdoor} project={{
+      id: project.id, routeName: project.route_name, grade: project.grade, goalStyle: project.goal_style, status: project.status, notes: project.notes,
+      details: { sector: project.sector ?? "", wallAngle: project.wall_angle, beta: project.beta ?? "", topoRef: project.topo_ref ?? "", topoUrl: project.topo_url ?? "" },
+    }} />
   </div>;
 }
