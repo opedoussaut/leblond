@@ -6,15 +6,17 @@ import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { IconNext } from "@/components/ui/icons";
 import type { RivalPortrait as RivalPortraitId } from "@/lib/analytics/rival";
 import { RivalPortrait } from "./rival-portrait";
-import { AvatarPortrait } from "./avatar-portrait";
+import { ProfilePicture } from "./profile-picture";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar }: {
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null }: {
   locale: Locale; pact: Pact; progress: PactProgress; portrait?: RivalPortraitId;
   /** The climber's avatar level, shown facing the rival. */
   avatar?: number;
+  /** The climber's uploaded photo, shown instead of the avatar. */
+  photo?: string | null;
   observed?: { boulder: string | null; route: string | null }; href?: "/train/alter-ego";
 }) {
   const t = alterEgoDictionary(locale);
@@ -33,7 +35,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   return <section aria-labelledby="ego-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
     <div className="flex items-center gap-3">
       {avatar !== undefined || portrait ? <div className="flex shrink-0 items-center -space-x-2">
-        {avatar !== undefined ? <AvatarPortrait level={avatar} size={48} /> : null}
+        {avatar !== undefined ? <ProfilePicture photoUrl={photo} level={avatar} size={48} /> : null}
         {portrait ? <RivalPortrait portrait={portrait} size={48} /> : null}
       </div> : null}
       <div>

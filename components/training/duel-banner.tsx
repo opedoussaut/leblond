@@ -5,7 +5,7 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { chartsDictionary } from "@/lib/i18n/charts";
 import { IconNext } from "@/components/ui/icons";
-import { AvatarPortrait } from "./avatar-portrait";
+import { ProfilePicture } from "./profile-picture";
 import { RivalPortrait } from "./rival-portrait";
 
 /**
@@ -13,9 +13,11 @@ import { RivalPortrait } from "./rival-portrait";
  * in séances and a tug bar of the séances done since signing. It states the
  * gap and never prescribes work to close it.
  */
-export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, paused }: {
+export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused }: {
   locale: Locale; name: string; standing: Standing; week: number; total: number;
   portrait: RivalPortraitId; avatar: number; paused: boolean;
+  /** The climber's uploaded photo (signed URL); without one, the avatar. */
+  photo?: string | null;
 }) {
   const t = alterEgoDictionary(locale);
   const c = chartsDictionary(locale);
@@ -35,7 +37,7 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
 
     <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="rounded-full ring-2 ring-white/80"><AvatarPortrait level={avatar} size={56} /></span>
+        <span className="rounded-full ring-2 ring-white/80"><ProfilePicture photoUrl={photo} level={avatar} size={56} /></span>
         <span className="min-w-0"><strong className="block text-base">{c.you}</strong>{side(c.you, you)}</span>
       </div>
       <p className="text-center" aria-label={fmt(c.bannerScore, { you: you.sessions, rival: ego.sessions, name })}>

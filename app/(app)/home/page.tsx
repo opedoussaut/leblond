@@ -16,7 +16,7 @@ import { IconNext, LiveDot } from "@/components/ui/icons";
 import { DuelBanner } from "@/components/training/duel-banner";
 import { pactClock, pactWeek } from "@/lib/analytics/alter-ego";
 import { rivalStanding } from "@/lib/analytics/rival";
-import { loadAvatar } from "@/lib/data/avatar";
+import { viewerAvatarLevel, viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { boardsDictionary } from "@/lib/i18n/boards";
 
@@ -51,8 +51,8 @@ export default async function HomePage() {
   // The duel, only while a pact is open.
   const rival = await loadOpenRival(viewer.supabase);
   const duel = rival ? await (async () => {
-    const [work, avatar] = await Promise.all([loadClimberWork(viewer.supabase), loadAvatar(viewer.supabase)]);
-    return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar: avatar.level,
+    const [work, avatar, photo] = await Promise.all([loadClimberWork(viewer.supabase), viewerAvatarLevel(), viewerPhotoUrl()]);
+    return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar, photo,
       week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
   })() : null;
   const outcome = dayCheck?.outcome;
@@ -98,7 +98,7 @@ export default async function HomePage() {
     </div>
 
     {rival && duel ? <DuelBanner locale={locale} name={rival.pact.displayName} standing={duel.standing}
-      week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar}
+      week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar} photo={duel.photo}
       paused={rival.pact.status === "PAUSED"} /> : null}
 
     <section aria-labelledby="your-day" className="space-y-4">
