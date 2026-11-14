@@ -20,6 +20,8 @@ export function WeeklyBars({
 }) {
   if (weeks.length === 0) return null;
   const max = Math.max(1, ...weeks.map((w) => w.tops));
+  // Numbers above the bars stay readable up to about four months; longer spans keep them in the tooltip and the table.
+  const dense = weeks.length <= 16;
   const tz = { timeZone: "UTC" } as const; // weekStart is a UTC Monday (YYYY-MM-DD)
   const short = new Intl.DateTimeFormat(intlLocale(locale), { ...tz, day: "numeric", month: "short" });
   const full = new Intl.DateTimeFormat(intlLocale(locale), { ...tz, day: "numeric", month: "long", year: "numeric" });
@@ -43,7 +45,7 @@ export function WeeklyBars({
             title={`${fmt(labels.weekOf, { date: full.format(new Date(`${w.weekStart}T00:00:00Z`)) })} : ${w.tops} ${labels.tops} · ${w.sessions} ${labels.sessions}`}
             className="flex h-32 flex-col items-center justify-end"
           >
-            {w.tops > 0 ? <span className="mb-1 text-xs font-semibold tabular-nums text-ink-2">{w.tops}</span> : null}
+            {w.tops > 0 && dense ? <span className="mb-1 text-xs font-semibold tabular-nums text-ink-2">{w.tops}</span> : null}
             <span
               className="w-full max-w-8 rounded-t bg-accent"
               style={{ height: w.tops > 0 ? `max(2px, ${(w.tops / max) * 100 * 0.8}%)` : 0 }}
@@ -56,9 +58,10 @@ export function WeeklyBars({
           <span
             key={w.weekStart}
             className={
-              "mt-1 border-t border-line pt-1 text-center text-[11px] leading-tight text-ink-3 " +
-              // Every other date on a phone; the last week always.
-              (i % 2 === (weeks.length - 1) % 2 ? "" : "max-sm:invisible")
+              "mt-1 whitespace-nowrap border-t border-line pt-1 text-center text-[11px] leading-tight text-ink-3 " +
+              // About eight dates on a desktop and five on a phone, counted back from the last week (always shown).
+              ((weeks.length - 1 - i) % Math.ceil(weeks.length / 8) !== 0 ? "invisible"
+                : (weeks.length - 1 - i) % Math.ceil(weeks.length / 5) !== 0 ? "max-sm:invisible" : "")
             }
           >
             {short.format(new Date(`${w.weekStart}T00:00:00Z`))}
@@ -68,11 +71,11 @@ export function WeeklyBars({
         <span className="pr-1 pt-1 text-[11px] text-ink-3">{labels.sessions}</span>
         {weeks.map((w) => (
           <span key={w.weekStart} className="pt-1 text-center text-xs tabular-nums text-ink-2">
-            {w.sessions > 0 ? w.sessions : ""}
+            {w.sessions > 0 && dense ? w.sessions : ""}
           </span>
         ))}
       </div>
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>{labels.caption}</caption>
         <thead>
           <tr>
@@ -90,7 +93,7 @@ export function WeeklyBars({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </figure>
   );
 }
