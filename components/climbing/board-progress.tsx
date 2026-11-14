@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { linkClass } from "@/components/ui/button";
+import { IconNext } from "@/components/ui/icons";
 import type { BoardPyramid } from "@/lib/analytics/boards";
 import { BOARD_NAMES } from "@/lib/climbing/boards";
 import { fmt, type Locale } from "@/lib/i18n";
@@ -9,7 +12,10 @@ export function BoardProgress({ locale, pyramids, title }: { locale: Locale; pyr
   const b = boardsDictionary(locale);
   if (!pyramids.length) return null;
   return <section aria-labelledby="board-progress-heading" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
-    <h2 id="board-progress-heading" className="text-lg font-bold">{title ?? b.progressTitle}</h2>
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="board-progress-heading" className="text-lg font-bold">{title ?? b.progressTitle}</h2>
+      <Link href="/session/board-plan" className={linkClass + " text-sm font-semibold"}>{b.plan.cta} <IconNext /></Link>
+    </div>
     <p className="mt-1 text-sm text-ink-2">{b.progressHint}</p>
     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
       {pyramids.map((p) => {

@@ -10,7 +10,8 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { RivalFeed } from "@/components/training/rival-feed";
 import { RivalSettingsForm } from "@/components/training/rival-settings";
-import { rivalBoulderGrade, rivalFeed, rivalStanding, weeklyDuels } from "@/lib/analytics/rival";
+import { duelRace, rivalBoulderGrade, rivalFeed, rivalStanding, weeklyDuels } from "@/lib/analytics/rival";
+import { DuelRace } from "@/components/charts/duel-race";
 import { BOARD_NAMES, BOARD_SHORT, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, loadBoardProjects } from "@/lib/data/boards";
 import { addDays } from "@/lib/training/programme";
@@ -90,6 +91,7 @@ export default async function AlterEgoPage() {
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level}
       observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
+    <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
       {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}
     </p> : null}
