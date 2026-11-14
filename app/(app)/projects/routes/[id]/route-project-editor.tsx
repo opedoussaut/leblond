@@ -10,13 +10,20 @@ import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { buttonClass, dangerLinkClass } from "@/components/ui/button";
 import { fieldClass as field } from "@/components/ui/field";
+import { OutdoorDetailsFields, type DetailsValue } from "@/components/climbing/outdoor-project-fields";
+import { outdoorProjectsDictionary } from "@/lib/i18n/outdoor-projects";
 
 
-export function RouteProjectEditor({ project }: {
-  project: { id: string; grade: string; goalStyle: RouteStyle; status: RouteProjectStatus; notes: string };
+export function RouteProjectEditor({ project, outdoor }: {
+  project: { id: string; routeName: string; grade: string; goalStyle: RouteStyle; status: RouteProjectStatus; notes: string; details: DetailsValue };
+  /** At an outdoor crag: sector, angle, beta and topo are editable too. */
+  outdoor: boolean;
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
+  const d = outdoorProjectsDictionary(locale);
+  const [routeName, setRouteName] = useState(project.routeName);
+  const [details, setDetails] = useState(project.details);
   const router = useRouter();
   const [grade, setGrade] = useState(project.grade);
   const [goal, setGoal] = useState(project.goalStyle);
@@ -27,13 +34,18 @@ export function RouteProjectEditor({ project }: {
   function save(status: RouteProjectStatus) {
     setMessage(null);
     start(async () => {
-      const res = await updateRouteProject({ id: project.id, grade, goalStyle: goal, status, notes });
-      setMessage(res.ok ? { ok: true, text: r.saved } : { ok: false, text: t.common.unknownError });
+      const res = await updateRouteProject({
+        id: project.id, routeName, grade, goalStyle: goal, status, notes, ...(outdoor ? details : {}),
+      });
+      setMessage(res.ok ? { ok: true, text: r.saved } : { ok: false, text: d.errors[res.error] ?? t.common.unknownError });
       if (res.ok) router.refresh();
     });
   }
 
   return <Card className="space-y-4">
+    <label className="block text-sm font-semibold">{d.routeName}
+      <input className={field} required maxLength={120} value={routeName} onChange={(e) => setRouteName(e.target.value)} />
+    </label>
     <div className="grid grid-cols-2 gap-3">
       <label className="text-sm font-semibold">{r.grade}
         <select className={field} value={grade} onChange={(e) => setGrade(e.target.value)}>
@@ -46,11 +58,12 @@ export function RouteProjectEditor({ project }: {
         </select>
       </label>
     </div>
+    {outdoor ? <OutdoorDetailsFields id="rpe" value={details} onChange={setDetails} /> : null}
     <label className="block text-sm font-semibold">{r.notes}
       <textarea className={field} rows={3} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
     </label>
     <div className="flex flex-wrap gap-2">
-      <button type="button" disabled={pending} onClick={() => save(project.status)}
+      <button type="button" disabled={pending || !routeName.trim()} onClick={() => save(project.status)}
         className={buttonClass("primary", "md")}>{r.save}</button>
       {project.status !== "SENT" ? <button type="button" disabled={pending} onClick={() => save("SENT")}
         className={buttonClass("secondary", "md")}>{r.markSent}</button> : null}
