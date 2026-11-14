@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/wordmark";
 import { AccountMenu } from "@/components/layout/account-menu";
+import { ViewerPicture } from "@/components/layout/viewer-picture";
 import { AppNav, AreaSubNav } from "@/components/layout/app-nav";
 import { RouteFocus } from "@/components/layout/route-focus";
 import { PendingSync } from "@/components/offline/pending-sync";
@@ -25,7 +26,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="pt-safe sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4 sm:px-6">
           <Link href="/home" aria-label="LeBlond" className="inline-flex rounded-lg"><Wordmark size={26} /></Link>
-          <AccountMenu displayName={displayName} isAdmin={isAdmin} placement="header" />
+          <AccountMenu displayName={displayName} isAdmin={isAdmin} placement="header"
+            picture={<ViewerPicture name={displayName} size={32} />} />
         </div>
       </header>
       <main id="app-main" className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:px-10 md:pb-16 md:pt-9 lg:px-12">
@@ -35,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
       <PendingSync userId={viewer.userId} />
       <AppNav hasLiveSession={(count ?? 0) > 0} hasLiveTraining={(training ?? 0) > 0}
-        displayName={displayName} isAdmin={isAdmin} />
+        displayName={displayName} isAdmin={isAdmin} picture={<ViewerPicture name={displayName} size={34} />} />
     </div>
   );
 }

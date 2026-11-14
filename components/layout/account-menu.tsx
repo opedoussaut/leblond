@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { signOut } from "@/app/(public)/login/actions";
 import { useI18n } from "@/components/i18n-provider";
@@ -26,7 +26,7 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
 }
 
 /**
- * Account menu behind the avatar: Profil, Connexions, Réglages (and
+ * Account menu behind the profile picture (photo, else avatar): Profil, Connexions, Réglages (and
  * Administration for admins), then Déconnexion. A disclosure button —
  * aria-expanded / aria-controls — with keyboard support: Enter, Space or
  * ArrowDown opens it, arrows move between items, Esc closes it and returns
@@ -35,9 +35,11 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
  * `placement="sidebar"` opens upwards from the foot of the desktop sidebar;
  * `placement="header"` drops down from the mobile header.
  */
-export function AccountMenu({ displayName, isAdmin, placement }: {
+export function AccountMenu({ displayName, isAdmin, placement, picture }: {
   displayName: string;
   isAdmin: boolean;
+  /** The climber's photo or avatar (streamed from the server); initials until then. */
+  picture?: ReactNode;
   placement: "sidebar" | "header";
 }) {
   const { t } = useI18n();
@@ -114,7 +116,7 @@ export function AccountMenu({ displayName, isAdmin, placement }: {
           sidebar ? "min-h-14 w-full gap-3 px-2.5 text-left hover:bg-surface-2" : "h-11 w-11 justify-center hover:bg-surface-2",
           open && "bg-surface-2",
         )}>
-        <Avatar name={displayName} size={sidebar ? 34 : 32} />
+        {picture ?? <Avatar name={displayName} size={sidebar ? 34 : 32} />}
         {sidebar ? <>
           <span className="min-w-0 flex-1">
             <span className={cn("block truncate text-sm font-bold", inAccount ? "text-accent" : "text-ink")}>{displayName}</span>

@@ -6,7 +6,7 @@ import { raceMargin, type RivalPortrait as RivalPortraitId } from "@/lib/analyti
 import { rivalDictionary } from "@/lib/i18n/rival";
 import { scheduleBeeps } from "@/lib/training/beeper";
 import { RivalPortrait } from "./rival-portrait";
-import { AvatarPortrait } from "./avatar-portrait";
+import { ProfilePicture } from "./profile-picture";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
@@ -19,9 +19,9 @@ const LEAD_MARGIN = 0.05;
  * The ego training through the same session, live. It is driven by the player's
  * own clock, so it pauses with the player and needs no network.
  */
-export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, portrait, avatar }: {
+export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, portrait, avatar, photo = null }: {
   locale: Locale; name: string; phases: Phase[]; exerciseNames: string[];
-  elapsed: number; youFraction: number; portrait?: RivalPortraitId; avatar?: number;
+  elapsed: number; youFraction: number; portrait?: RivalPortraitId; avatar?: number; photo?: string | null;
 }) {
   const t = alterEgoDictionary(locale);
   const s = trainingSessionDictionary(locale);
@@ -60,7 +60,7 @@ export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, you
     </p> : null}
     <p className="mt-0.5 truncate text-xs tabular-nums text-ink-2">{doing}</p>
     <div className="mt-1.5 grid grid-cols-[minmax(0,5rem)_1fr] items-center gap-x-2 gap-y-1 text-xs text-ink-2" aria-hidden="true">
-      <span className="flex min-w-0 items-center gap-1.5 truncate">{avatar !== undefined ? <AvatarPortrait level={avatar} size={16} /> : null}{t.you}</span>
+      <span className="flex min-w-0 items-center gap-1.5 truncate">{avatar !== undefined ? <ProfilePicture photoUrl={photo} level={avatar} size={16} /> : null}{t.you}</span>
       <div className="h-1 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(youFraction * 100)}%` }} /></div>
       <span className="truncate">{name}</span>
       <div className="h-1 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-ink-3" style={{ width: `${Math.round(at.fraction * 100)}%` }} /></div>

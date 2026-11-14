@@ -18,6 +18,6 @@ export function AvatarPortrait({ level, size = 56, label }: { level: number; siz
     <img src={`/brand/avatar/${colour.toLowerCase()}.webp`} width={size} height={size} alt={label ?? ""} aria-hidden={label ? undefined : true}
       loading="lazy" decoding="async" draggable={false} data-avatar={colour}
       className="shrink-0 rounded-full bg-[#9DB0CB] object-cover"
-      style={{ boxShadow: `0 0 0 ${ring}px ${AVATAR_RING[colour]}` }} />
+      style={{ maxWidth: "100%", height: "auto", aspectRatio: "1 / 1", boxShadow: `0 0 0 ${ring}px ${AVATAR_RING[colour]}` }} />
   );
 }

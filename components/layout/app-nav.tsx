@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
@@ -16,11 +17,12 @@ import { AREA_ICONS, PAGE_ICONS } from "./nav-icons";
  * on an area overview, otherwise the sub-page). Its area is shown by colour.
  * aria-current="page" marks the current page, aria-current="true" its area.
  */
-export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }: {
+export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin, picture }: {
   hasLiveSession: boolean;
   hasLiveTraining: boolean;
   displayName: string;
   isAdmin: boolean;
+  picture?: ReactNode;
 }) {
   const pathname = usePathname();
   const currentArea = sectionForPath(pathname);
@@ -79,7 +81,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin }
         </nav>
         {/* Account menu: always in the same place, at the foot of the sidebar. */}
         <div className="border-t border-line p-3">
-          <AccountMenu displayName={displayName} isAdmin={isAdmin} placement="sidebar" />
+          <AccountMenu displayName={displayName} isAdmin={isAdmin} placement="sidebar" picture={picture} />
         </div>
       </aside>
       <nav aria-label={t.nav.mainNav}
