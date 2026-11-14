@@ -28,6 +28,33 @@ import { HIP_METHOD_ID, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mo
 import { IconNext } from "@/components/ui/icons";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
+import { LimiterBars } from "@/components/charts/limiter-bars";
+import { NotebookRecords } from "@/components/charts/notebook-records";
+import { PairedCurves, type CurveSeries } from "@/components/charts/paired-curves";
+import {
+  boardBests, boulderBests, hangBest, latestHipLevels, limiterCounts, mainEdge, routeBest, weekIndex, weeklyHang, weeklyRouteLevel,
+  type WeeklyPoint,
+} from "@/lib/analytics/notebook";
+import { startOfIsoWeekUtc } from "@/lib/analytics/progress";
+import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
+import { loadHangSets, loadSessionLimiters } from "@/lib/data/notebook";
+import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
+import { scoreToGrade } from "@/lib/grading/ordering";
+import { gradeLabel } from "@/lib/grading/labels";
+import { notebookDictionary } from "@/lib/i18n/notebook";
+
+/** Series the climber can pair on the same weeks. */
+const SERIES = ["boulder", "route", "hang", "sends", "train", "mobility"] as const;
+type SeriesId = (typeof SERIES)[number];
+
+/** About four evenly spaced ticks from 0 to the highest value, for counts and minutes. */
+function countTicks(max: number, unit = ""): Array<{ value: number; label: string }> {
+  if (max <= 0) return [{ value: 0, label: `0${unit}` }];
+  const step = [1, 2, 5, 10, 15, 20, 30, 50, 60, 100, 120, 150, 200, 300, 500].find((s) => max / s <= 4) ?? Math.ceil(max / 4);
+  const out = [];
+  for (let v = 0; v <= max + step / 2; v += step) out.push({ value: v, label: `${v}${unit}` });
+  return out;
+}
 
 export const metadata = { title: "LEBLOND — Progrès" };
 
@@ -111,10 +138,62 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const climbWeeks = calculateWeeklyActivity(dataset.sessions, dataset.attempts, now, weeks);
   const done = (training ?? []).filter((x) => x.status === "COMPLETED" && !isMobility(x));
   const trainWeeks = weeklyTotals(done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes })), today, weeks);
+  const [boardRows, hangSets, limiterSessions] = await Promise.all([
+    loadBoardAscents(viewer.supabase), loadHangSets(viewer.supabase), loadSessionLimiters(viewer.supabase, since),
+  ]);
   const mobWeeks = weeklyTotals([
     ...mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes })),
     ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
   ], today, weeks);
+
+  // The notebook: records, paired weekly curves, limiters.
+  const n = notebookDictionary(locale);
+  const boardFacts = boardRows.map(toBoardFact);
+  const limits = limiterCounts(limiterSessions, since);
+  const firstWeek = new Date(startOfIsoWeekUtc(new Date(today + "T12:00:00Z")).getTime() - (weeks - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
+  const totals = (list: WeekTotal[], unit: string): WeeklyPoint[] => list.map((w, i) => ({ week: i, value: w.minutes, label: `${w.minutes} ${unit}` }));
+  const buildSeries = (id: SeriesId): CurveSeries => {
+    const title = n.series[id];
+    if (id === "boulder") {
+      const points = chartSystem ? weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days).flatMap((p) => {
+        const w = weekIndex(p.weekStart, today, weeks);
+        return w === null ? [] : [{ week: w, value: p.score, label: gradeLabel(t, chartSystem, p.grade) }];
+      }) : [];
+      const lo = Math.min(...points.map((p) => p.value)), hi = Math.max(...points.map((p) => p.value));
+      const every = hi - lo > 6 ? 2 : 1;
+      const yTicks = [];
+      if (chartSystem && points.length) for (let v = lo; v <= hi; v += every) {
+        const g = scoreToGrade(chartSystem, v);
+        if (g) yTicks.push({ value: v, label: gradeLabel(t, chartSystem, g) });
+      }
+      const system = chartSystem ? ((t.grades.scaleShort as Record<string, string>)[chartSystem] ?? chartSystem) : "—";
+      return { id, title, help: fmt(n.seriesHelp.boulder, { system }), points, yTicks };
+    }
+    if (id === "route") {
+      const points = routes ? weeklyRouteLevel(routes, today, weeks) : [];
+      const lo = Math.min(...points.map((p) => p.value)), hi = Math.max(...points.map((p) => p.value));
+      const every = hi - lo > 6 ? 2 : 1;
+      const yTicks = [];
+      if (points.length) for (let v = lo; v <= hi; v += every) yTicks.push({ value: v, label: FRENCH_ROUTE_GRADES[v] });
+      return { id, title, help: n.seriesHelp.route, points, yTicks };
+    }
+    if (id === "hang") {
+      const points = weeklyHang(hangSets, today, weeks);
+      const max = Math.max(0, ...points.map((p) => p.value)), min = Math.min(0, ...points.map((p) => p.value));
+      const yTicks = countTicks(max - min, " kg").map((tk) => ({ value: tk.value + min, label: `${tk.value + min} kg` }));
+      return { id, title, help: fmt(n.seriesHelp.hang, { mm: mainEdge(hangSets) ?? "—" }), points, yTicks };
+    }
+    if (id === "sends") {
+      const points = climbWeeks.map((w, i) => ({ week: i, value: w.tops, label: String(w.tops) }));
+      return { id, title, help: n.seriesHelp.sends, points: points.some((p) => p.value) ? points : [], yTicks: countTicks(Math.max(...points.map((p) => p.value))) };
+    }
+    const list = id === "train" ? trainWeeks : mobWeeks;
+    const points = totals(list, "min");
+    return { id, title, help: n.seriesHelp[id], points: points.some((p) => p.value) ? points : [], yTicks: countTicks(Math.max(...points.map((p) => p.value)), " min") };
+  };
+  const pick = (v: unknown, fallback: SeriesId): SeriesId => (SERIES as readonly unknown[]).includes(v) ? v as SeriesId : fallback;
+  const seriesA = pick(sp.a, "boulder");
+  const seriesB = pick(sp.b, hangSets.length ? "hang" : "train");
 
   return <div className="space-y-8">
     <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={c.psubtitle} />
@@ -126,6 +205,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
         {n === 52 ? c.yearOpt : fmt(c.weeksOpt, { n })}
       </Link>)}
     </nav>
+
+    <NotebookRecords t={t} locale={locale} boulders={boulderBests(dataset.problems, dataset.attempts)} route={routes ? routeBest(routes) : null}
+      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)} />
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -156,6 +238,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
           </div>
         </div>
       </>}
+      <div className="border-t border-line pt-4">
+        <LimiterBars locale={locale} rows={limits.rows} sessions={limits.sessions} />
+      </div>
       <p className="text-sm text-ink-2">
         <strong>{fr ? "Niveau de travail observé" : "Observed working grade"} :</strong>{" "}
         {working.level ? `${working.level} (${working.sampleSize} ${fr ? "blocs, 60 j" : "problems, 60 d"})` : (fr ? "données insuffisantes" : "insufficient data")}
@@ -216,6 +301,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       </div>
       <Link href="/follow-up/mobility" className={cn(linkClass, "text-sm")}>{mob.fuTitle} <IconNext /></Link>
     </section> : null}
+
+    <PairedCurves locale={locale} weeks={weeks} firstWeek={firstWeek}
+      options={SERIES.map((id) => ({ id, label: n.series[id] }))} top={buildSeries(seriesA)} bottom={buildSeries(seriesB)} />
 
     <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">

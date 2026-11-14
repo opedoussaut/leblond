@@ -1,5 +1,6 @@
 "use server";
 
+import { LIMITERS } from "@/lib/analytics/notebook";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -119,6 +120,7 @@ const feelingsSchema = z.object({
   perceivedEnergyAfter: scale,
   fatigue: scale,
   motivation: scale,
+  limiters: z.array(z.enum(LIMITERS)).max(LIMITERS.length),
 });
 
 const blankToNull = (v: FormDataEntryValue | null) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
@@ -131,6 +133,7 @@ export async function updateSessionDetails(sessionId: string, _prev: ActionResul
     perceivedEnergyAfter: blankToNull(formData.get("perceivedEnergyAfter")),
     fatigue: blankToNull(formData.get("fatigue")),
     motivation: blankToNull(formData.get("motivation")),
+    limiters: [...new Set(formData.getAll("limiters"))],
   });
   if (!id.safeParse(sessionId).success || !parsed.success) return { ok: false, error: "invalid" };
   const v = parsed.data;
@@ -142,6 +145,7 @@ export async function updateSessionDetails(sessionId: string, _prev: ActionResul
       perceived_energy_after: v.perceivedEnergyAfter,
       fatigue: v.fatigue,
       motivation: v.motivation,
+      limiters: v.limiters,
     })
     .eq("id", sessionId);
   if (error) return { ok: false, error: "unknownError" };
