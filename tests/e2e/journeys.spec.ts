@@ -777,6 +777,18 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await page.goto("/atlas/repeaters");
   await expect(nav.getByRole("link", { name: "Bibliothèque", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(area("Programmes")).toHaveAttribute("aria-current", "true");
+  // The library's sections sit under Bibliothèque in the sidebar (the in-page tabs are for phones).
+  for (const name of ["Modèles", "Méthodes", "Coaching", "Outils", "Comparer"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "Méthodes", exact: true }).click();
+  await expect(page).toHaveURL(/\/atlas\?tab=methods$/);
+  await expect(nav.locator("[aria-current=page]")).toHaveText("Méthodes");
+  await expect(nav.getByRole("link", { name: "Bibliothèque", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("navigation", { name: "Rubriques de la bibliothèque" })).toBeHidden();
+  await nav.getByRole("link", { name: "Comparer", exact: true }).press("Enter");
+  await expect(page).toHaveURL(/\/atlas\?tab=compare$/);
+  await expect(nav.locator("[aria-current=page]")).toHaveText("Comparer");
+  await page.goto("/programmes");
+  await expect(nav.getByRole("link", { name: "Méthodes", exact: true })).toHaveCount(0);
   // Old URLs keep working and land in their new area.
   await page.goto("/train/assess");
   await expect(area("Programmes")).toHaveAttribute("data-active-area", "true");
@@ -1103,9 +1115,9 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   // The climber finds it in the Bibliothèque and runs it.
   await page.goto("/atlas");
   const sections = page.getByRole("navigation", { name: "Rubriques de la bibliothèque" });
-  await sections.getByRole("link", { name: "Séances" }).click();
+  await sections.getByRole("link", { name: "Modèles" }).click();
   await expect(page).toHaveURL(/\/atlas\?tab=templates/);
-  await expect(sections.getByRole("link", { name: "Séances" })).toHaveAttribute("aria-current", "page");
+  await expect(sections.getByRole("link", { name: "Modèles" })).toHaveAttribute("aria-current", "page");
   const coach = page.getByRole("region", { name: "Modèles de séance" });
   await expect(coach.getByText("Haut et bas test")).toBeVisible();
   await coach.getByText("Voir les exercices").click();
