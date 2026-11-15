@@ -35,6 +35,10 @@ Status as of November 2026. "Delivered" means live on https://leblond.vercel.app
 - More licensed outdoor topo sources, when their licence allows reuse.
   - Found so far: OpenBeta (CC0) has too little French data to be useful.
 
+## Next — FORCE (Tindeq Progressor)
+
+Import Tindeq exports into Training, Assessment and Follow-up, with measured metrics kept apart from self-reports. Live Bluetooth recording is a later, separate milestone. Plan and the sample files needed: [tindeq.md](tindeq.md). Blocked on real export files.
+
 ## Milestone — VISION
 
 Photo analysis, selected video-frame analysis, movement annotations, problem recognition help, Patrick visual coaching, video comparison. Media metadata (duration, dimensions) is already stored.
