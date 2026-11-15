@@ -13,6 +13,8 @@ export const GRADE_SYSTEMS = [
   "CLIMB_UP_COLOR",
   "VERTICAL_ART_COLOR",
   "CLIMBING_DISTRICT_LEVEL",
+  "LELABO_COLOR",
+  "MROC_COLOR",
 ] as const;
 export type GradeSystem = (typeof GRADE_SYSTEMS)[number];
 

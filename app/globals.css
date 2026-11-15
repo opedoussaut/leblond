@@ -16,6 +16,10 @@
   --accent: #1769b9;
   --accent-ink: #ffffff;
   --accent-soft: #e5f1ff;
+  /* Training séances: a lighter sky blue, so they read apart from climbing (deep blue) at a glance. */
+  --train: #2f9fd8;
+  --train-ink: #075b86;
+  --train-soft: #e3f5fd;
   --ok: #257451;
   --warn: #936100;
   --danger: #b22e38;
@@ -36,6 +40,9 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-train: var(--train);
+  --color-train-ink: var(--train-ink);
+  --color-train-soft: var(--train-soft);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);

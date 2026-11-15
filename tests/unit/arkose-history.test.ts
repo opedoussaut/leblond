@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arkoseBatches, arkoseColour, daySends, importArkoseHistorySchema, parseArkoseHistory } from "@/lib/climbing/arkose-history";
+import { arkoseBatches, arkoseColour, daySends, historyColours, importArkoseHistorySchema, parseArkoseHistory } from "@/lib/climbing/arkose-history";
 
 const TODAY = "2026-11-14";
 
@@ -50,5 +50,25 @@ describe("import payload", () => {
     expect(importArkoseHistorySchema.safeParse({ gymId, days: days.slice(0, 2) }).success).toBe(true);
     expect(importArkoseHistorySchema.safeParse({ gymId, days: [{ date: "2025-01-01", counts: { PINK: 1 } }] }).success).toBe(false);
     expect(importArkoseHistorySchema.safeParse({ gymId, days: [{ date: "2025-01-01", counts: { BLUE: 0 } }] }).success).toBe(false);
+  });
+});
+
+describe("other gyms on the Arkose statistics site", () => {
+  it("reads Le Labo's light and dark greens and orange, and refuses a plain green there", () => {
+    expect(arkoseColour("vert clair", "LELABO_COLOR")).toBe("LIGHT_GREEN");
+    expect(arkoseColour("Vert foncé", "LELABO_COLOR")).toBe("DARK_GREEN");
+    expect(arkoseColour("orange", "LELABO_COLOR")).toBe("ORANGE");
+    expect(arkoseColour("vert", "LELABO_COLOR")).toBeNull();
+    expect(arkoseColour("orange", "ARKOSE_COLOR")).toBeNull();
+  });
+  it("reads MROC colours in its own scale", () => {
+    const p = parseArkoseHistory("date,couleur,nombre\n2023-12-15,jaune,5\n2023-12-15,violet,2\n2023-12-15,orange,1", "2026-11-15", "MROC_COLOR");
+    expect(p.sends).toBe(7);
+    expect(p.days[0].counts).toEqual({ YELLOW: 5, PURPLE: 2 });
+    expect(p.rejected).toEqual([{ line: 4, reason: "colour" }]);
+  });
+  it("lists each scale easiest first", () => {
+    expect(historyColours("LELABO_COLOR")).toEqual(["LIGHT_GREEN", "DARK_GREEN", "YELLOW", "ORANGE", "RED", "PURPLE", "BLUE", "BLACK"]);
+    expect(historyColours("MROC_COLOR")).toEqual(["YELLOW", "GREEN", "BLUE", "PURPLE", "RED", "BLACK"]);
   });
 });
