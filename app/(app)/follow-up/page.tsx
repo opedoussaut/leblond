@@ -42,6 +42,11 @@ import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { scoreToGrade } from "@/lib/grading/ordering";
 import { gradeLabel } from "@/lib/grading/labels";
 import { notebookDictionary } from "@/lib/i18n/notebook";
+import { routeDictionary } from "@/lib/i18n/routes";
+import { routePyramid, routeWeeklyActivity, routeWeeklyHardest } from "@/lib/analytics/routes";
+import { TrainingLoad } from "@/components/charts/training-load";
+import { loadChartPoints, weeklyLoadRows } from "@/lib/analytics/training-load";
+import { loadTrainingLoadReport } from "@/lib/data/training-load";
 
 /** Series the climber can pair on the same weeks. */
 const SERIES = ["boulder", "route", "hang", "sends", "train", "mobility"] as const;
@@ -142,7 +147,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     loadBoardAscents(viewer.supabase), loadHangSets(viewer.supabase), loadSessionLimiters(viewer.supabase, since),
   ]);
   const mobWeeks = weeklyTotals([
-    ...mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes })),
+    ...mobility.records.filter((r) => r.status === "COMPLETED").map((m) => ({ date: m.date, minutes: m.minutes, rpe: m.rpe })),
     ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
   ], today, weeks);
 
@@ -150,6 +155,10 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const n = notebookDictionary(locale);
   const boardFacts = boardRows.map(toBoardFact);
   const limits = limiterCounts(limiterSessions, since);
+
+  // Training load: every recorded session as session-RPE load, fitness–fatigue model, verdict per native scale.
+  const loadReport = await loadTrainingLoadReport(viewer.supabase, { today, now, dataset, routes: routes ?? [], boardFacts, mobility, training, hangSets });
+  const rd = routeDictionary(locale);
   const firstWeek = new Date(startOfIsoWeekUtc(new Date(today + "T12:00:00Z")).getTime() - (weeks - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
   const totals = (list: WeekTotal[], unit: string): WeeklyPoint[] => list.map((w, i) => ({ week: i, value: w.minutes, label: `${w.minutes} ${unit}` }));
   const buildSeries = (id: SeriesId): CurveSeries => {
@@ -207,7 +216,11 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </nav>
 
     <NotebookRecords t={t} locale={locale} boulders={boulderBests(dataset.problems, dataset.attempts)} route={routes ? routeBest(routes) : null}
-      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)} />
+      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
+      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} />
+
+    <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
+      points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} />
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -248,7 +261,26 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       <Link href="/progress" className={cn(linkClass, "text-sm")}>{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} <IconNext /></Link>
     </section>
 
-    {routes ? <RouteStats locale={locale} ascents={routes} now={now} /> : null}
+    {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now}>
+      <p className="border-t border-line pt-4 text-xs font-semibold text-ink-3">
+        {fmt(rd.chartsPeriod, { period: weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks }) })}
+      </p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <LevelCurve plain t={t} locale={locale} now={now} id="route-level-curve" title={rd.chartLevelTitle} hint={rd.chartLevelHint}
+          scale={{ label: (g) => g, gradeAt: (i) => FRENCH_ROUTE_GRADES[i] ?? null }}
+          texts={{ levelEmpty: rd.chartLevelEmpty, levelPoint: rd.chartLevelPoint, levelCaption: rd.chartLevelCaption, sendsCol: rd.chartSendsCol }}
+          points={routeWeeklyHardest(routes, now, days)} />
+        <GradePyramid plain t={t} locale={locale} id="route-pyramid" title={rd.chartPyramidTitle} hint={rd.chartPyramidHint} label={(g) => g}
+          legend={{ flashed: rd.chartFirstGo, sent: rd.chartClean, tried: rd.chartTried }} rows={routePyramid(routes, now, days)} />
+      </div>
+      <div className="border-t border-line pt-4">
+        <h3 className="text-base font-bold">{rd.chartWeekly}</h3>
+        <div className="mt-2">
+          <WeeklyBars weeks={routeWeeklyActivity(routes, now, weeks)} locale={locale}
+            labels={{ tops: rd.chartWeeklyLabel, sessions: c.sessionsLabel, caption: rd.chartWeekly, range: c.rangeLabel, help: rd.chartWeeklyHelp, weekOf: c.weekOfLabel }} />
+        </div>
+      </div>
+    </RouteStats> : null}
 
     <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">

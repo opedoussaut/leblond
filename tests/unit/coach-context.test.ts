@@ -154,3 +154,37 @@ describe("Patrick training context", () => {
     expect(serializeContext(ctx).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 50);
   });
 });
+
+describe("Patrick training-load context", () => {
+  it("gives bounded computed facts, never the daily series", async () => {
+    const { trainingLoadReport } = await import("@/lib/analytics/training-load");
+    const { trainingLoadContext } = await import("@/lib/coach/context");
+    const start = Date.parse("2026-06-01T18:00:00Z");
+    const climbs = Array.from({ length: 60 }, (_, i) => {
+      const at = new Date(start + i * 2 * 86_400_000);
+      return { id: `c${i}`, discipline: "BOULDER" as const, date: at.toISOString().slice(0, 10), startedAt: at, endedAt: null, durationMinutes: 90, fatigue: 3 };
+    });
+    const report = trainingLoadReport({
+      today: "2026-09-28", climbs, scaledAttempts: [], training: [], mobility: [],
+      perf: [{ key: "route", kind: "route", threshold: 1, points: [
+        { date: "2026-08-01", score: 10, display: "6a" }, { date: "2026-09-20", score: 12, display: "6b" },
+      ] }],
+    });
+    const facts = trainingLoadContext(report)!;
+    expect(facts.verdict).toBe("progressing");
+    expect(facts.resultTrends).toEqual([{ scale: "route FRENCH", direction: "up", bestRecent: "6b", bestPrevious: "6a", recentCount: 1, previousCount: 1 }]);
+    expect(facts.weekAhead?.minSessions).toBeGreaterThan(0);
+    expect(JSON.stringify(facts)).not.toContain("2026-06-0");
+    expect(trainingLoadContext(null)).toBeNull();
+
+    const data = dataset();
+    const target = { grade: "7A", system: "FONT" as const };
+    const ctx = buildCoachContext({
+      climber: { name: "Alex", language: "fr", target },
+      snapshot30: computeSnapshot(data, target, NOW, 30), snapshot90: computeSnapshot(data, target, NOW, 90),
+      recentSessions: [], activeProjects: [], now: NOW, trainingLoad: report,
+    });
+    expect(ctx.definitions.trainingLoad).toMatch(/ESTIMATED/);
+    expect(serializeContext(ctx).length).toBeLessThan(CONTEXT_CHAR_BUDGET + 50);
+  });
+});

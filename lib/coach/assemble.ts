@@ -15,6 +15,7 @@ import { localDate_ } from "@/lib/training/sessions";
 import { boardCoachSummary, summarizeBoardSession } from "@/lib/analytics/boards";
 import { BOARD_NAMES, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
+import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
 
 /**
@@ -39,7 +40,7 @@ export async function assembleCoachContext(
 
   const { data: sessionRows } = await viewer.supabase
     .from("sessions")
-    .select("id, started_at, ended_at, gym_id, discipline, duration_minutes, perceived_energy_before, perceived_energy_after, fatigue, motivation, notes, board, board_angle")
+    .select("id, started_at, ended_at, gym_id, discipline, duration_minutes, perceived_energy_before, perceived_energy_after, fatigue_before, fatigue, motivation, notes, board, board_angle")
     .order("started_at", { ascending: false })
     .limit(8);
 
@@ -61,6 +62,7 @@ export async function assembleCoachContext(
       ...c,
       energyBefore: s.perceived_energy_before,
       energyAfter: s.perceived_energy_after,
+      fatigueBefore: s.fatigue_before,
       fatigue: s.fatigue,
       motivation: s.motivation,
       wearable: fact?.wearable
@@ -86,7 +88,7 @@ export async function assembleCoachContext(
     const { data: row } = await viewer.supabase.from("sessions").select("id, started_at, ended_at, gym_id, discipline, notes")
       .eq("id", focusSessionId).maybeSingle();
     if (row?.discipline === "ROUTE") routeFocusRow = { ...row, duration_minutes: null, perceived_energy_before: null,
-      perceived_energy_after: null, fatigue: null, motivation: null, board: null, board_angle: null };
+      perceived_energy_after: null, fatigue_before: null, fatigue: null, motivation: null, board: null, board_angle: null };
   }
   if (routeFocusRow?.discipline === "ROUTE") {
     const { data: rows } = await viewer.supabase.from("route_ascents")
@@ -213,6 +215,7 @@ export async function assembleCoachContext(
   const pactState = rival ? { ...pactProgress(rival.pact, climberWork, today), standing: rivalStanding(rival.pact, rival.settings, climberWork, today) } : null;
   const [programme, mobility] = await Promise.all([loadProgramme(viewer.supabase, today), loadMobility(viewer.supabase, today)]);
   const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobility.records.length > 0;
+  const trainingLoad = await loadTrainingLoadReport(viewer.supabase, { today, now, dataset: data, routes, boardFacts, mobility });
 
   return buildCoachContext({
     climber: {
@@ -244,6 +247,7 @@ export async function assembleCoachContext(
       enrollment: mobility.enrollment, assessments: mobility.assessments, records: mobility.records,
       plan: currentPlan(mobility), today,
     } : null,
+    trainingLoad,
     now,
   });
 }

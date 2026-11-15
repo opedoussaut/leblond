@@ -15,10 +15,16 @@ import { loggingDictionary } from "@/lib/i18n/logging";
 import { buttonClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
+import { FitFileButton, fitErrorText, timingLine, type FitUploaded } from "@/components/wearables/fit-attach";
+import { linkActivityToSession } from "@/lib/actions/wearables";
+import { fmt } from "@/lib/i18n";
+import { fitAttachDictionary } from "@/lib/i18n/fit-attach";
+import { prefillFromActivity } from "@/lib/integrations/wearables/fit/attach";
+import { compareTiming } from "@/lib/integrations/wearables/timing";
 
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
 
-/** Create a finished session after the fact, then fill it in on the edit page. */
+/** Create a finished session after the fact (optionally from a watch FIT file), then fill it in on the edit page. */
 export function PastSession({ gyms, favouriteIds, areas, sites }: {
   gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[]; sites: OutdoorSite[];
 }) {
@@ -42,6 +48,13 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
   const L = loggingDictionary(locale);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
+  const F = fitAttachDictionary(locale);
+  // Watch file chosen in the form: imported at once, linked to the séance once it is created.
+  const [fit, setFit] = useState<FitUploaded | null>(null);
+  const [fitError, setFitError] = useState("");
+  const fitPrefill = fit ? prefillFromActivity(fit) : null;
+  const fitCmp = fit ? compareTiming(fit, { startedAt: fit.startedAt, endedAt: fit.startedAt, durationMinutes: null }) : null;
+  const fieldsDiffer = !!fitPrefill && (fitPrefill.date !== date || fitPrefill.time !== time || fitPrefill.minutes !== minutes);
 
   function choose(p: Place) {
     setPlace(p);
@@ -56,7 +69,9 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
     start(async () => {
       const res = await createPastSession({ gymId: place.id, discipline, date, time, minutes, title });
       if (!res.ok || !res.data) { setError(res.ok ? t.common.unknownError : res.error === "invalidDate" ? e.invalidDate : t.common.unknownError); return; }
-      router.push(`/session/${res.data.sessionId}/edit`);
+      // The séance then takes the watch's exact times (link_wearable_activity).
+      const linked = fit ? await linkActivityToSession(fit.activityId, res.data.sessionId) : { ok: true };
+      router.push(`/session/${res.data.sessionId}/edit${linked.ok ? "" : "?fit=failed"}`);
     });
   }
 
@@ -93,6 +108,25 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
         <label className="block text-sm font-semibold">{L.sessionName}
           <input className={field} maxLength={80} value={title} placeholder={L.sessionNamePlaceholder} onChange={(ev) => setTitle(ev.target.value)} />
         </label>
+        <fieldset className="space-y-2 rounded-xl border border-line p-3" data-testid="past-session-fit">
+          <legend className="px-1 text-sm font-semibold">{F.sectionTitle} <span className="font-normal text-ink-3">({F.optional})</span></legend>
+          <p className="text-xs text-ink-2">{F.pastHint}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <FitFileButton label={fit ? F.replace : F.attach} disabled={pending} onUploaded={(r) => {
+              setFitError("");
+              if (r.kind === "error") { setFitError(fitErrorText(F, r.code)); return; }
+              if (r.linkedSessionId) { setFitError(F.elsewhere); return; }
+              const p = prefillFromActivity(r);
+              setFit(r); setDate(p.date); setTime(p.time); setMinutes(p.minutes);
+            }} />
+            {fit ? <button type="button" className={buttonClass("ghost", "md")} disabled={pending}
+              onClick={() => { setFit(null); setFitError(""); }}>{F.remove}</button> : null}
+          </div>
+          {fit && fitCmp ? <p role="status" className="text-sm font-semibold text-ink-2">
+            ⌚ {fmt(fieldsDiffer ? F.fieldsDiffer : F.fileTimes, { when: timingLine(fitCmp.activity, locale) })}
+          </p> : null}
+          {fitError ? <Notice tone="error">{fitError}</Notice> : null}
+        </fieldset>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <button type="submit" disabled={pending}
           className={buttonClass("primary", "md", "w-full")}>

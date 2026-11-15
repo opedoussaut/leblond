@@ -25,8 +25,8 @@ export function AtlasRadar({ entries, locale, heading }: {entries: readonly Trai
         points={points(ATLAS_AXES.map(()=>level))} fill="none" stroke="currentColor" strokeOpacity=".16"/>)}
       {ATLAS_AXES.map((axis,i)=>{
         const p=point(i,180),l=point(i,234);
-        return <g key={axis}><line x1="380" y1="258" x2={p.x} y2={p.y} stroke="currentColor" strokeOpacity=".16"/>
-          <text x={l.x} y={l.y+3} fill="currentColor" textAnchor="middle" fontSize="12" fontWeight="600">{ATLAS_LABELS[axis][locale]}</text>
+        return <g key={axis}><line x1="380" y1="258" x2={p.x.toFixed(1)} y2={p.y.toFixed(1)} stroke="currentColor" strokeOpacity=".16"/>
+          <text x={l.x.toFixed(1)} y={(l.y+3).toFixed(1)} fill="currentColor" textAnchor="middle" fontSize="12" fontWeight="600">{ATLAS_LABELS[axis][locale]}</text>
         </g>;
       })}
       {entries.map((entry,i)=><polygon key={entry.id} points={points(ATLAS_SCORES[entry.id]??ATLAS_AXES.map(()=>0))}

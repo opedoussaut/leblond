@@ -1,3 +1,4 @@
+import { Encoder, Profile, type FileIdMesg, type SessionMesg } from "@garmin/fitsdk";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
@@ -408,6 +409,47 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
   await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
 });
 
+/** A minimal watch activity: one session summary starting at `start`, `minutes` long. */
+function fitActivity(start: Date, minutes: number): Buffer {
+  const enc = new Encoder();
+  enc.onMesg(Profile.MesgNum.FILE_ID, { type: "activity", manufacturer: "development", product: 1, serialNumber: 5151, timeCreated: start } as FileIdMesg);
+  enc.onMesg(Profile.MesgNum.SESSION, {
+    timestamp: new Date(start.getTime() + minutes * 60_000), startTime: start, totalElapsedTime: minutes * 60, avgHeartRate: 128, maxHeartRate: 162,
+  } as SessionMesg);
+  return Buffer.from(enc.close());
+}
+
+test("A4b — FIT file on a climbing séance: at creation, removed, attached again", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signInWithPassword(page, "past@leblond.local");
+  const start = new Date(Date.now() - 30 * 3_600_000);
+  start.setUTCSeconds(0, 0);
+  const file = { name: "bloc.fit", mimeType: "application/octet-stream", buffer: fitActivity(start, 75) };
+
+  // Creation: the file fills in the date, start time and duration.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Demo Arkose");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await form.getByTestId("fit-file-input").setInputFiles(file);
+  await expect(form.getByText(/Horaires repris du fichier/)).toBeVisible();
+  await expect(form.getByLabel("Date")).toHaveValue(parisDate(start));
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  const watch = page.getByTestId("session-fit-attach").locator("..");
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+  await expect(page.getByText("Horaires repris de la montre")).toBeVisible();
+  await expect(page.getByText("Remplacer le fichier FIT")).toBeVisible();
+
+  // Removed: the séance keeps its times; the file can be attached again from the edit page.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Retirer le fichier FIT" }).click();
+  await expect(page.getByText("Joindre un fichier FIT")).toBeVisible();
+  await expect(page.getByText("Fichier FIT importé")).toHaveCount(0);
+  await page.getByTestId("fit-file-input").setInputFiles(file);
+  await expect(page.getByText(/Fichier FIT joint\./)).toBeVisible();
+  await expect(watch.getByText("Fichier FIT importé")).toBeVisible();
+});
+
 test("A6 — faster logging: session name, several problems/routes, tries, comments, projects, colours", async ({ page }) => {
   test.setTimeout(180_000);
   await signInWithPassword(page, "past@leblond.local");
@@ -576,7 +618,13 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.reload();
   await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
   await page.goto("/home");
-  await expect(page.getByText("Fait aujourd’hui : de la mobilité douce à la place.")).toBeVisible();
+  // Filled check-in: the self-reported form, the answers, today's session and a way to edit.
+  const form = page.getByRole("region", { name: "Forme du jour" });
+  await expect(form.getByRole("img", { name: /Forme déclarée : Repos conseillé, 1 segment/ })).toBeVisible();
+  await expect(form.getByText("Auto-évaluation")).toBeVisible();
+  await expect(form.getByText("Mauvaise")).toBeVisible();
+  await expect(form.getByText("De la mobilité douce à la place")).toBeVisible();
+  await expect(form.getByRole("link", { name: "Modifier ma forme du jour" })).toHaveAttribute("href", "/train/today");
 
   // Recommended Atlas method → add to a plan → schedule this week.
   await page.goto("/atlas/max-hangs");
@@ -868,7 +916,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
     for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
-      "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
+      "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
       "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
@@ -1060,6 +1108,10 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
 
   // The climber finds it in the Bibliothèque and runs it.
   await page.goto("/atlas");
+  const sections = page.getByRole("navigation", { name: "Rubriques de la bibliothèque" });
+  await sections.getByRole("link", { name: "Séances" }).click();
+  await expect(page).toHaveURL(/\/atlas\?tab=templates/);
+  await expect(sections.getByRole("link", { name: "Séances" })).toHaveAttribute("aria-current", "page");
   const coach = page.getByRole("region", { name: "Modèles de séance" });
   await expect(coach.getByText("Haut et bas test")).toBeVisible();
   await coach.getByText("Voir les exercices").click();

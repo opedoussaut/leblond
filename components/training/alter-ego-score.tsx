@@ -1,5 +1,7 @@
 import Link from "next/link";
-import type { Pact, PactProgress } from "@/lib/analytics/alter-ego";
+import { WORK_KINDS, type KindTally, type Pact, type PactProgress, type WorkKind } from "@/lib/analytics/alter-ego";
+import { formatDuration } from "@/lib/duration";
+import { chartsDictionary } from "@/lib/i18n/charts";
 import { boulderGrade } from "@/lib/grading/display";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
@@ -11,12 +13,14 @@ import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null }: {
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown }: {
   locale: Locale; pact: Pact; progress: PactProgress; portrait?: RivalPortraitId;
   /** The climber's avatar level, shown facing the rival. */
   avatar?: number;
   /** The climber's uploaded photo, shown instead of the avatar. */
   photo?: string | null;
+  /** The climber's séances by type since signing. */
+  breakdown?: Record<WorkKind, KindTally>;
   observed?: { boulder: string | null; route: string | null }; href?: "/train/alter-ego";
 }) {
   const t = alterEgoDictionary(locale);
@@ -26,7 +30,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   const rows = [
     { label: t.sessions, you: s.you.sessions, ego: s.ego.sessions },
     { label: t.reps, you: s.you.reps, ego: s.ego.reps },
-    { label: t.minutes, you: s.you.minutes, ego: s.ego.minutes },
+    { label: t.minutes, you: formatDuration(s.you.minutes), ego: formatDuration(s.ego.minutes) },
   ];
   const paces = [
     { label: t.boulder, pace: progress.boulderPace && boulderGrade(progress.boulderPace), you: observed?.boulder ? boulderGrade(observed.boulder) : null },
@@ -63,6 +67,17 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
         </tr>)}
       </tbody>
     </table>
+    {breakdown ? <div>
+      <h3 className="text-sm font-bold">{t.breakdownTitle}</h3>
+      <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {WORK_KINDS.map((k) => <li key={k} className="rounded-xl bg-surface-2 px-3 py-2">
+          <span className="block text-xs font-semibold text-ink-3">{chartsDictionary(locale).workKinds[k]}</span>
+          <span className="block font-black tabular-nums">{breakdown[k].sessions}
+            <span className="font-normal text-ink-2"> · {formatDuration(breakdown[k].minutes)}</span></span>
+        </li>)}
+      </ul>
+      <p className="mt-2 text-xs text-ink-3">{fmt(t.breakdownHint, { name })}</p>
+    </div> : null}
     {paces.length ? <div>
       <h3 className="text-sm font-bold">{t.pace}</h3>
       <ul className="mt-2 space-y-1 text-sm">
