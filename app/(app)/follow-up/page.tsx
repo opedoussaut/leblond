@@ -32,7 +32,7 @@ import { LimiterBars } from "@/components/charts/limiter-bars";
 import { NotebookRecords } from "@/components/charts/notebook-records";
 import { PairedCurves, type CurveSeries } from "@/components/charts/paired-curves";
 import {
-  boardBests, boulderBests, hangBest, latestHipLevels, limiterCounts, mainEdge, routeBest, weekIndex, weeklyHang, weeklyRouteLevel,
+  boardBests, boulderBests, hangBest, recordProblems, latestHipLevels, limiterCounts, mainEdge, routeBest, weekIndex, weeklyHang, weeklyRouteLevel,
   type WeeklyPoint,
 } from "@/lib/analytics/notebook";
 import { startOfIsoWeekUtc } from "@/lib/analytics/progress";
@@ -110,12 +110,13 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const days = weeks * 7;
   const now = new Date();
   const mob = mobilityDictionary(locale);
-  const [dataset, routes, training, { data: assessments }, mobility] = await Promise.all([
+  const [dataset, routes, training, { data: assessments }, mobility, { data: favourites }] = await Promise.all([
     loadClimbingDataset(viewer.supabase),
     loadRouteAscents(viewer.supabase),
     listTrainingSessions(viewer.supabase, 400),
     viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
     loadMobility(viewer.supabase),
+    viewer.supabase.from("favourite_gyms").select("gym_id").eq("user_id", viewer.userId),
   ]);
   // Coach sessions carry no method of their own: their exercises say whether they are mobility work.
   const methodless = (training ?? []).filter((s) => !s.methodId).map((s) => s.id);
@@ -215,9 +216,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       </Link>)}
     </nav>
 
-    <NotebookRecords t={t} locale={locale} boulders={boulderBests(dataset.problems, dataset.attempts)} route={routes ? routeBest(routes) : null}
+    <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
       boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
-      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} />
+      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
 
     <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
       points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} />

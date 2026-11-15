@@ -2,7 +2,7 @@ import { LIMITERS } from "@/lib/analytics/notebook";
 import { notebookDictionary } from "@/lib/i18n/notebook";
 import { describe, expect, it } from "vitest";
 import {
-  boardBests, boulderBests, hangBest, limiterCounts, mainEdge, routeBest, weekIndex, weeklyHang, weeklyMax, weeklyRouteLevel,
+  boardBests, boulderBests, hangBest, limiterCounts, recordProblems, mainEdge, routeBest, weekIndex, weeklyHang, weeklyMax, weeklyRouteLevel,
 } from "@/lib/analytics/notebook";
 import type { BoardAscentFact } from "@/lib/analytics/boards";
 import type { RouteAscentFact } from "@/lib/analytics/routes";
@@ -17,6 +17,26 @@ const route = (grade: string, result: RouteAscentFact["result"], style: RouteAsc
   ({ id: String(++n), sessionId: "s", grade, style, result, falls: null, createdAt: new Date(at) });
 const board = (b: BoardAscentFact["board"], grade: string, scale: BoardAscentFact["gradeScale"], result: BoardAscentFact["result"], at: string): BoardAscentFact =>
   ({ id: String(++n), sessionId: "s", board: b, climbKey: String(n), climbName: "x", angle: 40, grade, gradeScale: scale, tries: 1, result, isBenchmark: false, climbedAt: new Date(at) });
+
+describe("recordProblems", () => {
+  const at = (id: string, gymId: string) => ({ ...problem(id, "6A"), gymId });
+  const gyms = [{ id: "fav", brand: "ARKOSE" }, { id: "old", brand: "CLIMBING_DISTRICT" }, { id: "crag", brand: "OUTDOOR" }];
+  const problems = [at("a", "fav"), at("b", "old"), at("c", "crag")];
+
+  it("keeps only favourite gyms and outdoor sites once there are favourites", () => {
+    expect(recordProblems(problems, gyms, ["fav"]).map((p) => p.id)).toEqual(["a", "c"]);
+  });
+
+  it("keeps every gym when the climber has no favourite", () => {
+    expect(recordProblems(problems, gyms, []).map((p) => p.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("drops a gym's scale from the records when that gym is not a favourite", () => {
+    const cd = { ...problem("d", "7", "CLIMBING_DISTRICT_LEVEL"), gymId: "old" };
+    const attempts = [attempt("a", "TOP", "2026-11-01T10:00:00Z"), attempt("d", "TOP", "2026-11-02T10:00:00Z")];
+    expect(boulderBests(recordProblems([at("a", "fav"), cd], gyms, ["fav"]), attempts).map((b) => b.system)).toEqual(["FONT"]);
+  });
+});
 
 describe("boulderBests", () => {
   it("keeps the hardest send per native system, dated by its first send, most used system first", () => {
