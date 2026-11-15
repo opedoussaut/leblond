@@ -1,5 +1,7 @@
 import { ROUTE_RESULTS, isClean, isTopped, routeGradeIndex, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { DAY_MS, ratio, type Ratio } from "./types";
+import type { LevelPoint, PyramidRow } from "./charts";
+import { startOfIsoWeekUtc, type WeekBucket } from "./progress";
 
 /**
  * Route-climbing analytics. Pure functions over route ascents only — they
@@ -118,4 +120,62 @@ export function routeProjectProgress(ascents: RouteAscentFact[]): RouteProjectPr
     firstDate: sorted[0]?.createdAt.toISOString().slice(0, 10) ?? null,
     latestDate: sorted.at(-1)?.createdAt.toISOString().slice(0, 10) ?? null,
   };
+}
+
+// ── Diagrams shared with bouldering (same shapes as lib/analytics/charts) ──
+
+
+/**
+ * The hardest route climbed cleanly each week, as a French route grade index
+ * (the same shape as the boulder level curve). Weeks without a clean ascent
+ * are left out.
+ */
+export function routeWeeklyHardest(ascents: readonly RouteAscentFact[], now: Date, days: number | null): LevelPoint[] {
+  const since = days === null ? -Infinity : now.getTime() - days * DAY_MS;
+  const weeks = new Map<string, LevelPoint>();
+  for (const a of ascents) {
+    const score = routeGradeIndex(a.grade);
+    if (!isClean(a.result) || score < 0 || a.createdAt.getTime() < since || a.createdAt > now) continue;
+    const week = startOfIsoWeekUtc(a.createdAt).toISOString().slice(0, 10);
+    const cur = weeks.get(week);
+    if (!cur) weeks.set(week, { weekStart: week, grade: a.grade, score, sends: 1 });
+    else weeks.set(week, { ...cur, sends: cur.sends + 1, ...(score > cur.score ? { grade: a.grade, score } : {}) });
+  }
+  return [...weeks.values()].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+}
+
+/**
+ * Route ascents in the period by grade, hardest first, as in the boulder
+ * pyramid: onsight/flash, other clean ascents (redpoint) and tries not yet
+ * clean (falls or rests). Routes carry no identity, so each ascent counts once.
+ */
+export function routePyramid(ascents: readonly RouteAscentFact[], now: Date, days: number | null): PyramidRow[] {
+  const since = days === null ? -Infinity : now.getTime() - days * DAY_MS;
+  const rows = new Map<string, PyramidRow>();
+  for (const a of ascents) {
+    const score = routeGradeIndex(a.grade);
+    if (score < 0 || a.createdAt.getTime() < since || a.createdAt > now) continue;
+    const row = rows.get(a.grade) ?? { grade: a.grade, score, sent: 0, flashed: 0, tried: 0 };
+    if (isClean(a.result)) row.sent += 1; else row.tried += 1;
+    if (a.result === "ONSIGHT" || a.result === "FLASH") row.flashed += 1;
+    rows.set(a.grade, row);
+  }
+  return [...rows.values()].sort((a, b) => b.score - a.score);
+}
+
+/** Route activity per week, oldest first, empty weeks included: sessions, ascents, clean ascents, onsight/flash. */
+export function routeWeeklyActivity(ascents: readonly RouteAscentFact[], now: Date, weeks = 12): WeekBucket[] {
+  const current = startOfIsoWeekUtc(now);
+  return Array.from({ length: weeks }, (_, k) => {
+    const start = new Date(current.getTime() - (weeks - 1 - k) * 7 * DAY_MS);
+    const end = start.getTime() + 7 * DAY_MS;
+    const inWeek = ascents.filter((a) => a.createdAt.getTime() >= start.getTime() && a.createdAt.getTime() < end);
+    return {
+      weekStart: start.toISOString().slice(0, 10),
+      sessions: new Set(inWeek.map((a) => a.sessionId)).size,
+      attempts: inWeek.length,
+      tops: inWeek.filter((a) => isClean(a.result)).length,
+      flashes: inWeek.filter((a) => a.result === "ONSIGHT" || a.result === "FLASH").length,
+    };
+  });
 }
