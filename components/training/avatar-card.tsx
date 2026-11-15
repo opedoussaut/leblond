@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AVATAR_LEVELS, BODY_RULE, CLIMB_RULE, PILLARS, type AvatarProgress, type Pillar, type PillarState } from "@/lib/analytics/avatar";
+import { AVATAR_LEVELS, OUTDOOR_FROM_LEVEL, PILLARS, type AvatarProgress, type ClimbCriterion, type ClimbPillar, type ClimbPillarId, type Pillar, type PillarState } from "@/lib/analytics/avatar";
 import { fmt, type Locale } from "@/lib/i18n";
 import { avatarDictionary } from "@/lib/i18n/avatar";
 import { TEST_BY_ID } from "@/lib/training/hip-mobility/assessment";
@@ -9,9 +9,11 @@ import { AVATAR_RING, AvatarPortrait } from "./avatar-portrait";
 import { boulderGrade } from "@/lib/grading/display";
 
 /**
- * The avatar at a glance: the current colour, the four pillars with their own
+ * The avatar at a glance: the current colour, the six pillars with their own
  * colour, which pillars decide the next unlock and what each one still needs.
- * Worded as the next step, never as a failure.
+ * Each climbing pillar lists its criteria (met or not) and spells out what is
+ * missing, so a row can never be read as unlocked. Worded as the next step,
+ * never as a failure.
  */
 export function AvatarCard({ locale, progress }: { locale: Locale; progress: AvatarProgress }) {
   const t = avatarDictionary(locale);
@@ -22,19 +24,48 @@ export function AvatarCard({ locale, progress }: { locale: Locale; progress: Ava
     if (state.kind === "body") {
       if (state.capped) return <p className="text-xs text-ink-3">{t.pillarCapped}</p>;
       const next = state.next!;
-      if (next.assessments === 0) return <p className="text-xs text-ink-2">{t.bodyNone}{" "}
-        <Link href="/train/mobility/assess" className={cn(linkClass, "text-xs")}>{t.bodyLink}</Link></p>;
       const tests = next.weakest.map((id) => TEST_BY_ID.get(id)?.name[locale] ?? id);
-      return <div className="space-y-0.5 text-xs text-ink-2">
-        <p>{fmt(t.bodyNext, { level: next.level, assessments: next.assessments, need: BODY_RULE.assessments })}</p>
+      return <div className="space-y-1 text-xs text-ink-2">
+        <p>{fmt(t.bodyNext, { colour: t.colour[AVATAR_LEVELS[next.level]!], level: next.level })}</p>
         {next.latest !== null ? <p className="text-ink-3">{fmt(t.bodyLatest, { level: next.latest })}{tests.length ? " · " + fmt(t.bodyWeakest, { tests: list(tests) }) : ""}</p> : null}
+        <p className="font-semibold text-ink" data-testid="avatar-missing">{fmt(t.missing, {
+          items: fmt(next.needed === 1 ? t.bodyMissing.one : t.bodyMissing.other, { n: next.needed, level: next.level }),
+        })}</p>
+        {next.assessments === 0 ? <p>{t.bodyNone}{" "}
+          <Link href="/train/mobility/assess" className={cn(linkClass, "text-xs")}>{t.bodyLink}</Link></p> : null}
       </div>;
     }
+    return climbDetail(pillar as ClimbPillarId, state);
+  }
+
+  function climbDetail(pillar: ClimbPillarId, state: ClimbPillar) {
     if (!state.next) return <p className="text-xs text-ink-3">{t.pillarTop}</p>;
-    return <p className="text-xs text-ink-2">{fmt(pillar === "boulder" ? t.boulderNext : t.routeNext, {
-      grade: pillar === "boulder" ? boulderGrade(state.next.grade) : state.next.grade, climbs: Math.min(state.next.climbs, CLIMB_RULE.minClimbs), needClimbs: CLIMB_RULE.minClimbs,
-      sessions: Math.min(state.next.sessions, CLIMB_RULE.minSessions), needSessions: CLIMB_RULE.minSessions,
-    })}{pillar === "boulder" ? <>{" "}<Link href="/session/board-plan" className={cn(linkClass, "text-xs")}>{t.boardPlanLink}</Link></> : null}</p>;
+    const { rule, have, missing, outdoorOnly, level } = state.next;
+    const isBoulder = pillar === "boulderIndoor" || pillar === "boulderOutdoor";
+    const isOutdoorPillar = pillar === "boulderOutdoor" || pillar === "routeOutdoor";
+    const label = (c: ClimbCriterion) => c === "climbs" ? (isBoulder ? "boulder" : "route") : c === "sessions" && outdoorOnly ? "days" : c;
+    const criteria = (["climbs", "sessions", "sites"] as const).filter((c) => c !== "sites" || rule.sites > 1);
+    const more = missing.map((c) => {
+      const n = rule[c] - have[c];
+      const forms = t.more[label(c)];
+      return fmt(n === 1 ? forms.one : forms.other, { n });
+    });
+    return <div className="space-y-1 text-xs text-ink-2">
+      <p>{fmt(t.climbGoal, { colour: t.colour[AVATAR_LEVELS[level]!], grade: isBoulder ? boulderGrade(rule.grade) : rule.grade })}{isBoulder ? "" : t.routeStyle}{outdoorOnly ? t.outdoorOnly : ""}</p>
+      <ul className="flex flex-wrap gap-1.5" aria-label={t.pillar[pillar]}>
+        {criteria.map((c) => {
+          const ok = have[c] >= rule[c];
+          return <li key={c} data-criterion={c} data-met={ok}
+            className={cn("rounded-full px-2 py-0.5", ok ? "bg-surface-2 text-ink-3" : "bg-accent-soft font-semibold text-ink")}>
+            <span aria-hidden>{ok ? "✓ " : "✗ "}</span>{fmt(t.count[label(c)], { have: Math.min(have[c], rule[c]), need: rule[c] })}
+            <span className="sr-only"> ({ok ? t.met : t.short})</span>
+          </li>;
+        })}
+      </ul>
+      <p className="font-semibold text-ink" data-testid="avatar-missing">{fmt(t.missing, { items: list(more) })}</p>
+      {isOutdoorPillar ? <p className="text-ink-3">{level < OUTDOOR_FROM_LEVEL ? t.indoorCounts : t.outdoorRequired}</p> : null}
+      {pillar === "boulderIndoor" ? <Link href="/session/board-plan" className={cn(linkClass, "text-xs")}>{t.boardPlanLink}</Link> : null}
+    </div>;
   }
 
   return <section aria-labelledby="avatar-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">

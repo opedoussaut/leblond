@@ -1244,11 +1244,15 @@ test("J — any programme can be the one in progress, and the rival has a face, 
 
   // A new pact: the rival shows its portrait, its "fictif" label, its feed and its settings.
   await page.goto("/train/alter-ego");
-  // The avatar: the lowest of four pillars; with no hip assessment it is White and flexibility is to unlock.
+  // The avatar: the lowest of six pillars; with no hip assessment it is White and flexibility is to unlock.
   const avatar = page.getByRole("region", { name: "Ton avatar" });
   await expect(avatar.getByTestId("avatar-colour")).toContainText("Blanc");
   await expect(avatar.getByRole("img", { name: "Ton avatar, niveau Blanc" })).toBeVisible();
+  await expect(avatar.locator("[data-pillar]")).toHaveCount(6);
   await expect(avatar.locator('[data-pillar="flexibility"]')).toContainText("à débloquer");
+  // Every pillar not yet validated says what is missing; the outdoor ones say the gym counts up to Green.
+  await expect(avatar.locator('[data-pillar="flexibility"]').getByTestId("avatar-missing")).toContainText("Il manque");
+  await expect(avatar.locator('[data-pillar="routeOutdoor"]')).toContainText("Jusqu’au Vert, la salle compte aussi");
   await page.getByLabel("Nom de ton alter ego").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();

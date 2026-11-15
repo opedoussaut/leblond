@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { formatForMethod } from "@/lib/analytics/board-plan";
-import { AVATAR_LEVELS, BOULDER_THRESHOLDS, CLIMB_RULE } from "@/lib/analytics/avatar";
+import { AVATAR_LEVELS, BOULDER_INDOOR_RULES } from "@/lib/analytics/avatar";
 import { requireViewer } from "@/lib/auth/viewer";
 import { BOARDS, DEFAULT_ANGLE, type Board } from "@/lib/climbing/boards";
 import { loadAvatar } from "@/lib/data/avatar";
@@ -31,12 +31,13 @@ export default async function BoardPlanPage() {
   const b = boardsDictionary(locale);
   const av = avatarDictionary(locale);
 
-  const boulder = avatar.pillars.boulder;
+  // Boards are indoor climbing: they feed the indoor boulder pillar.
+  const boulder = avatar.pillars.boulderIndoor;
   const next = boulder.kind === "climb" ? boulder.next : null;
-  const target = next?.grade ?? BOULDER_THRESHOLDS[BOULDER_THRESHOLDS.length - 1]!;
+  const target = next?.rule.grade ?? BOULDER_INDOOR_RULES.at(-1)!.grade;
   const avatarLine = next
-    ? { colour: av.colour[AVATAR_LEVELS[next.level]!], climbs: Math.min(next.climbs, CLIMB_RULE.minClimbs), needClimbs: CLIMB_RULE.minClimbs,
-      sessions: Math.min(next.sessions, CLIMB_RULE.minSessions), needSessions: CLIMB_RULE.minSessions }
+    ? { colour: av.colour[AVATAR_LEVELS[next.level]!], climbs: Math.min(next.have.climbs, next.rule.climbs), needClimbs: next.rule.climbs,
+      sessions: Math.min(next.have.sessions, next.rule.sessions), needSessions: next.rule.sessions }
     : null;
 
   // Font climbs only (the avatar's scale), the latest ones; enough to name climbs at each grade.
