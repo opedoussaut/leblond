@@ -62,7 +62,7 @@ const fr = {
   chartWeekly: "Voies enchaînées par semaine",
   chartWeeklyLabel: "voies",
   chartWeeklyHelp: "Chaque barre compte les voies enchaînées de la semaine ; le chiffre dessous, tes séances de voie.",
-  chartsTitle: "Voie",
+  chartsPeriod: "Diagrammes sur la période choisie : {period}.",
   chartsEmpty: "Aucune voie notée sur cette période.",
 };
 type Dict = typeof fr;
@@ -129,7 +129,7 @@ const en: Dict = {
   chartWeekly: "Clean routes per week",
   chartWeeklyLabel: "routes",
   chartWeeklyHelp: "Each bar counts the week's clean routes; the number under it, your route sessions.",
-  chartsTitle: "Routes",
+  chartsPeriod: "Diagrams over the chosen period: {period}.",
   chartsEmpty: "No routes logged in this period.",
 };
 

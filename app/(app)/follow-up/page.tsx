@@ -260,8 +260,11 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
       <Link href="/progress" className={cn(linkClass, "text-sm")}>{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} <IconNext /></Link>
     </section>
 
-    {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={days} title={rd.chartsTitle}>
-      <div className="grid grid-cols-1 gap-6 border-t border-line pt-4 lg:grid-cols-2">
+    {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now}>
+      <p className="border-t border-line pt-4 text-xs font-semibold text-ink-3">
+        {fmt(rd.chartsPeriod, { period: weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks }) })}
+      </p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <LevelCurve plain t={t} locale={locale} now={now} id="route-level-curve" title={rd.chartLevelTitle} hint={rd.chartLevelHint}
           scale={{ label: (g) => g, gradeAt: (i) => FRENCH_ROUTE_GRADES[i] ?? null }}
           texts={{ levelEmpty: rd.chartLevelEmpty, levelPoint: rd.chartLevelPoint, levelCaption: rd.chartLevelCaption, sendsCol: rd.chartSendsCol }}
