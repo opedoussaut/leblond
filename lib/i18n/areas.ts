@@ -52,6 +52,14 @@ const fr = {
     followError: "Le changement n’a pas pu être enregistré. Réessaie.",
     followEmpty: "Crée un programme ci-dessous, ou fais l’évaluation complète, pour pouvoir le suivre.",
   },
+  climbing: {
+    sections: "Rubriques de Grimpe",
+    tabs: {
+      overview: "Tout", "boulder-indoor": "Bloc salle", "boulder-outdoor": "Bloc extérieur",
+      "route-indoor": "Voie salle", "route-outdoor": "Voie extérieur", boards: "Boards",
+    },
+    emptySection: "Rien de noté ici sur cette période.",
+  },
   library: {
     title: "Bibliothèque",
     subtitle: "Modèles de séance et méthodes : fiches détaillées, comparaisons et sources vérifiables.",
@@ -140,6 +148,14 @@ const en: Dict = {
     followConfirm: "Follow this programme from today? It replaces the programme in progress (which stays in your list).",
     followError: "The change could not be saved. Try again.",
     followEmpty: "Create a programme below, or take the full assessment, to be able to follow it.",
+  },
+  climbing: {
+    sections: "Climbing sections",
+    tabs: {
+      overview: "All", "boulder-indoor": "Gym boulder", "boulder-outdoor": "Crag boulder",
+      "route-indoor": "Gym routes", "route-outdoor": "Crag routes", boards: "Boards",
+    },
+    emptySection: "Nothing logged here over this period.",
   },
   library: {
     title: "Library",
