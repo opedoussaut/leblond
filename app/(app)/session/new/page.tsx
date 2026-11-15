@@ -126,7 +126,7 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
         <p className="mt-1 text-sm text-ink-2">{a.oneOffHint}</p>
         <div className="mt-4"><QuickSessionForm key={presetMethod} locale={locale} today={today} presetMethod={presetMethod}
           coachSessions={coachSessions.map((s) => ({ id: s.id, title: s.title, minutes: s.minutes }))} /></div>
-        <p className="mt-4 text-sm"><Link href="/atlas#templates-heading" className={linkClass}>{a.templates} <IconNext /></Link></p>
+        <p className="mt-4 text-sm"><Link href="/atlas?tab=templates" className={linkClass}>{a.templates} <IconNext /></Link></p>
       </section>
 
       <section aria-labelledby="past-training" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">

@@ -910,7 +910,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
     for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
-      "/calendar", "/atlas", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
+      "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
       "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
@@ -1102,6 +1102,10 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
 
   // The climber finds it in the Bibliothèque and runs it.
   await page.goto("/atlas");
+  const sections = page.getByRole("navigation", { name: "Rubriques de la bibliothèque" });
+  await sections.getByRole("link", { name: "Séances" }).click();
+  await expect(page).toHaveURL(/\/atlas\?tab=templates/);
+  await expect(sections.getByRole("link", { name: "Séances" })).toHaveAttribute("aria-current", "page");
   const coach = page.getByRole("region", { name: "Modèles de séance" });
   await expect(coach.getByText("Haut et bas test")).toBeVisible();
   await coach.getByText("Voir les exercices").click();
