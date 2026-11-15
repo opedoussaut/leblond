@@ -1,13 +1,20 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { AREAS, activeSubPage, isAreaOverview, pagesFor, sectionForPath } from "@/lib/navigation/sections";
 import { AccountMenu } from "./account-menu";
+import { LibraryNavGroup } from "./library-nav-group";
 import { AREA_ICONS, PAGE_ICONS } from "./nav-icons";
+
+/** A sub-page link in the sidebar; only the current page is filled. */
+const subPageClass = (filled: boolean) => cn(
+  "flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold transition-colors [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
+  filled ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+);
 
 /**
  * Main navigation. Exactly one area is selected at a time and only that area's
@@ -60,16 +67,17 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin, 
                       {children.map((child) => {
                         const active = currentPage?.href === child.href;
                         const ChildIcon = PAGE_ICONS[child.key];
+                        const plain = <Link href={child.href}
+                          aria-current={active ? "page" : undefined}
+                          className={subPageClass(active)}>
+                          <ChildIcon aria-hidden="true" />
+                          <span>{t.nav[child.key]}</span>
+                        </Link>;
                         return <li key={child.href}>
-                          <Link href={child.href}
-                            aria-current={active ? "page" : undefined}
-                            className={cn(
-                              "flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold transition-colors [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
-                              active ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
-                            )}>
-                            <ChildIcon aria-hidden="true" />
-                            <span>{t.nav[child.key]}</span>
-                          </Link>
+                          {child.key === "library" ? <Suspense fallback={plain}>
+                            <LibraryNavGroup href={child.href} active={active} label={t.nav[child.key]}
+                              icon={<ChildIcon aria-hidden="true" />} itemClass={subPageClass} />
+                          </Suspense> : plain}
                         </li>;
                       })}
                     </ul>
