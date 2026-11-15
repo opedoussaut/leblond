@@ -27,7 +27,7 @@ async function loadClimbingWork(supabase: ServerSupabase): Promise<ClimberWork[]
     const span = s.ended_at ? Math.round((Date.parse(s.ended_at) - Date.parse(s.started_at)) / 60_000) : null;
     const kind: WorkKind = s.discipline === "ROUTE" ? "ROUTE" : s.discipline === "BOARD" ? "BOARD" : "BOULDER";
     return {
-      status: "COMPLETED" as const, kind, date: localDate_(new Date(s.started_at)), pain: null, reps: 0,
+      status: "COMPLETED" as const, kind, date: localDate_(new Date(s.started_at)), pain: null, reps: 0, endedAt: s.ended_at,
       actualMinutes: s.duration_minutes ?? (span !== null && span > 0 && span <= 12 * 60 ? span : null),
     };
   });
@@ -62,6 +62,6 @@ export async function loadClimberWork(supabase: ServerSupabase): Promise<Climber
   return [...climbing, ...(sessions ?? []).map((s): ClimberWork => ({
     status: s.status, kind: "TRAINING",
     date: s.scheduled_date ?? localDate_(new Date(s.completed_at ?? Date.now())),
-    actualMinutes: s.actual_minutes, pain: s.pain, reps: reps.get(s.id) ?? 0, targets: targets.get(s.id) ?? [],
+    actualMinutes: s.actual_minutes, pain: s.pain, reps: reps.get(s.id) ?? 0, targets: targets.get(s.id) ?? [], endedAt: s.completed_at,
   }))];
 }
