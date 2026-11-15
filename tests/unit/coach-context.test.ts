@@ -162,7 +162,7 @@ describe("Patrick training-load context", () => {
     const start = Date.parse("2026-06-01T18:00:00Z");
     const climbs = Array.from({ length: 60 }, (_, i) => {
       const at = new Date(start + i * 2 * 86_400_000);
-      return { id: `c${i}`, discipline: "BOULDER" as const, date: at.toISOString().slice(0, 10), startedAt: at, endedAt: null, durationMinutes: 90, fatigue: 3 };
+      return { id: `c${i}`, discipline: "BOULDER" as const, date: at.toISOString().slice(0, 10), startedAt: at, endedAt: null, durationMinutes: 90, fatigue: 3, fatigueBefore: null };
     });
     const report = trainingLoadReport({
       today: "2026-09-28", climbs, scaledAttempts: [], training: [], mobility: [],
