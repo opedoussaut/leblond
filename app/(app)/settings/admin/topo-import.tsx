@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
@@ -17,10 +17,33 @@ export function TopoImport({
   defaultCredit: string;
 }) {
   const { t } = useI18n();
-  const [state, action, pending] = useActionState(importTeamTopo, null);
+  const [state, dispatch, pending] = useActionState(importTeamTopo, null);
+  const form = useRef<HTMLFormElement>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  // Sent by hand rather than as the form's action, so the chosen file stays in the form:
+  // confirming a replacement sends exactly what was checked.
+  const send = (confirm?: string) => {
+    if (!form.current) return;
+    const data = new FormData(form.current);
+    if (confirm) data.set("confirm", confirm);
+    startTransition(() => dispatch(data));
+  };
+  const done = state?.ok && state.step === "done" ? state : null;
+  const confirm = state?.ok && state.step === "confirm" && state.token !== dismissed ? state : null;
+  useEffect(() => {
+    if (done) form.current?.reset();
+  }, [done]);
   if (sites.length === 0) return <p className="text-sm text-ink-2">{t.admin.topoNoSite}</p>;
   return (
-    <form action={action} className="space-y-3" aria-label={t.admin.topoTitle}>
+    <form
+      ref={form}
+      className="space-y-3"
+      aria-label={t.admin.topoTitle}
+      onSubmit={(event) => {
+        event.preventDefault();
+        send();
+      }}
+    >
       <div>
         <Label htmlFor="topo-site">{t.admin.topoSite}</Label>
         <Select id="topo-site" name="gymId" required defaultValue={sites[0].id}>
@@ -55,25 +78,60 @@ export function TopoImport({
       <Button type="submit" disabled={pending}>
         {pending ? t.admin.topoImporting : t.admin.topoImport}
       </Button>
-      {state && !state.ok ? <Notice tone="error">{t.admin.topoErrors[state.error]}</Notice> : null}
-      {state?.ok ? (
+      {state && !state.ok ? (
+        <Notice tone="error">
+          <p>{fmt(t.admin.topoErrors[state.error], { km: state.km ?? 0, site: state.site ?? "" })}</p>
+          {state.mapName ? <p>{fmt(t.admin.topoMapName, { name: state.mapName })}</p> : null}
+        </Notice>
+      ) : null}
+      {confirm ? (
+        <div className="space-y-2">
+          <Notice tone="warn">
+            <p className="font-semibold">
+              {fmt(t.admin.topoConfirmTitle, { removed: confirm.removed, current: confirm.current, site: confirm.site })}
+            </p>
+            {confirm.mapName ? <p>{fmt(t.admin.topoMapName, { name: confirm.mapName })}</p> : null}
+            <p>{fmt(t.admin.topoConfirmKept, { problems: confirm.problems, kept: confirm.kept, added: confirm.added })}</p>
+            {confirm.unlinked > 0 ? <p>{fmt(t.admin.topoConfirmUnlinked, { n: confirm.unlinked })}</p> : null}
+          </Notice>
+          <details className="text-sm text-ink-2">
+            <summary className="min-h-11 cursor-pointer py-2">{fmt(t.admin.topoConfirmRemoved, { n: confirm.removed })}</summary>
+            <ul className="list-disc space-y-1 pl-5">
+              {confirm.removedNames.map((name, i) => <li key={i}>{name}</li>)}
+              {confirm.removed > confirm.removedNames.length ? (
+                <li>{fmt(t.admin.topoConfirmMore, { n: confirm.removed - confirm.removedNames.length })}</li>
+              ) : null}
+            </ul>
+          </details>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="danger" disabled={pending} onClick={() => send(confirm.token)}>
+              {fmt(t.admin.topoConfirmButton, { site: confirm.site })}
+            </Button>
+            <Button type="button" variant="ghost" disabled={pending} onClick={() => setDismissed(confirm.token)}>
+              {t.common.cancel}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {done ? (
         <div className="space-y-2">
           <Notice tone="ok">
             {fmt(t.admin.topoDone, {
-              problems: state.problems,
-              circuits: state.circuits,
-              added: state.added,
-              updated: state.updated,
-              removed: state.removed,
+              problems: done.problems,
+              circuits: done.circuits,
+              added: done.added,
+              updated: done.updated,
+              removed: done.removed,
             })}
           </Notice>
-          {state.list ? <TopoListReport report={state.list} /> : null}
-          {state.unlinked > 0 ? <Notice tone="warn">{fmt(t.admin.topoUnlinked, { n: state.unlinked })}</Notice> : null}
-          {state.skipped.length > 0 ? (
+          {done.list ? <TopoListReport report={done.list} /> : null}
+          {done.unlinked > 0 ? <Notice tone="warn">{fmt(t.admin.topoUnlinked, { n: done.unlinked })}</Notice> : null}
+          {done.relinked > 0 ? <Notice tone="ok">{fmt(t.admin.topoRelinked, { n: done.relinked })}</Notice> : null}
+          {done.skipped.length > 0 ? (
             <details className="text-sm text-ink-2">
-              <summary className="min-h-11 cursor-pointer py-2">{fmt(t.admin.topoSkipped, { n: state.skipped.length })}</summary>
+              <summary className="min-h-11 cursor-pointer py-2">{fmt(t.admin.topoSkipped, { n: done.skipped.length })}</summary>
               <ul className="list-disc space-y-1 pl-5">
-                {state.skipped.map((s, i) => (
+                {done.skipped.map((s, i) => (
                   <li key={i}>
                     {s.name}
                     {s.folder ? ` (${s.folder})` : ""} — {t.admin.topoSkipReasons[s.reason]}
@@ -88,7 +146,7 @@ export function TopoImport({
   );
 }
 
-function TopoListReport({ report }: { report: NonNullable<Extract<NonNullable<TopoImportState>, { ok: true }>["list"]> }) {
+function TopoListReport({ report }: { report: NonNullable<Extract<NonNullable<TopoImportState>, { step: "done" }>["list"]> }) {
   const { t } = useI18n();
   const groups: Array<[string, string[]]> = [
     [fmt(t.admin.topoNoPosition, { n: report.withoutPosition.length }), report.withoutPosition],

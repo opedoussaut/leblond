@@ -819,6 +819,15 @@ export const en: Dictionary = {
     topoDone: "Topo imported: {problems} problems, {circuits} circuits ({added} added, {updated} updated, {removed} removed).",
     topoUnlinked:
       "{n} problems removed from the topo had been logged by climbers: their attempts are kept, no longer linked to the topo.",
+    topoRelinked: "{n} problems logged by climbers are linked to the topo again.",
+    topoMapName: "Map in the file: \"{name}\".",
+    topoConfirmTitle: "Nothing is imported yet: this topo removes {removed} of the {current} problems of {site}.",
+    topoConfirmKept: "After the import: {problems} problems ({kept} kept, {added} added).",
+    topoConfirmUnlinked:
+      "{n} problems logged by climbers would lose their link to the topo (their attempts are kept).",
+    topoConfirmRemoved: "Problems removed ({n})",
+    topoConfirmMore: "… and {n} more",
+    topoConfirmButton: "Replace the topo of {site}",
     topoSkipped: "{n} pins skipped",
     topoSkipReasons: {
       noGrade: "no grade at the end of the name",
@@ -836,6 +845,8 @@ export const en: Dictionary = {
       notKml: "This isn't a Google My Maps KMZ/KML export.",
       linkOnly: "This file only links to the map. Export it again without ticking \"Keep data up to date\".",
       empty: "No problem with a grade in this file.",
+      elsewhere:
+        "This file describes problems {km} km from {site}: it is another site's topo. Nothing was imported.",
       failed: "The import failed. Try again.",
     },
   },

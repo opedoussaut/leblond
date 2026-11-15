@@ -804,7 +804,7 @@ export const fr = {
     inviteError: "Impossible de créer le lien. Réessaie.",
     topoTitle: "Topos de l’équipe",
     topoIntro:
-      "Un topo dessiné dans Google My Maps devient la liste des blocs d’un site, comme Boolder à Fontainebleau. Dans la carte : un calque par couleur de circuit (« Orange », « Rouge »…), un repère par bloc nommé « Nom cotation » (ex. « La Roncerie 5 »), le numéro du circuit au début de la description (« O12 »). Exporte-la en KMZ (menu ⋮ → Exporter au format KML/KMZ, sans cocher « Garder les données à jour »). Réimporter remplace le topo du site ; les blocs déjà notés restent liés.",
+      "Un topo dessiné dans Google My Maps devient la liste des blocs d’un site, comme Boolder à Fontainebleau. Dans la carte : un calque par couleur de circuit (« Orange », « Rouge »…), un repère par bloc nommé « Nom cotation » (ex. « La Roncerie 5 »), le numéro du circuit au début de la description (« O12 »). Exporte-la en KMZ (menu ⋮ → Exporter au format KML/KMZ, sans cocher « Garder les données à jour »). Réimporter remplace le topo du site ; les blocs déjà notés restent liés. Si l’import retire des blocs, tu vois lesquels et tu confirmes avant.",
     topoList: "Topos importés",
     topoListItem: "{n} blocs · mis à jour le {date}",
     topoNoSite: "Aucun site extérieur hors Fontainebleau pour l’instant.",
@@ -826,6 +826,15 @@ export const fr = {
     topoDone: "Topo importé : {problems} blocs, {circuits} circuits ({added} ajoutés, {updated} mis à jour, {removed} retirés).",
     topoUnlinked:
       "{n} blocs retirés du topo avaient été notés par des grimpeurs : leurs essais sont gardés, sans lien avec le topo.",
+    topoRelinked: "{n} blocs notés par des grimpeurs ont retrouvé leur lien avec le topo.",
+    topoMapName: "Carte du fichier : « {name} ».",
+    topoConfirmTitle: "Rien n’est importé pour l’instant : ce topo retire {removed} blocs sur {current} de {site}.",
+    topoConfirmKept: "Après l’import : {problems} blocs ({kept} gardés, {added} ajoutés).",
+    topoConfirmUnlinked:
+      "{n} blocs notés par des grimpeurs perdraient leur lien avec le topo (leurs essais sont gardés).",
+    topoConfirmRemoved: "Blocs retirés ({n})",
+    topoConfirmMore: "… et {n} autres",
+    topoConfirmButton: "Remplacer le topo de {site}",
     topoSkipped: "{n} repères ignorés",
     topoSkipReasons: {
       noGrade: "pas de cotation à la fin du nom",
@@ -844,6 +853,8 @@ export const fr = {
       linkOnly:
         "Ce fichier ne contient qu’un lien vers la carte. Réexporte-la en décochant « Garder les données à jour ».",
       empty: "Aucun bloc avec une cotation dans ce fichier.",
+      elsewhere:
+        "Ce fichier décrit des blocs à {km} km de {site} : c’est le topo d’un autre site. Rien n’a été importé.",
       failed: "L’import a échoué. Réessaie.",
     },
   },
