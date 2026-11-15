@@ -665,6 +665,36 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
   await page.getByRole("tab", { name: "Extérieur" }).click();
   await expect(page.getByRole("button", { name: /Saffres E2E/ })).toContainText("topo intégré (5 blocs)");
 
+  // The map of another crag, picked by mistake for this site: refused, nothing changes.
+  await page.goto("/settings/admin");
+  // No site is preselected: the admin has to choose one.
+  await expect(form.getByLabel("Site", { exact: true })).toHaveValue("");
+  await form.getByLabel("Site", { exact: true }).selectOption({ label: "Saffres E2E (topo actuel : 5 blocs)" });
+  await form.getByLabel("Fichier KMZ ou KML").setInputFiles({
+    name: "ailleurs-e2e.kml",
+    mimeType: "application/vnd.google-earth.kml+xml",
+    buffer: Buffer.from(TEAM_TOPO_KML.replace("Topo E2E", "Ailleurs E2E").replaceAll("4.7", "2.1").replaceAll("47.3", "48.7")),
+  });
+  await form.getByRole("button", { name: "Importer le topo" }).click();
+  await expect(form.getByText(/Ce fichier décrit des blocs à \d+ km de Saffres E2E : c’est le topo d’un autre site\. Rien n’a été importé\./)).toBeVisible();
+  await expect(form.getByText("Carte du fichier : « Ailleurs E2E ».")).toBeVisible();
+  // The map of this crag again, without the two boulders the list added: described first, imported only if confirmed.
+  await form.getByLabel("Fichier KMZ ou KML").setInputFiles({
+    name: "topo-e2e.kml",
+    mimeType: "application/vnd.google-earth.kml+xml",
+    buffer: Buffer.from(TEAM_TOPO_KML),
+  });
+  await form.getByRole("button", { name: "Importer le topo" }).click();
+  await expect(form.getByText("Rien n’est importé pour l’instant : ce topo retire 2 blocs sur 5 de Saffres E2E.")).toBeVisible();
+  await expect(form.getByText("Après l’import : 3 blocs (3 gardés, 0 ajoutés).")).toBeVisible();
+  await form.getByText("Blocs retirés (2)").click();
+  await expect(form.getByText("Variante E2E", { exact: true })).toBeVisible();
+  await expect(form.getByRole("button", { name: "Remplacer le topo de Saffres E2E" })).toBeVisible();
+  await form.getByRole("button", { name: "Annuler" }).click();
+  await expect(form.getByRole("button", { name: "Remplacer le topo de Saffres E2E" })).toHaveCount(0);
+  await page.reload();
+  await expect(form.getByLabel("Site", { exact: true }).getByRole("option", { name: "Saffres E2E (topo actuel : 5 blocs)" })).toBeAttached();
+
   // Filling in a past session: a listed boulder without a pin, added in one step.
   await page.goto("/session/new?where=past");
   await page.getByRole("button", { name: "Dehors", exact: true }).click();

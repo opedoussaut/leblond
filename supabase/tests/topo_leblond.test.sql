@@ -51,7 +51,7 @@ select pg_temp.expect(public.admin_import_leblond_topo('f6000000-0000-0000-0000-
     {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02}
   ],
   "skipped": 2}$j$::jsonb) - 'area_id'
-  = '{"circuits": 1, "problems": 3, "added": 3, "updated": 0, "removed": 0, "unlinked": 0}'::jsonb,
+  = '{"circuits": 1, "problems": 3, "added": 3, "updated": 0, "removed": 0, "unlinked": 0, "relinked": 0}'::jsonb,
   'the first import adds every boulder');
 reset role;
 
@@ -100,7 +100,7 @@ select pg_temp.expect(public.admin_import_leblond_topo('f6000000-0000-0000-0000-
     {"key": "red:1", "name": "Le Toit", "name_searchable": "letoit", "grade": "5c", "circuit_color": "red", "circuit_number": "1", "latitude": 48.73, "longitude": 2.03},
     {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02}
   ]}$j$::jsonb) - 'area_id'
-  = '{"circuits": 2, "problems": 3, "added": 1, "updated": 2, "removed": 1, "unlinked": 0}'::jsonb,
+  = '{"circuits": 2, "problems": 3, "added": 1, "updated": 2, "removed": 1, "unlinked": 0, "relinked": 0}'::jsonb,
   'a re-import updates, adds and removes');
 reset role;
 select pg_temp.expect((select pg_temp.topo_id('orange:1') = orange1 and pg_temp.topo_id('hc:lagrotte') = grotte from topo_ids),
@@ -126,10 +126,28 @@ select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-
   '{"problems": [{"key": "hc:x", "name": "X", "grade": "5a", "latitude": 48.4, "longitude": 2.6}]}')$$, 'a Boolder area cannot take a team topo');
 select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', '{"problems": []}')$$, 'an empty topo is refused');
 select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001',
-  '{"problems": [{"key": "hc:x", "name": "X", "grade": "5a", "latitude": 48.4, "longitude": 2.6},
-                 {"key": "hc:x", "name": "X bis", "grade": "5b", "latitude": 48.4, "longitude": 2.6}]}')$$, 'duplicate keys are refused');
+  '{"problems": [{"key": "hc:x", "name": "X", "grade": "5a", "latitude": 48.72, "longitude": 2.02},
+                 {"key": "hc:x", "name": "X bis", "grade": "5b", "latitude": 48.72, "longitude": 2.02}]}')$$, 'duplicate keys are refused');
 select pg_temp.expect_error($$select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001',
-  '{"problems": [{"key": "hc:x", "name": "X", "grade": "4+", "latitude": 48.4, "longitude": 2.6}]}')$$, 'grades off the Font scale are refused');
+  '{"problems": [{"key": "hc:x", "name": "X", "grade": "4+", "latitude": 48.72, "longitude": 2.02}]}')$$, 'grades off the Font scale are refused');
+-- The topo of another place (same keys or not) is refused whole: nothing is overwritten, removed or unlinked.
+do $$
+begin
+  perform public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001',
+    '{"problems": [{"key": "hc:lagrotte", "name": "Autre Site", "name_searchable": "autresite", "grade": "4a", "latitude": 48.71, "longitude": 2.19},
+                   {"key": "hc:ailleurs", "name": "Ailleurs", "name_searchable": "ailleurs", "grade": "5a", "latitude": 48.71, "longitude": 2.20}]}');
+  raise exception 'EXPECTED FAILURE did not happen: a topo drawn 13 km away';
+exception when sqlstate '22023' then
+  if sqlerrm <> 'TOPO_ELSEWHERE' then raise; end if;
+  raise notice 'ok (expected failure) the topo of another place is refused: %', sqlerrm;
+end $$;
+select pg_temp.expect((select name = 'La Grotte' and latitude = 48.72 from public.outdoor_problems where id = pg_temp.topo_id('hc:lagrotte'))
+  and pg_temp.topo_id('hc:ailleurs') is null, 'a refused topo overwrote nothing');
+-- A few hundred metres away is the same crag (a new sector).
+select pg_temp.expect((public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
+  {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
+  {"key": "hc:secteur", "name": "Nouveau Secteur", "name_searchable": "nouveausecteur", "grade": "5a", "latitude": 48.725, "longitude": 2.03}
+]}$j$::jsonb) ->> 'added')::int = 1, 'a new sector of the same crag is accepted');
 -- A boulder from the written list without a map pin: listed, no position (20261109000006).
 select public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
   {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
@@ -152,6 +170,41 @@ select pg_temp.expect_error($$update public.outdoor_problems set latitude = null
   'a Boolder boulder always has a position');
 select pg_temp.expect_error($$update public.outdoor_problems set longitude = null where id = pg_temp.topo_id('hc:lagrotte')$$,
   'a position is a latitude and a longitude');
+
+-- ── Links cleared by a bad import come back with the boulder ──────────────
+-- The climber logged "La Grotte" by name; an import without it cleared the link; importing it again links it back.
+update public.problems set name = 'La Grotte' where id = 'f6000000-0000-0000-0000-0000000000c2';
+select pg_temp.expect((select outdoor_problem_id = pg_temp.topo_id('hc:lagrotte') from public.problems where id = 'f6000000-0000-0000-0000-0000000000c2'),
+  'before: the climber''s boulder is linked');
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"f6000000-0000-0000-0000-00000000000a","email":"tp-admin@topo.test","role":"authenticated"}', false);
+select pg_temp.expect((public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
+  {"key": "hc:sansrepere", "name": "Sans Repère", "name_searchable": "sansrepere", "grade": "5a", "latitude": 48.72, "longitude": 2.02}
+]}$j$::jsonb) - 'area_id') = '{"circuits": 0, "problems": 1, "added": 0, "updated": 1, "removed": 1, "unlinked": 1, "relinked": 0}'::jsonb,
+  'an import without the boulder clears the link');
+reset role;
+select pg_temp.expect((select outdoor_problem_id is null and name = 'La Grotte' and native_grade = '7A' from public.problems
+  where id = 'f6000000-0000-0000-0000-0000000000c2'), 'the climber''s boulder keeps its name and grade, without link');
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"f6000000-0000-0000-0000-00000000000a","email":"tp-admin@topo.test","role":"authenticated"}', false);
+-- Two topo boulders with the climber's name and grade: nothing is guessed. Another grade: not the same boulder.
+select pg_temp.expect((public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
+  {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
+  {"key": "hc:lagrotte#2", "name": "la grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
+  {"key": "hc:premier", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "6A", "latitude": 48.72, "longitude": 2.02}
+]}$j$::jsonb) ->> 'relinked')::int = 0, 'two boulders with the same name and grade: no link is guessed');
+select pg_temp.expect((public.admin_import_leblond_topo('f6000000-0000-0000-0000-000000000001', $j${"problems": [
+  {"key": "hc:lagrotte", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "7A", "latitude": 48.72, "longitude": 2.02},
+  {"key": "hc:premier", "name": "La Grotte", "name_searchable": "lagrotte", "grade": "6A", "latitude": 48.72, "longitude": 2.02}
+]}$j$::jsonb) ->> 'relinked')::int = 1, 'the boulder is back, alone with that name and grade: its link too');
+reset role;
+select pg_temp.expect((select outdoor_problem_id = pg_temp.topo_id('hc:lagrotte') from public.problems where id = 'f6000000-0000-0000-0000-0000000000c2'),
+  'the climber''s boulder is linked to the topo again');
+select pg_temp.expect((select outdoor_problem_id is null from public.problems where id = 'f6000000-0000-0000-0000-0000000000c1'),
+  'a boulder logged without a name is never re-linked');
+select pg_temp.expect_error($$set role authenticated; select public.leblond_relink_problems('f6000000-0000-0000-0000-000000000001', 1)$$,
+  'the re-linking is not callable from the API');
+reset role;
 
 -- ── The Boolder import (catalogue-sql.ts) never removes team topos ────────
 begin;
