@@ -28,8 +28,8 @@ describe("boulderBests", () => {
       attempt("d", "TOP", "2026-11-05T10:00:00Z"),
     ];
     expect(boulderBests(problems, attempts)).toEqual([
-      { system: "FONT", grade: "6B", date: "2026-11-03", flash: false, sends: 2 },
-      { system: "CLIMBING_DISTRICT_LEVEL", grade: "7", date: "2026-11-05", flash: false, sends: 1 },
+      { system: "FONT", grade: "6B", date: "2026-11-03", flash: false, sends: 2, gymId: "g", gymIds: ["g"] },
+      { system: "CLIMBING_DISTRICT_LEVEL", grade: "7", date: "2026-11-05", flash: false, sends: 1, gymId: "g", gymIds: ["g"] },
     ]);
   });
 });
