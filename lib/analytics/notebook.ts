@@ -136,7 +136,7 @@ export function weeklyHang(sets: readonly HangSet[], today: string, weeks: numbe
 
 // ── What held the climber back ─────────────────────────────────────────────
 
-export const LIMITERS = ["STRENGTH", "ENDURANCE", "TECHNIQUE", "ENGAGEMENT", "PAIN", "FATIGUE"] as const;
+export const LIMITERS = ["STRENGTH", "ENDURANCE", "TECHNIQUE", "FLEXIBILITY", "MOBILITY", "ENGAGEMENT", "PAIN", "FATIGUE"] as const;
 export type Limiter = (typeof LIMITERS)[number];
 
 export const isLimiter = (v: unknown): v is Limiter => (LIMITERS as readonly unknown[]).includes(v);
