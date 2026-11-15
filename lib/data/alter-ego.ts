@@ -1,5 +1,5 @@
 import "server-only";
-import type { ClimberWork, Pact, WorkTarget } from "@/lib/analytics/alter-ego";
+import type { ClimberWork, Pact, WorkKind, WorkTarget } from "@/lib/analytics/alter-ego";
 import { rivalSettingsFromRow, type RivalSettings } from "@/lib/analytics/rival";
 import type { ServerSupabase } from "@/lib/supabase/server";
 import { pactFromRow } from "@/lib/training/alter-ego";
@@ -19,9 +19,23 @@ export async function loadOpenRival(supabase: ServerSupabase): Promise<{ pact: P
 
 type SetRow = { reps: number | null; training_session_exercises: { session_id: string; modality: string } | null };
 
-/** Completed training with its counted reps. Only what the climber really recorded. */
+/** Finished climbing sessions (boulders, routes, board), each one séance with its duration. */
+async function loadClimbingWork(supabase: ServerSupabase): Promise<ClimberWork[]> {
+  const { data } = await supabase.from("sessions").select("discipline, started_at, ended_at, duration_minutes")
+    .not("ended_at", "is", null).order("started_at", { ascending: false }).limit(400);
+  return (data ?? []).map((s) => {
+    const span = s.ended_at ? Math.round((Date.parse(s.ended_at) - Date.parse(s.started_at)) / 60_000) : null;
+    const kind: WorkKind = s.discipline === "ROUTE" ? "ROUTE" : s.discipline === "BOARD" ? "BOARD" : "BOULDER";
+    return {
+      status: "COMPLETED" as const, kind, date: localDate_(new Date(s.started_at)), pain: null, reps: 0,
+      actualMinutes: s.duration_minutes ?? (span !== null && span > 0 && span <= 12 * 60 ? span : null),
+    };
+  });
+}
+
+/** Completed training with its counted reps, and finished climbing sessions. Only what the climber really recorded. */
 export async function loadClimberWork(supabase: ServerSupabase): Promise<ClimberWork[]> {
-  const [{ data: sessions }, { data: sets }, { data: exercises }] = await Promise.all([
+  const [{ data: sessions }, { data: sets }, { data: exercises }, climbing] = await Promise.all([
     supabase.from("training_sessions").select("id, status, scheduled_date, completed_at, actual_minutes, pain")
       .eq("status", "COMPLETED").order("completed_at", { ascending: false }).limit(400),
     supabase.from("training_exercise_sets").select("reps, training_session_exercises!inner(session_id, modality)")
@@ -30,6 +44,7 @@ export async function loadClimberWork(supabase: ServerSupabase): Promise<Climber
     supabase.from("training_session_exercises")
       .select("session_id, block, method_id, modality, target_sets, target_reps, target_seconds, rest_seconds, training_sessions!inner(status)")
       .eq("training_sessions.status", "COMPLETED").order("position").limit(5000),
+    loadClimbingWork(supabase),
   ]);
   const targets = new Map<string, WorkTarget[]>();
   for (const e of exercises ?? []) {
@@ -44,9 +59,9 @@ export async function loadClimberWork(supabase: ServerSupabase): Promise<Climber
     if (!exercise || !["REPS", "ROUTES", "INTERVALS"].includes(exercise.modality)) continue;
     reps.set(exercise.session_id, (reps.get(exercise.session_id) ?? 0) + (s.reps ?? 0));
   }
-  return (sessions ?? []).map((s) => ({
-    status: s.status,
+  return [...climbing, ...(sessions ?? []).map((s): ClimberWork => ({
+    status: s.status, kind: "TRAINING",
     date: s.scheduled_date ?? localDate_(new Date(s.completed_at ?? Date.now())),
     actualMinutes: s.actual_minutes, pain: s.pain, reps: reps.get(s.id) ?? 0, targets: targets.get(s.id) ?? [],
-  }));
+  }))];
 }

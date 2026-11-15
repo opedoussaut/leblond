@@ -50,6 +50,7 @@ const fr = {
   bannerEyebrow: "Le duel",
   bannerSee: "Voir le duel",
   bannerSessions: "séances",
+  workKinds: { BOULDER: "Blocs", ROUTE: "Voies", BOARD: "Board", TRAINING: "Entraînement" },
   bannerWeek: "Semaine {week} sur {total}",
   bannerScore: "Toi {you} – {rival} {name}, en séances",
 };
@@ -103,6 +104,7 @@ const en: typeof fr = {
   bannerEyebrow: "The duel",
   bannerSee: "See the duel",
   bannerSessions: "séances",
+  workKinds: { BOULDER: "Boulders", ROUTE: "Routes", BOARD: "Board", TRAINING: "Training" },
   bannerWeek: "Week {week} of {total}",
   bannerScore: "You {you} – {rival} {name}, in séances",
 };

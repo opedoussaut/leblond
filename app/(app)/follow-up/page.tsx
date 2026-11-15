@@ -207,7 +207,8 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </nav>
 
     <NotebookRecords t={t} locale={locale} boulders={boulderBests(dataset.problems, dataset.attempts)} route={routes ? routeBest(routes) : null}
-      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)} />
+      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
+      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} />
 
     <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
