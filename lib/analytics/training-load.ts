@@ -286,7 +286,11 @@ export function projectLoad(model: readonly LoadDay[], days = 14): { daily: numb
 }
 
 export type WeeklyGuide = {
-  /** Weekly load that keeps the ratio between the band's limits (about 7 × chronic × limit). */
+  /**
+   * Load over the next 7 days (spread evenly) that brings the ratio to the
+   * band's limits at the end of the week, simulated with the same model from
+   * today's fitness and fatigue. maxLoad 0 means only rest gets back under 1.3.
+   */
   minLoad: number; maxLoad: number; dangerLoad: number;
   /** The same range in sessions like the climber's typical one (median of the last 42 days), or null. */
   typicalLoad: number | null; minSessions: number | null; maxSessions: number | null;
@@ -294,19 +298,41 @@ export type WeeklyGuide = {
   last7: number;
 };
 
-/** The week ahead, in load and in typical sessions, from today's chronic load. Null while calibrating. */
+/** Ratio at the end of `days` days of even load `total`, from a fitness and a fatigue. */
+export function ratioAfter(fitness: number, fatigue: number, total: number, days = 7): number {
+  const daily = total / days;
+  for (let i = 0; i < days; i++) {
+    fitness += (daily - fitness) / LOAD_THRESHOLDS.chronicDays;
+    fatigue += (daily - fatigue) / LOAD_THRESHOLDS.acuteDays;
+  }
+  return fitness > 0 ? fatigue / fitness : Infinity;
+}
+
+/** The 7-day load that ends the week at `target` ratio (bisection; the ratio grows with the load). 0 when even rest ends above it. */
+function loadForRatio(fitness: number, fatigue: number, target: number): number {
+  if (ratioAfter(fitness, fatigue, 0) >= target) return 0;
+  let lo = 0, hi = Math.max(1, 7 * fitness * 10);
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (ratioAfter(fitness, fatigue, mid) < target) lo = mid; else hi = mid;
+  }
+  return Math.round(lo);
+}
+
+/** The week ahead, in load and in typical sessions, from today's fitness and fatigue. Null while calibrating. */
 export function weeklyGuide(model: readonly LoadDay[], loads: readonly SessionLoad[], today: string): WeeklyGuide | null {
   const last = model.at(-1);
   if (!last || last.ratio === null) return null;
-  const weekly = (k: number) => Math.round(7 * last.fitness * k);
   const since = addDays(today, -41);
-  const recent = loads.filter((l) => l.date >= since && l.date <= today && l.source !== "MOBILITY").map((l) => l.load).sort((a, b) => a - b);
+  const recent = loads.filter((l) => l.date >= since && l.date <= today && l.source !== "MOBILITY").map((l) => l.load).sort((x, y) => x - y);
   const typical = recent.length ? recent[Math.floor((recent.length - 1) / 2)] : null;
-  const last7 = model.slice(-7).reduce((s, d) => s + d.load, 0);
+  const last7 = model.slice(-7).reduce((sum, d) => sum + d.load, 0);
   const toSessions = (v: number) => (typical ? Math.round((v / typical) * 2) / 2 : null);
+  const minLoad = loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.low);
+  const maxLoad = loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.high);
   return {
-    minLoad: weekly(LOAD_THRESHOLDS.low), maxLoad: weekly(LOAD_THRESHOLDS.high), dangerLoad: weekly(LOAD_THRESHOLDS.danger),
-    typicalLoad: typical, minSessions: toSessions(weekly(LOAD_THRESHOLDS.low)), maxSessions: toSessions(weekly(LOAD_THRESHOLDS.high)), last7,
+    minLoad, maxLoad, dangerLoad: loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.danger),
+    typicalLoad: typical, minSessions: toSessions(minLoad), maxSessions: toSessions(maxLoad), last7,
   };
 }
 

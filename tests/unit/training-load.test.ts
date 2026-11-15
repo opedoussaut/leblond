@@ -158,6 +158,19 @@ describe("projection and weekly guide", () => {
     expect(g.minSessions).toBeGreaterThan(1);
     expect(g.maxSessions).toBeLessThan(4);
   });
+  it("lands the week on the band's limits when simulated", async () => {
+    const { ratioAfter } = await import("@/lib/analytics/training-load");
+    const g = weeklyGuide(model, loads, today)!;
+    const last = model.at(-1)!;
+    expect(ratioAfter(last.fitness, last.fatigue, g.minLoad)).toBeCloseTo(0.8, 2);
+    expect(ratioAfter(last.fitness, last.fatigue, g.maxLoad)).toBeCloseTo(1.3, 2);
+  });
+  it("asks for rest after a big spike", () => {
+    const spiked = loadModel([...loadsEvery("2026-01-01", 60, 4, 200), ...loadsEvery("2026-03-02", 7, 1, 900)], "2026-03-08");
+    const g = weeklyGuide(spiked, [], "2026-03-08")!;
+    expect(g.minLoad).toBe(0);
+    expect(g.maxLoad).toBeLessThan(g.dangerLoad);
+  });
   it("has no guide while calibrating", () => {
     expect(weeklyGuide(loadModel(loadsEvery("2026-01-01", 5, 1, 300), "2026-01-05"), [], "2026-01-05")).toBeNull();
   });
