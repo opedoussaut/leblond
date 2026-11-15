@@ -57,7 +57,7 @@ const fr = {
     subtitle: "Modèles de séance et méthodes : fiches détaillées, comparaisons et sources vérifiables.",
     methods: "Méthodes",
     sections: "Rubriques de la bibliothèque",
-    tabs: { overview: "Aperçu", templates: "Séances", methods: "Méthodes", coaching: "Coaching", tools: "Outils", compare: "Comparer" },
+    tabs: { overview: "Aperçu", templates: "Modèles", methods: "Méthodes", coaching: "Coaching", tools: "Outils", compare: "Comparer" },
     overviewIntro: "Choisis une rubrique : chacune a sa propre adresse, à garder en favori ou à partager.",
     hints: {
       templates: "Des séances complètes du coach, prêtes à lancer ou à planifier.",
@@ -146,7 +146,7 @@ const en: Dict = {
     subtitle: "Session templates and methods: detailed sheets, comparisons and verifiable sources.",
     methods: "Methods",
     sections: "Library sections",
-    tabs: { overview: "Overview", templates: "Sessions", methods: "Methods", coaching: "Coaching", tools: "Tools", compare: "Compare" },
+    tabs: { overview: "Overview", templates: "Templates", methods: "Methods", coaching: "Coaching", tools: "Tools", compare: "Compare" },
     overviewIntro: "Pick a section: each one has its own address, to bookmark or share.",
     hints: {
       templates: "Complete sessions from the coach, ready to start or schedule.",

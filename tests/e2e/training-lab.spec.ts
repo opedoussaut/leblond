@@ -65,11 +65,12 @@ test("signed-in climbers can compare methods and assess their own skills", async
 
   // Dedicated atlas: twelve descriptive axes, complete method sheet and
   // a way to schedule the selected method without buying or saving a plan.
-  // The Bibliothèque is split into sections with their own address, reachable from the keyboard.
+  // The Bibliothèque is split into sections with their own address, listed under it in the
+  // sidebar at this desktop width and reachable from the keyboard.
   await page.goto("/atlas");
-  const sections = page.getByRole("navigation", { name: "Rubriques de la bibliothèque" });
-  await expect(sections.getByRole("link", { name: "Aperçu" })).toHaveAttribute("aria-current", "page");
-  await sections.getByRole("link", { name: "Comparer" }).focus();
+  const sections = page.getByRole("navigation", { name: "Navigation principale" });
+  await expect(sections.getByRole("link", { name: "Bibliothèque", exact: true })).toHaveAttribute("aria-current", "page");
+  await sections.getByRole("link", { name: "Comparer", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/atlas\?tab=compare/);
   await expect(page.getByRole("img", { name: "Comparer sur le radar" })).toBeVisible();
@@ -78,7 +79,7 @@ test("signed-in climbers can compare methods and assess their own skills", async
   await page.getByRole("button", { name: "Lattice Training" }).click();
   await expect(page).toHaveURL(/ids=technique,max-hangs,lattice/);
   await expect(page.getByRole("button", { name: "Lattice Training" })).toHaveAttribute("aria-pressed", "true");
-  await sections.getByRole("link", { name: "Méthodes" }).click();
+  await sections.getByRole("link", { name: "Méthodes", exact: true }).click();
   await expect(page).toHaveURL(/\/atlas\?tab=methods/);
   await expect(page.getByRole("link", { name: "Lattice Training" })).toHaveCount(0);
   await page.getByRole("link", { name: /Max hangs/ }).first().click();
