@@ -802,6 +802,7 @@ export const en: Dictionary = {
     topoListItem: "{n} problems · updated {date}",
     topoNoSite: "No outdoor site outside Fontainebleau yet.",
     topoSite: "Site",
+    topoSiteChoose: "Choose the site…",
     topoSiteWithTopo: "{name} (current topo: {n} problems)",
     topoFile: "KMZ or KML file",
     topoFileHint: "Optional with a list: without a file, the current topo's positions are kept.",

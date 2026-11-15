@@ -667,6 +667,9 @@ test("a team topo from Google My Maps: imported in Beta administration, picked i
 
   // The map of another crag, picked by mistake for this site: refused, nothing changes.
   await page.goto("/settings/admin");
+  // No site is preselected: the admin has to choose one.
+  await expect(form.getByLabel("Site", { exact: true })).toHaveValue("");
+  await form.getByLabel("Site", { exact: true }).selectOption({ label: "Saffres E2E (topo actuel : 5 blocs)" });
   await form.getByLabel("Fichier KMZ ou KML").setInputFiles({
     name: "ailleurs-e2e.kml",
     mimeType: "application/vnd.google-earth.kml+xml",

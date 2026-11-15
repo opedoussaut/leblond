@@ -809,6 +809,7 @@ export const fr = {
     topoListItem: "{n} blocs · mis à jour le {date}",
     topoNoSite: "Aucun site extérieur hors Fontainebleau pour l’instant.",
     topoSite: "Site",
+    topoSiteChoose: "Choisis le site…",
     topoSiteWithTopo: "{name} (topo actuel : {n} blocs)",
     topoFile: "Fichier KMZ ou KML",
     topoFileHint: "Facultatif avec une liste : sans fichier, les positions du topo actuel sont gardées.",

@@ -46,7 +46,9 @@ export function TopoImport({
     >
       <div>
         <Label htmlFor="topo-site">{t.admin.topoSite}</Label>
-        <Select id="topo-site" name="gymId" required defaultValue={sites[0].id}>
+        {/* No site is chosen for the admin: importing into the wrong site replaced a crag's topo once. */}
+        <Select id="topo-site" name="gymId" required defaultValue="">
+          <option value="" disabled>{t.admin.topoSiteChoose}</option>
           {sites.map((s) => (
             <option key={s.id} value={s.id}>
               {s.topo_problems ? fmt(t.admin.topoSiteWithTopo, { name: s.name, n: s.topo_problems }) : s.name}
