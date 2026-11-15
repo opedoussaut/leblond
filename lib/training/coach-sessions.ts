@@ -88,7 +88,7 @@ export const coachExerciseSchema = z.object({
     label: z.string().trim().min(1).max(60),
     url: z.string().max(500).refine((u) => demoUrl(u) !== null, "Demo must be an https page on an approved site"),
   }).strict().optional(),
-  /** One of LEBLOND's own drawings (lib/training/illustrations.ts), shown with the exercise. */
+  /** One of LEBLOND's exercise pictures (lib/training/illustrations.ts), shown with the exercise, next to its demo link. */
   illustration: z.enum(ILLUSTRATIONS).optional(),
   /** Atlas method the exercise belongs to, for the Atlas link. */
   methodId: z.string().refine((id) => methodIds.has(id), "Unknown training method").optional(),
