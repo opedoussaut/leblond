@@ -17,7 +17,7 @@ import { DAY_MS, type AttemptFact, type ProblemFact } from "./types";
  *
  * Climbing sessions carry no RPE: their intensity is estimated from the
  * discipline, how close the attempts were to the climber's own best in the
- * same scale, and the fatigue noted after the session. Every estimate is
+ * same scale, and the fatigue noted before and after the session. Every estimate is
  * flagged so the page can say so.
  */
 
@@ -49,6 +49,8 @@ export type ClimbSessionFact = {
   startedAt: Date; endedAt: Date | null; durationMinutes: number | null;
   /** Fatigue noted after the session, 1–5, or null. */
   fatigue: number | null;
+  /** Fatigue noted before the session, 1–5, or null (arriving tired makes the same climbing harder). */
+  fatigueBefore: number | null;
   /** Attempts logged in the session, and how many were close to the climber's best (see nearLimitCounts). */
   attempts: number; nearLimit: number;
 };
@@ -92,12 +94,14 @@ export function climbMinutes(s: ClimbSessionFact): { minutes: number; estimated:
 /**
  * Estimated intensity (CR-10) of a climbing session: the discipline's base,
  * up to +2 when every attempt was close to the climber's best, ±1 from the
- * fatigue noted after it (3 = neutral). Kept between 3 and 9.
+ * fatigue noted after it and ±0.5 from the fatigue noted before it
+ * (3 = neutral on both). Kept between 3 and 9.
  */
-export function climbIntensity(s: Pick<ClimbSessionFact, "discipline" | "attempts" | "nearLimit" | "fatigue">): number {
+export function climbIntensity(s: Pick<ClimbSessionFact, "discipline" | "attempts" | "nearLimit" | "fatigue" | "fatigueBefore">): number {
   const share = s.attempts > 0 ? s.nearLimit / s.attempts : 0;
-  const fatigue = s.fatigue === null ? 0 : (clamp(s.fatigue, 1, 5) - 3) * 0.5;
-  return round1(clamp(BASE_INTENSITY[s.discipline] + 2 * share + fatigue, 3, 9));
+  const after = s.fatigue === null ? 0 : (clamp(s.fatigue, 1, 5) - 3) * 0.5;
+  const before = s.fatigueBefore === null ? 0 : (clamp(s.fatigueBefore, 1, 5) - 3) * 0.25;
+  return round1(clamp(BASE_INTENSITY[s.discipline] + 2 * share + after + before, 3, 9));
 }
 
 /**

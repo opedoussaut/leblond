@@ -24,12 +24,12 @@ export const LOAD_HISTORY_DAYS = 420;
  */
 export async function loadClimbSessionsForLoad(supabase: ServerSupabase, since: string): Promise<Omit<ClimbSessionFact, "attempts" | "nearLimit">[]> {
   const { data } = await supabase.from("sessions")
-    .select("id, discipline, started_at, ended_at, duration_minutes, fatigue")
+    .select("id, discipline, started_at, ended_at, duration_minutes, fatigue, fatigue_before")
     .gte("started_at", since + "T00:00:00Z").not("ended_at", "is", null).order("started_at").limit(2000);
   return (data ?? []).map((s) => ({
     id: s.id, discipline: s.discipline, date: s.started_at.slice(0, 10),
     startedAt: new Date(s.started_at), endedAt: s.ended_at ? new Date(s.ended_at) : null,
-    durationMinutes: s.duration_minutes, fatigue: s.fatigue,
+    durationMinutes: s.duration_minutes, fatigue: s.fatigue, fatigueBefore: s.fatigue_before,
   }));
 }
 
