@@ -24,3 +24,13 @@ select pg_temp.expect(public.is_valid_native_grade('ARKOSE_COLOR', 'PURPLE') and
   'existing scales unchanged');
 
 \echo 'gym_grading.test.sql: all assertions passed'
+
+-- Le Labo and MROC Laennec: their own colour scales, never another gym's.
+select pg_temp.expect(public.is_valid_native_grade('LELABO_COLOR', 'LIGHT_GREEN') and not public.is_valid_native_grade('LELABO_COLOR', 'GREEN'),
+  'Le Labo has light/dark green, not plain green');
+select pg_temp.expect(public.is_valid_native_grade('MROC_COLOR', 'PURPLE') and not public.is_valid_native_grade('MROC_COLOR', 'ORANGE'),
+  'MROC colours');
+select pg_temp.expect((select grading_system = 'LELABO_COLOR' from public.gyms where name = 'Le Labo Grenoble' and external_provider is null),
+  'Le Labo in the catalogue with its scale');
+select pg_temp.expect((select grading_system = 'MROC_COLOR' from public.gyms where name = 'MROC Laennec' and external_provider is null),
+  'MROC Laennec in the catalogue with its scale');
