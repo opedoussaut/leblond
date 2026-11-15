@@ -7,11 +7,15 @@
  *   logged (lib/offline/service-worker.ts, cache "leblond-pages-v1"); without
  *   signal that copy is served, so logging goes on. Only those pages, only
  *   while the session is live; deleted when it ends and when signing out.
+ * - Exercise illustrations (/illustrations, public, no personal data) are kept
+ *   once seen, so a training séance shows them without signal. Bump
+ *   ILLUSTRATIONS when the pictures change.
  * - Never caches API responses or any other authenticated page.
  */
 const SHELL = "leblond-shell-v2";
 const STATIC = "leblond-static-v1";
 const PAGES = "leblond-pages-v1";
+const ILLUSTRATIONS = "leblond-illustrations-v1";
 const OFFLINE_URL = "/offline";
 const SHELL_FILES = [OFFLINE_URL, "/icons/icon-192.png", "/brand/leblond-mark-96.png"];
 const LIVE_PAGE = /^\/session\/[0-9a-f-]{36}$/;
@@ -37,7 +41,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  const keep = new Set([SHELL, STATIC, PAGES]);
+  const keep = new Set([SHELL, STATIC, PAGES, ILLUSTRATIONS]);
   event.waitUntil(
     caches
       .keys()
@@ -57,8 +61,8 @@ function withTimeout(promise, ms) {
 }
 
 /** Versioned static files: from the cache when there, else from the network (and kept). */
-async function staticFile(request) {
-  const cache = await caches.open(STATIC);
+async function staticFile(request, name = STATIC) {
+  const cache = await caches.open(name);
   const hit = await cache.match(request);
   if (hit) return hit;
   const res = await fetch(request);
@@ -87,6 +91,10 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(staticFile(request));
+    return;
+  }
+  if (url.pathname.startsWith("/illustrations/")) {
+    event.respondWith(staticFile(request, ILLUSTRATIONS));
     return;
   }
   if (request.mode !== "navigate") return;

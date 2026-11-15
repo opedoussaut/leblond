@@ -71,7 +71,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets, icons and the manifest.
-    "/((?!_next/static|_next/image|favicon.ico|apple-icon.png|icons/|brand/|manifest.webmanifest|sw.js|robots.txt).*)",
+    // Skip static assets, icons, exercise illustrations and the manifest.
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon.png|icons/|brand/|illustrations/|manifest.webmanifest|sw.js|robots.txt).*)",
   ],
 };
