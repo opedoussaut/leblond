@@ -576,7 +576,13 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.reload();
   await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
   await page.goto("/home");
-  await expect(page.getByText("Fait aujourd’hui : de la mobilité douce à la place.")).toBeVisible();
+  // Filled check-in: the self-reported form, the answers, today's session and a way to edit.
+  const form = page.getByRole("region", { name: "Forme du jour" });
+  await expect(form.getByRole("img", { name: /Forme déclarée : Repos conseillé, 1 segment/ })).toBeVisible();
+  await expect(form.getByText("Auto-évaluation")).toBeVisible();
+  await expect(form.getByText("Mauvaise")).toBeVisible();
+  await expect(form.getByText("De la mobilité douce à la place")).toBeVisible();
+  await expect(form.getByRole("link", { name: "Modifier ma forme du jour" })).toHaveAttribute("href", "/train/today");
 
   // Recommended Atlas method → add to a plan → schedule this week.
   await page.goto("/atlas/max-hangs");

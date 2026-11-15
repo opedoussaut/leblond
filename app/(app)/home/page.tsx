@@ -19,6 +19,8 @@ import { rivalStanding } from "@/lib/analytics/rival";
 import { viewerAvatarLevel, viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { boardsDictionary } from "@/lib/i18n/boards";
+import { DayFormCard } from "@/components/training/day-form-card";
+import { injuriesSchema } from "@/lib/training/health";
 
 /**
  * Aujourd'hui: what to do now. A live séance first, then one button to start
@@ -43,7 +45,7 @@ export default async function HomePage() {
     viewer.supabase.from("sessions").select("id, gyms(name)").is("ended_at", null).limit(1).maybeSingle(),
     viewer.supabase.from("training_sessions").select("id, title").eq("status", "IN_PROGRESS").limit(1).maybeSingle(),
     viewer.supabase.from("training_plans").select("id", { count: "exact", head: true }),
-    viewer.supabase.from("training_day_checks").select("outcome").eq("check_date", today).limit(1).maybeSingle(),
+    viewer.supabase.from("training_day_checks").select("sleep, fatigue, soreness, pain, minutes_available, outcome").eq("check_date", today).limit(1).maybeSingle(),
     viewer.supabase.from("training_sessions").select("id, title, status, scheduled_date, scheduled_time, planned_minutes")
       .gte("scheduled_date", week[0]).lte("scheduled_date", week[6]).order("scheduled_time", { ascending: true }),
     viewer.supabase.from("sessions").select("id, started_at").gte("started_at", since).not("ended_at", "is", null),
@@ -56,6 +58,11 @@ export default async function HomePage() {
       week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
   })() : null;
   const outcome = dayCheck?.outcome;
+  const dayPain = injuriesSchema.safeParse(dayCheck?.pain ?? []);
+  const dayAnswers = dayCheck ? {
+    sleep: dayCheck.sleep, fatigue: dayCheck.fatigue, soreness: dayCheck.soreness,
+    pain: dayPain.success ? dayPain.data : [], minutes: dayCheck.minutes_available,
+  } : null;
   const plannedToday = (weekTraining ?? []).filter((s) => s.scheduled_date === today && s.status === "PLANNED");
   const days = week.map((date) => {
     const training = (weekTraining ?? []).filter((s) => s.scheduled_date === date);
@@ -104,9 +111,9 @@ export default async function HomePage() {
     <section aria-labelledby="your-day" className="space-y-4">
       <h2 id="your-day" className="text-lg font-bold tracking-tight text-ink-2">{t.home.yourDay}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <AreaCard href="/train/today" icon={<PAGE_ICONS.dayCheck />} title={t.nav.dayCheck}
-          description={t.home.dayCheckText} emphasis={!outcome}
-          note={outcome ? fmt(j.hub.dayDone, { outcome: j.outcomes[outcome].toLowerCase() }) : j.hub.dayBadge} />
+        {dayAnswers ? <DayFormCard locale={locale} answers={dayAnswers} outcome={outcome ?? null} />
+          : <AreaCard href="/train/today" icon={<PAGE_ICONS.dayCheck />} title={t.nav.dayCheck}
+            description={t.home.dayCheckText} emphasis note={j.hub.dayBadge} />}
         <div className="rounded-2xl border border-line bg-surface p-5">
           <h3 className="flex items-center gap-2 text-base font-bold"><PAGE_ICONS.calendar aria-hidden="true" className="size-6 text-accent" />{a.planned}</h3>
           {plannedToday.length ? <ul className="mt-3 space-y-2">
