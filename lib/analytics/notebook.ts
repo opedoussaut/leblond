@@ -24,6 +24,20 @@ export type BoulderBest = {
   gymId: string; gymIds: string[];
 };
 
+/**
+ * Boulders that count for the records: once the climber has favourite gyms,
+ * only those gyms (and outdoor sites) — a gym they no longer go to stays in
+ * the history but leaves the records. Without favourites, every gym counts.
+ */
+export function recordProblems<P extends Pick<ProblemFact, "gymId">>(
+  problems: readonly P[], gyms: readonly { id: string; brand: string }[], favouriteGymIds: readonly string[],
+): P[] {
+  if (favouriteGymIds.length === 0) return [...problems];
+  const keep = new Set(favouriteGymIds);
+  for (const g of gyms) if (g.brand === "OUTDOOR") keep.add(g.id);
+  return problems.filter((p) => keep.has(p.gymId));
+}
+
 /** Hardest boulder sent on each ordered grading system, with the day of its first send. Most used system first. */
 export function boulderBests(problems: readonly ProblemFact[], attempts: readonly AttemptFact[]): BoulderBest[] {
   const byId = new Map(problems.map((p) => [p.id, p]));

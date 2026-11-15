@@ -8,10 +8,12 @@ import { notebookDictionary } from "@/lib/i18n/notebook";
 type Tile = { key: string; eyebrow: string; value: string; detail: string };
 
 /** Best recorded performance in each area, native grades as logged, each with its date. */
-export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips, gymNames = {} }: {
+export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips, gymNames = {}, favouritesOnly = false }: {
   t: Dictionary; locale: Locale;
   /** Gym names by id, so each boulder record says where it was climbed (scales differ between gyms). */
   gymNames?: Record<string, string>;
+  /** Indoor boulder records count only the favourite gyms. */
+  favouritesOnly?: boolean;
   boulders: BoulderBest[]; route: RouteBest | null; boards: BoardBest[]; hang: HangBest | null; hips: HipLevels | null;
 }) {
   const n = notebookDictionary(locale);
@@ -52,6 +54,7 @@ export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips
       <h2 id="records-heading" className="text-lg font-bold">{n.bestTitle}</h2>
       <p className="mt-1 text-sm text-ink-2">{tiles.length ? n.bestHint : n.bestEmpty}</p>
       {boulders.length > 1 ? <p className="mt-1 text-xs text-ink-3">{n.scalesNote}</p> : null}
+      {favouritesOnly ? <p className="mt-1 text-xs text-ink-3">{n.favouritesNote}</p> : null}
     </div>
     {tiles.length ? <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
       {tiles.map((tile) => <li key={tile.key} className="leblond-premium-surface min-w-0 p-4">

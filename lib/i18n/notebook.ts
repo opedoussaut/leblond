@@ -56,6 +56,7 @@ const fr = {
   limitAsk: "Ce qui t'a limité",
   otherGyms: "même échelle dans {n} autre(s) salle(s)",
   scalesNote: "Chaque salle a sa propre échelle : un record par échelle, jamais converti d'une salle à l'autre.",
+  favouritesNote: "Blocs en salle : seules tes salles favorites comptent (le plein air aussi). Les autres restent dans ton historique.",
   limitAskHint: "Coche ce qui t'a freiné aujourd'hui, autant que tu veux.",
   limiters: {
     STRENGTH: "Force",
@@ -123,6 +124,7 @@ const en: typeof fr = {
   limitAsk: "What held you back",
   otherGyms: "same scale in {n} other gym(s)",
   scalesNote: "Each gym has its own scale: one record per scale, never converted from one gym to another.",
+  favouritesNote: "Indoor boulders: only your favourite gyms count (outdoor too). The others stay in your history.",
   limitAskHint: "Tick what slowed you down today, as many as you like.",
   limiters: {
     STRENGTH: "Strength",
