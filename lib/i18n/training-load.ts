@@ -47,10 +47,11 @@ const fr = {
   },
 
   weekTitle: "Ta semaine idéale",
-  weekText: "Pour rester dans la bande cette semaine : entre {min} et {max} de charge, soit environ {smin} à {smax} séances comme ta séance type.",
-  weekTextNoSessions: "Pour rester dans la bande cette semaine : entre {min} et {max} de charge.",
-  weekDone: "Déjà fait sur les 7 derniers jours : {done}.",
-  weekDanger: "Au-delà de {danger}, tu entres dans la zone de pic.",
+  weekText: "Sur les 7 prochains jours, pour finir la semaine dans la bande : entre {min} et {max} de charge, soit environ {smin} à {smax} séances comme ta séance type.",
+  weekTextNoSessions: "Sur les 7 prochains jours, pour finir la semaine dans la bande : entre {min} et {max} de charge.",
+  weekRest: "Ta fatigue est déjà haute : même sans grimper, tu finirais la semaine au-dessus de 1,3. Repos ou séances très légères.",
+  weekDone: "Charge des 7 derniers jours : {done} ; le calcul part de ta forme et de ta fatigue d’aujourd’hui.",
+  weekDanger: "Au-delà de {danger}, tu finirais la semaine en zone de pic.",
 
   chartTitle: "Forme de fond, fatigue et bande",
   chartHint: "La bande colorée est ta zone de fatigue saine : entre 0,8 et 1,3 fois ta forme de fond. Le pointillé rouge marque 1,5. Après aujourd’hui : projection si tu gardes ton rythme des 4 dernières semaines.",
@@ -95,7 +96,7 @@ const fr = {
     TRAINING: "Entraînement",
     MOBILITY: "Mobilité",
   } satisfies Record<LoadSource, string>,
-  sourceRow: "{n} séances · {load}",
+  sourceRow: "{n} séances",
   loadUnit: "u.a.",
 
   howTitle: "Comment c’est calculé, et ce qui est estimé",
@@ -177,10 +178,11 @@ const en: Dict = {
   },
 
   weekTitle: "Your ideal week",
-  weekText: "To stay in the band this week: between {min} and {max} of load, about {smin} to {smax} sessions like your typical one.",
-  weekTextNoSessions: "To stay in the band this week: between {min} and {max} of load.",
-  weekDone: "Already done in the last 7 days: {done}.",
-  weekDanger: "Above {danger}, you enter the spike zone.",
+  weekText: "Over the next 7 days, to end the week in the band: between {min} and {max} of load, about {smin} to {smax} sessions like your typical one.",
+  weekTextNoSessions: "Over the next 7 days, to end the week in the band: between {min} and {max} of load.",
+  weekRest: "Your fatigue is already high: even without climbing you would end the week above 1.3. Rest or very light sessions.",
+  weekDone: "Load over the last 7 days: {done}; the figures start from today's fitness and fatigue.",
+  weekDanger: "Above {danger}, you would end the week in the spike zone.",
 
   chartTitle: "Fitness, fatigue and band",
   chartHint: "The shaded band is your healthy fatigue zone: 0.8 to 1.3 times your fitness. The red dashes mark 1.5. After today: projection if you keep the rhythm of the last 4 weeks.",
@@ -225,7 +227,7 @@ const en: Dict = {
     TRAINING: "Training",
     MOBILITY: "Mobility",
   },
-  sourceRow: "{n} sessions · {load}",
+  sourceRow: "{n} sessions",
   loadUnit: "a.u.",
 
   howTitle: "How it is computed, and what is estimated",

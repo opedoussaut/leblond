@@ -15,7 +15,10 @@ function ticks(lo: number, hi: number): number[] {
   const span = Math.max(1, hi - lo);
   const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => span / s <= 4) ?? Math.ceil(span / 4);
   const out: number[] = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi + step / 100; v += step) out.push(v);
+  for (let v = Math.ceil(lo / step) * step; v < hi + step; v += step) {
+    out.push(v);
+    if (v >= hi) break;
+  }
   return out;
 }
 
@@ -76,8 +79,9 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
   let fitY = y(end.fitness), fatY = y(end.fatigue);
   if (Math.abs(fitY - fatY) < 9) { const mid = (fitY + fatY) / 2; const up = end.fitness >= end.fatigue; fitY = mid + (up ? -4.5 : 4.5); fatY = mid + (up ? 4.5 : -4.5); }
 
+  // The end date only when it does not crowd the "today" label.
   const xLabels = [{ i: 0, label: dateOf(points[0].date) }, ...(todayIndex > 0 ? [{ i: todayIndex, label: labels.today }] : []),
-    { i: n - 1, label: dateOf(points[n - 1].date) }];
+    ...(todayIndex <= 0 || n - 1 - todayIndex > n * 0.2 ? [{ i: n - 1, label: dateOf(points[n - 1].date) }] : [])];
 
   const plot = (height: string, children: React.ReactNode, overlay: React.ReactNode) => <div className={cn("relative mx-2 touch-pan-y", height)}
     onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHover(null)}>
@@ -127,7 +131,7 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
       <span />
       <div className="relative mx-2 mt-1 h-4">
         {xLabels.map((l) => <span key={l.i} className={cn("absolute whitespace-nowrap text-[11px] text-ink-3",
-          l.i === 0 ? "" : l.i === n - 1 ? "-translate-x-full" : "-translate-x-1/2", l.i === todayIndex && n - 1 - todayIndex < n * 0.12 ? "hidden sm:block" : "")}
+          l.i === 0 ? "" : l.i === n - 1 || (l.i === todayIndex && n - 1 - todayIndex < n * 0.1) ? "-translate-x-full" : "-translate-x-1/2")}
           style={{ left: `${x(l.i)}%` }}>{l.label}</span>)}
       </div>
       <span />

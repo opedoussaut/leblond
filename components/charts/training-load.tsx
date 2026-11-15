@@ -69,8 +69,8 @@ export function TrainingLoad({ t, locale, report, points, weeks }: {
       </div>
       <div className="rounded-2xl border border-line bg-surface-2 p-4">
         <p className="text-xs font-semibold text-ink-3">{d.zoneLabel}</p>
-        <p className={cn("mt-1 text-xl font-black", ZONE_TONE[verdict.zone])}>{d.zone[verdict.zone]}
-          {last?.ratio != null ? <span className="ml-2 text-sm font-semibold text-ink-2">{d.ratioLabel} {dec.format(last.ratio)}</span> : null}</p>
+        <p className={cn("mt-1 text-xl font-black", ZONE_TONE[verdict.zone])}>{d.zone[verdict.zone]}</p>
+        {last?.ratio != null ? <p className="text-xs font-semibold text-ink-3">{d.ratioLabel} {dec.format(last.ratio)}</p> : null}
         <p className="mt-1 text-sm text-ink-2">{verdict.zone === "calibrating" ? fmt(d.calibrating, { n: report.calibrationLeft }) : d.zoneText[verdict.zone]}</p>
       </div>
     </div>
@@ -82,10 +82,10 @@ export function TrainingLoad({ t, locale, report, points, weeks }: {
 
     {guide ? <div className="rounded-2xl bg-accent-soft p-4">
       <h3 className="text-base font-bold">{d.weekTitle}</h3>
-      <p className="mt-1 text-sm">{guide.minSessions !== null && guide.maxSessions !== null
+      <p className="mt-1 text-sm">{guide.maxLoad === 0 ? d.weekRest : guide.minSessions !== null && guide.maxSessions !== null
         ? fmt(d.weekText, { min: load(guide.minLoad), max: load(guide.maxLoad), smin: guide.minSessions, smax: guide.maxSessions })
         : fmt(d.weekTextNoSessions, { min: load(guide.minLoad), max: load(guide.maxLoad) })}</p>
-      <p className="mt-1 text-sm text-ink-2">{fmt(d.weekDone, { done: load(guide.last7) })} {fmt(d.weekDanger, { danger: load(guide.dangerLoad) })}</p>
+      <p className="mt-1 text-sm text-ink-2">{fmt(d.weekDone, { done: load(guide.last7) })}{guide.maxLoad > 0 ? ` ${fmt(d.weekDanger, { danger: load(guide.dangerLoad) })}` : ""}</p>
     </div> : null}
 
     <div className="border-t border-line pt-4">
@@ -129,8 +129,8 @@ export function TrainingLoad({ t, locale, report, points, weeks }: {
       <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
         {report.bySource.map((s) => <li key={s.source} className="rounded-2xl bg-surface-2 p-3">
           <p className="text-xs font-semibold text-ink-3">{d.sources[s.source]}</p>
-          <p className="mt-1 leblond-number text-lg">{num.format(s.load)}</p>
-          <p className="text-xs text-ink-3">{fmt(d.sourceRow, { n: s.sessions, load: d.loadUnit })}</p>
+          <p className="mt-1 leblond-number text-lg">{num.format(s.load)} <span className="text-xs font-semibold text-ink-3">{d.loadUnit}</span></p>
+          <p className="text-xs text-ink-3">{fmt(d.sourceRow, { n: s.sessions })}</p>
         </li>)}
       </ul>
     </div> : null}
