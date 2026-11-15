@@ -1974,6 +1974,7 @@ export type Database = {
           duration_minutes: number | null;
           ended_at: string | null;
           fatigue: number | null;
+          fatigue_before: number | null;
           gym_id: string;
           grade_system: Database["public"]["Enums"]["grade_system"] | null;
           id: string;
@@ -2000,6 +2001,7 @@ export type Database = {
           duration_minutes?: number | null;
           ended_at?: string | null;
           fatigue?: number | null;
+          fatigue_before?: number | null;
           gym_id: string;
           grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;
@@ -2026,6 +2028,7 @@ export type Database = {
           duration_minutes?: number | null;
           ended_at?: string | null;
           fatigue?: number | null;
+          fatigue_before?: number | null;
           gym_id?: string;
           grade_system?: Database["public"]["Enums"]["grade_system"] | null;
           id?: string;

@@ -66,7 +66,7 @@ export function SessionDetailsForm({
   initial,
 }: {
   sessionId: string;
-  initial: { notes: string; perceivedEnergyBefore: Scale; perceivedEnergyAfter: Scale; fatigue: Scale; motivation: Scale; limiters: readonly string[] };
+  initial: { notes: string; perceivedEnergyBefore: Scale; perceivedEnergyAfter: Scale; fatigueBefore: Scale; fatigue: Scale; motivation: Scale; limiters: readonly string[] };
 }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(updateSessionDetails.bind(null, sessionId), null);
@@ -79,6 +79,7 @@ export function SessionDetailsForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ScaleInput name="perceivedEnergyBefore" label={t.session.energyBefore} value={initial.perceivedEnergyBefore} />
           <ScaleInput name="perceivedEnergyAfter" label={t.session.energyAfter} value={initial.perceivedEnergyAfter} />
+          <ScaleInput name="fatigueBefore" label={t.session.fatigueBefore} value={initial.fatigueBefore} />
           <ScaleInput name="fatigue" label={t.session.fatigue} value={initial.fatigue} />
           <ScaleInput name="motivation" label={t.session.motivation} value={initial.motivation} />
         </div>
