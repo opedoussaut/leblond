@@ -15,6 +15,8 @@ export interface RouteAscentFact {
   result: RouteResult;
   falls: number | null;
   createdAt: Date;
+  /** Climbed at a crag (the séance's site is an outdoor one). Absent: indoors. */
+  outdoor?: boolean;
 }
 
 export interface RouteSummary {

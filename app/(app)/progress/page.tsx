@@ -26,6 +26,10 @@ import { formatDate, formatNumber, formatRatio } from "@/lib/format";
 import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { boulderGrade } from "@/lib/grading/display";
+import { SectionTabs } from "@/components/layout/section-tabs";
+import { datasetAt, routeAscentsAt } from "@/lib/analytics/place";
+import { areasDictionary } from "@/lib/i18n/areas";
+import { PROGRESS_SCOPES, PROGRESS_TABS, parseProgressTab, progressHref } from "@/lib/navigation/progress-tabs";
 
 export const metadata = { title: "Progrès" };
 
@@ -36,10 +40,18 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const sp = await searchParams;
   const periodKey = (typeof sp.period === "string" && sp.period in PERIODS ? sp.period : "90") as keyof typeof PERIODS;
-  const [data, routes, boardRows] = await Promise.all([
+  // One section (a discipline in a kind of place), or everything on the overview.
+  const tab = parseProgressTab(sp.tab);
+  const scope = tab === "overview" ? null : PROGRESS_SCOPES[tab];
+  const show = (discipline: "boulder" | "route" | "board") => !scope || scope.discipline === discipline;
+  const sections = areasDictionary(locale).climbing;
+  const [dataset, allRoutes, boardRows] = await Promise.all([
     loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
   ]);
-  const avatar = await loadAvatar(viewer.supabase, { dataset: data, boardRows });
+  // The avatar always reads the whole history; the diagrams below read the section's.
+  const avatar = scope ? null : await loadAvatar(viewer.supabase, { dataset, boardRows });
+  const data = scope?.discipline === "boulder" && scope.place ? datasetAt(dataset, scope.place) : dataset;
+  const routes = allRoutes && scope?.discipline === "route" && scope.place ? routeAscentsAt(allRoutes, scope.place) : allRoutes;
   const now = new Date();
   const days = PERIODS[periodKey];
   const boardSince = days === null ? 0 : now.getTime() - days * 86_400_000;
@@ -59,13 +71,15 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
 
   return (
     <div className="space-y-5">
-      <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} />
-      <AvatarCard locale={locale} progress={avatar} />
+      <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} subtitle={scope ? sections.tabs[tab] : undefined} />
+      <SectionTabs label={sections.sections} current={tab}
+        tabs={PROGRESS_TABS.map((id) => ({ id, href: progressHref(id, sp.period === undefined ? undefined : periodKey), label: sections.tabs[id] }))} />
+      {avatar ? <AvatarCard locale={locale} progress={avatar} /> : null}
       <nav aria-label={t.progress.period} className="flex gap-2">
         {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => (
           <Link
             key={k}
-            href={`/progress?period=${k}`}
+            href={progressHref(tab, k)}
             aria-current={k === periodKey ? "page" : undefined}
             className={cn(
               "min-h-11 rounded-full border px-4 py-2.5 text-sm font-semibold",
@@ -77,8 +91,8 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
         ))}
       </nav>
 
-      {snap.counts.attempts === 0 ? (
-        <EmptyState body={t.progress.empty} />
+      {!show("boulder") ? null : snap.counts.attempts === 0 ? (
+        <EmptyState body={scope ? sections.emptySection : t.progress.empty} />
       ) : (
         <>
           {chartSystem ? <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -325,9 +339,11 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
           ) : null}
         </>
       )}
-      {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
+      {show("route") && routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
         title={(locale === "fr" ? "Voie" : "Routes") + " · " + (periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all)} /> : null}
-      <BoardProgress locale={locale} pyramids={pyramids} title={"Board · " + periodLabel} />
+      {show("board") ? <BoardProgress locale={locale} pyramids={pyramids} title={"Board · " + periodLabel} /> : null}
+      {(scope?.discipline === "route" && !(routes && routes.length)) || (scope?.discipline === "board" && pyramids.length === 0)
+        ? <EmptyState body={sections.emptySection} /> : null}
     </div>
   );
 }
