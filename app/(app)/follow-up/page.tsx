@@ -216,7 +216,8 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </nav>
 
     <NotebookRecords t={t} locale={locale} boulders={boulderBests(dataset.problems, dataset.attempts)} route={routes ? routeBest(routes) : null}
-      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)} />
+      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
+      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} />
 
     <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
       points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} />

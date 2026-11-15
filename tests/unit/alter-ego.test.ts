@@ -3,7 +3,7 @@ import { signPactSchema, pactFromRow, type PactRow } from "@/lib/training/alter-
 import {
   PROGRESSION_V1, boulderPace, climberLedger, coachSummary, egoLedger, egoSchedule, egoSessionLedger, egoTimeline,
   isScalable, loadFactor, pactClock, pactIsOver, pactProgress, pactTransition, pactWeek, pauseLength, positionAt, routePace, scaleTarget, shouldEaseOff,
-  standing, timelineSeconds, type ClimberWork, type Pact, type WorkTarget,
+  climberBreakdown, standing, timelineSeconds, type ClimberWork, type Pact, type WorkTarget,
 } from "@/lib/analytics/alter-ego";
 
 const pact = (over: Partial<Pact> = {}): Pact => ({
@@ -284,5 +284,33 @@ describe("stored pacts", () => {
   it("ignores a pact whose plan no longer parses, and keeps the default progression if that one does not", () => {
     expect(pactFromRow({ ...row, plan_snapshot: [{ day: 9 }] })).toBeNull();
     expect(pactFromRow({ ...row, progression: {} })?.progression).toEqual(PROGRESSION_V1);
+  });
+});
+
+describe("climbing sessions in the duel", () => {
+  const climb = (date: string, kind: "BOULDER" | "ROUTE" | "BOARD", minutes: number): ClimberWork =>
+    ({ status: "COMPLETED", kind, date, actualMinutes: minutes, pain: null, reps: 0 });
+
+  it("count as séances for the climber, the same day, with their duration", () => {
+    const you = climberLedger([climb("2026-11-15", "BOULDER", 95), work("2026-11-10", 20)], "2026-11-02");
+    expect(you).toEqual({ sessions: 2, reps: 20, minutes: 135 });
+  });
+
+  it("leave the rival on its plan: no extra séance for it, and the plan day still counts", () => {
+    const p = pact();
+    expect(egoLedger(p, "2026-11-16", [climb("2026-11-15", "ROUTE", 120)])).toEqual(egoLedger(p, "2026-11-16"));
+    // A climbing session on a plan day (Tuesday 10 Nov) does not stand in for the plan's séance.
+    expect(egoLedger(p, "2026-11-11", [climb("2026-11-10", "BOULDER", 60)])).toEqual(egoLedger(p, "2026-11-11"));
+  });
+
+  it("are split into boulders, routes, board and training", () => {
+    const b = climberBreakdown([
+      climb("2026-11-15", "BOULDER", 95), climb("2026-11-12", "BOULDER", 60), climb("2026-11-11", "ROUTE", 120),
+      climb("2026-11-09", "BOARD", 45), work("2026-11-10", 20, 0, 40), climb("2026-10-30", "BOULDER", 90),
+    ], "2026-11-02");
+    expect(b).toEqual({
+      BOULDER: { sessions: 2, minutes: 155 }, ROUTE: { sessions: 1, minutes: 120 },
+      BOARD: { sessions: 1, minutes: 45 }, TRAINING: { sessions: 1, minutes: 40 },
+    });
   });
 });

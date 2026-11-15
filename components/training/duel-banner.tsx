@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { Standing } from "@/lib/analytics/alter-ego";
+import { WORK_KINDS, type KindTally, type Standing, type WorkKind } from "@/lib/analytics/alter-ego";
+import { formatDuration } from "@/lib/duration";
 import type { RivalPortrait as RivalPortraitId } from "@/lib/analytics/rival";
 import { fmt, type Locale } from "@/lib/i18n";
 import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
@@ -13,9 +14,11 @@ import { RivalPortrait } from "./rival-portrait";
  * in séances and a tug bar of the séances done since signing. It states the
  * gap and never prescribes work to close it.
  */
-export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused }: {
+export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused, breakdown }: {
   locale: Locale; name: string; standing: Standing; week: number; total: number;
   portrait: RivalPortraitId; avatar: number; paused: boolean;
+  /** The climber's séances by type since signing. */
+  breakdown?: Record<WorkKind, KindTally>;
   /** The climber's uploaded photo (signed URL); without one, the avatar. */
   photo?: string | null;
 }) {
@@ -26,7 +29,7 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
   const share = sum ? Math.round((you.sessions / sum) * 100) : 50;
   const verdict = fmt({ ahead: t.ahead, level: t.level, behind: t.behind }[standing.state], { name });
   const side = (label: string, l: Standing["you"]) => <span className="block text-xs text-blue-100 tabular-nums">
-    <span className="sr-only">{label} : </span>{l.reps} {c.repsShort} · {l.minutes} min
+    <span className="sr-only">{label} : </span>{l.reps} {c.repsShort} · {formatDuration(l.minutes)}
   </span>;
 
   return <section aria-labelledby="duel-banner-heading" className="leblond-hero-panel p-5 sm:p-6">
@@ -56,6 +59,14 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
       <span className="rounded-l-full bg-white transition-[width]" style={{ width: `${share}%` }} />
       <span className="flex-1 rounded-r-full bg-white/25" />
     </div>
+
+    {breakdown ? <ul aria-label={c.you} className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {WORK_KINDS.map((k) => <li key={k} className="rounded-xl bg-white/10 px-3 py-2">
+        <span className="block text-[11px] uppercase tracking-[0.12em] text-blue-200">{c.workKinds[k]}</span>
+        <span className="block text-sm font-bold tabular-nums">{breakdown[k].sessions}
+          <span className="font-normal text-blue-100"> · {formatDuration(breakdown[k].minutes)}</span></span>
+      </li>)}
+    </ul> : null}
 
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm font-semibold">{verdict}</p>

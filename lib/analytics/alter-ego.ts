@@ -170,8 +170,14 @@ export function egoSessionLedger(s: EgoSession, progression: Progression): Ledge
 const emptyLedger = (): Ledger => ({ sessions: 0, reps: 0, minutes: 0 });
 const add = (a: Ledger, b: Ledger): Ledger => ({ sessions: a.sessions + b.sessions, reps: a.reps + b.reps, minutes: a.minutes + b.minutes });
 
+/** What a piece of the climber's work was: a climbing session (boulders, routes, board) or a training séance. */
+export const WORK_KINDS = ["BOULDER", "ROUTE", "BOARD", "TRAINING"] as const;
+export type WorkKind = (typeof WORK_KINDS)[number];
+
 export type ClimberWork = {
   status: TrainingStatus; date: string; actualMinutes: number | null; pain: number | null; reps: number;
+  /** TRAINING when absent (séances recorded before climbing sessions counted). */
+  kind?: WorkKind;
   /** The séance's exercises, which the ego raced alongside in the player. */
   targets?: WorkTarget[];
 };
@@ -200,6 +206,8 @@ export function egoDays(
   const plan = new Map(egoSchedule(pact).map((s) => [addDays(s.date, pact.pausedDays ?? 0), s] as const));
   const raced = new Map<string, ClimberWork[]>();
   for (const w of work) {
+    // Climbing sessions count for the climber only; the rival keeps to its plan those days.
+    if ((w.kind ?? "TRAINING") !== "TRAINING") continue;
     if (w.status !== "COMPLETED" || w.date < pact.startDate || w.date > today) continue;
     raced.set(w.date, [...(raced.get(w.date) ?? []), w]);
   }
@@ -234,6 +242,20 @@ export function egoLedger(
 export function climberLedger(work: ClimberWork[], startDate: string): Ledger {
   return work.filter((w) => w.status === "COMPLETED" && w.date >= startDate)
     .map((w) => ({ sessions: 1, reps: w.reps, minutes: w.actualMinutes ?? 0 })).reduce(add, emptyLedger());
+}
+
+export type KindTally = { sessions: number; minutes: number };
+
+/** The climber's work since signing, split into boulders, routes, board and training. */
+export function climberBreakdown(work: ClimberWork[], startDate: string): Record<WorkKind, KindTally> {
+  const out = Object.fromEntries(WORK_KINDS.map((k) => [k, { sessions: 0, minutes: 0 }])) as Record<WorkKind, KindTally>;
+  for (const w of work) {
+    if (w.status !== "COMPLETED" || w.date < startDate) continue;
+    const t = out[w.kind ?? "TRAINING"];
+    t.sessions += 1;
+    t.minutes += w.actualMinutes ?? 0;
+  }
+  return out;
 }
 
 export type Standing = { you: Ledger; ego: Ledger; gap: Ledger; state: "ahead" | "level" | "behind" };

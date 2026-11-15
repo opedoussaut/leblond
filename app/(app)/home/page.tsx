@@ -14,7 +14,7 @@ import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { dateForPlanDay, localDate_, mondayOf } from "@/lib/training/sessions";
 import { IconNext, LiveDot } from "@/components/ui/icons";
 import { DuelBanner } from "@/components/training/duel-banner";
-import { pactClock, pactWeek } from "@/lib/analytics/alter-ego";
+import { climberBreakdown, pactClock, pactWeek } from "@/lib/analytics/alter-ego";
 import { rivalStanding } from "@/lib/analytics/rival";
 import { viewerAvatarLevel, viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
@@ -55,6 +55,7 @@ export default async function HomePage() {
   const duel = rival ? await (async () => {
     const [work, avatar, photo] = await Promise.all([loadClimberWork(viewer.supabase), viewerAvatarLevel(), viewerPhotoUrl()]);
     return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar, photo,
+      breakdown: climberBreakdown(work, rival.pact.startDate),
       week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
   })() : null;
   const outcome = dayCheck?.outcome;
@@ -106,7 +107,7 @@ export default async function HomePage() {
 
     {rival && duel ? <DuelBanner locale={locale} name={rival.pact.displayName} standing={duel.standing}
       week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar} photo={duel.photo}
-      paused={rival.pact.status === "PAUSED"} /> : null}
+      paused={rival.pact.status === "PAUSED"} breakdown={duel.breakdown} /> : null}
 
     <section aria-labelledby="your-day" className="space-y-4">
       <h2 id="your-day" className="text-lg font-bold tracking-tight text-ink-2">{t.home.yourDay}</h2>
