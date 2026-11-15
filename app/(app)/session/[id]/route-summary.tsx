@@ -72,7 +72,7 @@ export function RouteSessionSummary({ locale, session, gymName, ascents }: {
     </section>
     <SessionDetailsForm sessionId={session.id} initial={{
       notes: session.notes ?? "", perceivedEnergyBefore: session.perceived_energy_before,
-      perceivedEnergyAfter: session.perceived_energy_after, fatigue: session.fatigue, motivation: session.motivation,
+      perceivedEnergyAfter: session.perceived_energy_after, fatigueBefore: session.fatigue_before, fatigue: session.fatigue, motivation: session.motivation,
       limiters: session.limiters ?? [],
     }} />
   </div>;

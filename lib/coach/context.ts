@@ -78,6 +78,9 @@ export interface RecentSessionInput {
   attempts: number;
   energyBefore: number | null;
   energyAfter: number | null;
+  /** Fatigue felt before the session, 1–5. */
+  fatigueBefore: number | null;
+  /** Fatigue felt after the session, 1–5. */
   fatigue: number | null;
   motivation: number | null;
   wearable: { avgHeartRate: number | null; maxHeartRate: number | null; trainingLoad: number | null; device: string | null } | null;

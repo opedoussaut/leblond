@@ -1,3 +1,5 @@
+import { LIMITERS } from "@/lib/analytics/notebook";
+import { notebookDictionary } from "@/lib/i18n/notebook";
 import { describe, expect, it } from "vitest";
 import {
   boardBests, boulderBests, hangBest, limiterCounts, mainEdge, routeBest, weekIndex, weeklyHang, weeklyMax, weeklyRouteLevel,
@@ -87,6 +89,14 @@ describe("weekly series", () => {
 });
 
 describe("limiterCounts", () => {
+  it("offers flexibility and mobility, named in French and English", () => {
+    expect(LIMITERS).toContain("FLEXIBILITY");
+    expect(LIMITERS).toContain("MOBILITY");
+    expect(notebookDictionary("fr").limiters.FLEXIBILITY).toBe("Souplesse");
+    expect(notebookDictionary("fr").limiters.MOBILITY).toBe("Mobilité");
+    expect(notebookDictionary("en").limiters.MOBILITY).toBe("Mobility");
+    expect(limiterCounts([{ date: "2026-11-05", limiters: ["MOBILITY"] }], "2026-11-01").rows).toEqual([{ limiter: "MOBILITY", sessions: 1 }]);
+  });
   it("counts sessions per limiter in the period, most frequent first", () => {
     const res = limiterCounts([
       { date: "2026-11-01", limiters: ["ENDURANCE", "PAIN"] },

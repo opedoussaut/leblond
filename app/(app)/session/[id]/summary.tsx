@@ -204,6 +204,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
           notes: view.session.notes ?? "",
           perceivedEnergyBefore: view.session.perceived_energy_before,
           perceivedEnergyAfter: view.session.perceived_energy_after,
+          fatigueBefore: view.session.fatigue_before,
           fatigue: view.session.fatigue,
           motivation: view.session.motivation,
           limiters: view.session.limiters ?? [],

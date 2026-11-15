@@ -10,15 +10,16 @@ async function routeRows(supabase: ServerSupabase): Promise<RouteSendRow[]> {
   const out: RouteSendRow[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from("route_ascents")
-      .select("id, session_id, grade, style, result, route_name").eq("style", "LEAD").range(from, from + 999);
+      .select("id, session_id, grade, style, result, route_name, sessions(gym_id)").eq("style", "LEAD").range(from, from + 999);
     if (error) return out;
-    out.push(...data.map((a) => ({ id: a.id, sessionId: a.session_id, grade: a.grade, style: a.style, result: a.result, routeName: a.route_name ?? "" })));
+    out.push(...data.map((a) => ({ id: a.id, sessionId: a.session_id, gymId: a.sessions?.gym_id ?? "", grade: a.grade, style: a.style, result: a.result, routeName: a.route_name ?? "" })));
     if (data.length < 1000) return out;
   }
 }
 
 /**
- * The viewer's avatar from their logbook and their last two hip-mobility
+ * The viewer's avatar from their logbook (outdoor = séances at a site of
+ * brand OUTDOOR) and their last two hip-mobility
  * assessments (RLS-scoped). Pages that already loaded the climbing dataset or
  * the board climbs pass them in.
  */
@@ -31,8 +32,8 @@ export async function loadAvatar(supabase: ServerSupabase, preloaded: { dataset?
       .order("created_at", { ascending: false }).limit(2),
   ]);
   return avatarProgress({
-    boulderSends: boulderSendsFrom(dataset.problems, dataset.attempts, boardRows.map(toBoardFact)),
-    routeSends: routeSendsFrom(routes),
+    boulderSends: boulderSendsFrom(dataset.problems, dataset.attempts, boardRows.map(toBoardFact), dataset.gyms),
+    routeSends: routeSendsFrom(routes, dataset.gyms),
     assessments: (assessments ?? []).map((a) => ({ results: parseStoredResults(a.results) })),
   });
 }

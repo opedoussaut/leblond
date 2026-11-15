@@ -128,24 +128,3 @@ export function ActivityTiming({ sessionId, activity, session, timingSource }: {
     </div>
   );
 }
-
-export function UnlinkActivity({ activityId }: { activityId: string }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  return (
-    <Button
-      variant="ghost"
-      className="mt-2"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          await linkActivityToSession(activityId, null);
-          router.refresh();
-        })
-      }
-    >
-      {t.session.unlink}
-    </Button>
-  );
-}
