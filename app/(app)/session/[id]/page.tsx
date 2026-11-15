@@ -10,6 +10,7 @@ import { DEFAULT_ANGLE, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { RouteSessionSummary } from "./route-summary";
 import { SessionLogger, loadRouteAscents } from "./session-logger";
+import { SessionWearableSection } from "./session-wearable-section";
 
 export default async function SessionPage({ params, searchParams }: PageProps<"/session/[id]">) {
   const { id } = await params;
@@ -32,10 +33,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         tries: h.tries, sessions: h.sessions, sent: h.sent };
     });
     const lastScale = facts.length ? facts[facts.length - 1].gradeScale : locale === "en" ? "V" : "FONT";
-    return <BoardSession sessionId={view.session.id} board={board} layout={view.session.board_layout}
+    const boardSession = <BoardSession sessionId={view.session.id} board={board} layout={view.session.board_layout}
       initialAngle={view.session.board_angle ?? DEFAULT_ANGLE} startedAt={view.session.started_at} ended={!!view.session.ended_at}
       initialAscents={here} known={known} defaultScale={lastScale}
       plan={view.session.ended_at ? null : decodePlan(typeof planParam === "string" ? planParam : null)} />;
+    if (!view.session.ended_at) return boardSession;
+    return <div className="space-y-5">{boardSession}<SessionWearableSection supabase={viewer.supabase} view={view} /></div>;
   }
 
   if (!view.session.ended_at) return <SessionLogger viewer={viewer} view={view} mode="live" />;
@@ -43,7 +46,10 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   if (view.session.discipline === "ROUTE") {
     const { locale } = await getI18n(viewer.profile.preferred_language);
     const ascents = await loadRouteAscents(viewer, view.session.id);
-    return <RouteSessionSummary locale={locale} session={view.session} gymName={view.gym.name} ascents={ascents} />;
+    return <div className="space-y-5">
+      <RouteSessionSummary locale={locale} session={view.session} gymName={view.gym.name} ascents={ascents} />
+      <SessionWearableSection supabase={viewer.supabase} view={view} />
+    </div>;
   }
   return <SessionSummaryView viewer={viewer} view={view} />;
 }
