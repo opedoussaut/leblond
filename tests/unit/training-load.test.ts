@@ -11,7 +11,7 @@ import type { BoardAscentFact } from "@/lib/analytics/boards";
 
 const climb = (over: Partial<ClimbSessionFact> = {}): ClimbSessionFact => ({
   id: "c1", discipline: "BOULDER", date: "2026-11-10", startedAt: new Date("2026-11-10T18:00:00Z"), endedAt: null,
-  durationMinutes: null, fatigue: null, attempts: 0, nearLimit: 0, ...over,
+  durationMinutes: null, fatigue: null, fatigueBefore: null, attempts: 0, nearLimit: 0, ...over,
 });
 const training = (over: Partial<TrainingLoadFact> = {}): TrainingLoadFact => ({
   id: "t1", date: "2026-11-10", completed: true, actualMinutes: 40, plannedMinutes: 45, rpe: 7, pain: null, mobility: false,
@@ -38,13 +38,19 @@ describe("climbMinutes", () => {
 
 describe("climbIntensity", () => {
   it("starts from the discipline and rises with attempts near the limit and with fatigue", () => {
-    expect(climbIntensity({ discipline: "BOULDER", attempts: 0, nearLimit: 0, fatigue: null })).toBe(6);
-    expect(climbIntensity({ discipline: "BOULDER", attempts: 10, nearLimit: 5, fatigue: null })).toBe(7);
-    expect(climbIntensity({ discipline: "BOULDER", attempts: 10, nearLimit: 10, fatigue: 5 })).toBe(9);
-    expect(climbIntensity({ discipline: "ROUTE", attempts: 4, nearLimit: 0, fatigue: 1 })).toBe(4);
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 0, nearLimit: 0, fatigue: null, fatigueBefore: null })).toBe(6);
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 10, nearLimit: 5, fatigue: null, fatigueBefore: null })).toBe(7);
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 10, nearLimit: 10, fatigue: 5, fatigueBefore: null })).toBe(9);
+    expect(climbIntensity({ discipline: "ROUTE", attempts: 4, nearLimit: 0, fatigue: 1, fatigueBefore: null })).toBe(4);
+  });
+  it("adds up to ±0.5 from the fatigue noted before the session", () => {
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 0, nearLimit: 0, fatigue: null, fatigueBefore: 5 })).toBe(6.5);
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 0, nearLimit: 0, fatigue: null, fatigueBefore: 1 })).toBe(5.5);
+    expect(climbIntensity({ discipline: "BOULDER", attempts: 0, nearLimit: 0, fatigue: 4, fatigueBefore: 4 })).toBe(6.8);
+    expect(climbIntensity({ discipline: "ROUTE", attempts: 0, nearLimit: 0, fatigue: 3, fatigueBefore: 3 })).toBe(5);
   });
   it("stays inside 3–9", () => {
-    expect(climbIntensity({ discipline: "BOARD", attempts: 5, nearLimit: 5, fatigue: 5 })).toBe(9);
+    expect(climbIntensity({ discipline: "BOARD", attempts: 5, nearLimit: 5, fatigue: 5, fatigueBefore: null })).toBe(9);
   });
 });
 
@@ -263,7 +269,7 @@ describe("trainingLoadReport", () => {
     const { trainingLoadReport, weeklyLoadRows } = await import("@/lib/analytics/training-load");
     const report = trainingLoadReport({
       today: "2026-11-15",
-      climbs: [{ id: "c", discipline: "BOULDER", date: "2026-11-14", startedAt: new Date("2026-11-14T18:00:00Z"), endedAt: null, durationMinutes: null, fatigue: 4 }],
+      climbs: [{ id: "c", discipline: "BOULDER", date: "2026-11-14", startedAt: new Date("2026-11-14T18:00:00Z"), endedAt: null, durationMinutes: null, fatigue: 4, fatigueBefore: null }],
       scaledAttempts: [{ sessionId: "c", scale: "B:FONT", score: 10, at: new Date("2026-11-14T18:10:00Z"), sent: true, tries: 1, tolerance: 1 }],
       training: [training({ date: "2026-11-13" })],
       mobility: [],
