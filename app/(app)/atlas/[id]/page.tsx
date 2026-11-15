@@ -10,6 +10,7 @@ import type { Locale } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
+import { catalogueTabFor, libraryHref } from "@/lib/navigation/library-tabs";
 import { atlasDetail } from "@/lib/training/atlas";
 import { METHODS_FOR_PLANS, TRAINING_CATALOGUE, type Localized } from "@/lib/training/catalogue";
 import { templateFor } from "@/lib/training/session-templates";
@@ -47,7 +48,7 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
   const executable = METHODS_FOR_PLANS.some((m) => m.id === entry.id);
 
   return <div className="space-y-6 pb-10">
-    <Link className={cn(linkClass, "text-sm")} href="/atlas"><IconBack /> {a.back}</Link>
+    <Link className={cn(linkClass, "text-sm")} href={libraryHref(catalogueTabFor(entry.category))}><IconBack /> {a.back}</Link>
 
     <header>
       <p className="leblond-eyebrow text-accent">{t.groups[entry.category]} · {t.evidence[entry.evidence]}</p>
