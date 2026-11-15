@@ -10,6 +10,8 @@ export const runtime = "nodejs";
  * FIT import (provider-neutral fallback). Validates size and FIT integrity,
  * keeps the raw file in the user's private folder for provenance, normalises
  * it, de-duplicates, and suggests the climbing session it overlaps.
+ * The answer also carries the activity's start, duration and linked session,
+ * so a séance page can attach the file right away (lib/integrations/wearables/fit/attach.ts).
  */
 export async function POST(request: Request) {
   const viewer = await getViewer();
@@ -37,7 +39,19 @@ export async function POST(request: Request) {
 
   const result = await saveWorkout(viewer.supabase, viewer.userId, { ...workout, rawFileReference: null }).catch(() => null);
   if (!result) return Response.json({ error: "server_error" }, { status: 500 });
-  if (result.status === "duplicate") return Response.json({ status: "duplicate", activityId: result.id });
+  if (result.status === "duplicate") {
+    const { data: existing } = await viewer.supabase
+      .from("wearable_activities")
+      .select("started_at, duration_seconds, session_id")
+      .eq("id", result.id)
+      .maybeSingle();
+    if (!existing) return Response.json({ error: "server_error" }, { status: 500 });
+    return Response.json({
+      status: "duplicate",
+      activityId: result.id,
+      activity: { startedAt: existing.started_at, durationSeconds: existing.duration_seconds, sessionId: existing.session_id },
+    });
+  }
 
   // Keep the original file (private bucket, user's folder) and record the reference.
   const { error: upErr } = await viewer.supabase.storage
@@ -54,5 +68,10 @@ export async function POST(request: Request) {
   const match = (sessions ?? []).find((s) =>
     overlapsSession(workout, { startedAt: new Date(s.started_at), endedAt: s.ended_at ? new Date(s.ended_at) : null }),
   );
-  return Response.json({ status: "inserted", activityId: result.id, suggestedSessionId: match?.id ?? null });
+  return Response.json({
+    status: "inserted",
+    activityId: result.id,
+    suggestedSessionId: match?.id ?? null,
+    activity: { startedAt: workout.startedAt.toISOString(), durationSeconds: workout.durationSeconds, sessionId: null },
+  });
 }

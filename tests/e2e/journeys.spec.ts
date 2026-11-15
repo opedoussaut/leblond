@@ -1,3 +1,4 @@
+import { Encoder, Profile, type FileIdMesg, type SessionMesg } from "@garmin/fitsdk";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
@@ -406,6 +407,47 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
   await expect(page).toHaveURL(/\/edit$/);
   await expect(page.getByRole("button", { name: /^Violet/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
+});
+
+/** A minimal watch activity: one session summary starting at `start`, `minutes` long. */
+function fitActivity(start: Date, minutes: number): Buffer {
+  const enc = new Encoder();
+  enc.onMesg(Profile.MesgNum.FILE_ID, { type: "activity", manufacturer: "development", product: 1, serialNumber: 5151, timeCreated: start } as FileIdMesg);
+  enc.onMesg(Profile.MesgNum.SESSION, {
+    timestamp: new Date(start.getTime() + minutes * 60_000), startTime: start, totalElapsedTime: minutes * 60, avgHeartRate: 128, maxHeartRate: 162,
+  } as SessionMesg);
+  return Buffer.from(enc.close());
+}
+
+test("A4b — FIT file on a climbing séance: at creation, removed, attached again", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signInWithPassword(page, "past@leblond.local");
+  const start = new Date(Date.now() - 30 * 3_600_000);
+  start.setUTCSeconds(0, 0);
+  const file = { name: "bloc.fit", mimeType: "application/octet-stream", buffer: fitActivity(start, 75) };
+
+  // Creation: the file fills in the date, start time and duration.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Demo Arkose");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await form.getByTestId("fit-file-input").setInputFiles(file);
+  await expect(form.getByText(/Horaires repris du fichier/)).toBeVisible();
+  await expect(form.getByLabel("Date")).toHaveValue(parisDate(start));
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  const watch = page.getByTestId("session-fit-attach").locator("..");
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+  await expect(page.getByText("Horaires repris de la montre")).toBeVisible();
+  await expect(page.getByText("Remplacer le fichier FIT")).toBeVisible();
+
+  // Removed: the séance keeps its times; the file can be attached again from the edit page.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Retirer le fichier FIT" }).click();
+  await expect(page.getByText("Joindre un fichier FIT")).toBeVisible();
+  await expect(page.getByText("Fichier FIT importé")).toHaveCount(0);
+  await page.getByTestId("fit-file-input").setInputFiles(file);
+  await expect(page.getByText(/Fichier FIT joint\./)).toBeVisible();
+  await expect(watch.getByText("Fichier FIT importé")).toBeVisible();
 });
 
 test("A6 — faster logging: session name, several problems/routes, tries, comments, projects, colours", async ({ page }) => {

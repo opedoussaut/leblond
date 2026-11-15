@@ -8,12 +8,16 @@ import { utcToZoned } from "@/lib/time";
 import { SessionLogger } from "../session-logger";
 import { DeleteSessionButton, SessionMetaForm } from "./session-meta-form";
 import { IconCheck } from "@/components/ui/icons";
+import { Notice } from "@/components/ui/card";
+import { fitAttachDictionary } from "@/lib/i18n/fit-attach";
+import { SessionWearableSection } from "../session-wearable-section";
 
 export const metadata = { title: "Modifier la séance" };
 
-/** Edit a finished session: when it happened, what was climbed, or delete it. */
-export default async function EditSessionPage({ params }: PageProps<"/session/[id]/edit">) {
+/** Edit a finished session: when it happened, its watch FIT file, what was climbed, or delete it. */
+export default async function EditSessionPage({ params, searchParams }: PageProps<"/session/[id]/edit">) {
   const { id } = await params;
+  const fitFailed = (await searchParams).fit === "failed";
   const viewer = await requireViewer();
   const view = await loadSessionView(viewer.supabase, id);
   if (!view) notFound();
@@ -35,8 +39,11 @@ export default async function EditSessionPage({ params }: PageProps<"/session/[i
         <IconCheck /> {e.done}
       </Link>
     </header>
-    <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
+    {fitFailed && !view.activity ? <Notice tone="error">{fitAttachDictionary(locale).linkFailed}</Notice> : null}
+    {/* Keyed on the times: attaching a FIT file changes them, and the form must show the new ones. */}
+    <SessionMetaForm key={`${view.session.started_at}|${minutes}`} sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
       fromWatch={view.session.timing_source === "ACTIVITY"} today={utcToZoned(new Date()).date} />
+    <SessionWearableSection supabase={viewer.supabase} view={view} />
     {/* A board séance's climbs are corrected on the séance page itself. */}
     {view.session.discipline === "BOARD" ? null : <section aria-label={e.logTitle} className="space-y-3">
       <SessionLogger viewer={viewer} view={view} mode="edit" />
