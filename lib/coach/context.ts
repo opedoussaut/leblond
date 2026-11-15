@@ -433,7 +433,7 @@ export function trainingLoadContext(report: TrainingLoadReport | null | undefine
 
 /** Said to Patrick whenever training load is in the context. */
 export const TRAINING_LOAD_NOTE =
-  "Training load: session load = intensity 0–10 × minutes (Foster session-RPE, arbitrary units). Climbing intensity is ESTIMATED (no RPE recorded); training uses the climber's RPE. fitness = 42-day exponential average, fatigue = 7-day, form = fitness − fatigue. zone from fatigue÷fitness: under < 0.8, optimal 0.8–1.3, high 1.3–1.5, danger > 1.5 (team-sport thresholds, debated, not validated for climbing: a balance marker, not an injury risk). verdict: performance per native scale (top-3 sends, last 6 weeks vs previous 6) decides; basis 'load' means no comparable results. Never convert grades between scales; never present thresholds as medical advice.";
+  "Training load: session load = intensity 0–10 × minutes (Foster session-RPE, arbitrary units). Climbing intensity is ESTIMATED (no RPE recorded) from discipline, attempts near the climber's best and self-reported fatigue before/after; training uses the climber's RPE. fitness = 42-day exponential average, fatigue = 7-day, form = fitness − fatigue. zone from fatigue÷fitness: under < 0.8, optimal 0.8–1.3, high 1.3–1.5, danger > 1.5 (team-sport thresholds, debated, not validated for climbing: a balance marker, not an injury risk). verdict: performance per native scale (top-3 sends, last 6 weeks vs previous 6) decides; basis 'load' means no comparable results. Never convert grades between scales; never present thresholds as medical advice.";
 
 export function buildCoachContext(input: CoachContextInput) {
   const { snapshot30: s30, snapshot90: s90 } = input;

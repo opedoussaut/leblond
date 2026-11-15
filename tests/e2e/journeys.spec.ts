@@ -1278,8 +1278,11 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await page.getByLabel("Nom de ton alter ego").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: /^Max/ })).toBeVisible();
+  // The rival's profile (its name and the "fictif" label), then the twin card explaining its level.
+  await expect(page.getByRole("heading", { level: 2, name: /^Max\s*fictif$/ })).toBeVisible();
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("twin-card").getByRole("heading", { level: 2, name: "Max, c’est toi qui suis le plan à la lettre" })).toBeVisible();
+  await expect(page.getByTestId("twin-card")).toContainText("Départ : 6A");
   await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
   await page.getByText("Réglages du rival").click();
