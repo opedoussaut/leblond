@@ -3,6 +3,7 @@ import { season, type Duel, type FeedItem, type RivalSettings } from "@/lib/anal
 import { fmt, type Locale } from "@/lib/i18n";
 import { rivalDictionary } from "@/lib/i18n/rival";
 import { formatDate } from "@/lib/format";
+import { boulderGrade } from "@/lib/grading/display";
 import { RivalPortrait } from "./rival-portrait";
 
 /** The rival's profile, its season and its feed (all derived; nothing stored). */
@@ -14,15 +15,21 @@ export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, tod
   const s = season(duels);
   const when = (date: string, time: string) => (date === today ? r.today : date === yesterday ? r.yesterday
     : formatDate(date + "T12:00:00", locale, { weekday: "short" })) + " · " + time;
+  const where = (board: { name: string; angle: number } | null) => (board ? fmt(r.sendOnBoard, { board: board.name, angle: board.angle }) : "");
   const text = (item: FeedItem): string => {
     switch (item.kind) {
       case "session": return fmt(r.sessionLine, { name, title: item.title, minutes: formatDuration(item.minutes), effort: item.effort });
-      case "send": return fmt(r.sendLine, { name, grade: item.grade, tries: item.tries,
-        where: item.board ? fmt(r.sendOnBoard, { board: item.board.name, angle: item.board.angle }) : "" });
-      case "project": return fmt(r.projectLine, { name, project: item.project });
+      case "send": return fmt(r.sendLine, { name, grade: boulderGrade(item.grade), tries: item.tries, where: where(item.board) });
+      case "attempt": return fmt(r.attemptLine, { name, grade: boulderGrade(item.grade), where: where(item.board) });
+      case "project": return fmt(item.sent ? r.projectLine : r.projectTriedLine, { name, project: item.project });
       case "duel": return fmt(r.duelLine, { week: item.week, a: Math.max(item.you, item.rival), b: Math.min(item.you, item.rival),
         verdict: item.winner === "you" ? r.duelWon : item.winner === "rival" ? fmt(r.duelLost, { name }) : r.duelLevel });
-      case "message": return fmt(r.messages[settings.tone][item.message], item.vars);
+      case "message": {
+        const wordings = r.messages[settings.tone][item.message];
+        const vars = typeof item.vars.grade === "string" ? { ...item.vars, grade: boulderGrade(item.vars.grade) } : item.vars;
+        const line = fmt(wordings[item.variant % wordings.length], vars);
+        return line.charAt(0).toUpperCase() + line.slice(1);
+      }
     }
   };
 
@@ -33,7 +40,7 @@ export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, tod
         <h2 id="rival-heading" className="flex flex-wrap items-center gap-2 font-display text-2xl font-black">
           {name} <span className="rounded-full bg-surface-2 px-2 py-0.5 font-sans text-xs font-semibold text-ink-3">{r.fictional}</span>
         </h2>
-        <p className="text-sm text-ink-2">{grade ? fmt(r.profileLine, { grade }) : r.profileLineNoGrade}{gym ? " · " + gym : ""}</p>
+        <p className="text-sm text-ink-2">{grade ? fmt(r.profileLine, { grade: boulderGrade(grade) }) : r.profileLineNoGrade}{gym ? " · " + gym : ""}</p>
         <p className="text-xs text-ink-3">{r.levelLabel[settings.level]} · {r.toneLabel[settings.tone]}</p>
       </div>
     </div>

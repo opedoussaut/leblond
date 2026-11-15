@@ -102,7 +102,9 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
     <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: p.name }))} followed={followed} today={today} />
 
     {rival ? <AlterEgoScore locale={locale} pact={rival.pact} portrait={rival.settings.portrait} href="/train/alter-ego"
-      progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today) }} />
+      progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today),
+        // Grades are on the alter ego page, from the twin; never the straight line here.
+        boulderPace: null, routePace: null }} />
       : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>
