@@ -1,3 +1,4 @@
+import { formatDuration } from "@/lib/duration";
 import { season, type Duel, type FeedItem, type RivalSettings } from "@/lib/analytics/rival";
 import { fmt, type Locale } from "@/lib/i18n";
 import { rivalDictionary } from "@/lib/i18n/rival";
@@ -15,7 +16,7 @@ export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, tod
     : formatDate(date + "T12:00:00", locale, { weekday: "short" })) + " · " + time;
   const text = (item: FeedItem): string => {
     switch (item.kind) {
-      case "session": return fmt(r.sessionLine, { name, title: item.title, minutes: item.minutes, effort: item.effort });
+      case "session": return fmt(r.sessionLine, { name, title: item.title, minutes: formatDuration(item.minutes), effort: item.effort });
       case "send": return fmt(r.sendLine, { name, grade: item.grade, tries: item.tries,
         where: item.board ? fmt(r.sendOnBoard, { board: item.board.name, angle: item.board.angle }) : "" });
       case "project": return fmt(r.projectLine, { name, project: item.project });

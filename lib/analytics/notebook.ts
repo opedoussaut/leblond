@@ -18,7 +18,11 @@ const day = (d: Date) => d.toISOString().slice(0, 10);
 
 // ── Best performances ──────────────────────────────────────────────────────
 
-export type BoulderBest = { system: GradeSystem; grade: string; date: string; flash: boolean; sends: number };
+export type BoulderBest = {
+  system: GradeSystem; grade: string; date: string; flash: boolean; sends: number;
+  /** Where the record was climbed, and every gym where that scale was sent. */
+  gymId: string; gymIds: string[];
+};
 
 /** Hardest boulder sent on each ordered grading system, with the day of its first send. Most used system first. */
 export function boulderBests(problems: readonly ProblemFact[], attempts: readonly AttemptFact[]): BoulderBest[] {
@@ -29,18 +33,20 @@ export function boulderBests(problems: readonly ProblemFact[], attempts: readonl
   }
   const bySystem = new Map<GradeSystem, { best: BoulderBest; score: number }>();
   const counts = new Map<GradeSystem, number>();
+  const gyms = new Map<GradeSystem, Set<string>>();
   for (const [problemId, a] of firstSend) {
     const p = byId.get(problemId);
     if (!p) continue;
     const score = gradeToScore(p.nativeGradeSystem, p.nativeGrade);
     if (score === null) continue;
     counts.set(p.nativeGradeSystem, (counts.get(p.nativeGradeSystem) ?? 0) + 1);
+    gyms.set(p.nativeGradeSystem, (gyms.get(p.nativeGradeSystem) ?? new Set()).add(p.gymId));
     const cur = bySystem.get(p.nativeGradeSystem);
     if (!cur || score > cur.score) {
-      bySystem.set(p.nativeGradeSystem, { score, best: { system: p.nativeGradeSystem, grade: p.nativeGrade, date: day(a.createdAt), flash: a.result === "FLASH", sends: 0 } });
+      bySystem.set(p.nativeGradeSystem, { score, best: { system: p.nativeGradeSystem, grade: p.nativeGrade, date: day(a.createdAt), flash: a.result === "FLASH", sends: 0, gymId: p.gymId, gymIds: [] } });
     }
   }
-  return [...bySystem.values()].map(({ best }) => ({ ...best, sends: counts.get(best.system) ?? 0 }))
+  return [...bySystem.values()].map(({ best }) => ({ ...best, sends: counts.get(best.system) ?? 0, gymIds: [...(gyms.get(best.system) ?? [])] }))
     .sort((a, b) => b.sends - a.sends);
 }
 

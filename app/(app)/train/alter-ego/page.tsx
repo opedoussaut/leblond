@@ -6,7 +6,7 @@ import { loadAvatar } from "@/lib/data/avatar";
 import { viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
-import { pactProgress } from "@/lib/analytics/alter-ego";
+import { climberBreakdown, pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { RivalFeed } from "@/components/training/rival-feed";
@@ -91,6 +91,7 @@ export default async function AlterEgoPage() {
     <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today)}
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
+      breakdown={climberBreakdown(work, pact.startDate)}
       observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
