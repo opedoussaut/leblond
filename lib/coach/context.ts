@@ -21,6 +21,7 @@ import { MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
 import { EXERCISE_BY_ID, LEVEL_LABELS } from "@/lib/training/hip-mobility/content";
 import { summarizePerformance, type MobilitySessionRecord, type SessionPlan } from "@/lib/training/hip-mobility/prescription";
 import type { DayOutcome, ProgrammeView } from "@/lib/training/programme";
+import type { TrainingLoadReport } from "@/lib/analytics/training-load";
 
 /**
  * The real grade scales for the systems this climber uses, easiest first, so
@@ -330,6 +331,8 @@ export interface CoachContextInput {
   boards?: ReturnType<typeof boardCoachSummary> | null;
   training?: CoachTrainingInput | null;
   mobility?: CoachMobilityInput | null;
+  /** Training load, already computed by lib/analytics/training-load (Patrick reads it, never computes it). */
+  trainingLoad?: TrainingLoadReport | null;
   now: Date;
 }
 
@@ -388,6 +391,47 @@ function period(s: Snapshot) {
 export const CLIMBING_DISTRICT_SCALES_NOTE =
   "CLIMBING_DISTRICT_LEVEL = Climbing District's current numbered levels 1–12 (1 easiest; gym levels, not Font or French grades). CLIMBING_DISTRICT_COLOR = its former colour scale (PINK unranked). Separate scales with no verified equivalence: never convert, merge or compare them.";
 
+/**
+ * Bounded training-load facts for Patrick: verdict and its basis, load zone and
+ * ratio, today's fitness/fatigue/form, the week's healthy range, flags and up
+ * to six per-scale result trends. No daily series, no raw sessions.
+ */
+export function trainingLoadContext(report: TrainingLoadReport | null | undefined) {
+  if (!report || !report.model.length) return null;
+  const last = report.model.at(-1)!;
+  const g = report.guide;
+  return {
+    verdict: report.verdict.verdict,
+    basis: report.verdict.basis,
+    zone: report.verdict.zone,
+    acuteChronicRatio: last.ratio,
+    fitness: Math.round(last.fitness),
+    fatigue: Math.round(last.fatigue),
+    form: Math.round(last.form),
+    fitnessChange28d: report.verdict.fitnessChange,
+    flags: report.verdict.flags,
+    monotony7d: report.monotony,
+    weekAhead: g ? { minLoad: g.minLoad, maxLoad: g.maxLoad, spikeAbove: g.dangerLoad, typicalSessionLoad: g.typicalLoad,
+      minSessions: g.minSessions, maxSessions: g.maxSessions, doneLast7Days: g.last7 } : null,
+    calibrationDaysLeft: report.calibrationLeft,
+    last28DaysBySource: report.bySource.map((b) => ({ source: b.source, sessions: b.sessions, load: b.load })),
+    estimatedShare28d: report.estimated ? { minutes: round(report.estimated.minutes), intensity: round(report.estimated.intensity) } : null,
+    resultTrends: report.trends.filter((t) => t.recentCount + t.previousCount > 0).slice(0, 6).map((t) => ({
+      scale: t.series.kind === "boulder" ? `boulder ${t.series.system}` : t.series.kind === "board" ? `board ${t.series.board} ${t.series.scale}`
+        : t.series.kind === "hang" ? `hang ${t.series.edgeMm ?? "?"}mm` : "route FRENCH",
+      direction: t.direction,
+      bestRecent: t.recentBest?.display ?? null,
+      bestPrevious: t.previousBest?.display ?? null,
+      recentCount: t.recentCount,
+      previousCount: t.previousCount,
+    })),
+  };
+}
+
+/** Said to Patrick whenever training load is in the context. */
+export const TRAINING_LOAD_NOTE =
+  "Training load: session load = intensity 0–10 × minutes (Foster session-RPE, arbitrary units). Climbing intensity is ESTIMATED (no RPE recorded); training uses the climber's RPE. fitness = 42-day exponential average, fatigue = 7-day, form = fitness − fatigue. zone from fatigue÷fitness: under < 0.8, optimal 0.8–1.3, high 1.3–1.5, danger > 1.5 (team-sport thresholds, debated, not validated for climbing: a balance marker, not an injury risk). verdict: performance per native scale (top-3 sends, last 6 weeks vs previous 6) decides; basis 'load' means no comparable results. Never convert grades between scales; never present thresholds as medical advice.";
+
 export function buildCoachContext(input: CoachContextInput) {
   const { snapshot30: s30, snapshot90: s90 } = input;
   const scales = gradeScalesFor([
@@ -432,6 +476,7 @@ export function buildCoachContext(input: CoachContextInput) {
       declaredBodyAreas: "Self-reported by the climber, NOT a diagnosis. DISCOMFORT = train at reduced load; PAIN = avoid loading that area; ACUTE = stop loading it and see a health professional.",
       mobility: "Hip Mobility programme. Stages 0–4 are LEBLOND's internal training stages, NOT a clinical assessment. Assessment performance levels are described levels (0–4) per test and side; 'measured' values are tape-measure cm or counts taken by the climber; tests are named by letter (see 'tests'); discomfort is self-reported 0–10. Changes are only meaningful when 'comparable' is true. Versions: EASIER < STANDARD < HARDER. 'offeredIncrease' is the only progression the records support; null means stay or step back.",
       dailyCheck: "Daily check-in (self-reported): sleep 1 = poor … 3 = good; fatigue 1 = fresh … 3 = very tired; soreness 0 = none … 2 = marked. outcome is what LEBLOND recommended for that day: AS_PLANNED, REDUCED, TECHNIQUE, MOBILITY or REST.",
+      ...(input.trainingLoad?.model.length ? { trainingLoad: TRAINING_LOAD_NOTE } : {}),
     },
     last30Days: period(s30),
     last90Days: period(s90),
@@ -528,6 +573,7 @@ export function buildCoachContext(input: CoachContextInput) {
     boards: input.boards && input.boards.sessions > 0 ? input.boards : null,
     training: trainingContext(input.training),
     mobility: mobilityContext(input.mobility),
+    trainingLoad: trainingLoadContext(input.trainingLoad),
   };
   return enforceBudget(ctx);
 }

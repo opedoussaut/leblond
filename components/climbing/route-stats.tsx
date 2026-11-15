@@ -6,8 +6,10 @@ import { routeDictionary } from "@/lib/i18n/routes";
 import { linkClass } from "@/components/ui/button";
 
 /** Observed route statistics (French sport grades), always separate from bouldering. */
-export function RouteStats({ locale, ascents, now, days = 30, title }: {
+export function RouteStats({ locale, ascents, now, days = 30, title, children }: {
   locale: Locale; ascents: RouteAscentFact[]; now: Date; days?: number | null; title?: string;
+  /** Diagrams shown instead of the compact pyramid (the same ones as for bouldering). */
+  children?: React.ReactNode;
 }) {
   const r = routeDictionary(locale);
   const fr = locale === "fr";
@@ -36,7 +38,7 @@ export function RouteStats({ locale, ascents, now, days = 30, title }: {
           {hint ? <p className="mt-1 text-xs text-ink-3">{hint}</p> : null}
         </div>)}
       </div>}
-    {s.pyramid.length ? <div>
+    {children ? (s.ascents ? children : null) : s.pyramid.length ? <div>
       <h3 className="text-sm font-bold">{r.pyramid}</h3>
       <ul className="mt-2 space-y-1.5" aria-label={r.pyramid}>
         {s.pyramid.map((p) => <li key={p.grade} className="grid grid-cols-1 grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-2 text-sm">

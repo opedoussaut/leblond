@@ -1,0 +1,259 @@
+import type { Locale } from "./index";
+import type { LoadSource, LoadZone, PerfDirection, Verdict } from "@/lib/analytics/training-load";
+
+/** Strings for the training-load diagram on Progrès: fitness, fatigue, form, band, verdict and sources. */
+const fr = {
+  title: "Charge et progression",
+  hint: "Ce que tes séances demandent à ton corps, jour après jour, et si tes résultats suivent. Grimpe, entraînement et mobilité comptent tous.",
+  evidence: "Calculé · estimé en partie",
+  empty: "Il faut au moins une séance enregistrée pour calculer ta charge.",
+  calibrating: "Encore {n} jours d’historique avant d’afficher ta zone : la charge de fond se calcule sur environ 4 semaines.",
+
+  verdictLabel: "Verdict",
+  verdict: {
+    progressing: "Tu progresses",
+    stagnating: "Tu stagnes",
+    declining: "Tu régresses",
+    insufficient: "Pas encore assez de données",
+  } satisfies Record<Verdict, string>,
+  basisPerformance: "D’après tes résultats des 6 dernières semaines comparés aux 6 précédentes, dans chaque échelle.",
+  basisLoad: "Aucun résultat comparable sur 12 semaines : verdict fondé sur ta charge seule (ta forme de fond).",
+  basisNone: "Enregistre des séances et des croix pendant quelques semaines pour obtenir un verdict.",
+  fitnessChange: "Charge de fond sur 4 semaines : {pct}",
+
+  zoneLabel: "Zone de charge",
+  zone: {
+    calibrating: "En calibrage",
+    under: "Sous la bande",
+    optimal: "Dans la bande",
+    high: "Haut de bande",
+    danger: "Pic de charge",
+  } satisfies Record<LoadZone, string>,
+  zoneText: {
+    calibrating: "Pas encore assez d’historique pour comparer ta semaine à ton fond.",
+    under: "Ta semaine est légère par rapport à ton fond : bien pour récupérer, mais si ça dure, ta forme de fond baisse.",
+    optimal: "Ta semaine est proportionnée à ce que ton corps a l’habitude d’encaisser.",
+    high: "Ta semaine dépasse nettement ton habitude. Possible ponctuellement, pas plusieurs semaines de suite.",
+    danger: "Ta semaine dépasse ton habitude de plus de 50 %. Les études associent ce genre de pic à plus de blessures : allège les prochains jours, surtout les doigts.",
+  } satisfies Record<LoadZone, string>,
+  ratioLabel: "Rapport aigu/chronique",
+
+  flags: {
+    spike: "Pic de charge (rapport > 1,5)",
+    high: "Rapport au-dessus de 1,3",
+    under: "Rapport sous 0,8",
+    monotony: "Semaine monotone : charge identique tous les jours (monotonie > 2)",
+    pain: "Douleur ≥ 3/10 signalée cette semaine",
+  },
+
+  weekTitle: "Ta semaine idéale",
+  weekText: "Pour rester dans la bande cette semaine : entre {min} et {max} de charge, soit environ {smin} à {smax} séances comme ta séance type.",
+  weekTextNoSessions: "Pour rester dans la bande cette semaine : entre {min} et {max} de charge.",
+  weekDone: "Déjà fait sur les 7 derniers jours : {done}.",
+  weekDanger: "Au-delà de {danger}, tu entres dans la zone de pic.",
+
+  chartTitle: "Forme de fond, fatigue et bande",
+  chartHint: "La bande colorée est ta zone de fatigue saine : entre 0,8 et 1,3 fois ta forme de fond. Le pointillé rouge marque 1,5. Après aujourd’hui : projection si tu gardes ton rythme des 4 dernières semaines.",
+  fitness: "Forme de fond (42 j)",
+  fatigue: "Fatigue (7 j)",
+  band: "Bande 0,8–1,3",
+  danger: "Seuil 1,5",
+  projection: "Projection 14 j",
+  today: "Aujourd’hui",
+  formTitle: "Fraîcheur",
+  formHint: "Forme de fond moins fatigue. Au-dessus de zéro : tu es frais. En dessous : tu accumules de la fatigue (normal en bloc de travail).",
+  fresh: "frais",
+  tired: "fatigué",
+  tooltip: "{date} · forme {fitness} · fatigue {fatigue} · charge du jour {load}",
+  tooltipProjected: "{date} (projection) · forme {fitness} · fatigue {fatigue}",
+  tableCaption: "Charge par semaine : forme de fond, fatigue et fraîcheur en fin de semaine",
+  week: "Semaine",
+  weekLoad: "Charge",
+  formCol: "Fraîcheur",
+
+  perfTitle: "Tes résultats, échelle par échelle",
+  perfHint: "Moyenne de tes 3 meilleures croix des 6 dernières semaines contre les 6 précédentes. Aucune cotation n’est convertie d’une échelle à l’autre.",
+  perfEmpty: "Pas encore de résultats sur 12 semaines.",
+  perfDirection: {
+    up: "en hausse",
+    flat: "stable",
+    down: "en baisse",
+    insufficient: "à comparer",
+  } satisfies Record<PerfDirection, string>,
+  perfBest: "meilleur : {grade}",
+  perfCounts: "{recent} récents · {previous} avant",
+  perfBoulder: "Bloc · {system}",
+  perfRoute: "Voie",
+  perfBoard: "{board} · {scale}",
+  perfHang: "Suspension · réglette {mm} mm",
+
+  sourcesTitle: "Sur 28 jours",
+  sources: {
+    BOULDER: "Bloc",
+    ROUTE: "Voie",
+    BOARD: "Board",
+    TRAINING: "Entraînement",
+    MOBILITY: "Mobilité",
+  } satisfies Record<LoadSource, string>,
+  sourceRow: "{n} séances · {load}",
+  loadUnit: "u.a.",
+
+  howTitle: "Comment c’est calculé, et ce qui est estimé",
+  how: [
+    "Charge d’une séance = intensité (0–10) × minutes : la méthode « session-RPE » de Foster (2001), validée dans de nombreux sports.",
+    "Entraînement et mobilité : l’effort perçu que tu notes (RPE) et la durée réelle. Sans RPE : 6/10 pour l’entraînement, 2/10 pour la mobilité (estimé).",
+    "Grimpe : pas de RPE enregistré, l’intensité est estimée. Base 6 en bloc, 5 en voie, 7 au board, jusqu’à +2 selon la part de tes essais à une cotation (deux en voie) de ta meilleure croix des 90 derniers jours dans la même échelle, et ±1 selon la fatigue notée après la séance.",
+    "Durée de grimpe : celle enregistrée, sinon le temps entre début et fin, sinon 4 minutes par essai noté (estimé).",
+    "Forme de fond = moyenne exponentielle sur 42 jours, fatigue = sur 7 jours, fraîcheur = forme − fatigue (modèle forme–fatigue de Banister).",
+  ],
+  estimatedShare: "Estimé sur 28 jours : durée de {minutes} des séances, intensité de {intensity}.",
+
+  limitsTitle: "Les limites, honnêtement",
+  limits: [
+    "La bande 0,8–1,3 et le seuil 1,5 viennent de sports collectifs (rugby, cricket, football australien), pas de l’escalade. Aucune étude n’a validé ces seuils pour les doigts d’un grimpeur.",
+    "Le rapport aigu/chronique est contesté : des chercheurs (Impellizzeri 2020–2021, Lolli 2019) montrent qu’il prédit mal les blessures et que son calcul crée des artefacts. Prends-le comme un repère d’équilibre, pas comme un risque de blessure chiffré.",
+    "En escalade, les revues récentes (Quarmby 2023) ne trouvent pas de lien clair entre volume et blessure ; les facteurs retrouvés sont une intensité élevée, le bloc, l’arqué et une blessure antérieure. La charge ne voit pas une prise traumatisante.",
+    "L’intensité de grimpe est estimée, et l’effort perçu reflète moins bien la physiologie chez les grimpeurs non experts (Gajdošík, Baláš & Draper 2020). Note ta fatigue en fin de séance pour affiner.",
+    "Le verdict compare tes cotations dans chaque échelle séparément ; une période en dalle ou dans une nouvelle salle peut le faire bouger sans que ton niveau change.",
+  ],
+  sourcesListTitle: "Sources",
+  references: [
+    { label: "Foster et al. 2001, A new approach to monitoring exercise training (session-RPE), J Strength Cond Res 15(1)", url: "https://pubmed.ncbi.nlm.nih.gov/?term=Foster+2001+%22A+new+approach+to+monitoring+exercise+training%22" },
+    { label: "Foster 1998, Monitoring training in athletes with reference to overtraining syndrome (monotonie, strain), Med Sci Sports Exerc 30(7)", url: "https://pubmed.ncbi.nlm.nih.gov/?term=Foster+1998+%22Monitoring+training+in+athletes+with+reference+to+overtraining+syndrome%22" },
+    { label: "Banister et al. 1975, A systems model of training for athletic performance (modèle forme–fatigue)", url: "https://pubmed.ncbi.nlm.nih.gov/?term=Banister+systems+model+of+training+athletic+performance" },
+    { label: "Gabbett 2016, The training–injury prevention paradox, Br J Sports Med 50(5)", url: "https://pubmed.ncbi.nlm.nih.gov/?term=Gabbett+2016+%22training-injury+prevention+paradox%22" },
+    { label: "Hulin et al. 2016, The acute:chronic workload ratio predicts injury, Br J Sports Med 50(4)", url: "https://pubmed.ncbi.nlm.nih.gov/?term=Hulin+2016+%22acute%3Achronic+workload+ratio+predicts+injury%22" },
+    { label: "Williams et al. 2017, Better way to determine the acute:chronic workload ratio? (moyennes exponentielles), Br J Sports Med 51(3)", url: "https://pubmed.ncbi.nlm.nih.gov/27650255/" },
+    { label: "Impellizzeri et al. 2021, What role do chronic workloads play in the ACWR?, Sports Med (critique)", url: "https://link.springer.com/article/10.1007/s40279-020-01378-6" },
+    { label: "Frontiers in Physiology 2021, Editorial: Acute:chronic workload ratio — is there scientific evidence?", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC8138569/" },
+    { label: "Quarmby et al. 2023, Risk factors for overuse injuries in adult climbers: a systematic review, Front Sports Act Living", url: "https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2023.1269870/full" },
+    { label: "Gajdošík, Baláš & Draper 2020, Effect of height on perceived exertion and physiological responses for climbers of differing ability levels, Front Psychol", url: "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2020.00997/full" },
+  ],
+};
+type Dict = typeof fr;
+
+const en: Dict = {
+  title: "Load and progress",
+  hint: "What your sessions ask of your body, day after day, and whether your results follow. Climbing, training and mobility all count.",
+  evidence: "Computed · partly estimated",
+  empty: "Log at least one session to compute your load.",
+  calibrating: "{n} more days of history before your zone shows: chronic load takes about 4 weeks to build.",
+
+  verdictLabel: "Verdict",
+  verdict: {
+    progressing: "You are progressing",
+    stagnating: "You are stagnating",
+    declining: "You are getting weaker",
+    insufficient: "Not enough data yet",
+  },
+  basisPerformance: "From your results over the last 6 weeks against the 6 before, in each scale.",
+  basisLoad: "No comparable results over 12 weeks: verdict based on your load alone (your chronic fitness).",
+  basisNone: "Log sessions and sends for a few weeks to get a verdict.",
+  fitnessChange: "Chronic load over 4 weeks: {pct}",
+
+  zoneLabel: "Load zone",
+  zone: {
+    calibrating: "Calibrating",
+    under: "Below the band",
+    optimal: "In the band",
+    high: "Top of the band",
+    danger: "Load spike",
+  },
+  zoneText: {
+    calibrating: "Not enough history yet to compare your week with your usual load.",
+    under: "Your week is light compared with your usual load: good for recovery, but if it lasts your fitness drops.",
+    optimal: "Your week matches what your body is used to handling.",
+    high: "Your week is clearly above your usual. Fine once in a while, not several weeks in a row.",
+    danger: "Your week is more than 50 % above your usual. Studies link such spikes with more injuries: ease off the next days, especially on your fingers.",
+  },
+  ratioLabel: "Acute:chronic ratio",
+
+  flags: {
+    spike: "Load spike (ratio > 1.5)",
+    high: "Ratio above 1.3",
+    under: "Ratio below 0.8",
+    monotony: "Monotonous week: the same load every day (monotony > 2)",
+    pain: "Pain ≥ 3/10 reported this week",
+  },
+
+  weekTitle: "Your ideal week",
+  weekText: "To stay in the band this week: between {min} and {max} of load, about {smin} to {smax} sessions like your typical one.",
+  weekTextNoSessions: "To stay in the band this week: between {min} and {max} of load.",
+  weekDone: "Already done in the last 7 days: {done}.",
+  weekDanger: "Above {danger}, you enter the spike zone.",
+
+  chartTitle: "Fitness, fatigue and band",
+  chartHint: "The shaded band is your healthy fatigue zone: 0.8 to 1.3 times your fitness. The red dashes mark 1.5. After today: projection if you keep the rhythm of the last 4 weeks.",
+  fitness: "Fitness (42 d)",
+  fatigue: "Fatigue (7 d)",
+  band: "Band 0.8–1.3",
+  danger: "1.5 threshold",
+  projection: "14-day projection",
+  today: "Today",
+  formTitle: "Freshness",
+  formHint: "Fitness minus fatigue. Above zero: you are fresh. Below: fatigue is building up (normal in a hard training block).",
+  fresh: "fresh",
+  tired: "tired",
+  tooltip: "{date} · fitness {fitness} · fatigue {fatigue} · day load {load}",
+  tooltipProjected: "{date} (projection) · fitness {fitness} · fatigue {fatigue}",
+  tableCaption: "Load per week: fitness, fatigue and freshness at the end of the week",
+  week: "Week",
+  weekLoad: "Load",
+  formCol: "Freshness",
+
+  perfTitle: "Your results, scale by scale",
+  perfHint: "Average of your 3 best sends in the last 6 weeks against the 6 before. No grade is converted between scales.",
+  perfEmpty: "No results over 12 weeks yet.",
+  perfDirection: {
+    up: "up",
+    flat: "stable",
+    down: "down",
+    insufficient: "to compare",
+  },
+  perfBest: "best: {grade}",
+  perfCounts: "{recent} recent · {previous} before",
+  perfBoulder: "Boulder · {system}",
+  perfRoute: "Routes",
+  perfBoard: "{board} · {scale}",
+  perfHang: "Hangs · {mm} mm edge",
+
+  sourcesTitle: "Last 28 days",
+  sources: {
+    BOULDER: "Boulder",
+    ROUTE: "Routes",
+    BOARD: "Board",
+    TRAINING: "Training",
+    MOBILITY: "Mobility",
+  },
+  sourceRow: "{n} sessions · {load}",
+  loadUnit: "a.u.",
+
+  howTitle: "How it is computed, and what is estimated",
+  how: [
+    "Session load = intensity (0–10) × minutes: Foster's session-RPE method (2001), validated across many sports.",
+    "Training and mobility: the effort you rate (RPE) and the real duration. Without an RPE: 6/10 for training, 2/10 for mobility (estimated).",
+    "Climbing: no RPE is recorded, so intensity is estimated. Base 6 for bouldering, 5 for routes, 7 on a board, up to +2 depending on the share of your attempts within one grade (two for routes) of your best send of the last 90 days on the same scale, and ±1 from the fatigue you noted after the session.",
+    "Climbing duration: the recorded one, else the time from start to end, else 4 minutes per logged attempt (estimated).",
+    "Fitness = 42-day exponential average, fatigue = 7-day, freshness = fitness − fatigue (Banister's fitness–fatigue model).",
+  ],
+  estimatedShare: "Estimated over 28 days: duration for {minutes} of sessions, intensity for {intensity}.",
+
+  limitsTitle: "The limits, honestly",
+  limits: [
+    "The 0.8–1.3 band and the 1.5 threshold come from team sports (rugby, cricket, Australian football), not climbing. No study has validated them for a climber's fingers.",
+    "The acute:chronic ratio is debated: researchers (Impellizzeri 2020–2021, Lolli 2019) show it predicts injuries poorly and that the way it is computed creates artefacts. Read it as a balance marker, not as an injury risk figure.",
+    "In climbing, recent reviews (Quarmby 2023) find no clear link between volume and injury; the factors found are high intensity, bouldering, crimping and a previous injury. Load cannot see one bad move.",
+    "Climbing intensity is estimated, and perceived effort reflects physiology less well in non-expert climbers (Gajdošík, Baláš & Draper 2020). Note your fatigue at the end of a session to sharpen it.",
+    "The verdict compares your grades in each scale separately; a slab phase or a new gym can move it without your level changing.",
+  ],
+  sourcesListTitle: "Sources",
+  references: fr.references.map((r) => ({
+    ...r,
+    label: r.label.replace("(monotonie, strain)", "(monotony, strain)").replace("(modèle forme–fatigue)", "(fitness–fatigue model)")
+      .replace("(moyennes exponentielles)", "(exponential averages)").replace("(critique)", "(critique)"),
+  })),
+};
+
+export function trainingLoadDictionary(locale: Locale): Dict {
+  return locale === "en" ? en : fr;
+}

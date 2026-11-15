@@ -15,6 +15,7 @@ import { localDate_ } from "@/lib/training/sessions";
 import { boardCoachSummary, summarizeBoardSession } from "@/lib/analytics/boards";
 import { BOARD_NAMES, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
+import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
 
 /**
@@ -213,6 +214,7 @@ export async function assembleCoachContext(
   const pactState = rival ? { ...pactProgress(rival.pact, climberWork, today), standing: rivalStanding(rival.pact, rival.settings, climberWork, today) } : null;
   const [programme, mobility] = await Promise.all([loadProgramme(viewer.supabase, today), loadMobility(viewer.supabase, today)]);
   const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobility.records.length > 0;
+  const trainingLoad = await loadTrainingLoadReport(viewer.supabase, { today, now, dataset: data, routes, boardFacts, mobility });
 
   return buildCoachContext({
     climber: {
@@ -244,6 +246,7 @@ export async function assembleCoachContext(
       enrollment: mobility.enrollment, assessments: mobility.assessments, records: mobility.records,
       plan: currentPlan(mobility), today,
     } : null,
+    trainingLoad,
     now,
   });
 }
