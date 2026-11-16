@@ -22,7 +22,7 @@ export default async function PatrickPage({ searchParams }: PageProps<"/patrick"
   const initialAction = q && (QUICK_ACTIONS as readonly string[]).includes(q) ? (q as QuickAction) : null;
 
   const [{ data: conversations }, { data: messages }, { data: projects }, { data: routeProjects }] = await Promise.all([
-    viewer.supabase.from("coach_conversations").select("id, title, updated_at").order("updated_at", { ascending: false }).limit(10),
+    viewer.supabase.from("coach_conversations").select("id, title, updated_at, coach_messages(count)").order("updated_at", { ascending: false }).limit(10),
     conversationId
       ? viewer.supabase.from("coach_messages").select("id, role, content").eq("conversation_id", conversationId).order("created_at")
       : Promise.resolve({ data: [] as Array<{ id: string; role: "user" | "assistant"; content: string }> }),
@@ -38,7 +38,9 @@ export default async function PatrickPage({ searchParams }: PageProps<"/patrick"
     <PatrickChat
       configured={coachConfig().configured}
       dailyLimit={coachConfig().dailyLimit}
-      conversations={conversations ?? []}
+      conversations={(conversations ?? []).map((c) => ({
+        id: c.id, title: c.title, updated_at: c.updated_at, messages: c.coach_messages?.[0]?.count ?? 0,
+      }))}
       conversationId={conversationId}
       initialMessages={messages ?? []}
       projects={(projects ?? []).map((p) => ({
