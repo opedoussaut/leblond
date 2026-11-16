@@ -15,7 +15,7 @@
 const SHELL = "leblond-shell-v2";
 const STATIC = "leblond-static-v1";
 const PAGES = "leblond-pages-v1";
-const ILLUSTRATIONS = "leblond-illustrations-v2";
+const ILLUSTRATIONS = "leblond-illustrations-v3";
 const OFFLINE_URL = "/offline";
 const SHELL_FILES = [OFFLINE_URL, "/icons/icon-192.png", "/brand/leblond-mark-96.png"];
 const LIVE_PAGE = /^\/session\/[0-9a-f-]{36}$/;
