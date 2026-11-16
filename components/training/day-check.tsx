@@ -88,11 +88,14 @@ export function DayCheck({ locale, today, initial, saved, hasProgramme, prefille
   const [pending, start] = useTransition();
   const set = <K extends keyof DayCheckInput>(k: K, v: DayCheckInput[K]) => setAnswers((a) => ({ ...a, [k]: v }));
 
-  function submit() {
+  const router = useRouter();
+  /** Saves the check-in; then shows today's session, or goes back to Aujourd'hui where the form badge appears. */
+  function submit(then: "session" | "home") {
     setError("");
     start(async () => {
       const r = await saveDayCheck({ ...answers, pain: hasPain ? answers.pain : [] });
       if (!r.ok) { setError(d.saveError); return; }
+      if (then === "home") { router.push("/home"); router.refresh(); return; }
       setResult(r.recommendation);
       setEditing(false);
     });
@@ -107,7 +110,7 @@ export function DayCheck({ locale, today, initial, saved, hasProgramme, prefille
   }
 
   const three = "grid-cols-3";
-  return <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label={d.title}>
+  return <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit("session"); }} aria-label={d.title}>
     <Choice name="sleep" legend={d.sleepLegend} value={answers.sleep} onChange={(v) => set("sleep", v)} layout={three}
       options={[1, 2, 3].map((n) => ({ value: n, label: d.sleep[n - 1] }))} />
     <Choice name="fatigue" legend={d.fatigueLegend} value={answers.fatigue} onChange={(v) => set("fatigue", v)} layout={three}
@@ -138,8 +141,15 @@ export function DayCheck({ locale, today, initial, saved, hasProgramme, prefille
     <Choice name="place" legend={d.placeLegend} value={answers.place} onChange={(v) => set("place", v)} layout="grid-cols-2 sm:grid-cols-3"
       options={DAY_PLACES.map((p) => ({ value: p, label: j.places[p] }))} />
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error}</p> : null}
-    <button type="submit" disabled={pending || (hasPain && answers.pain.length === 0)} className={buttonClass("primary", "md", "w-full sm:w-auto")}>
-      {pending ? "…" : d.submit}
-    </button>
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <button type="submit" disabled={pending || (hasPain && answers.pain.length === 0)} className={buttonClass("primary", "md", "w-full sm:w-auto")}>
+        {pending ? "…" : d.submit}
+      </button>
+      <button type="button" onClick={() => submit("home")} disabled={pending || (hasPain && answers.pain.length === 0)}
+        className={buttonClass("secondary", "md", "w-full sm:w-auto")}>
+        {pending ? "…" : d.saveOnly}
+      </button>
+    </div>
+    <p className="text-xs text-ink-3">{d.saveOnlyHint}</p>
   </form>;
 }

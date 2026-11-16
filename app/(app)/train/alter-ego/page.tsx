@@ -115,7 +115,7 @@ export default async function AlterEgoPage() {
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
       breakdown={climberBreakdown(work, pact.startDate)}
-      observed={measuredNow} />
+      observed={measuredNow} twinPace={settings.level !== "GOAL"} />
     <TwinCard locale={locale} name={pact.displayName} twin={twin} measured={measuredNow} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">

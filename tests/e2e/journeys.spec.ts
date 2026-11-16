@@ -625,6 +625,16 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(form.getByText("Mauvaise")).toBeVisible();
   await expect(form.getByText("De la mobilité douce à la place")).toBeVisible();
   await expect(form.getByRole("link", { name: "Modifier ma forme du jour" })).toHaveAttribute("href", "/train/today");
+  // Only saving the form, without opening the session: back to Aujourd’hui, where the badge shows the new form.
+  await form.getByRole("link", { name: "Modifier ma forme du jour" }).click();
+  await page.getByRole("button", { name: "Noter à nouveau ma forme du jour" }).click();
+  await page.getByRole("group", { name: "Ta nuit" }).getByText("Bonne").click();
+  await page.getByRole("group", { name: "Ta fatigue" }).getByText("En forme").click();
+  await page.getByRole("button", { name: "Valider ma forme" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  const saved = page.getByRole("region", { name: "Forme du jour" });
+  await expect(saved.getByText("Bonne")).toBeVisible();
+  await expect(saved.getByRole("img", { name: /Forme déclarée : Repos conseillé/ })).toHaveCount(0);
 
   // Recommended Atlas method → add to a plan → schedule this week.
   await page.goto("/atlas/max-hangs");
@@ -1285,7 +1295,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByTestId("twin-card")).toContainText("Départ : 6A");
   await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
-  await page.getByText("Réglages du rival").click();
+  await page.getByText("Réglages de l’alter ego").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
