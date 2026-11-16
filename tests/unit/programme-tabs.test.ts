@@ -3,15 +3,17 @@ import { parseProgrammeTab, programmeHref } from "@/lib/navigation/programme-tab
 
 describe("programme tabs", () => {
   it("reads the section from the URL, falling back to the overview", () => {
-    expect(parseProgrammeTab("rival")).toBe("rival");
-    expect(parseProgrammeTab(["guide", "rival"])).toBe("guide");
+    expect(parseProgrammeTab("checks")).toBe("checks");
+    expect(parseProgrammeTab(["guide", "checks"])).toBe("guide");
+    // The rival has its own area now (/rival); the page redirects the old tab.
+    expect(parseProgrammeTab("rival")).toBe("overview");
     expect(parseProgrammeTab("nope")).toBe("overview");
     expect(parseProgrammeTab(undefined)).toBe("overview");
   });
 
   it("opens the editor when a method is added from the library", () => {
     expect(parseProgrammeTab(undefined, "max-hangs")).toBe("editor");
-    expect(parseProgrammeTab("rival", "max-hangs")).toBe("rival");
+    expect(parseProgrammeTab("guide", "max-hangs")).toBe("guide");
   });
 
   it("builds shareable addresses", () => {

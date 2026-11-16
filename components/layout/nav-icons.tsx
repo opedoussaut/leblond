@@ -8,7 +8,7 @@
  */
 import {
   BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
-  Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, Sun, Target, TrendingUp, UserRound,
+  Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, SlidersHorizontal, Sun, Swords, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionId, SubPageKey } from "@/lib/navigation/sections";
@@ -19,6 +19,7 @@ export const AREA_ICONS: Record<SectionId, LucideIcon> = {
   today: Sun,
   sessions: Mountain,
   programmes: Layers,
+  rival: Swords,
   progress: TrendingUp,
   patrick: MessageCircle,
 };
@@ -30,6 +31,8 @@ export const PAGE_ICONS: Record<SubPageKey | "dayCheck" | "newSession" | "traini
   projects: Target,
   myProgrammes: Layers,
   library: BookOpen,
+  rivalDuel: Swords,
+  rivalSettings: SlidersHorizontal,
   // Under Progrès, the climbing and training pages reuse their domain icon;
   // the area they sit in is shown by colour.
   climbingProgress: Mountain,

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
 import { SectionTabs } from "@/components/layout/section-tabs";
-import { AlterEgoScore } from "@/components/training/alter-ego-score";
 import { FollowProgramme } from "@/components/training/follow-programme";
 import { PlanEditor } from "@/components/training/plan-editor";
 import { ProgrammeCard, ReplanBanner } from "@/components/training/programme-card";
@@ -9,15 +8,12 @@ import { PageHeader } from "@/components/ui/card";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { IconCheck, IconNext } from "@/components/ui/icons";
-import { pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
-import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
-import { rivalStanding } from "@/lib/analytics/rival";
+import { redirect } from "next/navigation";
 import { loadProgramme } from "@/lib/data/programme";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
-import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
 import { areasDictionary } from "@/lib/i18n/areas";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { getI18n } from "@/lib/i18n/server";
@@ -25,6 +21,7 @@ import { trainingDictionary } from "@/lib/i18n/training";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { PROGRAMME_TABS, parseProgrammeTab, programmeHref } from "@/lib/navigation/programme-tabs";
 import { parseContext } from "@/lib/training/assessment-protocol";
+import { assessmentStatus } from "@/lib/training/assessment";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { healthFromContext } from "@/lib/training/health";
 import { HIP_PROGRAMME, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
@@ -35,7 +32,7 @@ export const metadata = { title: "Programmes" };
 
 /**
  * Mes programmes, in sections (?tab=…, listed in the sidebar under the page):
- * the programme in progress (overview), the editor, the rival, the full
+ * the programme in progress (overview), the editor, the full
  * assessment with hip mobility, and how it all fits together.
  */
 export default async function ProgrammesPage({ searchParams }: PageProps<"/programmes">) {
@@ -43,26 +40,35 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const fr = locale === "fr";
   const a = areasDictionary(locale).programmes;
-  const ego = alterEgoDictionary(locale);
   const mob = mobilityDictionary(locale);
   const tp = trainingDictionary(locale);
   const h = journeyDictionary(locale).hub;
   const sp = await searchParams;
   const addMethod = typeof sp.add === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.add) ? sp.add : "";
   const today = localDate_(new Date());
+  // The rival moved to its own area.
+  if (sp.tab === "rival") redirect("/rival");
   const tab = parseProgrammeTab(sp.tab, sp.add);
 
-  const [sessions, { count: assessments }, rival, work, programme, { data: mobility }, { data: assessment }, plansResult] = await Promise.all([
+  const [sessions, { count: assessments }, programme, { data: mobility }, { data: assessment }, plansResult] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
     viewer.supabase.from("training_assessments").select("id", { count: "exact", head: true }),
-    loadOpenRival(viewer.supabase),
-    loadClimberWork(viewer.supabase),
     loadProgramme(viewer.supabase, today),
     viewer.supabase.from("mobility_enrollments").select("working_level,status").eq("programme", HIP_PROGRAMME).maybeSingle(),
     // Declared health (latest full assessment) feeds the editor's assisted mode.
     viewer.supabase.from("training_assessments").select("context").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     viewer.supabase.from("training_plans").select(`${PLAN_COLUMNS}, updated_at`).order("updated_at", { ascending: false }).limit(20),
   ]);
+  // The latest full assessment and its weekly check-ins, for its status on the checks section.
+  const { data: current } = tab === "checks"
+    ? await viewer.supabase.from("training_assessments").select("id, method_id, horizon_weeks, sessions_per_week, goal, created_at")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle()
+    : { data: null };
+  const { data: currentCheckins } = current
+    ? await viewer.supabase.from("training_checkins").select("week").eq("assessment_id", current.id).limit(100)
+    : { data: [] };
+  const status = current ? assessmentStatus({ createdAt: current.created_at, horizonWeeks: current.horizon_weeks },
+    (currentCheckins ?? []).map((c) => c.week), new Date()) : null;
   // Kept apart so the page still works before the followed-programme migration.
   const { data: followedRow } = await viewer.supabase.from("training_plans").select("id, followed_since")
     .not("followed_since", "is", null).limit(1).maybeSingle();
@@ -124,21 +130,6 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
       </section>
     </> : null}
 
-    {tab === "rival" ? <div className="space-y-4">
-      <p className="text-sm text-ink-2">{a.rivalIntro}</p>
-      {rival ? <AlterEgoScore locale={locale} pact={rival.pact} portrait={rival.settings.portrait} href="/train/alter-ego"
-        progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today),
-          // Grades are on the alter ego page, from the twin; never the straight line here.
-          boulderPace: null, routePace: null }} />
-        : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div>
-            <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>
-            <p className="mt-1 text-sm text-ink-2">{ego.cardEmpty}</p>
-          </div>
-          <Link href="/train/alter-ego" className={buttonClass("secondary", "md", "shrink-0")}>{ego.cardSign}</Link>
-        </section>}
-    </div> : null}
-
     {tab === "checks" ? <div className="space-y-4">
       <p className="text-sm text-ink-2">{a.checksIntro}</p>
       {/* The full assessment builds or re-adjusts a programme. */}
@@ -149,13 +140,30 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
             <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
-          {view ? <p className={"mt-2 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
+          {current && status ? <div className="mt-4 rounded-xl bg-surface-2 p-4" data-testid="assessment-status">
+            <p className="text-sm font-bold text-ink">{fmt(h.fullCurrent, { date: formatDate(current.created_at, locale, { day: "numeric", month: "long", year: "numeric" }) })}</p>
+            <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-ink-3">{h.fullMethod}</dt>
+                <dd className="font-semibold">{METHODS_FOR_PLANS.find((m) => m.id === current.method_id)?.title ?? current.method_id}</dd></div>
+              <div><dt className="text-xs text-ink-3">{h.fullPeriod}</dt>
+                <dd className="font-semibold">{status.finished ? fmt(h.fullFinished, { total: status.horizon }) : fmt(h.fullWeek, { week: status.week, total: status.horizon })}</dd></div>
+              <div><dt className="text-xs text-ink-3">{h.fullPerWeek}</dt><dd className="font-semibold">{current.sessions_per_week}</dd></div>
+              <div><dt className="text-xs text-ink-3">{h.fullCheckins}</dt>
+                <dd className="font-semibold">{status.lastCheckin ? fmt(h.fullCheckinsDone, { n: status.checkins, week: status.lastCheckin }) : h.fullCheckinsNone}</dd></div>
+              {current.goal ? <div className="sm:col-span-2"><dt className="text-xs text-ink-3">{h.fullGoal}</dt><dd>{current.goal}</dd></div> : null}
+            </dl>
+            {status.dueCheckin ? <p className="mt-3 text-sm font-bold text-warn">{fmt(h.fullCheckinDue, { week: status.dueCheckin })}</p> : null}
+          </div> : null}
+          {view ? <p className={"mt-3 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
             {fmt(view.reassessmentDue ? h.fullDue : h.fullNext, { date: dateLabel(view.nextReassessment) })}
           </p> : null}
         </div>
-        <Link href="/train/assess" className={buttonClass(view && !view.reassessmentDue ? "secondary" : "primary", "md", "self-start")}>
-          {view ? h.fullAgain : h.fullCta} <IconNext />
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {current ? <Link href="/train/assess" className={buttonClass("primary", "md")}>{h.fullOpen} <IconNext /></Link> : null}
+          <Link href="/train/assess?new=1" className={buttonClass(current && !view?.reassessmentDue ? "secondary" : "primary", "md")}>
+            {current ? h.fullAgain : h.fullCta} <IconNext />
+          </Link>
+        </div>
       </section>
       <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>

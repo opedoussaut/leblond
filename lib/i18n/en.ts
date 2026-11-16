@@ -40,6 +40,7 @@ export const en: Dictionary = {
     today: "Today",
     sessions: "Sessions",
     programmes: "Programmes",
+    rival: "Rival",
     progress: "Progress",
     patrick: "Patrick",
     // Pages
@@ -48,6 +49,8 @@ export const en: Dictionary = {
     projects: "Projects",
     myProgrammes: "My programmes",
     library: "Library",
+    rivalDuel: "Duel",
+    rivalSettings: "Rival settings",
     dayCheck: "Readiness",
     newSession: "New session",
     climbingProgress: "Climbing",

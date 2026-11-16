@@ -765,8 +765,8 @@ test("C — navigation moves section, selection and focus together (desktop)", a
   await page.goto("/home");
   const nav = page.getByRole("navigation", { name: "Navigation principale" });
   const area = (name: string) => nav.getByRole("link", { name, exact: true });
-  // Five areas, no "Vue d'ensemble" entries: an area link opens its overview.
-  for (const name of ["Aujourd’hui", "Séances", "Programmes", "Progrès", "Patrick"]) await expect(area(name)).toBeVisible();
+  // Six areas, no "Vue d'ensemble" entries: an area link opens its overview.
+  for (const name of ["Aujourd’hui", "Séances", "Programmes", "Rival", "Progrès", "Patrick"]) await expect(area(name)).toBeVisible();
   await expect(nav.getByRole("link", { name: /Vue d’ensemble/ })).toHaveCount(0);
 
   const steps: Array<{ click: () => Promise<void>; url: RegExp; h1: RegExp; active: string; current: string; visible: string[]; hidden: string[] }> = [
@@ -774,6 +774,7 @@ test("C — navigation moves section, selection and focus together (desktop)", a
     { click: () => nav.getByRole("link", { name: "Agenda", exact: true }).click(), url: /\/calendar$/, h1: /Mon agenda/, active: "Séances", current: "Agenda", visible: ["Journal"], hidden: ["Mes programmes"] },
     { click: () => area("Programmes").click(), url: /\/programmes$/, h1: /^Programmes$/, active: "Programmes", current: "Mes programmes", visible: ["Mes programmes", "Bibliothèque"], hidden: ["Projets", "Agenda"] },
     { click: () => nav.getByRole("link", { name: "Bibliothèque", exact: true }).click(), url: /\/atlas$/, h1: /^Bibliothèque$/, active: "Programmes", current: "Bibliothèque", visible: ["Mes programmes"], hidden: ["Projets"] },
+    { click: () => area("Rival").click(), url: /\/rival$/, h1: /^Mon rival$/, active: "Rival", current: "Duel", visible: ["Duel", "Réglages du rival"], hidden: ["Bibliothèque", "Mes programmes"] },
     { click: () => area("Aujourd’hui").click(), url: /\/home$/, h1: /Bonjour/, active: "Aujourd’hui", current: "Aujourd’hui", visible: [], hidden: ["Bibliothèque", "Agenda"] },
     { click: () => area("Progrès").click(), url: /\/follow-up$/, h1: /^Progrès$/, active: "Progrès", current: "Progrès", visible: ["Grimpe", "Entraînement", "Évaluations"], hidden: ["Bibliothèque", "Journal"] },
     { click: () => nav.getByRole("link", { name: "Évaluations", exact: true }).click(), url: /\/training-assessment$/, h1: /Évaluations/, active: "Progrès", current: "Évaluations", visible: ["Grimpe"], hidden: ["Bibliothèque"] },
@@ -875,7 +876,7 @@ test("C — mobile: bottom bar, every sub-page on screen, account menu in the he
   await page.goto("/home");
   const bottom = page.getByRole("navigation", { name: "Navigation principale" });
   const sub = page.getByRole("navigation", { name: "Pages de cette section" });
-  await expect(bottom.getByRole("link")).toHaveCount(5);
+  await expect(bottom.getByRole("link")).toHaveCount(6);
   // Aujourd’hui has no sub-pages.
   await expect(sub).toHaveCount(0);
   await bottom.getByRole("link", { name: "Séances" }).click();
@@ -947,7 +948,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
     await page.setViewportSize(size);
     for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
       "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
-      "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
+      "/training-assessment", "/rival", "/rival/settings", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
       const look = await page.evaluate(() => ({
@@ -990,10 +991,12 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
 
 test("F — alter ego: sign a pact, train alongside it, pause and leave", async ({ page }) => {
   await signInWithPassword(page, "guided@leblond.local");
+  // The old addresses lead to the Rival area.
   await page.goto("/programmes?tab=rival");
-  await page.getByRole("link", { name: "Signer un pacte" }).click();
-  await expect(page).toHaveURL(/\/train\/alter-ego/);
-  await page.getByLabel("Nom de ton alter ego").fill("Double");
+  await expect(page).toHaveURL(/\/rival$/);
+  await page.goto("/train/alter-ego");
+  await expect(page).toHaveURL(/\/rival$/);
+  await page.getByLabel("Nom de ton rival").fill("Double");
   // The profile fills in the goal only: the form says what is missing.
   await page.getByRole("button", { name: "Signer le pacte" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Pour chaque discipline" })).toBeVisible();
@@ -1002,9 +1005,12 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
   await expect(page.getByText("L’écart n’est qu’un score.", { exact: false })).toBeVisible();
 
-  // The score is in Programmes › Rival, and the ego trains through the running session.
-  await page.goto("/programmes?tab=rival");
-  await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
+  // The duel: who leads as a medal (in words too), the gap and the rule that decides.
+  await expect(page.getByRole("img", { name: /Double est devant toi|Tu es devant Double|À égalité avec Double/ }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Écart" })).toBeVisible();
+  await expect(page.getByText("Qui mène : les séances d’abord", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Semaine par semaine" })).toBeVisible();
+  // The rival trains through the running session.
   await page.goto("/session");
   await page.getByRole("link", { name: /Entraînement en cours/ }).click();
   await expect(page.getByRole("timer")).toBeVisible();
@@ -1014,7 +1020,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
 
   // Nothing overflows at the narrowest phone width.
   await page.setViewportSize({ width: 360, height: 740 });
-  for (const p of ["/train/alter-ego", "/programmes", "/programmes?tab=rival"]) {
+  for (const p of ["/rival", "/rival/settings", "/programmes"]) {
     await page.goto(p);
     await expect(page.locator("#app-main h1")).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -1022,7 +1028,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   }
 
   // A pause freezes the ego, and it leaves the live session too.
-  await page.goto("/train/alter-ego");
+  await page.goto("/rival/settings");
   await page.getByRole("button", { name: "Mettre le pacte en pause" }).click();
   await expect(page.getByRole("button", { name: "Reprendre le pacte" })).toBeVisible();
   await expect(page.getByText(/En pause/)).toBeVisible();
@@ -1032,13 +1038,13 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await expect(page.getByRole("group", { name: "Double s’entraîne avec toi" })).toHaveCount(0);
 
   // Leaving asks twice, then the page offers a new pact.
-  await page.goto("/train/alter-ego");
+  await page.goto("/rival/settings");
   await page.getByRole("button", { name: "Reprendre le pacte" }).click();
   // Wait for the resumed pact: a refresh landing mid-confirmation would reset it.
   await expect(page.getByRole("button", { name: "Mettre le pacte en pause" })).toBeVisible();
   await page.getByRole("button", { name: "Abandonner le pacte" }).click();
   await page.getByRole("button", { name: "Continuer" }).click();
-  await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mettre le pacte en pause" })).toBeVisible();
   await page.getByRole("button", { name: "Abandonner le pacte" }).click();
   await page.getByRole("button", { name: "Oui, abandonner" }).click();
   await expect(page.getByRole("button", { name: "Signer le pacte" })).toBeVisible();
@@ -1283,7 +1289,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByRole("region", { name: "Programme suivi" }).getByLabel("Choisir le programme")).toHaveValue(other!);
 
   // A new pact: the rival shows its portrait, its "fictif" label, its feed and its settings.
-  await page.goto("/train/alter-ego");
+  await page.goto("/rival");
   // The avatar: the lowest of six pillars; with no hip assessment it is White and flexibility is to unlock.
   const avatar = page.getByRole("region", { name: "Ton avatar" });
   await expect(avatar.getByTestId("avatar-colour")).toContainText("Blanc");
@@ -1293,7 +1299,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   // Every pillar not yet validated says what is missing; the outdoor ones say the gym counts up to Green.
   await expect(avatar.locator('[data-pillar="flexibility"]').getByTestId("avatar-missing")).toContainText("Il manque");
   await expect(avatar.locator('[data-pillar="routeOutdoor"]')).toContainText("Jusqu’au Vert, la salle compte aussi");
-  await page.getByLabel("Nom de ton alter ego").fill("Max");
+  await page.getByLabel("Nom de ton rival").fill("Max");
   await page.getByLabel("Bloc aujourd’hui").selectOption("6A");
   await page.getByRole("button", { name: "Signer le pacte" }).click();
   // The rival's profile (its name and the "fictif" label), then the twin card explaining its level.
@@ -1304,14 +1310,16 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByRole("heading", { level: 3, name: "Messages", exact: true })).toBeVisible();
   // The tone is a symbol next to the name, with its label.
   await expect(page.getByRole("img", { name: "Ton : Piquant" })).toBeVisible();
-  await page.getByText("Réglages de l’alter ego").click();
+  // The settings have their own page under Rival.
+  await page.getByRole("link", { name: "Réglages du rival" }).first().click();
+  await expect(page).toHaveURL(/\/rival\/settings$/);
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
-  await page.reload();
+  await page.goto("/rival");
   await expect(page.getByRole("img", { name: "Ton : Sans pitié" })).toBeVisible();
-  await page.getByText("Réglages de l’alter ego").click();
+  await page.goto("/rival/settings");
   await expect(page.getByRole("button", { name: "À ta portée" })).toHaveAttribute("aria-pressed", "true");
   // The climber manages load and pain: no safety footnote under the feed.
   await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);

@@ -97,7 +97,7 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin, 
       </aside>
       <nav aria-label={t.nav.mainNav}
         className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur md:hidden">
-        <ul className="mx-auto grid max-w-xl grid-cols-5 gap-0.5 px-1 pt-1">
+        <ul className="mx-auto grid max-w-xl grid-cols-6 gap-0.5 px-1 pt-1">
           {AREAS.map((area) => {
             const { id, href } = area;
             const selected = currentArea === id;
@@ -109,10 +109,10 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin, 
                 <Link href={href} aria-current={isPage ? "page" : selected ? "true" : undefined}
                   data-active-area={selected ? "true" : undefined}
                   className={cn(
-                    "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[11px] leading-tight transition-colors",
+                    "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[10px] leading-tight transition-colors",
                     selected ? "font-bold text-accent" : "font-medium text-ink-3 hover:text-ink",
                   )}>
-                  {selected ? <span aria-hidden="true" className="absolute inset-x-5 top-0 h-[3px] rounded-full bg-accent" /> : null}
+                  {selected ? <span aria-hidden="true" className="absolute inset-x-3 top-0 h-[3px] rounded-full bg-accent" /> : null}
                   <Icon aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={selected ? 2.25 : 1.9} />
                   <span className="max-w-full truncate">{t.nav[id]}</span>
                   {live ? <span className="absolute right-[22%] top-2 h-2 w-2 rounded-full bg-ok" aria-label={t.session.active} /> : null}

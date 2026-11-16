@@ -8,13 +8,16 @@ import { chartsDictionary } from "@/lib/i18n/charts";
 import { IconNext } from "@/components/ui/icons";
 import { ProfilePicture } from "./profile-picture";
 import { RivalPortrait } from "./rival-portrait";
+import { StandingMedal } from "./standing-medal";
 
 /**
  * The duel on Aujourd'hui: the climber and the rival face to face, the score
  * in séances and a tug bar of the séances done since signing. It states the
  * gap and never prescribes work to close it.
  */
-export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused, breakdown }: {
+export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused, breakdown, href = "/rival" }: {
+  /** The link to the full duel; null on the duel page itself. */
+  href?: "/rival" | null;
   locale: Locale; name: string; standing: Standing; week: number; total: number;
   portrait: RivalPortraitId; avatar: number; paused: boolean;
   /** The climber's séances by type since signing. */
@@ -69,10 +72,13 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
     </ul> : null}
 
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm font-semibold">{verdict}</p>
-      <Link href="/train/alter-ego" className="text-sm font-bold text-white underline underline-offset-4">
+      <p className="flex items-center gap-3 text-sm font-semibold">
+        <StandingMedal state={standing.state} label={verdict} size={44} />
+        <span aria-hidden="true">{verdict}</span>
+      </p>
+      {href ? <Link href={href} className="text-sm font-bold text-white underline underline-offset-4">
         {c.bannerSee} <IconNext />
-      </Link>
+      </Link> : null}
     </div>
   </section>;
 }
