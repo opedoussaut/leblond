@@ -36,7 +36,7 @@ const fr = {
   },
   programmes: {
     title: "Programmes",
-    subtitle: "Ce que tu suis : ton programme principal, la mobilité à côté, ton rival.",
+    subtitle: "Ce que tu suis : ton programme principal, la mobilité à côté, ton alter ego.",
     mine: "Mes programmes",
     mineHint: "Crée, modifie et planifie tes programmes. Celui qui est en cours guide tes semaines.",
     journeyTitle: "Mon parcours, étape par étape",
@@ -92,7 +92,7 @@ const fr = {
     plannedOne: "1 séance prévue", plannedMany: "{n} séances prévues",
     doneOne: "1 séance faite", doneMany: "{n} séances faites", rest: "rien de noté",
     followTitle: "Suivre un programme",
-    followText: "Évalue ton niveau : LEBLOND prépare un programme vers ton objectif, avec la mobilité et ton rival.",
+    followText: "Évalue ton niveau : LEBLOND prépare un programme vers ton objectif, avec la mobilité et ton alter ego.",
     followCta: "Voir les programmes",
   },
 };
@@ -133,7 +133,7 @@ const en: Dict = {
   },
   programmes: {
     title: "Programmes",
-    subtitle: "What you follow: your main programme, mobility alongside, your rival.",
+    subtitle: "What you follow: your main programme, mobility alongside, your alter ego.",
     mine: "My programmes",
     mineHint: "Create, edit and schedule your programmes. The one in progress guides your weeks.",
     journeyTitle: "My journey, step by step",
@@ -189,7 +189,7 @@ const en: Dict = {
     plannedOne: "1 session planned", plannedMany: "{n} sessions planned",
     doneOne: "1 session done", doneMany: "{n} sessions done", rest: "nothing logged",
     followTitle: "Follow a programme",
-    followText: "Assess your level: LEBLOND prepares a programme toward your goal, with mobility and your rival.",
+    followText: "Assess your level: LEBLOND prepares a programme toward your goal, with mobility and your alter ego.",
     followCta: "See the programmes",
   },
 };
