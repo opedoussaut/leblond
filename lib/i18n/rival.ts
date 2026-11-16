@@ -7,8 +7,8 @@ import type { Locale } from "./index";
  */
 const fr = {
   fictional: "fictif",
-  profileLine: "Ton alter ego · grimpe du {grade} cette semaine",
-  profileLineNoGrade: "Ton alter ego · suit ton programme",
+  profileLine: "Grimpe du {grade} cette semaine",
+  profileLineNoGrade: "Suit ton programme",
   levelLabel: { REACH: "À ta portée", RELENTLESS: "À la lettre", GOAL: "Objectif" },
   levelHint: {
     REACH: "Il reste au plus une séance et 10 % devant toi : tu peux toujours le rattraper.",
@@ -341,8 +341,8 @@ const fr = {
 
 const en: typeof fr = {
   fictional: "fictional",
-  profileLine: "Your alter ego · climbs {grade} this week",
-  profileLineNoGrade: "Your alter ego · follows your programme",
+  profileLine: "Climbs {grade} this week",
+  profileLineNoGrade: "Follows your programme",
   levelLabel: { REACH: "Within reach", RELENTLESS: "To the letter", GOAL: "Goal" },
   levelHint: {
     REACH: "It stays at most one session and 10% ahead of you: you can always catch it.",
