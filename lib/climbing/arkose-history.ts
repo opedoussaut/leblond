@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GRADES_BY_SYSTEM } from "@/lib/grading/systems";
 import { parseCsv } from "./boardlib-csv";
 
 /**
@@ -12,9 +13,23 @@ import { parseCsv } from "./boardlib-csv";
 export const ARKOSE_COLOURS = ["YELLOW", "GREEN", "BLUE", "RED", "BLACK", "PURPLE"] as const;
 export type ArkoseColour = (typeof ARKOSE_COLOURS)[number];
 
-const COLOUR_NAMES: Record<string, ArkoseColour> = {
+/**
+ * Gyms whose statistics pages Arkose hosts (same file format), each with its
+ * own colour scale: Arkose, Le Labo (Grenoble), MROC Laennec (Lyon).
+ */
+export const HISTORY_SYSTEMS = ["ARKOSE_COLOR", "LELABO_COLOR", "MROC_COLOR"] as const;
+export type HistorySystem = (typeof HISTORY_SYSTEMS)[number];
+export const isHistorySystem = (s: unknown): s is HistorySystem => (HISTORY_SYSTEMS as readonly unknown[]).includes(s);
+
+/** A scale's colours, easiest first. */
+export const historyColours = (system: HistorySystem): string[] => GRADES_BY_SYSTEM[system].map((g) => g.id);
+
+const COLOUR_NAMES: Record<string, string> = {
   jaune: "YELLOW", yellow: "YELLOW",
   vert: "GREEN", verte: "GREEN", green: "GREEN",
+  "vert clair": "LIGHT_GREEN", "verte claire": "LIGHT_GREEN", "light green": "LIGHT_GREEN", light_green: "LIGHT_GREEN",
+  "vert fonce": "DARK_GREEN", "verte foncee": "DARK_GREEN", "dark green": "DARK_GREEN", dark_green: "DARK_GREEN",
+  orange: "ORANGE",
   bleu: "BLUE", bleue: "BLUE", blue: "BLUE",
   rouge: "RED", red: "RED",
   noir: "BLACK", noire: "BLACK", black: "BLACK",
@@ -26,7 +41,7 @@ export const MAX_SENDS_PER_LINE = 60;
 /** At most this many lines per file. */
 export const MAX_LINES = 2000;
 
-export type ArkoseDay = { date: string; counts: Partial<Record<ArkoseColour, number>> };
+export type ArkoseDay = { date: string; counts: Partial<Record<string, number>> };
 export type ArkoseRejectReason = "date" | "colour" | "count" | "future";
 export type ArkoseParse = {
   days: ArkoseDay[];
@@ -37,9 +52,11 @@ export type ArkoseParse = {
 
 const strip = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-export function arkoseColour(value: string): ArkoseColour | null {
-  const v = strip(value);
-  return COLOUR_NAMES[v] ?? ((ARKOSE_COLOURS as readonly string[]).includes(v.toUpperCase()) ? (v.toUpperCase() as ArkoseColour) : null);
+/** The colour a file names, if the gym's scale has it ("vert" is not a Le Labo colour: it has light and dark green). */
+export function arkoseColour(value: string, system: HistorySystem = "ARKOSE_COLOR"): string | null {
+  const v = strip(value).replace(/\s+/g, " ");
+  const id = COLOUR_NAMES[v] ?? v.toUpperCase().replace(/ /g, "_");
+  return historyColours(system).includes(id) ? id : null;
 }
 
 function validDate(s: string): boolean {
@@ -49,7 +66,7 @@ function validDate(s: string): boolean {
 }
 
 /** Parses the file. `today` (YYYY-MM-DD) refuses days in the future. Several lines for the same day and colour add up. */
-export function parseArkoseHistory(text: string, today: string): ArkoseParse {
+export function parseArkoseHistory(text: string, today: string, system: HistorySystem = "ARKOSE_COLOR"): ArkoseParse {
   const table = parseCsv(text.replace(/;/g, ","));
   const header = (table[0] ?? []).map(strip);
   const col = (...names: string[]) => header.findIndex((h) => names.includes(h));
@@ -63,7 +80,7 @@ export function parseArkoseHistory(text: string, today: string): ArkoseParse {
   table.slice(1, MAX_LINES + 1).forEach((row, i) => {
     const line = i + 2;
     const date = (row[iDate] ?? "").trim();
-    const colour = arkoseColour(row[iColour] ?? "");
+    const colour = arkoseColour(row[iColour] ?? "", system);
     const raw = (row[iCount] ?? "").trim();
     const count = /^\d+$/.test(raw) ? Number(raw) : NaN;
     if (!validDate(date)) return rejected.push({ line, reason: "date" });
@@ -86,7 +103,8 @@ export const importArkoseHistorySchema = z.object({
   gymId: z.string().uuid(),
   days: z.array(z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    counts: z.partialRecord(z.enum(ARKOSE_COLOURS), z.number().int().min(1).max(MAX_SENDS_PER_LINE)),
+    // Any colour of a supported scale; the action then checks it against the chosen gym's own scale.
+    counts: z.partialRecord(z.enum([...new Set(HISTORY_SYSTEMS.flatMap(historyColours))] as [string, ...string[]]), z.number().int().min(1).max(MAX_SENDS_PER_LINE)),
   })).min(1).max(40),
 });
 
@@ -98,5 +116,5 @@ export function arkoseBatches(days: ArkoseDay[], size = 40): ArkoseDay[][] {
 }
 
 export function daySends(day: ArkoseDay): number {
-  return Object.values(day.counts).reduce((a, n) => a + (n ?? 0), 0);
+  return Object.values(day.counts).reduce<number>((a, n) => a + (n ?? 0), 0);
 }

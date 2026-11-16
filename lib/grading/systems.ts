@@ -17,6 +17,7 @@ import type { GradeSystem } from "@/lib/climbing/types";
  * - Block'Out: https://blockout.fr/tours/la-grimpe (B1 → B14, "sans se limiter à la seule couleur des prises")
  * - Climb Up: https://www.climb-up.fr/faq/ (7 niveaux : jaune, vert, bleu, violet, rouge, blanc, noir)
  * - Vertical'Art: https://www.vertical-art.fr/faq/ (blanc → violet, référence cotation Bleau)
+ * - Le Labo (Grenoble), MROC Laennec (Lyon): colour order as listed on their statistics pages (hosted by Arkose)
  */
 
 export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
@@ -41,6 +42,8 @@ export const GRADE_SYSTEM_KIND: Record<GradeSystem, GradeSystemKind> = {
   BLOCKOUT_LEVEL: "NUMERIC",
   CLIMB_UP_COLOR: "COLOUR",
   VERTICAL_ART_COLOR: "COLOUR",
+  LELABO_COLOR: "COLOUR",
+  MROC_COLOR: "COLOUR",
 };
 
 export function gradeSystemKind(system: GradeSystem): GradeSystemKind {
@@ -211,6 +214,28 @@ export const VERTICAL_ART_GRADES: GradeDefinition[] = ordered("VERTICAL_ART_COLO
   ["PURPLE", undefined, "#6B2FA3", "#ffffff"],
 ]);
 
+/** Le Labo (Grenoble): eight colours, easiest first, as its statistics page lists them. */
+export const LELABO_GRADES: GradeDefinition[] = ordered("LELABO_COLOR", [
+  ["LIGHT_GREEN", undefined, "#7BD34B", "#0d1a00"],
+  ["DARK_GREEN", undefined, "#1E6B33", "#ffffff"],
+  ["YELLOW", undefined, "#F2C318", "#1a1400"],
+  ["ORANGE", undefined, "#EE7D1C", "#1a0d00"],
+  ["RED", undefined, "#C8282B", "#ffffff"],
+  ["PURPLE", undefined, "#6B2FA3", "#ffffff"],
+  ["BLUE", undefined, "#1F63C6", "#ffffff"],
+  ["BLACK", undefined, "#151515", "#ffffff"],
+]);
+
+/** MROC Laennec (Lyon): six colours, easiest first (purple sits between blue and red). */
+export const MROC_GRADES: GradeDefinition[] = ordered("MROC_COLOR", [
+  ["YELLOW", undefined, "#F2C318", "#1a1400"],
+  ["GREEN", undefined, "#2E9E4F", "#ffffff"],
+  ["BLUE", undefined, "#1F63C6", "#ffffff"],
+  ["PURPLE", undefined, "#6B2FA3", "#ffffff"],
+  ["RED", undefined, "#C8282B", "#ffffff"],
+  ["BLACK", undefined, "#151515", "#ffffff"],
+]);
+
 export const UNKNOWN_GRADES: GradeDefinition[] = [
   { id: "UNKNOWN", system: "UNKNOWN", kind: "UNORDERED", ordinal: null },
 ];
@@ -225,6 +250,8 @@ export const GRADES_BY_SYSTEM: Record<GradeSystem, GradeDefinition[]> = {
   CLIMB_UP_COLOR: CLIMB_UP_GRADES,
   VERTICAL_ART_COLOR: VERTICAL_ART_GRADES,
   CLIMBING_DISTRICT_LEVEL: CLIMBING_DISTRICT_LEVEL_GRADES,
+  LELABO_COLOR: LELABO_GRADES,
+  MROC_COLOR: MROC_GRADES,
 };
 
 /** Whether grades in this system can be placed on an ordinal scale. */

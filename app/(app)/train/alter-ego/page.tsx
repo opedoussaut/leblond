@@ -11,7 +11,13 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { RivalFeed } from "@/components/training/rival-feed";
 import { RivalSettingsForm } from "@/components/training/rival-settings";
-import { duelRace, rivalBoulderGrade, rivalFeed, rivalStanding, weeklyDuels } from "@/lib/analytics/rival";
+import {
+  RIVAL_MESSAGES, duelRace, recentEndTimes, rivalBoulderGrade, rivalFeed, rivalStanding, usualTrainingTime, weeklyDuels, yourDays,
+} from "@/lib/analytics/rival";
+import { bestSendByDay, measuredAt, twinState, twinTimeline } from "@/lib/analytics/twin";
+import { TwinCard } from "@/components/training/twin-card";
+import { rivalDictionary } from "@/lib/i18n/rival";
+import { zonedToUtc } from "@/lib/time";
 import { DuelRace } from "@/components/charts/duel-race";
 import { BOARD_NAMES, BOARD_SHORT, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, loadBoardProjects } from "@/lib/data/boards";
@@ -69,9 +75,21 @@ export default async function AlterEgoPage() {
     viewer.supabase.from("route_projects").select("route_name").eq("status", "ACTIVE").limit(20),
   ]);
   const [avatar, photo] = await Promise.all([loadAvatar(viewer.supabase, { dataset }), viewerPhotoUrl()]);
+  const snapshot = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 60);
+  // The twin: the climber from their measured level on the start date, following the plan to the letter.
+  const measuredNow = { boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade };
+  const twinInput = {
+    pact, work, today, measuredNow,
+    measuredStart: measuredAt(dataset.problems, dataset.attempts, routes ?? [], zonedToUtc(pact.startDate, "23:59")),
+  };
+  const twin = twinState(twinInput);
+  const timeline = twinTimeline(twinInput, 7);
   const base = pactProgress(pact, work, today);
-  // The score at the rival's level (À ta portée never runs away).
-  const progress = { ...base, standing: rivalStanding(pact, settings, work, today) };
+  // The score at the rival's level (À ta portée never runs away); grades from the twin except for the Goal level.
+  const progress = {
+    ...base, standing: rivalStanding(pact, settings, work, today),
+    ...(settings.level === "GOAL" ? {} : { boulderPace: twin.boulder?.grade ?? null, routePace: twin.route?.grade ?? null }),
+  };
   const lastBoard = boardRows[boardRows.length - 1];
   const projects = [
     ...(boulderProjects ?? []).map((p) => p.problems?.name || p.problems?.native_grade || "").filter(Boolean),
@@ -79,20 +97,26 @@ export default async function AlterEgoPage() {
     ...boardProjects.map((p) => `${p.climb_name} (${BOARD_SHORT[p.board as Board]} ${p.angle}°)`),
   ];
   const weekdays = Array.from({ length: 7 }, (_, i) => formatDate(`2026-11-${String(16 + i).padStart(2, "0")}T12:00:00`, locale, { weekday: "long" }));
+  const messages = rivalDictionary(locale).messages[settings.tone];
+  const weekAgo = addDays(today, -7);
   const feed = rivalFeed({ pact, settings, work, today, projects, weekdays,
-    board: lastBoard ? { name: BOARD_NAMES[lastBoard.board as Board], angle: lastBoard.angle } : null });
+    board: lastBoard ? { name: BOARD_NAMES[lastBoard.board as Board], angle: lastBoard.angle } : null,
+    twin: timeline.days, plateauWeeks: timeline.plateauWeeks,
+    yours: yourDays(work, bestSendByDay(dataset.problems, dataset.attempts, weekAgo), measuredNow.boulder, weekAgo),
+    usualTime: usualTrainingTime(recentEndTimes(work, today)),
+    wordings: Object.fromEntries(RIVAL_MESSAGES.map((m) => [m, messages[m].length])) });
   const duels = weeklyDuels(pact, settings, work, today);
   const lastGym = dataset.sessions.length ? dataset.gyms.find((g) => g.id === dataset.sessions[dataset.sessions.length - 1]?.gymId)?.name ?? null : null;
-  const snapshot = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 60);
 
   return <div className="space-y-5">
     {back}
     <PageHeader title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
-    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today)}
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today, twin.boulder?.grade ?? null)}
       gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
       breakdown={climberBreakdown(work, pact.startDate)}
-      observed={{ boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade }} />
+      observed={measuredNow} />
+    <TwinCard locale={locale} name={pact.displayName} twin={twin} measured={measuredNow} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
       {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}

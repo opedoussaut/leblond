@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireViewer } from "@/lib/auth/viewer";
-import { ARKOSE_COLOURS, importArkoseHistorySchema, type ArkoseDay } from "@/lib/climbing/arkose-history";
+import { historyColours, importArkoseHistorySchema, isHistorySystem, type ArkoseDay } from "@/lib/climbing/arkose-history";
 import { zonedToUtc } from "@/lib/time";
 import type { ActionResult } from "@/lib/validation/common";
 
@@ -27,7 +27,10 @@ export async function importArkoseHistory(input: unknown): Promise<ActionResult<
   const sb = viewer.supabase;
 
   const { data: gym } = await sb.from("gyms").select("id, brand, grading_system, has_bouldering").eq("id", gymId).maybeSingle();
-  if (!gym || gym.brand !== "ARKOSE" || gym.grading_system !== "ARKOSE_COLOR" || !gym.has_bouldering) return { ok: false, error: "invalid" };
+  if (!gym || !gym.has_bouldering || !isHistorySystem(gym.grading_system)) return { ok: false, error: "invalid" };
+  const system = gym.grading_system;
+  const colours = historyColours(system);
+  if (days.some((d) => Object.keys(d.counts).some((c) => !colours.includes(c)))) return { ok: false, error: "invalid" };
 
   const result: ArkoseImportResult = { sessions: 0, sends: 0, skippedDays: 0 };
   for (const day of days) {
@@ -40,20 +43,20 @@ export async function importArkoseHistory(input: unknown): Promise<ActionResult<
     if (existing) { result.skippedDays += 1; continue; }
 
     // Arkose gives no time of day: noon, one second per boulder.
-    const sends = ARKOSE_COLOURS.flatMap((c) => Array.from({ length: day.counts[c] ?? 0 }, () => c));
+    const sends = colours.flatMap((c) => Array.from({ length: day.counts[c] ?? 0 }, () => c));
     const start = zonedToUtc(day.date, "12:00").getTime();
     const at = (i: number) => new Date(start + (i + 1) * 1000).toISOString();
     const ended = at(sends.length);
 
     const { data: session, error } = await sb.from("sessions").insert({
       user_id: viewer.userId, gym_id: gymId, discipline: "BOULDER", source: "ARKOSE", session_type: "BOULDERING",
-      grade_system: "ARKOSE_COLOR", started_at: new Date(start).toISOString(), ended_at: ended, notes: NOTE,
+      grade_system: system, started_at: new Date(start).toISOString(), ended_at: ended, notes: NOTE,
     }).select("id").single();
     if (error || !session) return { ok: false, error: "unknownError" };
 
     const problems = sends.map((grade, i) => ({
       id: crypto.randomUUID(), gym_id: gymId, created_by: viewer.userId, native_grade: grade,
-      native_grade_system: "ARKOSE_COLOR" as const, wall_angle: "UNKNOWN" as const,
+      native_grade_system: system, wall_angle: "UNKNOWN" as const,
       notes: NOTE, created_at: at(i), retired_at: ended,
     }));
     const { error: pErr } = await sb.from("problems").insert(problems);

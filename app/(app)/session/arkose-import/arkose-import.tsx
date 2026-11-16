@@ -6,7 +6,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { fieldClass } from "@/components/ui/field";
 import { importArkoseHistory, type ArkoseImportResult } from "@/lib/actions/arkose-import";
-import { ARKOSE_COLOURS, arkoseBatches, daySends, parseArkoseHistory } from "@/lib/climbing/arkose-history";
+import { arkoseBatches, daySends, historyColours, parseArkoseHistory, type HistorySystem } from "@/lib/climbing/arkose-history";
 import { gradeLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { arkoseImportDictionary } from "@/lib/i18n/arkose-import";
@@ -15,7 +15,7 @@ import { utcToZoned } from "@/lib/time";
 const MAX_BYTES = 1024 * 1024;
 
 /** Reads the file on the device, shows what was understood, then sends it in batches of days. */
-export function ArkoseImport({ gyms }: { gyms: Array<{ id: string; name: string }> }) {
+export function ArkoseImport({ gyms }: { gyms: Array<{ id: string; name: string; system: HistorySystem }> }) {
   const { t, locale } = useI18n();
   const a = arkoseImportDictionary(locale);
   const [gymId, setGymId] = useState(gyms[0]?.id ?? "");
@@ -24,7 +24,8 @@ export function ArkoseImport({ gyms }: { gyms: Array<{ id: string; name: string 
   const [done, setDone] = useState<ArkoseImportResult | null>(null);
   const [error, setError] = useState(false);
 
-  const parsed = text === null ? null : parseArkoseHistory(text, utcToZoned(new Date()).date);
+  const system = gyms.find((g) => g.id === gymId)?.system ?? "ARKOSE_COLOR";
+  const parsed = text === null ? null : parseArkoseHistory(text, utcToZoned(new Date()).date, system);
 
   async function onFile(file: File | undefined) {
     setDone(null); setError(false);
@@ -72,7 +73,7 @@ export function ArkoseImport({ gyms }: { gyms: Array<{ id: string; name: string 
         {parsed.days.length ? <ul className="max-h-72 space-y-1 overflow-auto rounded-xl bg-surface-2 p-3 text-xs">
           {parsed.days.map((d) => <li key={d.date}>
             <span className="font-semibold">{fmt(a.previewDay, { date: d.date, n: daySends(d) })}</span>
-            {" · "}{ARKOSE_COLOURS.filter((c) => d.counts[c]).map((c) => `${gradeLabel(t, "ARKOSE_COLOR", c)} : ${d.counts[c]}`).join(", ")}
+            {" · "}{historyColours(system).filter((c) => d.counts[c]).map((c) => `${gradeLabel(t, system, c)} : ${d.counts[c]}`).join(", ")}
           </li>)}
         </ul> : <p className="text-sm text-ink-3">{a.empty}</p>}
       </div> : null}

@@ -3,7 +3,7 @@ import { summarizeBoardSession } from "@/lib/analytics/boards";
 import { BOARD_SHORT, type Board } from "@/lib/climbing/boards";
 import { BOARD_ASCENT_COLUMNS, toBoardFact, type BoardAscentRow } from "@/lib/data/boards";
 import { boardsDictionary } from "@/lib/i18n/boards";
-import { LinkButton, chipClass, linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
+import { LinkButton, linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
@@ -83,7 +83,8 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
   ].sort((x, y) => y.at.localeCompare(x.at)).slice(0, 60);
 
   const kindChip = (kind: "climb" | "training") =>
-    <span className={chipClass(kind === "climb" ? "accent" : "neutral", "shrink-0")}>{kind === "climb" ? a.climb : a.training}</span>;
+    <span className={cn("inline-flex min-h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-semibold",
+      kind === "climb" ? "bg-accent text-accent-ink" : "bg-train-soft text-train-ink")}>{kind === "climb" ? a.climb : a.training}</span>;
   // A one-off séance has no scheduled date: show the day it was done.
   const dayOf = (s: TrainingSession) => s.scheduledDate ?? (s.startedAt ? localDate_(new Date(s.startedAt)) : null);
   const trainingLine = (s: TrainingSession) => [
@@ -93,6 +94,9 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
     s.status === "COMPLETED" && s.actualMinutes !== null ? `${s.actualMinutes} ${ts.minutesShort}` : s.plannedMinutes ? `${s.plannedMinutes} ${ts.minutesShort}` : "",
   ].filter(Boolean).join(" · ");
   const rowClass = "block rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent";
+  // Deep blue for climbing, sky blue for training: a stripe on the left of each row, matching its chip.
+  const climbRow = cn(rowClass, "border-l-4 border-l-accent");
+  const trainingRow = cn(rowClass, "border-l-4 border-l-train");
 
   return (
     <div className="space-y-6">
@@ -174,7 +178,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
                 const s = item.s;
                 return (
                   <li key={"t" + s.id}>
-                    <Link href={`/train/sessions/${s.id}`} className={rowClass}>
+                    <Link href={`/train/sessions/${s.id}`} className={trainingRow}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="truncate font-semibold">{s.title}</span>
                         {kindChip("training")}
@@ -191,7 +195,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
               const boardName = s.board ? fmt(b.journalLabel, { board: BOARD_SHORT[s.board as Board], angle: s.board_angle ?? "" }) : "";
               return (
                 <li key={"c" + s.id}>
-                  <Link href={`/session/${s.id}`} className={rowClass}>
+                  <Link href={`/session/${s.id}`} className={climbRow}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate font-semibold">{bs ? boardName : s.title ? `${s.title} · ${s.gyms?.name ?? ""}` : s.gyms?.name}</span>
                       {kindChip("climb")}

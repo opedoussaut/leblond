@@ -180,6 +180,8 @@ export type ClimberWork = {
   kind?: WorkKind;
   /** The séance's exercises, which the ego raced alongside in the player. */
   targets?: WorkTarget[];
+  /** When it ended (ISO), so the rival can react the same evening. */
+  endedAt?: string | null;
 };
 
 export type EgoDay = { date: string; week: number; ledger: Ledger };
