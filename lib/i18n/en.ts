@@ -586,7 +586,12 @@ export const en: Dictionary = {
     send: "Send",
     thinking: "Patrick is thinking…",
     newConversation: "New conversation",
-    conversations: "Conversations",
+    conversations: "Recent conversations",
+    conversationsHint: "Tap a conversation to read it again and carry on.",
+    allConversations: "All conversations",
+    untitled: "Untitled conversation",
+    messageOne: "{n} message",
+    messageMany: "{n} messages",
     notConfigured:
       "Patrick isn't enabled on this deployment yet (no model configured). Your data is still available in Progress.",
     rateLimited: "You've reached the limit of {limit} questions per day. Patrick is back tomorrow.",

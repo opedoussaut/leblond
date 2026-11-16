@@ -591,7 +591,12 @@ export const fr = {
     send: "Envoyer",
     thinking: "Patrick réfléchit…",
     newConversation: "Nouvelle conversation",
-    conversations: "Conversations",
+    conversations: "Conversations récentes",
+    conversationsHint: "Touche une conversation pour la relire et la reprendre.",
+    allConversations: "Toutes les conversations",
+    untitled: "Conversation sans titre",
+    messageOne: "{n} message",
+    messageMany: "{n} messages",
     notConfigured:
       "Patrick n’est pas encore activé sur ce déploiement (aucun modèle configuré). Tes données restent disponibles dans Progrès.",
     rateLimited: "Tu as atteint la limite de {limit} questions par jour. Patrick revient demain.",
