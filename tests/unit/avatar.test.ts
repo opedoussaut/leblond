@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  assessmentLevel, avatarProgress, bodyPillar, boulderIndoorPillar, boulderOutdoorPillar, boulderSendsFrom,
+  assessmentLevel, avatarProgress, MIN_CLIMBS, MIN_SESSIONS, bodyPillar, boulderIndoorPillar, boulderOutdoorPillar, boulderSendsFrom,
   routeIndoorPillar, routeOutdoorPillar, routeSendsFrom, type ClimbSend,
 } from "@/lib/analytics/avatar";
 import type { BoardAscentFact } from "@/lib/analytics/boards";
@@ -14,77 +14,84 @@ const r = (test: MobilityResult["test"], side: MobilityResult["side"], level: nu
 const assessment = (levels: Partial<Record<MobilityResult["test"], number>>) => ({
   results: Object.entries(levels).flatMap(([test, level]) => [r(test as MobilityResult["test"], "LEFT", level!), r(test as MobilityResult["test"], "RIGHT", level!)]),
 });
-/** n different climbs at `grade`, spread over `sessions` séances (and over `sites` sites). */
-const sends = (grade: string, n: number, sessions: number, opts: { prefix?: string; outdoor?: boolean; sites?: number } = {}): ClimbSend[] =>
+/** n sends at `grade`, spread over `sessions` séances (and `sites` sites), on `climbs` different climbs (default n). */
+const sends = (grade: string, n: number, sessions: number, opts: { prefix?: string; outdoor?: boolean; sites?: number; climbs?: number } = {}): ClimbSend[] =>
   Array.from({ length: n }, (_, i) => ({
-    key: `${opts.prefix ?? grade}-${i}`, sessionId: `${opts.outdoor ? "o" : "s"}${i % sessions}`, grade,
+    key: `${opts.prefix ?? grade}-${i % (opts.climbs ?? n)}`, sessionId: `${opts.outdoor ? "o" : "s"}${i % sessions}`, grade,
     outdoor: opts.outdoor ?? false, site: `${opts.outdoor ? "crag" : "gym"}${i % (opts.sites ?? 1)}`,
   }));
 /** Outdoor sends: n climbs over `days` days at `sites` sites. */
-const out = (grade: string, n: number, days: number, sites = 1) => sends(grade, n, days, { outdoor: true, sites, prefix: "out-" + grade });
+const out = (grade: string, n: number, days: number, sites = 1, climbs?: number) =>
+  sends(grade, n, days, { outdoor: true, sites, climbs, prefix: "out-" + grade });
 
 describe("indoor climbing pillars", () => {
-  it("validates a level with 3 different climbs over 2 séances up to Green, never one lucky send", () => {
-    expect(boulderIndoorPillar(sends("5c", 3, 2)).level).toBe(3);
-    expect(boulderIndoorPillar(sends("5c", 3, 1)).level).toBe(0);
-    expect(boulderIndoorPillar([...sends("6C+", 1, 1), ...sends("5b", 3, 2)]).level).toBe(2);
-    // The same problem three times counts once.
-    expect(boulderIndoorPillar(["s1", "s2", "s3"].map((sessionId) => ({ key: "a", sessionId, grade: "6A+", outdoor: false, site: "g" }))).level).toBe(0);
+  it("validates a level with 3 different climbs over 5 séances up to Green, never one lucky send", () => {
+    expect(MIN_SESSIONS).toBe(5);
+    expect(MIN_CLIMBS).toBe(3);
+    expect(boulderIndoorPillar(sends("5c", 5, 5)).level).toBe(3);
+    expect(boulderIndoorPillar(sends("5c", 5, 5, { climbs: 3 })).level).toBe(3);
+    expect(boulderIndoorPillar(sends("5c", 5, 5, { climbs: 2 })).level).toBe(0);
+    expect(boulderIndoorPillar(sends("5c", 5, 4)).level).toBe(0);
+    expect(boulderIndoorPillar([...sends("6C+", 1, 1), ...sends("5b", 5, 5)]).level).toBe(2);
+    // The same problem on every séance counts once.
+    expect(boulderIndoorPillar(["s1", "s2", "s3", "s4", "s5"].map((sessionId) => ({ key: "a", sessionId, grade: "6A+", outdoor: false, site: "g" }))).level).toBe(0);
   });
 
   it("asks for more climbs and séances from Violet", () => {
-    expect(boulderIndoorPillar(sends("6A+", 3, 2)).level).toBe(3);
-    expect(boulderIndoorPillar(sends("6A+", 4, 3)).level).toBe(4);
-    expect(boulderIndoorPillar(sends("6B+", 5, 3)).level).toBe(5);
-    expect(boulderIndoorPillar(sends("7A", 5, 3)).level).toBe(5);
-    expect(boulderIndoorPillar(sends("7A", 5, 4)).level).toBe(6);
-    expect(routeIndoorPillar(sends("6b", 4, 3)).level).toBe(4);
-    expect(routeIndoorPillar(sends("7a+", 5, 4))).toEqual({ kind: "climb", level: 6, next: null });
+    expect(boulderIndoorPillar(sends("6A+", 5, 5, { climbs: 3 })).level).toBe(3);
+    expect(boulderIndoorPillar(sends("6A+", 5, 5, { climbs: 4 })).level).toBe(4);
+    expect(boulderIndoorPillar(sends("6B+", 5, 5)).level).toBe(5);
+    expect(boulderIndoorPillar(sends("7A", 5, 5)).level).toBe(5);
+    expect(boulderIndoorPillar(sends("7A", 6, 6)).level).toBe(6);
+    expect(routeIndoorPillar(sends("6b", 5, 5, { climbs: 4 })).level).toBe(4);
+    expect(routeIndoorPillar(sends("7a+", 6, 6))).toEqual({ kind: "climb", level: 6, next: null });
   });
 
-  it("says which criteria are missing: 3/3 routes but 1/2 séances stays White", () => {
+  it("says which criteria are missing: 3/3 routes but 1/5 séances stays White", () => {
     const p = routeIndoorPillar(sends("5c", 3, 1));
     expect(p.level).toBe(0);
     expect(p.next).toEqual({
-      level: 1, rule: { grade: "5a", climbs: 3, sessions: 2, sites: 1 }, outdoorOnly: false,
+      level: 1, rule: { grade: "5a", climbs: 3, sessions: 5, sites: 1 }, outdoorOnly: false,
       have: { climbs: 3, sessions: 1, sites: 1 }, missing: ["sessions"],
     });
   });
 
   it("counts harder sends toward an easier threshold and reads Font in any case", () => {
-    const p = boulderIndoorPillar([...sends("5b", 2, 2), ...sends("6A", 1, 1, { prefix: "x" })]);
+    const p = boulderIndoorPillar([...sends("5b", 5, 5), ...sends("6A", 1, 1, { prefix: "x" })]);
     expect(p.level).toBe(2);
     expect(p.next).toMatchObject({ level: 3, rule: { grade: "5c" }, have: { climbs: 1, sessions: 1 }, missing: ["climbs", "sessions"] });
-    expect(boulderIndoorPillar(sends("5C", 3, 2)).level).toBe(3);
+    expect(boulderIndoorPillar(sends("5C", 5, 5)).level).toBe(3);
   });
 
   it("counts outdoor sends for the indoor pillars too", () => {
-    expect(boulderIndoorPillar(out("6A+", 4, 3)).level).toBe(4);
+    expect(boulderIndoorPillar(out("6A+", 5, 5)).level).toBe(4);
   });
 });
 
 describe("outdoor climbing pillars", () => {
   it("lets indoor sends fill the outdoor pillar up to Green, never beyond", () => {
-    const indoor = sends("7A", 5, 4);
+    const indoor = sends("7A", 6, 6);
     expect(boulderOutdoorPillar(indoor).level).toBe(3);
     expect(boulderOutdoorPillar(indoor).next).toMatchObject({ level: 4, outdoorOnly: true, rule: { grade: "6A" }, have: { climbs: 0, sessions: 0 } });
-    expect(routeOutdoorPillar(sends("6a", 3, 2)).level).toBe(3);
+    expect(routeOutdoorPillar(sends("6a", 5, 5)).level).toBe(3);
   });
 
-  it("validates Violet with 3 outdoor climbs over 2 days, a notch below indoor", () => {
-    expect(boulderOutdoorPillar(out("6A", 3, 2)).level).toBe(4);
-    expect(boulderOutdoorPillar([...sends("5c", 3, 2), ...out("6A", 3, 1)]).level).toBe(3);
-    expect(routeOutdoorPillar(out("6a+", 3, 2)).level).toBe(4);
+  it("validates Violet with 3 outdoor climbs over 5 days, a notch below indoor", () => {
+    expect(boulderOutdoorPillar(out("6A", 5, 5, 1, 3)).level).toBe(4);
+    expect(boulderOutdoorPillar(out("6A", 5, 4)).level).toBe(0);
+    expect(boulderOutdoorPillar([...sends("5c", 5, 5), ...out("6A", 5, 4)]).level).toBe(3);
+    expect(routeOutdoorPillar(out("6a+", 5, 5)).level).toBe(4);
   });
 
   it("asks two different sites for Blue and Black", () => {
-    const oneCrag = boulderOutdoorPillar(out("6B+", 3, 2, 1));
+    const oneCrag = boulderOutdoorPillar(out("6B+", 5, 5, 1));
     expect(oneCrag.level).toBe(4);
-    expect(oneCrag.next).toMatchObject({ level: 5, have: { climbs: 3, sessions: 2, sites: 1 }, missing: ["sites"] });
-    expect(boulderOutdoorPillar(out("6B+", 3, 2, 2)).level).toBe(5);
-    expect(boulderOutdoorPillar(out("7A", 3, 3, 2)).level).toBe(6);
-    expect(routeOutdoorPillar(out("7a", 3, 3, 2)).level).toBe(6);
-    expect(routeOutdoorPillar(out("7a", 3, 2, 2)).level).toBe(5);
+    expect(oneCrag.next).toMatchObject({ level: 5, have: { climbs: 5, sessions: 5, sites: 1 }, missing: ["sites"] });
+    expect(boulderOutdoorPillar(out("6B+", 5, 5, 2)).level).toBe(5);
+    expect(boulderOutdoorPillar(out("7A", 5, 5, 2)).level).toBe(6);
+    expect(routeOutdoorPillar(out("7a", 5, 5, 2)).level).toBe(6);
+    expect(routeOutdoorPillar(out("6b+", 5, 5, 2)).level).toBe(5);
+    expect(routeOutdoorPillar(out("7a", 5, 4, 2)).level).toBe(0);
   });
 });
 
@@ -119,7 +126,7 @@ describe("body pillars", () => {
 describe("avatar", () => {
   it("is the lowest of the six pillars", () => {
     const body = assessment({ A: 1, B: 1, C: 3, D: 3 });
-    const progress = avatarProgress({ boulderSends: sends("5b", 3, 2), routeSends: sends("6a", 3, 2), assessments: [body, body] });
+    const progress = avatarProgress({ boulderSends: sends("5b", 5, 5), routeSends: sends("6a", 5, 5), assessments: [body, body] });
     expect(progress.pillars.mobility.level).toBe(3);
     expect(progress.pillars.flexibility.level).toBe(1);
     expect(progress.pillars.boulderIndoor.level).toBe(2);
@@ -137,10 +144,10 @@ describe("avatar", () => {
 
   it("reaches Green on indoor climbing alone, and needs outdoor for Violet", () => {
     const top = assessment({ A: 4, B: 4, C: 4, D: 4 });
-    const indoorOnly = avatarProgress({ boulderSends: sends("7A", 5, 4), routeSends: sends("7a", 5, 4), assessments: [top, top] });
+    const indoorOnly = avatarProgress({ boulderSends: sends("7A", 6, 6), routeSends: sends("7a", 6, 6), assessments: [top, top] });
     expect(indoorOnly).toMatchObject({ level: 3, colour: "GREEN", blocking: ["boulderOutdoor", "routeOutdoor"], nextLevel: 4 });
     const withOutdoor = avatarProgress({
-      boulderSends: [...sends("7A", 5, 4), ...out("6A", 3, 2)], routeSends: [...sends("7a", 5, 4), ...out("6b", 3, 2)], assessments: [top, top],
+      boulderSends: [...sends("7A", 6, 6), ...out("6A", 5, 5)], routeSends: [...sends("7a", 6, 6), ...out("6b", 5, 5)], assessments: [top, top],
     });
     // Violet, held by the body pillars' cap and the outdoor pillars (Blue asks two sites).
     expect(withOutdoor).toMatchObject({ level: 4, colour: "VIOLET", blocking: ["mobility", "flexibility", "boulderOutdoor", "routeOutdoor"], nextLevel: null });

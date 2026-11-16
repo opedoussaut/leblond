@@ -12,7 +12,7 @@ import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
 import { RivalFeed } from "@/components/training/rival-feed";
 import { RivalSettingsForm } from "@/components/training/rival-settings";
 import {
-  RIVAL_MESSAGES, duelRace, recentEndTimes, rivalBoulderGrade, rivalFeed, rivalStanding, usualTrainingTime, weeklyDuels, yourDays,
+  RIVAL_MESSAGES, duelRace, recentEndTimes, rivalFeed, rivalStanding, usualTrainingTime, weeklyDuels, yourDays,
 } from "@/lib/analytics/rival";
 import { bestSendByDay, measuredAt, twinState, twinTimeline } from "@/lib/analytics/twin";
 import { TwinCard } from "@/components/training/twin-card";
@@ -106,13 +106,11 @@ export default async function AlterEgoPage() {
     usualTime: usualTrainingTime(recentEndTimes(work, today)),
     wordings: Object.fromEntries(RIVAL_MESSAGES.map((m) => [m, messages[m].length])) });
   const duels = weeklyDuels(pact, settings, work, today);
-  const lastGym = dataset.sessions.length ? dataset.gyms.find((g) => g.id === dataset.sessions[dataset.sessions.length - 1]?.gymId)?.name ?? null : null;
 
   return <div className="space-y-5">
     {back}
     <PageHeader title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
-    <RivalFeed locale={locale} name={pact.displayName} settings={settings} grade={rivalBoulderGrade(pact, settings, today, twin.boulder?.grade ?? null)}
-      gym={lastGym} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
       breakdown={climberBreakdown(work, pact.startDate)}
       observed={measuredNow} twinPace={settings.level !== "GOAL"} />

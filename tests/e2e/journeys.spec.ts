@@ -615,7 +615,14 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   const day = page.getByRole("region", { name: "Ta séance idéale aujourd’hui" });
   await expect(day.getByText("De la mobilité douce à la place")).toBeVisible();
   await expect(day.getByText(/Très fatigué : récupérer/)).toBeVisible();
-  await page.reload();
+  // Three choices for the suggested séance: start now, keep it for later today, or plan it.
+  await expect(day.getByRole("button", { name: /Démarrer maintenant/ })).toBeVisible();
+  await day.getByRole("button", { name: "Planifier" }).click();
+  await expect(day.getByLabel("Heure (facultatif)")).toBeVisible();
+  await day.getByRole("button", { name: "Garder pour aujourd’hui" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("region", { name: "Ta journée" }).getByRole("link", { name: /Mobilité et gainage doux/ })).toBeVisible();
+  await page.goto("/train/today");
   await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
   await page.goto("/home");
   // Filled check-in: the self-reported form, the answers, today's session and a way to edit.
@@ -1293,15 +1300,18 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
   await expect(page.getByTestId("twin-card").getByRole("heading", { level: 2, name: "Max, c’est toi qui suis le plan à la lettre" })).toBeVisible();
   await expect(page.getByTestId("twin-card")).toContainText("Départ : 6A");
-  await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
-  await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Messages", exact: true })).toBeVisible();
+  // The tone is a symbol next to the name, with its label.
+  await expect(page.getByRole("img", { name: "Ton : Piquant" })).toBeVisible();
   await page.getByText("Réglages de l’alter ego").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("À ta portée · Sans pitié")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Ton : Sans pitié" })).toBeVisible();
+  await page.getByText("Réglages de l’alter ego").click();
+  await expect(page.getByRole("button", { name: "À ta portée" })).toHaveAttribute("aria-pressed", "true");
   // The climber manages load and pain: no safety footnote under the feed.
   await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);
 });

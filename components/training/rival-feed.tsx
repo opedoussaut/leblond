@@ -1,14 +1,27 @@
 import { formatDuration } from "@/lib/duration";
-import { season, type Duel, type FeedItem, type RivalSettings } from "@/lib/analytics/rival";
+import { Flame, Smile, Swords, type LucideIcon } from "lucide-react";
+import { season, type Duel, type FeedItem, type RivalSettings, type RivalTone } from "@/lib/analytics/rival";
 import { fmt, type Locale } from "@/lib/i18n";
 import { rivalDictionary } from "@/lib/i18n/rival";
 import { formatDate } from "@/lib/format";
 import { boulderGrade } from "@/lib/grading/display";
 import { RivalPortrait } from "./rival-portrait";
+import { RivalFeedList } from "./rival-feed-list";
 
-/** The rival's profile, its season and its feed (all derived; nothing stored). */
-export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, today, yesterday }: {
-  locale: Locale; name: string; settings: RivalSettings; grade: string | null; gym: string | null;
+const TONE_ICON: Record<RivalTone, LucideIcon> = { SYMPA: Smile, PIQUANT: Flame, SANS_PITIE: Swords };
+
+/** The alter ego's tone as a symbol next to its name, with a text label (never the symbol alone). */
+function ToneBadge({ tone, label }: { tone: RivalTone; label: string }) {
+  const Icon = TONE_ICON[tone];
+  return <span role="img" aria-label={label} title={label} data-tone={tone}
+    className="grid size-8 place-items-center rounded-full bg-accent-soft text-accent">
+    <Icon aria-hidden="true" className="size-4" strokeWidth={2.25} />
+  </span>;
+}
+
+/** The alter ego's profile, its season and its feed (all derived; nothing stored). */
+export function RivalFeed({ locale, name, settings, feed, duels, today, yesterday }: {
+  locale: Locale; name: string; settings: RivalSettings;
   feed: FeedItem[]; duels: Duel[]; today: string; yesterday: string;
 }) {
   const r = rivalDictionary(locale);
@@ -36,25 +49,19 @@ export function RivalFeed({ locale, name, settings, grade, gym, feed, duels, tod
   return <section aria-labelledby="rival-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
     <div className="flex items-center gap-4">
       <RivalPortrait portrait={settings.portrait} size={64} />
-      <div className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h2 id="rival-heading" className="flex flex-wrap items-center gap-2 font-display text-2xl font-black">
           {name} <span className="rounded-full bg-surface-2 px-2 py-0.5 font-sans text-xs font-semibold text-ink-3">{r.fictional}</span>
         </h2>
-        <p className="text-sm text-ink-2">{grade ? fmt(r.profileLine, { grade: boulderGrade(grade) }) : r.profileLineNoGrade}{gym ? " · " + gym : ""}</p>
-        <p className="text-xs text-ink-3">{r.levelLabel[settings.level]} · {r.toneLabel[settings.tone]}</p>
+        <ToneBadge tone={settings.tone} label={fmt(r.toneSymbol, { tone: r.toneLabel[settings.tone] })} />
       </div>
     </div>
     {duels.length ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm">
       <strong>{r.seasonTitle}</strong> · {fmt(r.seasonScore, { name, rival: s.rival, you: s.you })}
     </p> : null}
-    <div>
-      <h3 className="text-sm font-bold">{fmt(r.feedTitle, { name })}</h3>
-      {feed.length ? <ol className="mt-2 space-y-2" data-testid="rival-feed">
-        {feed.map((item, i) => <li key={i} className={"rounded-xl border px-3 py-2 text-sm " + (item.kind === "message" ? "border-accent/30 bg-accent-soft" : "border-line bg-surface")}>
-          <span className="block text-xs font-semibold text-ink-3">{when(item.date, item.time)}</span>
-          <span className={item.kind === "message" ? "font-semibold" : ""}>{item.kind === "message" ? `${name} · ` : ""}{text(item)}</span>
-        </li>)}
-      </ol> : <p className="mt-2 text-sm text-ink-3">{fmt(r.feedEmpty, { name })}</p>}
-    </div>
+    <RivalFeedList title={fmt(r.feedTitle, { name })} empty={fmt(r.feedEmpty, { name })}
+      labels={{ hide: r.feedHide, show: r.feedShow, all: r.feedAll, fewer: r.feedFewer }}
+      lines={feed.map((item) => ({ when: when(item.date, item.time), message: item.kind === "message",
+        text: (item.kind === "message" ? `${name} · ` : "") + text(item) }))} />
   </section>;
 }

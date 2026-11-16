@@ -37,15 +37,25 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme, mobilityEnro
   const reasons = rec.reasons.map((r) => reasonText(r, j)).filter((r): r is string => !!r);
   const injured = rec.reasons.some((r) => /^(acute|pain|painAdapt):/.test(r));
 
-  function startSession() {
+  const [planning, setPlanning] = useState(false);
+  const [planDate, setPlanDate] = useState(today);
+  const [planTime, setPlanTime] = useState("");
+
+  /**
+   * The suggested séance: start it now, keep it for later today (it then shows
+   * under "Prévu aujourd'hui" on Aujourd'hui), or plan it for a day and time.
+   */
+  function createSession(mode: "start" | "keep" | "plan") {
     setError(null);
     start(async () => {
       const r = await createTrainingSession({
         source: "quick", methodId: rec.methodId, title: rec.methodId ? "" : j.programme.mobilityTitle,
-        minutes: Math.max(10, Math.min(240, rec.minutes)), date: today, time: "", startNow: true,
+        minutes: Math.max(10, Math.min(240, rec.minutes)),
+        date: mode === "plan" ? planDate : today, time: mode === "plan" ? planTime : "", startNow: mode === "start",
       });
-      if (!r.ok) { setError({ msg: r.error === "live" ? d.liveSession : d.startError, liveId: r.liveId }); return; }
-      router.push("/train/sessions/" + r.data.id);
+      if (!r.ok) { setError({ msg: r.error === "live" ? d.liveSession : mode === "start" ? d.startError : d.keepError, liveId: r.liveId }); return; }
+      if (mode === "start") router.push("/train/sessions/" + r.data.id);
+      else { router.push(mode === "keep" || planDate === today ? "/home" : "/calendar"); router.refresh(); }
     });
   }
 
@@ -66,7 +76,23 @@ function DayResult({ locale, rec, today, scheduledId, hasProgramme, mobilityEnro
     </div> : null}
     {injured ? <p role="note" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed">{j.safety}</p> : null}
     {openScheduled ? <Link href={"/train/sessions/" + scheduledId} className={buttonClass("primary", "md")}>{d.openScheduled} <IconNext /></Link>
-      : rec.outcome !== "REST" ? <button type="button" disabled={pending} onClick={startSession} className={buttonClass("primary", "md")}>{pending ? "…" : d.start} <IconNext /></button>
+      : rec.outcome !== "REST" ? <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button type="button" disabled={pending} onClick={() => createSession("start")} className={buttonClass("primary", "md", "w-full sm:w-auto")}>{pending ? "…" : d.start} <IconNext /></button>
+          <button type="button" disabled={pending} onClick={() => createSession("keep")} className={buttonClass("secondary", "md", "w-full sm:w-auto")}>{d.keep}</button>
+          <button type="button" disabled={pending} onClick={() => setPlanning((p) => !p)} aria-expanded={planning} className={buttonClass("secondary", "md", "w-full sm:w-auto")}>{d.plan}</button>
+        </div>
+        {planning ? <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3 sm:flex-row sm:items-end">
+          <label className="text-sm font-semibold">{d.planDate}
+            <input type="date" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-line bg-surface px-3" />
+          </label>
+          <label className="text-sm font-semibold">{d.planTime}
+            <input type="time" value={planTime} onChange={(e) => setPlanTime(e.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-line bg-surface px-3" />
+          </label>
+          <button type="button" disabled={pending || !planDate} onClick={() => createSession("plan")} className={buttonClass("primary", "md")}>{pending ? "…" : d.planConfirm}</button>
+        </div> : null}
+        <p className="text-xs text-ink-3">{d.chooseHint}</p>
+      </div>
       : null}
     {error ? <p role="alert" className="text-sm font-semibold text-danger">{error.msg}
       {error.liveId ? <> <Link className="underline" href={"/train/sessions/" + error.liveId}>{j.hub.open} <IconNext /></Link></> : null}</p> : null}
