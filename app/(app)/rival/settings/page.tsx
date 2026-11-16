@@ -24,7 +24,8 @@ export default async function RivalSettingsPage() {
   const today = localDate_(new Date());
   const progress = pactProgress(pact, await loadClimberWork(viewer.supabase), today);
   return <div className="space-y-5">
-    <PageHeader icon={<AREA_ICONS.rival />} title={t.settingsLink} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
+    <PageHeader icon={<AREA_ICONS.rival />} title={t.settingsLink} subtitle={fmt(t.planLabel, { plan: pact.planName }) + " · " + fmt(t.weekOf, { week: progress.week + 1, total: pact.horizonWeeks })
+      + (pact.status === "PAUSED" ? ` · ${t.paused}` : "")} />
     <RivalSettingsForm locale={locale} pactId={pact.id} initial={settings} today={today} open
       hasBoulderGrades={!!pact.startBoulderGrade && !!pact.targetBoulderGrade} />
     <PactControls locale={locale} id={pact.id} status={pact.status} over={progress.over} />
