@@ -17,7 +17,7 @@ import { formatDate } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
-import { demoUrl, musclewikiUrl } from "@/lib/training/coach-sessions";
+import { COACH_SESSION_COLUMNS, coachSessionFromRow, coachSlugOf, demoUrl, musclewikiUrl, withCurrentPictures } from "@/lib/training/coach-sessions";
 import { MobilityIllustration } from "@/components/training/mobility-illustrations";
 import { formatClock, pick } from "@/lib/training/sessions";
 import { fmt } from "@/lib/i18n";
@@ -44,7 +44,14 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const loaded = await loadTrainingSession(viewer.supabase, id);
   if (!loaded) notFound();
-  const { session, exercises } = loaded;
+  const { session } = loaded;
+  // Séances copied before their coach session got pictures show the current ones.
+  const slugs = [...new Set(loaded.exercises.map((e) => coachSlugOf(e.instructions.key)).filter((s): s is string => !!s))];
+  const { data: coachRows } = slugs.length
+    ? await viewer.supabase.from("coach_sessions").select(COACH_SESSION_COLUMNS).in("slug", slugs)
+    : { data: [] };
+  const exercises = withCurrentPictures(loaded.exercises,
+    (coachRows ?? []).map(coachSessionFromRow).filter((c) => c !== null));
 
   const running = session.status === "IN_PROGRESS";
   const finished = session.status === "COMPLETED" || session.status === "INTERRUPTED";
