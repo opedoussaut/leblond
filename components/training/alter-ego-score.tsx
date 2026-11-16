@@ -9,11 +9,16 @@ import { IconNext } from "@/components/ui/icons";
 import type { RivalPortrait as RivalPortraitId } from "@/lib/analytics/rival";
 import { RivalPortrait } from "./rival-portrait";
 import { ProfilePicture } from "./profile-picture";
+import { StandingMedal } from "./standing-medal";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown, twinPace = false }: {
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown, twinPace = false, detailed = false, title }: {
+  /** The duel page: a gap column and the rule that decides who leads. */
+  detailed?: boolean;
+  /** Replaces the "You vs …" heading. */
+  title?: string;
   locale: Locale; pact: Pact; progress: PactProgress; portrait?: RivalPortraitId;
   /** The climber's avatar level, shown facing the rival. */
   avatar?: number;
@@ -21,7 +26,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   photo?: string | null;
   /** The climber's séances by type since signing. */
   breakdown?: Record<WorkKind, KindTally>;
-  observed?: { boulder: string | null; route: string | null }; href?: "/train/alter-ego";
+  observed?: { boulder: string | null; route: string | null }; href?: "/rival";
   /** The grades are the twin's level (lib/analytics/twin), not a pace chosen at signing. */
   twinPace?: boolean;
 }) {
@@ -29,10 +34,11 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   const { standing: s } = progress;
   const name = pact.displayName;
   const verdict = fmt({ ahead: t.ahead, level: t.level, behind: t.behind }[s.state], { name });
+  const signed = (n: number, text: string) => n > 0 ? `+${text}` : n < 0 ? `−${text}` : "=";
   const rows = [
-    { label: t.sessions, you: s.you.sessions, ego: s.ego.sessions },
-    { label: t.reps, you: s.you.reps, ego: s.ego.reps },
-    { label: t.minutes, you: formatDuration(s.you.minutes), ego: formatDuration(s.ego.minutes) },
+    { label: t.sessions, you: s.you.sessions, ego: s.ego.sessions, gap: s.gap.sessions, gapText: signed(s.gap.sessions, String(Math.abs(s.gap.sessions))) },
+    { label: t.reps, you: s.you.reps, ego: s.ego.reps, gap: s.gap.reps, gapText: signed(s.gap.reps, String(Math.abs(s.gap.reps))) },
+    { label: t.minutes, you: formatDuration(s.you.minutes), ego: formatDuration(s.ego.minutes), gap: s.gap.minutes, gapText: signed(s.gap.minutes, formatDuration(Math.abs(s.gap.minutes))) },
   ];
   const paces = [
     { label: t.boulder, pace: progress.boulderPace && boulderGrade(progress.boulderPace), you: observed?.boulder ? boulderGrade(observed.boulder) : null },
@@ -45,13 +51,15 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
         {portrait ? <RivalPortrait portrait={portrait} size={48} /> : null}
       </div> : null}
       <div>
-      <h2 id="ego-heading" className="text-lg font-bold">{fmt(t.scoreTitle, { name })}</h2>
+      <h2 id="ego-heading" className="text-lg font-bold">{title ?? fmt(t.scoreTitle, { name })}</h2>
       <p className="mt-1 text-sm text-ink-2">
         {fmt(t.weekOf, { week: progress.week + 1, total: pact.horizonWeeks })}{pact.status === "PAUSED" ? ` · ${t.paused}` : ""}
       </p>
       </div>
     </div>
-    <p className={"rounded-xl px-4 py-3 text-sm font-semibold " + "bg-accent-soft text-ink"}>{verdict}</p>
+    <p className="flex items-center gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm font-semibold text-ink">
+      <StandingMedal state={s.state} label={verdict} size={36} className="ring-2" /><span aria-hidden="true">{verdict}</span>
+    </p>
     <table className="w-full text-sm">
       <caption className="sr-only">{t.tableCaption}</caption>
       <thead>
@@ -59,6 +67,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
           <td />
           <th scope="col" className="pb-1 text-right font-bold">{t.you}</th>
           <th scope="col" className="max-w-24 truncate pb-1 pl-4 text-right font-bold">{name}</th>
+          {detailed ? <th scope="col" className="pb-1 pl-4 text-right font-bold">{t.gapCol}</th> : null}
         </tr>
       </thead>
       <tbody>
@@ -66,9 +75,11 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
           <th scope="row" className="py-2 text-left font-semibold text-ink-2">{r.label}</th>
           <td className="py-2 text-right text-base font-black tabular-nums">{r.you}</td>
           <td className="py-2 pl-4 text-right text-base font-black tabular-nums text-ink-2">{r.ego}</td>
+          {detailed ? <td className={"py-2 pl-4 text-right text-sm font-bold tabular-nums " + (r.gap > 0 ? "text-ok" : r.gap < 0 ? "text-warn" : "text-ink-3")}>{r.gapText}</td> : null}
         </tr>)}
       </tbody>
     </table>
+    {detailed ? <p className="text-xs leading-relaxed text-ink-3">{t.rule}</p> : null}
     {breakdown ? <div>
       <h3 className="text-sm font-bold">{t.breakdownTitle}</h3>
       <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">

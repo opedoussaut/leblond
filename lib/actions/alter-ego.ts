@@ -13,7 +13,9 @@ type Result = { ok: true; id: string } | { ok: false; error: "invalid" | "grades
 
 function revalidatePact() {
   revalidatePath("/programmes");
-  revalidatePath("/train/alter-ego");
+  revalidatePath("/rival");
+  revalidatePath("/rival/settings");
+  revalidatePath("/home");
 }
 
 /** Signs a pact from one of the climber's plans. The plan is copied, so editing it later changes nothing. */

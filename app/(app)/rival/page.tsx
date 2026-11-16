@@ -1,0 +1,129 @@
+import Link from "next/link";
+import { SignPactForm } from "@/components/training/alter-ego-forms";
+import { DuelBanner } from "@/components/training/duel-banner";
+import { WeeklyDuels } from "@/components/training/weekly-duels";
+import { AREA_ICONS } from "@/components/layout/nav-icons";
+import { AlterEgoScore } from "@/components/training/alter-ego-score";
+import { AvatarCard } from "@/components/training/avatar-card";
+import { loadAvatar } from "@/lib/data/avatar";
+import { viewerPhotoUrl } from "@/lib/data/profile-picture";
+import { PageHeader } from "@/components/ui/card";
+import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
+import { climberBreakdown, pactProgress } from "@/lib/analytics/alter-ego";
+import { requireViewer } from "@/lib/auth/viewer";
+import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { RivalFeed } from "@/components/training/rival-feed";
+import {
+  RIVAL_MESSAGES, duelRace, recentEndTimes, rivalFeed, rivalStanding, usualTrainingTime, weeklyDuels, yourDays,
+} from "@/lib/analytics/rival";
+import { bestSendByDay, measuredAt, twinState, twinTimeline } from "@/lib/analytics/twin";
+import { TwinCard } from "@/components/training/twin-card";
+import { rivalDictionary } from "@/lib/i18n/rival";
+import { zonedToUtc } from "@/lib/time";
+import { DuelRace } from "@/components/charts/duel-race";
+import { BOARD_NAMES, BOARD_SHORT, type Board } from "@/lib/climbing/boards";
+import { loadBoardAscents, loadBoardProjects } from "@/lib/data/boards";
+import { addDays } from "@/lib/training/programme";
+import { loadClimbingDataset } from "@/lib/data/climbing";
+import { loadRouteAscents } from "@/lib/data/routes";
+import { formatDate } from "@/lib/format";
+import { listGrades } from "@/lib/grading/ordering";
+import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
+import { fmt } from "@/lib/i18n";
+import { alterEgoDictionary } from "@/lib/i18n/alter-ego";
+import { getI18n } from "@/lib/i18n/server";
+import { localDate_ } from "@/lib/training/sessions";
+import { buttonClass } from "@/components/ui/button";
+
+export const metadata = { title: "LEBLOND — Rival" };
+
+export default async function RivalDuelPage() {
+  const viewer = await requireViewer();
+  const { locale } = await getI18n(viewer.profile.preferred_language);
+  const t = alterEgoDictionary(locale);
+  const today = localDate_(new Date());
+  const rival = await loadOpenRival(viewer.supabase);
+  const pact = rival?.pact ?? null;
+
+  if (!pact) {
+    const { data: plans } = await viewer.supabase.from("training_plans").select("id, name, weeks").order("updated_at", { ascending: false });
+    const p = viewer.profile;
+    const boulderGrades = listGrades("FONT").filter((g) => g.ordinal !== null).map((g) => g.id);
+    const known = (grades: readonly string[], grade: string | null) => (grade && grades.includes(grade) ? grade : "");
+    return <div className="space-y-5">
+      <PageHeader icon={<AREA_ICONS.rival />} title={t.title} subtitle={t.subtitle} />
+      <AvatarCard locale={locale} progress={await loadAvatar(viewer.supabase)} />
+      <SignPactForm locale={locale} plans={plans ?? []} today={today} boulderGrades={boulderGrades} routeGrades={FRENCH_ROUTE_GRADES}
+        defaults={{
+          boulderFrom: p.self_reported_level_system === "FONT" ? known(boulderGrades, p.self_reported_level) : "",
+          boulderTo: p.target_grade_system === "FONT" ? known(boulderGrades, p.target_grade) : "",
+          routeFrom: known(FRENCH_ROUTE_GRADES, p.self_reported_route_grade),
+          routeTo: known(FRENCH_ROUTE_GRADES, p.target_route_grade),
+        }} />
+      <p className="text-xs leading-relaxed text-ink-3">{t.fiction}</p>
+    </div>;
+  }
+
+  const now = new Date();
+  const settings = rival!.settings;
+  const [work, dataset, routes, boardRows, boardProjects, { data: boulderProjects }, { data: routeProjects }] = await Promise.all([
+    loadClimberWork(viewer.supabase), loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase),
+    loadBoardAscents(viewer.supabase, 500), loadBoardProjects(viewer.supabase, "ACTIVE"),
+    viewer.supabase.from("projects").select("problems(name, native_grade)").eq("status", "ACTIVE").limit(20),
+    viewer.supabase.from("route_projects").select("route_name").eq("status", "ACTIVE").limit(20),
+  ]);
+  const [avatar, photo] = await Promise.all([loadAvatar(viewer.supabase, { dataset }), viewerPhotoUrl()]);
+  const snapshot = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 60);
+  // The twin: the climber from their measured level on the start date, following the plan to the letter.
+  const measuredNow = { boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade };
+  const twinInput = {
+    pact, work, today, measuredNow,
+    measuredStart: measuredAt(dataset.problems, dataset.attempts, routes ?? [], zonedToUtc(pact.startDate, "23:59")),
+  };
+  const twin = twinState(twinInput);
+  const timeline = twinTimeline(twinInput, 7);
+  const base = pactProgress(pact, work, today);
+  // The score at the rival's level (À ta portée never runs away); grades from the twin except for the Goal level.
+  const progress = {
+    ...base, standing: rivalStanding(pact, settings, work, today),
+    ...(settings.level === "GOAL" ? {} : { boulderPace: twin.boulder?.grade ?? null, routePace: twin.route?.grade ?? null }),
+  };
+  const lastBoard = boardRows[boardRows.length - 1];
+  const projects = [
+    ...(boulderProjects ?? []).map((p) => p.problems?.name || p.problems?.native_grade || "").filter(Boolean),
+    ...(routeProjects ?? []).map((p) => p.route_name),
+    ...boardProjects.map((p) => `${p.climb_name} (${BOARD_SHORT[p.board as Board]} ${p.angle}°)`),
+  ];
+  const weekdays = Array.from({ length: 7 }, (_, i) => formatDate(`2026-11-${String(16 + i).padStart(2, "0")}T12:00:00`, locale, { weekday: "long" }));
+  const messages = rivalDictionary(locale).messages[settings.tone];
+  const weekAgo = addDays(today, -7);
+  const feed = rivalFeed({ pact, settings, work, today, projects, weekdays,
+    board: lastBoard ? { name: BOARD_NAMES[lastBoard.board as Board], angle: lastBoard.angle } : null,
+    twin: timeline.days, plateauWeeks: timeline.plateauWeeks,
+    yours: yourDays(work, bestSendByDay(dataset.problems, dataset.attempts, weekAgo), measuredNow.boulder, weekAgo),
+    usualTime: usualTrainingTime(recentEndTimes(work, today)),
+    wordings: Object.fromEntries(RIVAL_MESSAGES.map((m) => [m, messages[m].length])) });
+  const duels = weeklyDuels(pact, settings, work, today);
+
+  const breakdown = climberBreakdown(work, pact.startDate);
+  return <div className="space-y-5">
+    <PageHeader icon={<AREA_ICONS.rival />} title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
+    <DuelBanner locale={locale} name={pact.displayName} standing={progress.standing} week={progress.week + 1} total={pact.horizonWeeks}
+      portrait={settings.portrait} avatar={avatar.level} photo={photo} paused={pact.status === "PAUSED"} breakdown={breakdown} href={null} />
+    <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
+      observed={measuredNow} twinPace={settings.level !== "GOAL"} detailed title={t.detailTitle} />
+    <WeeklyDuels locale={locale} name={pact.displayName} duels={duels} />
+    <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
+    {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
+      {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}
+    </p> : null}
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
+    <TwinCard locale={locale} name={pact.displayName} twin={twin} measured={measuredNow} />
+    <p className="text-sm font-semibold text-ink-2">{t.gapNote}</p>
+    <AvatarCard locale={locale} progress={avatar} />
+    <Link href="/rival/settings" className={buttonClass("secondary", "md")}><AREA_ICONS.rival aria-hidden="true" className="h-4 w-4" /> {t.settingsLink}</Link>
+    <p className="text-xs leading-relaxed text-ink-3">
+      {fmt(t.trained, { gain: Math.round(pact.progression.maxGain * 100) })} {t.fiction}
+    </p>
+  </div>;
+}

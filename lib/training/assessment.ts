@@ -120,3 +120,26 @@ export function methodMatches(ratings: SkillRatings, limit = 3) {
 export function elapsedWeeks(since: string, now: Date): number {
   return Math.max(0, Math.floor((now.getTime() - new Date(since).getTime()) / (7 * 86_400_000)));
 }
+
+export type AssessmentStatus = {
+  /** Week of the assessment's period (1-based, capped at its horizon). */
+  week: number;
+  horizon: number;
+  finished: boolean;
+  checkins: number;
+  lastCheckin: number | null;
+  /** The weekly check-in that can be done now and is still missing, or null. */
+  dueCheckin: number | null;
+};
+
+/** Where the latest full assessment stands: its week, and its weekly check-ins (done and due). */
+export function assessmentStatus(a: { createdAt: string; horizonWeeks: number }, checkinWeeks: number[], now: Date): AssessmentStatus {
+  const elapsed = elapsedWeeks(a.createdAt, now);
+  const done = [...new Set(checkinWeeks)].sort((x, y) => x - y);
+  const open = elapsed >= 1 ? Math.min(elapsed, a.horizonWeeks) : null;
+  return {
+    week: Math.min(a.horizonWeeks, elapsed + 1), horizon: a.horizonWeeks, finished: elapsed >= a.horizonWeeks,
+    checkins: done.length, lastCheckin: done.at(-1) ?? null,
+    dueCheckin: open !== null && !done.includes(open) ? open : null,
+  };
+}

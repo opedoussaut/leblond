@@ -5,13 +5,14 @@
  *   Aujourd'hui — what to do now (live séance, daily form, today's plan)
  *   Séances     — what you do: one journal of grimpe and entraînement, the Agenda, projects
  *   Programmes  — what you follow: programmes, hip mobility, the library of methods and templates
+ *   Rival       — the duel with the fictional rival who follows the plan, and its settings
  *   Progrès     — what happened, evaluation results included
  *   Patrick     — the coach
  * Profile, connections and settings live in the account (avatar) menu, not in
  * an area. An area link opens its first page; when that page is also listed
  * (Journal, Mes programmes), the listed page is the one marked as current.
  */
-export const SECTION_IDS = ["today", "sessions", "programmes", "progress", "patrick"] as const;
+export const SECTION_IDS = ["today", "sessions", "programmes", "rival", "progress", "patrick"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 /** Where a path belongs: one of the five areas, or the account menu. */
@@ -21,6 +22,7 @@ export type NavContext = SectionId | "account";
 export type SubPageKey =
   | "journal" | "calendar" | "projects"
   | "myProgrammes" | "library"
+  | "rivalDuel" | "rivalSettings"
   | "climbingProgress" | "trainingHistory" | "mobility" | "assessment"
   | "profile" | "connections" | "settings";
 
@@ -48,6 +50,13 @@ export const AREAS: readonly Area[] = [
     children: [
       { href: "/programmes", key: "myProgrammes" },
       { href: "/atlas", key: "library" },
+    ],
+  },
+  {
+    id: "rival", href: "/rival",
+    children: [
+      { href: "/rival", key: "rivalDuel" },
+      { href: "/rival/settings", key: "rivalSettings" },
     ],
   },
   {
@@ -85,6 +94,7 @@ export function sectionForPath(pathname: string): NavContext {
   if (startsWith(pathname, "/session") || startsWith(pathname, "/train/sessions") || startsWith(pathname, "/calendar") ||
       startsWith(pathname, "/climbing") || startsWith(pathname, "/problem") || startsWith(pathname, "/route") ||
       startsWith(pathname, "/projects")) return "sessions";
+  if (startsWith(pathname, "/rival") || startsWith(pathname, "/train/alter-ego")) return "rival";
   if (startsWith(pathname, "/programmes") || startsWith(pathname, "/train") || startsWith(pathname, "/training-plans") ||
       startsWith(pathname, "/training") || startsWith(pathname, "/atlas")) return "programmes";
   if (startsWith(pathname, "/patrick")) return "patrick";
@@ -100,7 +110,8 @@ const ALIASES: ReadonlyArray<readonly [string, string]> = [
   ["/climbing", "/session"],         // the old climbing home
   ["/training/evaluate", "/training-assessment"],
   ["/training-plans", "/programmes"],
-  ["/train", "/programmes"],         // assessment wizard, hip mobility, alter ego
+  ["/train/alter-ego", "/rival"],    // the old rival address
+  ["/train", "/programmes"],         // assessment wizard, hip mobility
   ["/training", "/atlas"],           // the public methods page = the library
 ];
 
