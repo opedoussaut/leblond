@@ -17,7 +17,14 @@ describe("Grimpe sections", () => {
     expect(progressHref("overview")).toBe("/progress");
     expect(progressHref("overview", "30")).toBe("/progress?period=30");
     expect(progressHref("boulder-indoor", "all")).toBe("/progress?tab=boulder-indoor&period=all");
+    expect(progressHref("gyms", "30")).toBe("/progress?tab=gyms&period=30");
     for (const tab of PROGRESS_TABS) expect(parseProgressTab(new URL(progressHref(tab), "http://x").searchParams.get("tab") ?? undefined)).toBe(tab);
+  });
+
+  it("gives the gym comparison and the styles their own sections, over every place", () => {
+    expect(PROGRESS_SCOPES.gyms).toEqual({ discipline: "boulder", place: null, view: "gyms" });
+    expect(PROGRESS_SCOPES.styles).toEqual({ discipline: "boulder", place: null, view: "styles" });
+    expect(PROGRESS_SCOPES["boulder-outdoor"].view).toBe("levels");
   });
 
   it("scopes every section except the overview, with a label in both languages", () => {

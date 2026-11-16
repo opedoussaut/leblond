@@ -212,7 +212,7 @@ test("problem enrichment: Font estimate kept separate + photo upload", async ({ 
 
 test("progress: native Arkose / Climbing District comparison", async ({ page }) => {
   await signIn(page, ALEX);
-  await page.goto("/progress?period=30");
+  await page.goto("/progress?tab=gyms&period=30");
   await expect(page.getByText("Vue native")).toBeVisible();
   const cross = page.locator("section").filter({ hasText: "Comparaison entre salles" });
   await expect(cross.getByText("Arkose", { exact: true })).toBeVisible();
@@ -427,7 +427,7 @@ test("Climbing District levels: logged natively, kept apart from the colour sess
   await expect(page.getByRole("button", { name: "Niveau 4", exact: true })).toHaveCount(0);
 
   // Progress: Climbing District colours and levels side by side, each named, never merged.
-  await page.goto("/progress?period=30");
+  await page.goto("/progress?tab=gyms&period=30");
   const cross = page.locator("section").filter({ hasText: "Comparaison entre salles" });
   await expect(cross.getByText("Couleurs Climbing District (ancienne échelle)")).toBeVisible();
   await expect(cross.getByText("Niveaux Climbing District (1–12)")).toBeVisible();

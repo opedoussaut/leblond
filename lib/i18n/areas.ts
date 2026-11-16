@@ -58,8 +58,9 @@ const fr = {
   climbing: {
     sections: "Rubriques de Grimpe",
     tabs: {
-      overview: "Tout", "boulder-indoor": "Bloc salle", "boulder-outdoor": "Bloc extérieur",
+      overview: "Résumé", "boulder-indoor": "Bloc salle", "boulder-outdoor": "Bloc extérieur",
       "route-indoor": "Voie salle", "route-outdoor": "Voie extérieur", boards: "Boards",
+      gyms: "Salles et cotations", styles: "Styles et cardio", avatar: "Avatar",
     },
     emptySection: "Rien de noté ici sur cette période.",
   },
@@ -158,8 +159,9 @@ const en: Dict = {
   climbing: {
     sections: "Climbing sections",
     tabs: {
-      overview: "All", "boulder-indoor": "Gym boulder", "boulder-outdoor": "Crag boulder",
+      overview: "Summary", "boulder-indoor": "Gym boulder", "boulder-outdoor": "Crag boulder",
       "route-indoor": "Gym routes", "route-outdoor": "Crag routes", boards: "Boards",
+      gyms: "Gyms and grades", styles: "Styles and heart rate", avatar: "Avatar",
     },
     emptySection: "Nothing logged here over this period.",
   },
