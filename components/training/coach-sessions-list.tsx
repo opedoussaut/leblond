@@ -12,7 +12,7 @@ import { demoUrl, musclewikiUrl, type CoachSession } from "@/lib/training/coach-
 import { MobilityIllustration } from "./mobility-illustrations";
 import { formatClock } from "@/lib/training/sessions";
 import { buttonClass, linkClass } from "@/components/ui/button";
-import { IconExternal } from "@/components/ui/icons";
+import { IconClock, IconExternal } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
 
 /** The climber's coach sessions: preview of the exercises, choose one for the form above, remove. */
@@ -32,10 +32,14 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
 
   return <ul className="space-y-3">
     {sessions.map((s) => <li key={s.id} className="rounded-2xl border border-line bg-surface p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <strong className="text-base">{s.title}</strong>
-        <span className="text-xs text-ink-2">{formatDuration(s.minutes)} · {fmt(c.exercises, { n: s.exercises.length })} · {c.author[s.author]}{s.shared ? " · " + c.sharedBadge : ""}</span>
+        <span aria-label={fmt(c.duration, { d: formatDuration(s.minutes) })} data-testid="coach-session-duration"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-base font-black tabular-nums text-accent">
+          <IconClock /><span aria-hidden="true">{formatDuration(s.minutes)}</span>
+        </span>
       </div>
+      <p className="mt-1 text-xs text-ink-2">{fmt(c.exercises, { n: s.exercises.length })} · {c.author[s.author]}{s.shared ? " · " + c.sharedBadge : ""}</p>
       {s.objective ? <p className="mt-1 text-sm text-ink-2">{s.objective}</p> : null}
       <details className="mt-2">
         <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-accent">{c.preview}</summary>
