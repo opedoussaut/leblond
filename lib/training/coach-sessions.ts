@@ -22,8 +22,8 @@ import { ILLUSTRATIONS } from "./illustrations";
 export const MUSCLEWIKI_SLUGS = [
   "adductor-stretch-dynamic-unilateral-4-point-position", "adductor-stretch-seated-bilateral-static",
   "band-face-pull", "band-hip-abduction", "band-pull-apart", "barbell-front-raise", "bench-dips",
-  "bodyweight-box-squat", "bodyweight-step-down", "cable-external-rotation", "cable-internal-rotation",
-  "cable-lat-prayer", "calves-stretch-variation-one", "cat-pose", "chest-stretch-variation-one",
+  "bodyweight-box-squat", "bodyweight-cossack-squat", "bodyweight-step-down", "cable-external-rotation", "cable-internal-rotation",
+  "cable-lat-prayer", "calf-raises", "calves-stretch-variation-one", "cat-pose", "chest-stretch-variation-one",
   "child-pose-arms-extended", "dead-hang", "dumbbell-bulgarian-split-squat", "dumbbell-curl",
   "dumbbell-overhead-press", "dumbbell-pullover", "dumbbell-romanian-deadlift", "dumbbell-wrist-extension",
   "glute-bridge", "good-mornings", "hamstring-stretch-supine-static", "hanging-knee-raises",
