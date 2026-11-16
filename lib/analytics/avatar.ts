@@ -50,19 +50,23 @@ export const OUTDOOR_FROM_LEVEL = 4;
 export type ClimbRule = { grade: string; climbs: number; sessions: number; sites: number };
 const rule = (grade: string, climbs: number, sessions: number, sites = 1): ClimbRule => ({ grade, climbs, sessions, sites });
 
+/** A level is confirmed over at least this many séances (days outdoor) and this many different climbs. */
+export const MIN_SESSIONS = 5;
+export const MIN_CLIMBS = 3;
+
 /** Rules per level (index = level; White needs nothing). */
 export const BOULDER_INDOOR_RULES: readonly (ClimbRule | null)[] = [
-  null, rule("5a", 3, 2), rule("5b", 3, 2), rule("5c", 3, 2), rule("6A+", 4, 3), rule("6B+", 5, 3), rule("6C+", 5, 4),
+  null, rule("5a", 3, 5), rule("5b", 3, 5), rule("5c", 3, 5), rule("6A+", 4, 5), rule("6B+", 5, 5), rule("6C+", 5, 6),
 ];
 export const ROUTE_INDOOR_RULES: readonly (ClimbRule | null)[] = [
-  null, rule("5a", 3, 2), rule("5c", 3, 2), rule("6a", 3, 2), rule("6b", 4, 3), rule("6c", 5, 3), rule("7a", 5, 4),
+  null, rule("5a", 3, 5), rule("5c", 3, 5), rule("6a", 3, 5), rule("6b", 4, 5), rule("6c", 5, 5), rule("7a", 5, 6),
 ];
 /** Below OUTDOOR_FROM_LEVEL the outdoor pillars use the indoor rule on every send. */
 export const BOULDER_OUTDOOR_RULES: readonly (ClimbRule | null)[] = [
-  ...BOULDER_INDOOR_RULES.slice(0, OUTDOOR_FROM_LEVEL), rule("6A", 3, 2), rule("6B+", 3, 2, 2), rule("7A", 3, 3, 2),
+  ...BOULDER_INDOOR_RULES.slice(0, OUTDOOR_FROM_LEVEL), rule("6A", 3, 5), rule("6B+", 3, 5, 2), rule("7A", 3, 5, 2),
 ];
 export const ROUTE_OUTDOOR_RULES: readonly (ClimbRule | null)[] = [
-  ...ROUTE_INDOOR_RULES.slice(0, OUTDOOR_FROM_LEVEL), rule("6a+", 3, 2), rule("6b+", 3, 2, 2), rule("7a", 3, 3, 2),
+  ...ROUTE_INDOOR_RULES.slice(0, OUTDOOR_FROM_LEVEL), rule("6a+", 3, 5), rule("6b+", 3, 5, 2), rule("7a", 3, 5, 2),
 ];
 
 /** Tests behind each body pillar. D is optional: missing, it is ignored. */
