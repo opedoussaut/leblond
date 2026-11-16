@@ -1285,7 +1285,7 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByTestId("twin-card")).toContainText("Départ : 6A");
   await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
   await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
-  await page.getByText("Réglages du rival").click();
+  await page.getByText("Réglages de l’alter ego").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();

@@ -13,7 +13,7 @@ import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown }: {
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown, twinPace = false }: {
   locale: Locale; pact: Pact; progress: PactProgress; portrait?: RivalPortraitId;
   /** The climber's avatar level, shown facing the rival. */
   avatar?: number;
@@ -22,6 +22,8 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   /** The climber's séances by type since signing. */
   breakdown?: Record<WorkKind, KindTally>;
   observed?: { boulder: string | null; route: string | null }; href?: "/train/alter-ego";
+  /** The grades are the twin's level (lib/analytics/twin), not a pace chosen at signing. */
+  twinPace?: boolean;
 }) {
   const t = alterEgoDictionary(locale);
   const { standing: s } = progress;
@@ -79,7 +81,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
       <p className="mt-2 text-xs text-ink-3">{fmt(t.breakdownHint, { name })}</p>
     </div> : null}
     {paces.length ? <div>
-      <h3 className="text-sm font-bold">{t.pace}</h3>
+      <h3 className="text-sm font-bold">{twinPace ? fmt(t.twinPace, { name }) : t.pace}</h3>
       <ul className="mt-2 space-y-1 text-sm">
         {paces.map((p) => <li key={p.label} className="flex items-center justify-between gap-3">
           <span className="text-ink-2">{p.label}</span>
@@ -89,7 +91,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
           </span>
         </li>)}
       </ul>
-      <p className="mt-2 text-xs text-ink-3">{t.paceHint}</p>
+      <p className="mt-2 text-xs text-ink-3">{twinPace ? t.twinPaceHint : t.paceHint}</p>
     </div> : null}
     {href ? <Link href={href} className={cn(linkClass, "text-sm")}>{t.see} <IconNext /></Link> : null}
   </section>;
