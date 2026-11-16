@@ -40,8 +40,8 @@ export default async function EditSessionPage({ params, searchParams }: PageProp
       </Link>
     </header>
     {fitFailed && !view.activity ? <Notice tone="error">{fitAttachDictionary(locale).linkFailed}</Notice> : null}
-    {/* Keyed on the times: attaching a FIT file changes them, and the form must show the new ones. */}
-    <SessionMetaForm key={`${view.session.started_at}|${minutes}`} sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
+    {/* Attaching a FIT file changes the times: the form picks up the new ones itself (no remount). */}
+    <SessionMetaForm sessionId={id} initial={{ date: start.date, time: start.time, minutes, title: view.session.title ?? "" }}
       fromWatch={view.session.timing_source === "ACTIVITY"} today={utcToZoned(new Date()).date} />
     <SessionWearableSection supabase={viewer.supabase} view={view} />
     {/* A board séance's climbs are corrected on the séance page itself. */}
