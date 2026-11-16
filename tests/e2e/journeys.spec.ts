@@ -599,7 +599,8 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   const programme = page.getByRole("region", { name: "Programme en cours" });
   await expect(programme.getByText("Semaine 1 sur 8")).toBeVisible();
   await expect(programme.getByText("Prochaine évaluation complète")).toBeVisible();
-  await page.getByText("Évaluation complète, programme, séances : comment ça s’articule").click();
+  await page.goto("/programmes?tab=guide");
+  await expect(page.getByRole("heading", { name: "Évaluation complète, programme, séances : comment ça s’articule" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Choisir mon programme \(fait\)/ })).toBeVisible();
   // Aujourd’hui no longer invites to follow a programme.
   await page.goto("/home");
@@ -647,7 +648,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await page.goto("/atlas/max-hangs");
   await expect(page.getByRole("heading", { name: "Séance type et charge de départ" })).toBeVisible();
   await page.getByRole("link", { name: /Ajouter à un programme/ }).click();
-  await expect(page).toHaveURL(/\/programmes\?add=max-hangs/);
+  await expect(page).toHaveURL(/\/programmes\?tab=editor&add=max-hangs/);
   await expect(page.getByText(/Méthode ajoutée au programme/)).toBeVisible();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Enregistré en privé")).toBeVisible();
@@ -989,7 +990,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
 
 test("F — alter ego: sign a pact, train alongside it, pause and leave", async ({ page }) => {
   await signInWithPassword(page, "guided@leblond.local");
-  await page.goto("/programmes");
+  await page.goto("/programmes?tab=rival");
   await page.getByRole("link", { name: "Signer un pacte" }).click();
   await expect(page).toHaveURL(/\/train\/alter-ego/);
   await page.getByLabel("Nom de ton alter ego").fill("Double");
@@ -1001,8 +1002,8 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
   await expect(page.getByText("L’écart n’est qu’un score.", { exact: false })).toBeVisible();
 
-  // The score is on the Programmes page, and the ego trains through the running session.
-  await page.goto("/programmes");
+  // The score is in Programmes › Rival, and the ego trains through the running session.
+  await page.goto("/programmes?tab=rival");
   await expect(page.getByRole("heading", { name: "Toi contre Double" })).toBeVisible();
   await page.goto("/session");
   await page.getByRole("link", { name: /Entraînement en cours/ }).click();
@@ -1013,7 +1014,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
 
   // Nothing overflows at the narrowest phone width.
   await page.setViewportSize({ width: 360, height: 740 });
-  for (const p of ["/train/alter-ego", "/programmes"]) {
+  for (const p of ["/train/alter-ego", "/programmes", "/programmes?tab=rival"]) {
     await page.goto(p);
     await expect(page.locator("#app-main h1")).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -1045,7 +1046,7 @@ test("F — alter ego: sign a pact, train alongside it, pause and leave", async 
 
 test("G — training plans: assisted mode with phases, then a plan proposed by Patrick", async ({ page }) => {
   await register(page, "Plan Builder", "plans@leblond.local");
-  await page.goto("/programmes");
+  await page.goto("/programmes?tab=editor");
 
   // No plan yet: choose how to build it.
   await expect(page.getByRole("group", { name: "Comment veux-tu construire ce programme ?" })).toBeVisible();

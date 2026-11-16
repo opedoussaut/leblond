@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AREA_ICONS, PAGE_ICONS } from "@/components/layout/nav-icons";
+import { SectionTabs } from "@/components/layout/section-tabs";
 import { AlterEgoScore } from "@/components/training/alter-ego-score";
 import { FollowProgramme } from "@/components/training/follow-programme";
 import { PlanEditor } from "@/components/training/plan-editor";
@@ -22,6 +23,7 @@ import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { PROGRAMME_TABS, parseProgrammeTab, programmeHref } from "@/lib/navigation/programme-tabs";
 import { parseContext } from "@/lib/training/assessment-protocol";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { healthFromContext } from "@/lib/training/health";
@@ -32,9 +34,9 @@ import { localDate_, mondayOf } from "@/lib/training/sessions";
 export const metadata = { title: "Programmes" };
 
 /**
- * Programmes: what the climber follows. The main programme and its rival first,
- * hip mobility alongside, the full assessment that builds or re-adjusts a
- * programme, then the programme editor and how it all fits together.
+ * Mes programmes, in sections (?tab=…, listed in the sidebar under the page):
+ * the programme in progress (overview), the editor, the rival, the full
+ * assessment with hip mobility, and how it all fits together.
  */
 export default async function ProgrammesPage({ searchParams }: PageProps<"/programmes">) {
   const viewer = await requireViewer();
@@ -48,6 +50,7 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
   const sp = await searchParams;
   const addMethod = typeof sp.add === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.add) ? sp.add : "";
   const today = localDate_(new Date());
+  const tab = parseProgrammeTab(sp.tab, sp.add);
 
   const [sessions, { count: assessments }, rival, work, programme, { data: mobility }, { data: assessment }, plansResult] = await Promise.all([
     listTrainingSessions(viewer.supabase, 100),
@@ -79,7 +82,7 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
       detail: fr ? "Discipline, niveau actuel et niveau visé — sans date de réussite garantie." : "Discipline, current and target level — no guaranteed deadline." },
     { no: "02", href: "/train/assess", done: (assessments ?? 0) > 0,
       title: h.stepFullTitle, detail: h.stepFullDetail },
-    { no: "03", href: "#plans-heading", done: !!view?.plan || plans.length > 0,
+    { no: "03", href: programmeHref("editor"), done: !!view?.plan || plans.length > 0,
       title: h.stepProgrammeTitle,
       detail: view ? fmt(h.stepProgrammeDone, { method: methodTitle }) + " " + h.stepProgrammeDetail : h.stepProgrammeDetail },
     { no: "04", href: "/calendar", done: (sessions ?? []).some((s) => s.scheduledDate),
@@ -93,88 +96,101 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
       detail: fr ? "Prévu vs réalisé, puis nouvelle évaluation complète pour comparer." : "Planned vs completed, then a new full assessment to compare." },
   ];
 
+  const tabs = PROGRAMME_TABS.map((id) => ({ id, href: programmeHref(id), label: a.tabs[id] }));
+
   return <div className="space-y-8">
     <PageHeader icon={<AREA_ICONS.programmes />} title={a.title} subtitle={a.subtitle} />
+    <SectionTabs label={a.sections} tabs={tabs} current={tab} />
 
     {programme.replan.suggested ? <ReplanBanner locale={locale} replan={programme.replan} /> : null}
 
-    <ProgrammeCard locale={locale} view={view} today={today} />
-    <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: p.name }))} followed={followed} today={today} />
+    {tab === "overview" ? <>
+      <ProgrammeCard locale={locale} view={view} today={today} />
+      <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: p.name }))} followed={followed} today={today} />
+      <p className="text-sm"><Link href="/atlas" className={cn(linkClass)}>{a.library} <IconNext /></Link></p>
+    </> : null}
 
-    {rival ? <AlterEgoScore locale={locale} pact={rival.pact} portrait={rival.settings.portrait} href="/train/alter-ego"
-      progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today),
-        // Grades are on the alter ego page, from the twin; never the straight line here.
-        boulderPace: null, routePace: null }} />
-      : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+    {tab === "editor" ? <>
+      <section aria-labelledby="plans-heading" className="space-y-3">
         <div>
-          <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>
-          <p className="mt-1 text-sm text-ink-2">{ego.cardEmpty}</p>
+          <h2 id="plans-heading" className="text-lg font-bold">{a.mine}</h2>
+          <p className="mt-1 text-sm text-ink-2">{a.mineHint}</p>
         </div>
-        <Link href="/train/alter-ego" className={buttonClass("secondary", "md", "shrink-0")}>{ego.cardSign}</Link>
-      </section>}
+        {plansResult.error ? (
+          <p role="alert" className="rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{tp.unavailable}</p>
+        ) : (
+          <PlanEditor initialPlans={plans} locale={locale} addMethod={addMethod} today={today} monday={mondayOf(today)} health={health} />
+        )}
+      </section>
+    </> : null}
 
-    <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 id="mobility-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.mobility aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{mob.hubTitle}</h2>
-          <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{mob.hubBadge}</span>
+    {tab === "rival" ? <div className="space-y-4">
+      <p className="text-sm text-ink-2">{a.rivalIntro}</p>
+      {rival ? <AlterEgoScore locale={locale} pact={rival.pact} portrait={rival.settings.portrait} href="/train/alter-ego"
+        progress={{ ...pactProgress(rival.pact, work, today), standing: rivalStanding(rival.pact, rival.settings, work, today),
+          // Grades are on the alter ego page, from the twin; never the straight line here.
+          boulderPace: null, routePace: null }} />
+        : <section aria-labelledby="ego-empty-heading" className="leblond-premium-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <h2 id="ego-empty-heading" className="text-lg font-bold">{ego.title}</h2>
+            <p className="mt-1 text-sm text-ink-2">{ego.cardEmpty}</p>
+          </div>
+          <Link href="/train/alter-ego" className={buttonClass("secondary", "md", "shrink-0")}>{ego.cardSign}</Link>
+        </section>}
+    </div> : null}
+
+    {tab === "checks" ? <div className="space-y-4">
+      <p className="text-sm text-ink-2">{a.checksIntro}</p>
+      {/* The full assessment builds or re-adjusts a programme. */}
+      <section aria-labelledby="assessment-heading" className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="assessment-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.assessment aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.fullTitle}</h2>
+            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
+          {view ? <p className={"mt-2 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
+            {fmt(view.reassessmentDue ? h.fullDue : h.fullNext, { date: dateLabel(view.nextReassessment) })}
+          </p> : null}
         </div>
-        <p className="mt-1 text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
-        {mobility ? <p className="mt-2 text-sm font-bold text-ink">
-          {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
-        </p> : null}
-      </div>
-      <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
-    </section>
-
-    {/* The full assessment builds or re-adjusts a programme. */}
-    <section aria-labelledby="assessment-heading" className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="assessment-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.assessment aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.fullTitle}</h2>
-          <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
+        <Link href="/train/assess" className={buttonClass(view && !view.reassessmentDue ? "secondary" : "primary", "md", "self-start")}>
+          {view ? h.fullAgain : h.fullCta} <IconNext />
+        </Link>
+      </section>
+      <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="mobility-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.mobility aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{mob.hubTitle}</h2>
+            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{mob.hubBadge}</span>
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
+          {mobility ? <p className="mt-2 text-sm font-bold text-ink">
+            {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
+          </p> : null}
         </div>
-        <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
-        {view ? <p className={"mt-2 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
-          {fmt(view.reassessmentDue ? h.fullDue : h.fullNext, { date: dateLabel(view.nextReassessment) })}
-        </p> : null}
-      </div>
-      <Link href="/train/assess" className={buttonClass(view && !view.reassessmentDue ? "secondary" : "primary", "md", "self-start")}>
-        {view ? h.fullAgain : h.fullCta} <IconNext />
-      </Link>
-    </section>
+        <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
+      </section>
+    </div> : null}
 
-    <section aria-labelledby="plans-heading" className="space-y-3">
-      <div>
-        <h2 id="plans-heading" className="text-lg font-bold">{a.mine}</h2>
-        <p className="mt-1 text-sm text-ink-2">{a.mineHint}</p>
-      </div>
-      {plansResult.error ? (
-        <p role="alert" className="rounded-xl border border-warn bg-surface p-4 text-sm text-ink-2">{tp.unavailable}</p>
-      ) : (
-        <PlanEditor initialPlans={plans} locale={locale} addMethod={addMethod} today={today} monday={mondayOf(today)} health={health} />
-      )}
-    </section>
-
-    <details className="rounded-2xl border border-line bg-surface p-4 text-sm sm:p-5">
-      <summary className="min-h-11 cursor-pointer py-2 font-bold">{h.howTitle}</summary>
-      <p className="mt-2 leading-relaxed text-ink-2">{h.howText}</p>
-      <h3 className="mt-5 text-base font-bold">{a.journeyTitle}</h3>
-      <ol className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {steps.map((step) => <li key={step.no}>
-          <Link href={step.href}
-            className="group flex h-full gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent">
-            <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums " +
-              (step.done ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent")} aria-hidden="true">{step.done ? <IconCheck /> : step.no}</span>
-            <span className="block">
-              <strong className="block text-base font-bold text-ink">{step.title}{step.done ? <span className="sr-only"> ({fr ? "fait" : "done"})</span> : null}</strong>
-              <span className="mt-1 block text-sm leading-relaxed text-ink-2">{step.detail}</span>
-            </span>
-          </Link>
-        </li>)}
-      </ol>
-    </details>
-
-    <p className="text-sm"><Link href="/atlas" className={cn(linkClass)}>{a.library} <IconNext /></Link></p>
+    {tab === "guide" ? <>
+      <section aria-labelledby="how-heading" className="rounded-2xl border border-line bg-surface p-4 text-sm sm:p-5">
+        <h2 id="how-heading" className="text-lg font-bold">{h.howTitle}</h2>
+        <p className="mt-2 leading-relaxed text-ink-2">{h.howText}</p>
+        <h3 className="mt-5 text-base font-bold">{a.journeyTitle}</h3>
+        <ol className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {steps.map((step) => <li key={step.no}>
+            <Link href={step.href}
+              className="group flex h-full gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent">
+              <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums " +
+                (step.done ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent")} aria-hidden="true">{step.done ? <IconCheck /> : step.no}</span>
+              <span className="block">
+                <strong className="block text-base font-bold text-ink">{step.title}{step.done ? <span className="sr-only"> ({fr ? "fait" : "done"})</span> : null}</strong>
+                <span className="mt-1 block text-sm leading-relaxed text-ink-2">{step.detail}</span>
+              </span>
+            </Link>
+          </li>)}
+        </ol>
+      </section>
+    </> : null}
   </div>;
 }

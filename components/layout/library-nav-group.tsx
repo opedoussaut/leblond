@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { areasDictionary } from "@/lib/i18n/areas";
 import { LIBRARY_TABS, libraryHref } from "@/lib/navigation/library-tabs";
+import { PROGRAMME_TABS, programmeHref } from "@/lib/navigation/programme-tabs";
 import { PROGRESS_TABS, progressHref } from "@/lib/navigation/progress-tabs";
 import { NavTabGroup } from "./nav-tab-group";
 
@@ -23,4 +24,12 @@ export function ProgressNavGroup(props: GroupProps) {
   const labels = areasDictionary(locale).climbing.tabs;
   return <NavTabGroup {...props} path="/progress"
     tabs={PROGRESS_TABS.filter((tab) => tab !== "overview").map((tab) => ({ id: tab, href: progressHref(tab), label: labels[tab] }))} />;
+}
+
+/** Mes programmes in the sidebar: editor, rival, assessment and mobility, guide; the link itself shows the programme in progress. */
+export function ProgrammesNavGroup(props: GroupProps) {
+  const { locale } = useI18n();
+  const labels = areasDictionary(locale).programmes.tabs;
+  return <NavTabGroup {...props} path="/programmes"
+    tabs={PROGRAMME_TABS.filter((tab) => tab !== "overview").map((tab) => ({ id: tab, href: programmeHref(tab), label: labels[tab] }))} />;
 }
