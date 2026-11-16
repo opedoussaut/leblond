@@ -15,13 +15,15 @@ import { AvatarCard } from "@/components/training/avatar-card";
 import { loadAvatar } from "@/lib/data/avatar";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { cn } from "@/components/ui/cn";
-import { Explain, Stat } from "@/components/ui/stat";
+import { Stat } from "@/components/ui/stat";
 import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { RouteStats } from "@/components/climbing/route-stats";
+import { ScaleLevels } from "@/components/climbing/scale-levels";
+import { fontTrend, scaleRows } from "@/lib/analytics/scale-rows";
 import { formatDate, formatNumber, formatRatio } from "@/lib/format";
 import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
@@ -95,41 +97,27 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
         <EmptyState body={scope ? sections.emptySection : t.progress.empty} />
       ) : (
         <>
+          <Card aria-label={t.progress.summaryTitle}>
+            <SectionTitle>{t.progress.summaryTitle} · {periodLabel}</SectionTitle>
+            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+              <Stat value={snap.counts.sessions} label={t.progress.sessions} />
+              <Stat value={snap.counts.problems} label={t.progress.problems} />
+              <Stat value={formatRatio(snap.sendRate)} label={t.progress.sendRate} />
+              <Stat value={formatRatio(snap.flashRate)} label={t.progress.flashRate} />
+            </div>
+            <p className="mt-4 border-t border-line pt-3 text-sm text-ink-2 tabular-nums">
+              {snap.counts.attempts} {t.progress.attempts.toLowerCase()}
+              {" · "}{t.progress.attemptsPerSend} {snap.attemptsPerSend.value === null ? "—" : formatNumber(snap.attemptsPerSend.value)}
+              {" · "}{t.progress.topsPerSession} {formatNumber(snap.topsPerSession.mean)}
+            </p>
+          </Card>
           {chartSystem ? <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <LevelCurve t={t} locale={locale} system={chartSystem} now={now}
               points={weeklyHardest(data.problems, data.attempts, chartSystem, now, days)} />
             <GradePyramid t={t} locale={locale} system={chartSystem}
               rows={gradePyramid(data.problems, data.attempts, chartSystem, now, days)} />
           </div> : null}
-          <Card>
-            <SectionTitle>{t.progress.overview}</SectionTitle>
-            <div className="mt-3 grid grid-cols-3 gap-4">
-              <Stat value={snap.counts.sessions} label={t.progress.sessions} />
-              <Stat value={snap.counts.problems} label={t.progress.problems} />
-              <Stat value={snap.counts.attempts} label={t.progress.attempts} />
-            </div>
-            <dl className="mt-4 divide-y divide-line text-sm">
-              {(
-                [
-                  [t.progress.sendRate, formatRatio(snap.sendRate)],
-                  [t.progress.flashRate, formatRatio(snap.flashRate)],
-                  [
-                    t.progress.attemptsPerSend,
-                    snap.attemptsPerSend.value === null
-                      ? "—"
-                      : `${formatNumber(snap.attemptsPerSend.value)} (${snap.attemptsPerSend.attempts}/${snap.attemptsPerSend.sends})`,
-                  ],
-                  [t.progress.topsPerSession, formatNumber(snap.topsPerSession.mean)],
-                ] as const
-              ).map(([k, v]) => (
-                <div key={k} className="flex justify-between py-2">
-                  <dt className="text-ink-2">{k}</dt>
-                  <dd className="font-semibold tabular-nums">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </Card>
-
+          <ScaleLevels t={t} rows={scaleRows(snap)} font={{ level: snap.workingGrade.level, trend: fontTrend(snap) }} />
           <Card>
             <SectionTitle>{t.progress.weekly}</SectionTitle>
             <div className="mt-3">
@@ -146,69 +134,6 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 }}
               />
             </div>
-          </Card>
-
-          <Card>
-            <SectionTitle>{t.progress.workingLevel}</SectionTitle>
-            <ul className="mt-2 space-y-3">
-              {snap.workingLevels.map((w) => (
-                <li key={w.system}>
-                  <p className="text-sm text-ink-2">{t.grades.systems[w.system as GradeSystem]}</p>
-                  <p className="mt-0.5 font-bold">
-                    {w.level ? <GradeChip t={t} system={w.system as GradeSystem} grade={w.level} showFont /> : t.home.notEnough}
-                  </p>
-                  <GradeCounts
-                    t={t}
-                    system={w.system as GradeSystem}
-                    rows={w.levels.map((l) => ({ grade: l.grade, sent: l.sends, attempted: l.problems }))}
-                  />
-                </li>
-              ))}
-              <li>
-                <p className="text-sm text-ink-2">{t.home.workingGradeFont}</p>
-                <p className="font-bold">
-                  {snap.workingGrade.level ? `${snap.workingGrade.level} (${t.common.estimate})` : t.home.notEnough}
-                </p>
-              </li>
-            </ul>
-            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-line pt-3">
-              {(
-                [
-                  [t.progress.highestSent, snap.highestSent],
-                  [t.progress.highestFlashed, snap.highestFlashed],
-                  [t.progress.highestUnsent, snap.highestUnsent],
-                ] as const
-              ).map(([title, best]) => (
-                <div key={title}>
-                  <p className="text-xs uppercase tracking-[0.12em] text-ink-3">{title}</p>
-                  {best.length === 0 ? <p className="mt-2 text-sm text-ink-3">—</p> : null}
-                  <ul className="mt-2 space-y-2">
-                    {best.map((h) => (
-                      <li key={h.system}>
-                        <span className="block text-xs text-ink-3">{t.grades.systems[h.system]}</span>
-                        <GradeChip t={t} system={h.system} grade={h.grade} className="mt-0.5" />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <Explain summary={t.common.howCalculated}>{t.progress.workingRule}</Explain>
-          </Card>
-
-          <Card>
-            <SectionTitle>{t.progress.trend}</SectionTitle>
-            <ul className="mt-2 space-y-1 text-sm">
-              {snap.trends.map((tr) => (
-                <li key={tr.scale} className="flex justify-between gap-2">
-                  <span className="text-ink-2">
-                    {tr.scale === "FONT_NORMALIZED" ? t.home.workingGradeFont : t.grades.systems[tr.scale]}
-                  </span>
-                  <span className="font-semibold">{t.trend[tr.direction]}</span>
-                </li>
-              ))}
-            </ul>
-            <Explain summary={t.common.howCalculated}>{t.progress.trendExplain}</Explain>
           </Card>
 
           <Card>
