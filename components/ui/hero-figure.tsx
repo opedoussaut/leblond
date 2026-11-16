@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { IconNext } from "./icons";
+import { ChevronRight } from "lucide-react";
 import { cn } from "./cn";
 
 export type HeroStat = { label: string; value: ReactNode; hint?: string };
@@ -10,11 +10,14 @@ export type HeroStat = { label: string; value: ReactNode; hint?: string };
  * it. Each label sits next to its value in the same element, so a figure is
  * read with its label.
  */
-export function HeroFigure({ eyebrow, value, label, note, stats = [], badge, className }: {
+export function HeroFigure({ eyebrow, value, label, note, stats = [], badge, size = "card", className }: {
   eyebrow: string; value: ReactNode; label: string;
   /** A short line under the label (kept apart so the label reads alone). */
   note?: string;
-  stats?: HeroStat[]; badge?: ReactNode; className?: string;
+  stats?: HeroStat[]; badge?: ReactNode;
+  /** "page": on the page itself, no card around it, a larger figure. */
+  size?: "card" | "page";
+  className?: string;
 }) {
   return <div className={cn("space-y-4", className)}>
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -23,7 +26,7 @@ export function HeroFigure({ eyebrow, value, label, note, stats = [], badge, cla
     </div>
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div className="min-w-0">
-        <p className="leblond-number break-words text-5xl leading-none sm:text-6xl">{value}</p>
+        <p className={cn("leblond-number break-words leading-none", size === "page" ? "text-6xl sm:text-7xl" : "text-5xl sm:text-6xl")}>{value}</p>
         <p className="mt-2 text-sm font-semibold text-ink-2">{label}</p>
         {note ? <p className="mt-0.5 text-xs text-ink-3">{note}</p> : null}
       </div>
@@ -38,16 +41,25 @@ export function HeroFigure({ eyebrow, value, label, note, stats = [], badge, cla
   </div>;
 }
 
-/** A section of a page summed up in one figure, opening that section. */
-export function SectionLink({ href, title, value, detail }: { href: string; title: string; value: ReactNode; detail: string }) {
-  return <Link href={href} className="leblond-premium-surface group flex min-w-0 flex-col justify-between gap-3 p-4 transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:p-5">
-    <span className="flex items-center justify-between gap-2 text-sm font-bold">
-      {title}
-      <span className="text-accent transition-transform group-hover:translate-x-0.5"><IconNext /></span>
-    </span>
-    <span>
-      <span className={cn("leblond-number block break-words leading-tight", typeof value === "string" && !/^[\d\s/%,.]+$/.test(value) ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl")}>{value}</span>
-      <span className="mt-1 block text-xs leading-snug text-ink-2">{detail}</span>
-    </span>
-  </Link>;
+export type SectionRow = { href: string; title: string; value: ReactNode; detail: string; muted?: boolean };
+
+/**
+ * A page's sections as one calm list: the section, one figure and what it
+ * means, then a chevron. Each row opens its section; nothing else is shown here.
+ */
+export function SectionRows({ label, rows }: { label: string; rows: readonly SectionRow[] }) {
+  return <nav aria-label={label}>
+    <ul className="leblond-premium-surface divide-y divide-line overflow-hidden">
+      {rows.map((r) => <li key={r.href}>
+        <Link href={r.href} className="group flex min-h-[4.25rem] items-center gap-4 px-5 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold">{r.title}</span>
+            <span className="mt-0.5 block truncate text-xs text-ink-3">{r.detail}</span>
+          </span>
+          <span className={cn("leblond-number shrink-0 text-right text-xl", r.muted && "text-ink-3")}>{r.value}</span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" strokeWidth={2.25} />
+        </Link>
+      </li>)}
+    </ul>
+  </nav>;
 }

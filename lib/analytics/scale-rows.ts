@@ -45,3 +45,8 @@ export function scaleRows(snap: Pick<Snapshot, "workingLevels" | "highestSent" |
 export function fontTrend(snap: Pick<Snapshot, "trends">): Trend | null {
   return snap.trends.find((x) => x.scale === "FONT_NORMALIZED")?.direction ?? null;
 }
+
+/** The scale a section leads with: the first one with a working level (rows come sorted that way), or none. */
+export function headlineRow(rows: readonly ScaleRow[]): ScaleRow | null {
+  return rows.find((r) => r.working !== null) ?? null;
+}

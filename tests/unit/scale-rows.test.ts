@@ -31,3 +31,14 @@ describe("scaleRows", () => {
     expect(fontTrend(snap)).toBe("insufficient_data");
   });
 });
+
+describe("headlineRow", () => {
+  const row = (system: string, working: string | null) => ({ system, working, top: null, flash: null, tried: null, trend: null, levels: [] }) as unknown as import("@/lib/analytics/scale-rows").ScaleRow;
+  it("leads with the first scale that has a working level, or none", async () => {
+    const { headlineRow } = await import("@/lib/analytics/scale-rows");
+    expect(headlineRow([row("ARKOSE_COLOR", "BLACK"), row("FONT", "6A")])?.system).toBe("ARKOSE_COLOR");
+    expect(headlineRow([row("FONT", null), row("ARKOSE_COLOR", "RED")])?.working).toBe("RED");
+    expect(headlineRow([row("FONT", null)])).toBeNull();
+    expect(headlineRow([])).toBeNull();
+  });
+});

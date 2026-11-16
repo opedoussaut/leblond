@@ -2,21 +2,21 @@ import type { Place } from "@/lib/analytics/place";
 
 /**
  * Progrès › Grimpe (/progress) is split into sections, each with its own
- * shareable address: /progress (the essentials), /progress?tab=boulder-indoor, …
- * A section is one discipline in one kind of place; boards are their own; the
- * gym-by-gym comparison and the style / wall-angle detail have their own too,
- * so no page carries every block at once.
+ * shareable address: /progress (a short summary linking to each section),
+ * /progress?tab=boulder-indoor, … A section is one discipline in one kind of
+ * place; boards, the gym-by-gym comparison, styles and the avatar have their
+ * own. Each figure lives in one section only; the summary links to it.
  */
 export const PROGRESS_TABS = [
-  "overview", "boulder-indoor", "boulder-outdoor", "route-indoor", "route-outdoor", "boards", "gyms", "styles",
+  "overview", "boulder-indoor", "boulder-outdoor", "route-indoor", "route-outdoor", "boards", "gyms", "styles", "avatar",
 ] as const;
 export type ProgressTab = (typeof PROGRESS_TABS)[number];
 
-export type ProgressDiscipline = "boulder" | "route" | "board";
+export type ProgressDiscipline = "boulder" | "route" | "board" | "avatar";
 /** Which boulder blocks a section shows: the levels, the gym comparison, or styles and heart rate. */
-export type ProgressView = "levels" | "gyms" | "styles";
+export type ProgressView = "levels" | "gyms" | "styles" | "avatar";
 
-/** What a section shows; the overview shows the essentials, in every place. */
+/** What a section shows; the overview only sums the sections up. */
 export const PROGRESS_SCOPES: Record<Exclude<ProgressTab, "overview">, { discipline: ProgressDiscipline; place: Place | null; view: ProgressView }> = {
   "boulder-indoor": { discipline: "boulder", place: "indoor", view: "levels" },
   "boulder-outdoor": { discipline: "boulder", place: "outdoor", view: "levels" },
@@ -25,6 +25,7 @@ export const PROGRESS_SCOPES: Record<Exclude<ProgressTab, "overview">, { discipl
   boards: { discipline: "board", place: null, view: "levels" },
   gyms: { discipline: "boulder", place: null, view: "gyms" },
   styles: { discipline: "boulder", place: null, view: "styles" },
+  avatar: { discipline: "avatar", place: null, view: "avatar" },
 };
 
 /** The section asked for in the URL; anything unknown falls back to the overview. */

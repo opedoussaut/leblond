@@ -49,7 +49,7 @@ import { loadChartPoints, weeklyLoadRows } from "@/lib/analytics/training-load";
 import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { SectionTabs } from "@/components/layout/section-tabs";
 import { Fold } from "@/components/ui/fold";
-import { HeroFigure, SectionLink } from "@/components/ui/hero-figure";
+import { HeroFigure, SectionRows } from "@/components/ui/hero-figure";
 import { boulderGrade } from "@/lib/grading/display";
 import { progressAreaDictionary } from "@/lib/i18n/progress-area";
 import { trainingLoadDictionary } from "@/lib/i18n/training-load";
@@ -221,7 +221,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const ld = trainingLoadDictionary(locale);
   const routesInPeriod = routes ? routeAscentsInLastDays(routes, days, now).length : 0;
 
-  return <div className="space-y-6">
+  return <div className="space-y-8">
     <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={tab === "overview" ? c.psubtitle : pa.tabs[tab]} />
     <SectionTabs always label={pa.sections} current={tab}
       tabs={FOLLOW_UP_TABS.map((id) => ({ id, href: followUpHref(id, weeks), label: pa.tabs[id] }))} />
@@ -235,8 +235,8 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </nav>
 
     {tab === "overview" ? <>
-      <section aria-label={pa.heroTitle} className="leblond-premium-surface p-5 sm:p-7">
-        <HeroFigure eyebrow={fmt(pa.heroEyebrow, { period: periodName })}
+      <section aria-label={pa.heroTitle} className="px-1">
+        <HeroFigure size="page" eyebrow={fmt(pa.heroEyebrow, { period: periodName })}
           value={working.level ? boulderGrade(working.level) : snap.counts.tops}
           label={working.level ? fmt(pa.heroLabel, { n: working.sampleSize }) : pa.heroSends}
           note={working.level ? undefined : pa.heroNone}
@@ -247,17 +247,18 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
             { label: pa.mobility28, value: mobSessions28 },
           ]} />
       </section>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SectionLink href={followUpHref("load", weeks)} title={pa.loadCard}
-          value={loadReport && loadReport.model.length ? ld.verdict[loadReport.verdict.verdict] : pa.loadNone}
-          detail={loadReport && loadReport.model.length ? `${ld.zoneLabel} : ${ld.zone[loadReport.verdict.zone]}` : ld.empty} />
-        <SectionLink href={followUpHref("climbing", weeks)} title={pa.climbCard} value={formatPercent(snap.sendRate)}
-          detail={fmt(pa.climbDetail, { routes: routesInPeriod })} />
-        <SectionLink href={followUpHref("training", weeks)} title={pa.trainingCard} value={`${adh.completed} / ${adh.planned}`}
-          detail={fmt(pa.trainingDetail, { minutes: adh.activeMinutes })} />
-        <SectionLink href={followUpHref("compare", weeks)} title={pa.compareCard}
-          value={fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] })} detail={pa.compareDetail} />
-      </div>
+      <SectionRows label={pa.sections} rows={[
+        { href: followUpHref("load", weeks), title: pa.loadCard,
+          value: loadReport && loadReport.model.length ? ld.verdict[loadReport.verdict.verdict] : "—",
+          detail: loadReport && loadReport.model.length ? `${ld.zoneLabel} : ${ld.zone[loadReport.verdict.zone]}` : pa.loadNone,
+          muted: !(loadReport && loadReport.model.length) },
+        { href: followUpHref("climbing", weeks), title: pa.climbCard, value: formatPercent(snap.sendRate),
+          detail: fmt(pa.climbDetail, { routes: routesInPeriod }) },
+        { href: followUpHref("training", weeks), title: pa.trainingCard, value: `${adh.completed} / ${adh.planned}`,
+          detail: fmt(pa.trainingDetail, { minutes: adh.activeMinutes }) },
+        { href: followUpHref("compare", weeks), title: pa.compareCard, value: "",
+          detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }) },
+      ]} />
       <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
         boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
         gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
