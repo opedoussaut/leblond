@@ -159,7 +159,7 @@ export default async function AtlasDetailPage({ params }: PageProps<"/atlas/[id]
       {executable ? <Link href={"/session/new?kind=train&method=" + encodeURIComponent(entry.id)} className={buttonClass("primary", "md")}>
         <IconPlay /> {ts.startFromAtlas}
       </Link> : null}
-      {executable ? <Link href={"/programmes?add=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
+      {executable ? <Link href={"/programmes?tab=editor&add=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
         + {ts.addToPlan}
       </Link> : null}
       <Link href={"/calendar?method=" + encodeURIComponent(entry.id)} className={buttonClass("secondary", "md")}>
