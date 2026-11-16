@@ -174,3 +174,27 @@ export function coachExerciseRows(s: CoachSessionData) {
     rest_seconds: e.restSeconds ?? null, intensity: (e.intensity ?? "").slice(0, 160),
   }));
 }
+
+/** The coach session slug an exercise snapshot was copied from ("coach:<slug>:<n>"), or null. */
+export function coachSlugOf(key: string | undefined): string | null {
+  const m = /^coach:(.+):\d+$/.exec(key ?? "");
+  return m ? m[1] : null;
+}
+
+/**
+ * Séances copied before a coach session got its pictures keep their old
+ * snapshot. For display only, an exercise without a picture takes the one the
+ * same exercise (same session, same name) has in the session's current version.
+ * Stored séances are never changed.
+ */
+export function withCurrentPictures<T extends { name: string; instructions: Partial<ExerciseSnapshot> }>(
+  exercises: T[], sessions: Array<Pick<CoachSessionData, "slug" | "exercises">>,
+): T[] {
+  const bySlug = new Map(sessions.map((s) => [s.slug, s]));
+  return exercises.map((e) => {
+    if (e.instructions.illustration || e.instructions.mobility) return e;
+    const session = bySlug.get(coachSlugOf(e.instructions.key) ?? "");
+    const picture = session?.exercises.find((x) => x.name === e.name)?.illustration;
+    return picture ? { ...e, instructions: { ...e.instructions, illustration: picture } } : e;
+  });
+}
