@@ -1300,15 +1300,18 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByText("fictif", { exact: true })).toBeVisible();
   await expect(page.getByTestId("twin-card").getByRole("heading", { level: 2, name: "Max, c’est toi qui suis le plan à la lettre" })).toBeVisible();
   await expect(page.getByTestId("twin-card")).toContainText("Départ : 6A");
-  await expect(page.getByRole("heading", { level: 3, name: "Max", exact: true })).toBeVisible();
-  await expect(page.getByText("À ta portée · Piquant")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Messages", exact: true })).toBeVisible();
+  // The tone is a symbol next to the name, with its label.
+  await expect(page.getByRole("img", { name: "Ton : Piquant" })).toBeVisible();
   await page.getByText("Réglages de l’alter ego").click();
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("À ta portée · Sans pitié")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Ton : Sans pitié" })).toBeVisible();
+  await page.getByText("Réglages de l’alter ego").click();
+  await expect(page.getByRole("button", { name: "À ta portée" })).toHaveAttribute("aria-pressed", "true");
   // The climber manages load and pain: no safety footnote under the feed.
   await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);
 });
