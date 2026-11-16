@@ -111,7 +111,7 @@ export default async function RivalDuelPage() {
     <DuelBanner locale={locale} name={pact.displayName} standing={progress.standing} week={progress.week + 1} total={pact.horizonWeeks}
       portrait={settings.portrait} avatar={avatar.level} photo={photo} paused={pact.status === "PAUSED"} breakdown={breakdown} href={null} />
     <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
-      observed={measuredNow} twinPace={settings.level !== "GOAL"} detailed title={t.detailTitle} />
+      observed={measuredNow} twinPace={settings.level !== "GOAL"} detailed />
     <WeeklyDuels locale={locale} name={pact.displayName} duels={duels} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
