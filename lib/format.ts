@@ -22,6 +22,16 @@ export function formatRatio(r: { numerator: number; denominator: number; value: 
   return `${Math.round(r.value * 100)} % (${r.numerator}/${r.denominator})`;
 }
 
+/** The share alone ("89 %"), for a hero figure; the counts go beside it. */
+export function formatPercent(r: { value: number | null }): string {
+  return r.value === null ? "—" : `${Math.round(r.value * 100)} %`;
+}
+
+/** The counts behind a share ("64/72"), or nothing when there is no share. */
+export function formatCounts(r: { numerator: number; denominator: number; value: number | null }): string | undefined {
+  return r.value === null ? undefined : `${r.numerator}/${r.denominator}`;
+}
+
 export function formatNumber(n: number | null | undefined, digits = 1): string {
   if (n == null || !Number.isFinite(n)) return "—";
   return Number.isInteger(n) ? String(n) : n.toFixed(digits);

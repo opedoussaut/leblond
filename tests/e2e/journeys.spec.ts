@@ -134,13 +134,17 @@ test("A — free climber logs a session and sees it in Follow-up without any pla
   await page.reload();
   await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
 
-  await page.goto("/follow-up");
+  await page.goto("/follow-up?tab=climbing");
   const climbing = page.getByRole("region", { name: "Grimpe", exact: true });
   await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
   await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
   await expect(climbing.getByText("Blocs réussis", { exact: true }).locator("..")).toContainText("2");
   await expect(page.getByText("Observé · carnet de grimpe")).toBeVisible();
+  // The overview sums the section up and opens it.
+  await page.goto("/follow-up");
+  await expect(page.getByRole("link", { name: /Grimpe et voie/ }).last()).toHaveAttribute("href", "/follow-up?tab=climbing");
   // No plan or assessment was ever needed; training simply shows an empty, optional state.
+  await page.goto("/follow-up?tab=training");
   await expect(page.getByText(/Pas encore de séance d’entraînement/)).toBeVisible();
   await page.goto("/session");
   await expect(page.locator(`a[href="${new URL(sessionUrl).pathname}"]`).first()).toBeVisible();
@@ -192,7 +196,7 @@ test("A2 — route climber logs lead / top-rope routes, kept separate from bould
 
   await page.goto("/session");
   await expect(page.getByRole("link", { name: /Climb Up Aubervilliers/ })).toContainText("3 voies · 2 enchaînées");
-  await page.goto("/follow-up");
+  await page.goto("/follow-up?tab=climbing");
   await expect(page.getByRole("region", { name: "Voie · 30 derniers jours" })).toContainText("6b");
   // Bouldering statistics are untouched by the route session.
   await expect(page.getByRole("region", { name: "Grimpe", exact: true })).toContainText("Aucune séance de grimpe");
@@ -331,7 +335,7 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   await expect(when.getByRole("status")).toHaveText("Enregistré.");
   await page.reload();
   await expect(when.getByLabel("Heure de début")).toHaveValue("10:15");
-  await page.goto("/follow-up");
+  await page.goto("/follow-up?tab=climbing");
   const climbing = page.getByRole("region", { name: "Grimpe", exact: true });
   await expect(climbing.getByText("Séances", { exact: true }).locator("..")).toContainText("1");
   await expect(climbing.getByText("Essais", { exact: true }).locator("..")).toContainText("3");
@@ -728,7 +732,7 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   // Follow-up shows the executed training.
   await page.goto("/follow-up/training");
   await expect(page.getByRole("link", { name: /Max hangs/ }).filter({ hasText: "Terminée" })).toBeVisible();
-  await page.goto("/follow-up");
+  await page.goto("/follow-up?tab=training");
   await expect(page.getByRole("region", { name: "Entraînement", exact: true })).toContainText("min");
 
   // Controlled reassessment: improved hang → compared with the baseline.
@@ -946,7 +950,8 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
   for (const size of [DESKTOP, { width: 390, height: 844 }, { width: 360, height: 740 }]) {
     await page.setViewportSize(size);
     for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
-      "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up/training", "/progress", "/profile", "/settings", "/atlas/max-hangs",
+      "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up?tab=load", "/follow-up?tab=climbing", "/follow-up?tab=training", "/follow-up?tab=compare",
+      "/follow-up/training", "/progress", "/progress?tab=gyms", "/progress?tab=styles", "/profile", "/settings", "/atlas/max-hangs",
       "/training-assessment", "/train/alter-ego", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
@@ -1218,7 +1223,7 @@ test("I — board séance on the Kilter, BoardLib import, board projects and pro
   await climbForm.getByRole("button", { name: "Créer le projet" }).click();
   await expect(boards).toContainText("Benchmark E2E");
   await expect(boards).toContainText("Moon · 40°");
-  await page.goto("/progress");
+  await page.goto("/progress?tab=boards");
   await expect(page.getByText("Kilter Board · 45° · Font")).toBeVisible();
 
   // A BoardLib file: read on the device, imported once, never twice.

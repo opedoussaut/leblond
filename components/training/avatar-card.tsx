@@ -5,6 +5,7 @@ import { avatarDictionary } from "@/lib/i18n/avatar";
 import { TEST_BY_ID } from "@/lib/training/hip-mobility/assessment";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
+import { ChevronDown } from "lucide-react";
 import { AVATAR_RING, AvatarPortrait } from "./avatar-portrait";
 import { boulderGrade } from "@/lib/grading/display";
 
@@ -15,7 +16,11 @@ import { boulderGrade } from "@/lib/grading/display";
  * missing, so a row can never be read as unlocked. Worded as the next step,
  * never as a failure.
  */
-export function AvatarCard({ locale, progress }: { locale: Locale; progress: AvatarProgress }) {
+export function AvatarCard({ locale, progress, foldPillars }: {
+  locale: Locale; progress: AvatarProgress;
+  /** Folds the six pillars away behind this label (Progrès › Grimpe keeps the card short). */
+  foldPillars?: string;
+}) {
   const t = avatarDictionary(locale);
   const colourName = t.colour[progress.colour];
   const list = (items: string[]) => items.length <= 1 ? items.join("") : items.slice(0, -1).join(", ") + t.list.and + items.at(-1);
@@ -68,20 +73,7 @@ export function AvatarCard({ locale, progress }: { locale: Locale; progress: Ava
     </div>;
   }
 
-  return <section aria-labelledby="avatar-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-    <div className="flex items-center gap-4">
-      <AvatarPortrait level={progress.level} size={72} label={fmt(t.portraitLabel, { colour: colourName })} />
-      <div className="min-w-0">
-        <h2 id="avatar-heading" className="text-lg font-bold">{t.title}</h2>
-        <p className="text-sm font-semibold" data-testid="avatar-colour">{colourName} · <span className="font-normal text-ink-2">{fmt(t.levelOf, { n: progress.level + 1 })}</span></p>
-      </div>
-    </div>
-    {progress.nextLevel !== null
-      ? <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm font-semibold text-ink">
-        {fmt(t.nextUnlock, { colour: t.colour[AVATAR_LEVELS[progress.nextLevel]!] })}
-        <span className="block font-normal text-ink-2">{fmt(t.holding, { pillars: list(progress.blocking.map((p) => t.pillar[p])) })}</span>
-      </p>
-      : <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">{progress.level === AVATAR_LEVELS.length - 1 ? t.allDone : t.capped}</p>}
+  const pillars = <>
     <ul className="divide-y divide-line">
       {PILLARS.map((pillar) => {
         const state = progress.pillars[pillar];
@@ -99,5 +91,28 @@ export function AvatarCard({ locale, progress }: { locale: Locale; progress: Ava
       })}
     </ul>
     <p className="text-xs leading-relaxed text-ink-3">{t.rule} {t.how}</p>
+  </>;
+
+  return <section aria-labelledby="avatar-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
+    <div className="flex items-center gap-4">
+      <AvatarPortrait level={progress.level} size={72} label={fmt(t.portraitLabel, { colour: colourName })} />
+      <div className="min-w-0">
+        <h2 id="avatar-heading" className="text-lg font-bold">{t.title}</h2>
+        <p className="text-sm font-semibold" data-testid="avatar-colour">{colourName} · <span className="font-normal text-ink-2">{fmt(t.levelOf, { n: progress.level + 1 })}</span></p>
+      </div>
+    </div>
+    {progress.nextLevel !== null
+      ? <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm font-semibold text-ink">
+        {fmt(t.nextUnlock, { colour: t.colour[AVATAR_LEVELS[progress.nextLevel]!] })}
+        <span className="block font-normal text-ink-2">{fmt(t.holding, { pillars: list(progress.blocking.map((p) => t.pillar[p])) })}</span>
+      </p>
+      : <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">{progress.level === AVATAR_LEVELS.length - 1 ? t.allDone : t.capped}</p>}
+    {foldPillars ? <details className="group border-t border-line pt-1">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-2 text-sm font-bold [&::-webkit-details-marker]:hidden">
+        {foldPillars}
+        <ChevronDown aria-hidden="true" className="size-5 text-ink-3 transition-transform group-open:rotate-180" strokeWidth={2.25} />
+      </summary>
+      {pillars}
+    </details> : pillars}
   </section>;
 }
