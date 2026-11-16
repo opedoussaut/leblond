@@ -39,6 +39,21 @@ export const ILLUSTRATION_SIZES = {
   "wall-calf": [437, 334],
   "wall-pec": [531, 388],
   "wall-upper-back-extension": [572, 384],
+  // ChatGPT pictures in the same style (Olivier, 2026-11-16), title panel removed.
+  "band-face-pull": [960, 701],
+  "band-lateral-walk": [960, 680],
+  "cable-straight-arm-pulldown": [960, 714],
+  "calf-raise-step": [960, 711],
+  "clamshell": [960, 772],
+  "cossack-squat": [960, 680],
+  "dumbbell-curl": [960, 785],
+  "hanging-knee-raise": [960, 751],
+  "heel-raised-assisted-squat": [960, 829],
+  "horse-stance-squat": [960, 671],
+  "jefferson-curl": [960, 758],
+  "long-lunge-pulse": [960, 674],
+  "parallel-bar-dips": [960, 758],
+  "wall-sit": [736, 909],
 } as const satisfies Record<string, readonly [number, number]>;
 
 export type IllustrationId = keyof typeof ILLUSTRATION_SIZES;
