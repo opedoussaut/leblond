@@ -12,8 +12,10 @@ import { rivalDictionary } from "@/lib/i18n/rival";
 import { RivalPortrait } from "./rival-portrait";
 
 /** Portrait, tone, level and projects. The signed terms of the pact stay as they are. */
-export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGrades }: {
+export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGrades, open = false }: {
   locale: Locale; pactId: string; initial: RivalSettings; today: string; hasBoulderGrades: boolean;
+  /** On its own page: always open, with a heading instead of a fold. */
+  open?: boolean;
 }) {
   const r = rivalDictionary(locale);
   const router = useRouter();
@@ -30,9 +32,7 @@ export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGr
     });
   }
 
-  return <details className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
-    <summary className="min-h-11 cursor-pointer py-2 font-bold">{r.settingsTitle}</summary>
-    <form className="mt-3 space-y-5" onSubmit={(e) => { e.preventDefault(); save(); }}>
+  const form = <form className="mt-3 space-y-5" onSubmit={(e) => { e.preventDefault(); save(); }}>
       <fieldset>
         <legend className="text-sm font-semibold">{r.portrait}</legend>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -70,5 +70,10 @@ export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGr
       {status === "saved" ? <p role="status" className="text-sm font-semibold text-accent">{r.saved}</p> : null}
       {status === "error" ? <p role="alert" className="text-sm font-semibold text-danger">{r.error}</p> : null}
     </form>
-  </details>;
+  ;
+  return open
+    ? <section aria-label={r.settingsTitle} className="leblond-premium-surface p-5 sm:p-6">{form}</section>
+    : <details className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+      <summary className="min-h-11 cursor-pointer py-2 font-bold">{r.settingsTitle}</summary>{form}
+    </details>;
 }

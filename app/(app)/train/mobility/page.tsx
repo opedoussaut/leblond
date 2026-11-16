@@ -4,6 +4,8 @@ import {
   MobilityEnrollForm, MobilityNextSession, MobilityScheduleForm, MobilitySettingsForm,
 } from "@/components/training/mobility-forms";
 import { doseText } from "@/lib/training/hip-mobility/display";
+import { levelView } from "@/lib/training/hip-mobility/levels";
+import { MobilityAim, MobilityLadder, MobilityLevelHeadline, MobilityTests } from "@/components/training/mobility-level-view";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { Notice, PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
@@ -29,6 +31,7 @@ export default async function HipMobilityPage() {
   const plan = currentPlan(state);
   const latest = state.assessments[0] ?? null;
   const stage = latest ? classifyStage(latest.results) : null;
+  const view = levelView(latest ? latest.results : null);
   const testName = (id: string) => pick(MOBILITY_TESTS.find((t) => t.id === id)!.name, locale);
   const dateLabel = (d: string) => formatDate(d + "T12:00:00", locale, { day: "numeric", month: "long", year: "numeric" });
   const live = state.upcoming.find((u) => u.status === "IN_PROGRESS") ?? null;
@@ -48,20 +51,31 @@ export default async function HipMobilityPage() {
       </ul>
     </div> : null}
 
-    <section aria-labelledby="stage-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
+    <section aria-labelledby="stage-heading" className="leblond-premium-surface space-y-6 p-6 sm:p-8">
       <h2 id="stage-heading" className="text-xs font-bold uppercase tracking-[0.12em] text-accent">{m.stageTitle}</h2>
       {latest && stage ? <>
-        <p className="text-xl font-black">{pick(LEVEL_LABELS[latest.stage].name, locale)}</p>
-        <p className="text-sm text-ink-2">{pick(LEVEL_LABELS[latest.stage].detail, locale)}</p>
-        <p className="text-xs text-ink-3">{fmt(m.stageAssessed, { date: dateLabel(latest.date) })}</p>
-        {stage.limitedBy.length ? <p className="text-sm text-ink-2">{fmt(m.limitedBy, { tests: stage.limitedBy.map(testName).join(", ") })}</p> : null}
-        {stage.missing.length ? <p className="text-sm text-ink-2">{fmt(m.missingTests, { tests: stage.missing.map(testName).join(", ") })}</p> : null}
-        {!stage.functionalTested && latest.stage >= 2 ? <p className="text-sm text-ink-2">{m.noFunctional}</p> : null}
-      </> : <p className="text-sm text-ink-2">{m.stageNone}</p>}
+        <MobilityLevelHeadline view={view} locale={locale} />
+        <MobilityLadder view={view} locale={locale} />
+        <div className="space-y-1">
+          <p className="text-sm text-ink-2">{fmt(m.selfReportedFrom, { date: dateLabel(latest.date) })}. {m.levelRule}</p>
+          {stage.limitedBy.length ? <p className="text-sm text-ink-2">{fmt(m.limitedBy, { tests: stage.limitedBy.map(testName).join(", ") })}</p> : null}
+          {stage.missing.length ? <p className="text-sm text-ink-2">{fmt(m.missingTests, { tests: stage.missing.map(testName).join(", ") })}</p> : null}
+          {!stage.functionalTested && view.stage >= 2 ? <p className="text-sm text-ink-2">{m.noFunctional}</p> : null}
+        </div>
+      </> : <>
+        <p className="text-base text-ink-2">{m.stageNone}</p>
+        <MobilityLadder view={view} locale={locale} />
+      </>}
       {enrollment ? <p className="text-sm font-semibold">{fmt(m.workingLevel, { level: pick(LEVEL_LABELS[contentLevel(enrollment.workingLevel)].name, locale) })}</p> : null}
-      <p className="text-xs text-ink-3">{pick(NOT_CLINICAL, locale)}</p>
-      <Link href="/train/mobility/assess" className={buttonClass(latest ? "secondary" : "primary", "md")}>{latest ? m.assessAgain : m.assessCta} <IconNext /></Link>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Link href="/train/mobility/assess" className={buttonClass(latest ? "secondary" : "primary", "md")}>{latest ? m.assessAgain : m.assessCta} <IconNext /></Link>
+        <p className="text-xs text-ink-3">{pick(NOT_CLINICAL, locale)}</p>
+      </div>
     </section>
+
+    <MobilityAim view={view} locale={locale} />
+
+    <MobilityTests view={view} locale={locale} />
 
     {!enrollment ? <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">

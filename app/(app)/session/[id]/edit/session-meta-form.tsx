@@ -25,6 +25,13 @@ export function SessionMetaForm({ sessionId, initial, today, fromWatch = false }
   const L = loggingDictionary(locale);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // New times from the server (a saved change, an attached FIT file) refresh the
+  // fields in place: the form is not remounted, so "Enregistré." stays visible.
+  const times = `${initial.date}|${initial.time}|${initial.minutes}`;
+  const [shownTimes, setShownTimes] = useState(times);
+  if (times !== shownTimes) {
+    setShownTimes(times); setDate(initial.date); setTime(initial.time); setMinutes(initial.minutes);
+  }
 
   return <form aria-label={e.when} className="space-y-3 rounded-2xl border border-line bg-surface p-4" onSubmit={(ev) => {
     ev.preventDefault(); setMessage(null);

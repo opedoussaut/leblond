@@ -14,8 +14,15 @@ import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card
 import { AvatarCard } from "@/components/training/avatar-card";
 import { loadAvatar } from "@/lib/data/avatar";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
+import { linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
+import { IconBack } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
-import { Stat } from "@/components/ui/stat";
+import { Fold } from "@/components/ui/fold";
+import { HeroFigure, SectionRows, type SectionRow } from "@/components/ui/hero-figure";
+import { progressAreaDictionary } from "@/lib/i18n/progress-area";
+import { avatarDictionary } from "@/lib/i18n/avatar";
+import { routeDictionary } from "@/lib/i18n/routes";
+import { routeAscentsInLastDays, routePyramid, routeWeeklyHardest, routeWorkingGrade, summarizeRoutes, type RouteAscentFact } from "@/lib/analytics/routes";
 import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import type { GradeSystem } from "@/lib/climbing/types";
@@ -23,119 +30,257 @@ import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { RouteStats } from "@/components/climbing/route-stats";
 import { ScaleLevels } from "@/components/climbing/scale-levels";
-import { fontTrend, scaleRows } from "@/lib/analytics/scale-rows";
-import { formatDate, formatNumber, formatRatio } from "@/lib/format";
+import { fontTrend, headlineRow, scaleRows } from "@/lib/analytics/scale-rows";
+import { formatDate, formatNumber, formatCounts, formatPercent, formatRatio } from "@/lib/format";
 import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { boulderGrade } from "@/lib/grading/display";
-import { SectionTabs } from "@/components/layout/section-tabs";
-import { datasetAt, routeAscentsAt } from "@/lib/analytics/place";
+import { gradeLabel } from "@/lib/grading/labels";
+import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
+import { datasetAt, routeAscentsAt, type Place } from "@/lib/analytics/place";
+import type { ClimbingDataset } from "@/lib/analytics/types";
 import { areasDictionary } from "@/lib/i18n/areas";
-import { PROGRESS_SCOPES, PROGRESS_TABS, parseProgressTab, progressHref } from "@/lib/navigation/progress-tabs";
+import { PROGRESS_SCOPES, parseProgressTab, progressHref } from "@/lib/navigation/progress-tabs";
 
 export const metadata = { title: "Progrès" };
 
 const PERIODS = { "30": 30, "90": 90, all: null } as const;
 
+/**
+ * Progrès › Grimpe. The summary (no ?tab=) is one hero figure and one list of
+ * the sections, each with a single figure; every detail lives in exactly one
+ * section: one discipline in one kind of place, boards, gyms, styles, avatar.
+ * Each section leads with one figure, one diagram, and folds the rest away.
+ */
 export default async function ProgressPage({ searchParams }: PageProps<"/progress">) {
   const viewer = await requireViewer();
   const { t, locale } = await getI18n(viewer.profile.preferred_language);
   const sp = await searchParams;
   const periodKey = (typeof sp.period === "string" && sp.period in PERIODS ? sp.period : "90") as keyof typeof PERIODS;
-  // One section (a discipline in a kind of place), or everything on the overview.
   const tab = parseProgressTab(sp.tab);
   const scope = tab === "overview" ? null : PROGRESS_SCOPES[tab];
-  const show = (discipline: "boulder" | "route" | "board") => !scope || scope.discipline === discipline;
   const sections = areasDictionary(locale).climbing;
+  const pa = progressAreaDictionary(locale).climbing;
+  const rd = routeDictionary(locale);
+  const keepPeriod = sp.period === undefined ? undefined : periodKey;
   const [dataset, allRoutes, boardRows] = await Promise.all([
     loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
   ]);
-  // The avatar always reads the whole history; the diagrams below read the section's.
-  const avatar = scope ? null : await loadAvatar(viewer.supabase, { dataset, boardRows });
-  const data = scope?.discipline === "boulder" && scope.place ? datasetAt(dataset, scope.place) : dataset;
-  const routes = allRoutes && scope?.discipline === "route" && scope.place ? routeAscentsAt(allRoutes, scope.place) : allRoutes;
   const now = new Date();
   const days = PERIODS[periodKey];
-  const boardSince = days === null ? 0 : now.getTime() - days * 86_400_000;
-  const pyramids = boardPyramids(boardRows.map(toBoardFact).filter((f) => f.climbedAt.getTime() >= boardSince));
-  const periodLabel = periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all;
-  const snap = computeSnapshot(
-    data,
-    { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system },
-    new Date(),
-    PERIODS[periodKey],
-  );
-  const gymName = new Map(data.gyms.map((g) => [g.id, g.name]));
-  // Diagrams on the grading system most of the period's boulders were tried on (native grades only).
   const since = days === null ? 0 : now.getTime() - days * 86_400_000;
-  const chartSystem = mainSystem(data.problems, data.attempts.filter((x) => x.createdAt.getTime() >= since),
-    GRADE_SYSTEMS.filter(isOrderedSystem));
+  const periodLabel = periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all;
+  const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
+  const snapOf = (d: ClimbingDataset) => computeSnapshot(d, target, now, days);
+  const routesIn = (place: Place | null) => (allRoutes ? (place ? routeAscentsAt(allRoutes, place) : allRoutes) : []);
+  const inPeriod = (list: RouteAscentFact[]) => (days === null ? list : routeAscentsInLastDays(list, days, now));
+  const pyramids = boardPyramids(boardRows.map(toBoardFact).filter((f) => f.climbedAt.getTime() >= since));
+  const boardClimbs = pyramids.reduce((n, p) => n + p.climbs, 0);
+  const avatar = !scope || scope.view === "avatar" ? await loadAvatar(viewer.supabase, { dataset, boardRows }) : null;
+  // The level a set of boulders leads with: the working grade on its main scale.
+  const boulderLead = (snap: ReturnType<typeof snapOf>) => {
+    const row = headlineRow(scaleRows(snap));
+    return row ? { value: gradeLabel(t, row.system, row.working!), scale: t.grades.systems[row.system], system: row.system } : null;
+  };
+
+  const periodNav = <nav aria-label={pa.period}>
+    <ul className={cn(segmentGroupClass, "inline-grid grid-cols-3")}>
+      {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => <li key={k} className="flex">
+        <Link href={progressHref(tab, k)} aria-current={k === periodKey ? "page" : undefined} scroll={false}
+          className={segmentClass(k === periodKey, "inline-flex w-full items-center justify-center px-4")}>
+          {k === "30" ? t.progress.last30 : k === "90" ? t.progress.last90 : t.progress.all}
+        </Link>
+      </li>)}
+    </ul>
+  </nav>;
+
+  const header = <>
+    {/* Phones drill down like the sidebar does on wider screens: the summary lists the sections, each section links back. */}
+    {scope ? <p className="md:hidden">
+      <Link href={progressHref("overview", keepPeriod)} className={cn(linkClass, "inline-flex min-h-11 items-center text-sm")}>
+        <IconBack /> {sections.tabs.overview}
+      </Link>
+    </p> : null}
+    <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} subtitle={scope ? sections.tabs[tab] : undefined} />
+  </>;
+
+  // ── Summary: one hero figure, then the sections, one figure each. ──
+  if (!scope) {
+    const all = snapOf(dataset);
+    const boulderRow = (place: Place): SectionRow => {
+      const snap = snapOf(datasetAt(dataset, place));
+      const lead = boulderLead(snap);
+      const id = place === "indoor" ? "boulder-indoor" : "boulder-outdoor";
+      return {
+        href: progressHref(id, keepPeriod), title: sections.tabs[id],
+        value: lead?.value ?? (snap.counts.attempts ? snap.counts.tops : "—"),
+        detail: lead ? fmt(pa.rowLevel, { scale: lead.scale }) : snap.counts.attempts ? fmt(pa.rowSends, { n: snap.counts.tops }) : pa.rowEmpty,
+        muted: snap.counts.attempts === 0,
+      };
+    };
+    const routeRow = (place: Place): SectionRow => {
+      const list = routesIn(place);
+      const recent = inPeriod(list);
+      const working = routeWorkingGrade(list, now);
+      const id = place === "indoor" ? "route-indoor" : "route-outdoor";
+      return {
+        href: progressHref(id, keepPeriod), title: sections.tabs[id],
+        value: working.grade ?? (recent.length || "—"),
+        detail: working.grade ? fmt(pa.rowRouteLevel, { n: recent.length }) : recent.length ? fmt(pa.rowRoutes, { n: recent.length }) : pa.rowEmpty,
+        muted: recent.length === 0 && !working.grade,
+      };
+    };
+    const best = all.focus.styles.strongest;
+    const angle = all.focus.wallAngles.strongest;
+    const av = avatarDictionary(locale);
+    const rows: SectionRow[] = [
+      boulderRow("indoor"), boulderRow("outdoor"), routeRow("indoor"), routeRow("outdoor"),
+      {
+        href: progressHref("boards", keepPeriod), title: sections.tabs.boards, value: boardClimbs || "—",
+        detail: boardClimbs ? fmt(pa.rowBoards, { n: boardClimbs, b: new Set(pyramids.map((p) => p.board)).size }) : pa.rowEmpty,
+        muted: boardClimbs === 0,
+      },
+      {
+        href: progressHref("gyms", keepPeriod), title: sections.tabs.gyms, value: all.gymBreakdown.length || "—",
+        detail: all.gymBreakdown.length ? pa.rowGymsDetail : pa.rowEmpty, muted: all.gymBreakdown.length === 0,
+      },
+      {
+        href: progressHref("styles", keepPeriod), title: sections.tabs.styles,
+        value: best ? t.styles[best.key] : angle ? t.wallAngles[angle.key] : "—",
+        detail: best ? pa.rowStyle : angle ? pa.rowAngle : pa.stylesNone, muted: !best && !angle,
+      },
+      ...(avatar ? [{
+        href: progressHref("avatar", keepPeriod), title: sections.tabs.avatar,
+        value: av.colour[avatar.colour], detail: fmt(pa.rowAvatar, { n: avatar.level + 1 }),
+      }] : []),
+    ];
+    return <div className="space-y-8">
+      {header}
+      {periodNav}
+      <section aria-label={t.progress.summaryTitle} className="px-1">
+        <HeroFigure size="page" eyebrow={fmt(pa.summaryEyebrow, { period: periodLabel })} value={all.counts.tops}
+          label={all.counts.tops ? pa.summaryLabel : pa.summaryNone}
+          stats={[
+            { label: pa.statBoulderSessions, value: all.counts.sessions },
+            { label: pa.statRoutesClean, value: summarizeRoutes(inPeriod(routesIn(null))).clean },
+            { label: pa.statBoardClimbs, value: boardClimbs },
+          ]} />
+      </section>
+      <SectionRows label={pa.sectionsTitle} rows={rows} />
+    </div>;
+  }
+
+  const eyebrow = `${sections.tabs[tab]} · ${periodLabel}`;
+
+  // ── Avatar: the card in full, the six pillars open. ──
+  if (scope.view === "avatar") {
+    return <div className="space-y-8">{header}{avatar ? <AvatarCard locale={locale} progress={avatar} /> : null}</div>;
+  }
+
+  // ── Boards: how many climbs, then one pyramid per board. ──
+  if (scope.discipline === "board") {
+    return <div className="space-y-8">
+      {header}
+      {periodNav}
+      {pyramids.length === 0 ? <EmptyState body={sections.emptySection} /> : <>
+        <section aria-label={pa.boardHeroLabel} className="px-1">
+          <HeroFigure size="page" eyebrow={eyebrow} value={boardClimbs} label={pa.boardHeroLabel} />
+        </section>
+        <BoardProgress locale={locale} pyramids={pyramids} title={"Board · " + periodLabel} />
+      </>}
+    </div>;
+  }
+
+  // ── Routes in one kind of place: the hardest clean lead, the level curve, the rest folded. ──
+  if (scope.discipline === "route") {
+    const list = routesIn(scope.place);
+    const s = summarizeRoutes(inPeriod(list));
+    return <div className="space-y-8">
+      {header}
+      {periodNav}
+      {list.length === 0 ? <EmptyState body={sections.emptySection} /> : <>
+        <section aria-label={pa.routeHeroLabel} className="px-1">
+          <HeroFigure size="page" eyebrow={eyebrow}
+            value={s.highestLeadClean ?? formatPercent(s.cleanRate)} label={s.highestLeadClean ? pa.routeHeroLabel : pa.routeHeroNone}
+            stats={[
+              { label: pa.statRoutes, value: s.ascents },
+              { label: pa.statClean, value: s.clean, hint: `${s.onsights} ${rd.onsights} · ${s.flashes} flash` },
+              { label: rd.cleanRate, value: formatPercent(s.cleanRate), hint: formatCounts(s.cleanRate) },
+            ]} />
+        </section>
+        <LevelCurve t={t} locale={locale} now={now} id="route-level-curve" title={rd.chartLevelTitle} hint={rd.chartLevelHint}
+          scale={{ label: (g) => g, gradeAt: (i) => FRENCH_ROUTE_GRADES[i] ?? null }}
+          texts={{ levelEmpty: rd.chartLevelEmpty, levelPoint: rd.chartLevelPoint, levelCaption: rd.chartLevelCaption, sendsCol: rd.chartSendsCol }}
+          points={routeWeeklyHardest(list, now, days)} />
+        <Fold variant="card" title={pa.routeDetailFold} hint={pa.routeDetailHint}>
+          <RouteStats locale={locale} ascents={list} now={now} days={days} tiles={false} title={eyebrow}>
+            <GradePyramid plain t={t} locale={locale} id="route-pyramid" title={rd.chartPyramidTitle} hint={rd.chartPyramidHint} label={(g) => g}
+              legend={{ flashed: rd.chartFirstGo, sent: rd.chartClean, tried: rd.chartTried }} rows={routePyramid(list, now, days)} />
+          </RouteStats>
+        </Fold>
+      </>}
+    </div>;
+  }
+
+  // ── Boulders: one kind of place (bloc sections), or every place (gyms, styles). ──
+  const data = scope.place ? datasetAt(dataset, scope.place) : dataset;
+  const snap = snapOf(data);
+  if (snap.counts.attempts === 0) return <div className="space-y-8">{header}{periodNav}<EmptyState body={sections.emptySection} /></div>;
+  const gymName = new Map(data.gyms.map((g) => [g.id, g.name]));
+  const chartSystem = mainSystem(data.problems, data.attempts.filter((x) => x.createdAt.getTime() >= since), GRADE_SYSTEMS.filter(isOrderedSystem));
+  const lead = boulderLead(snap);
+  // The styles section leads with the best-sent style, or the best-sent wall angle when no style is tagged.
+  const bestStyle = snap.focus.styles.strongest;
+  const bestAngle = snap.focus.wallAngles.strongest;
 
   return (
-    <div className="space-y-5">
-      <PageHeader icon={<PAGE_ICONS.climbingProgress />} title={t.progress.title} subtitle={scope ? sections.tabs[tab] : undefined} />
-      <SectionTabs label={sections.sections} current={tab}
-        tabs={PROGRESS_TABS.map((id) => ({ id, href: progressHref(id, sp.period === undefined ? undefined : periodKey), label: sections.tabs[id] }))} />
-      {avatar ? <AvatarCard locale={locale} progress={avatar} /> : null}
-      <nav aria-label={t.progress.period} className="flex gap-2">
-        {(Object.keys(PERIODS) as Array<keyof typeof PERIODS>).map((k) => (
-          <Link
-            key={k}
-            href={progressHref(tab, k)}
-            aria-current={k === periodKey ? "page" : undefined}
-            className={cn(
-              "min-h-11 rounded-full border px-4 py-2.5 text-sm font-semibold",
-              k === periodKey ? "border-accent bg-accent-soft" : "border-line text-ink-2",
-            )}
-          >
-            {k === "30" ? t.progress.last30 : k === "90" ? t.progress.last90 : t.progress.all}
-          </Link>
-        ))}
-      </nav>
-
-      {!show("boulder") ? null : snap.counts.attempts === 0 ? (
-        <EmptyState body={scope ? sections.emptySection : t.progress.empty} />
-      ) : (
+    <div className="space-y-8">
+      {header}
+      {periodNav}
+      {scope.view === "levels" ? (
         <>
-          <Card aria-label={t.progress.summaryTitle}>
-            <SectionTitle>{t.progress.summaryTitle} · {periodLabel}</SectionTitle>
-            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
-              <Stat value={snap.counts.sessions} label={t.progress.sessions} />
-              <Stat value={snap.counts.problems} label={t.progress.problems} />
-              <Stat value={formatRatio(snap.sendRate)} label={t.progress.sendRate} />
-              <Stat value={formatRatio(snap.flashRate)} label={t.progress.flashRate} />
-            </div>
-            <p className="mt-4 border-t border-line pt-3 text-sm text-ink-2 tabular-nums">
-              {snap.counts.attempts} {t.progress.attempts.toLowerCase()}
-              {" · "}{t.progress.attemptsPerSend} {snap.attemptsPerSend.value === null ? "—" : formatNumber(snap.attemptsPerSend.value)}
-              {" · "}{t.progress.topsPerSession} {formatNumber(snap.topsPerSession.mean)}
-            </p>
-          </Card>
-          {chartSystem ? <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <LevelCurve t={t} locale={locale} system={chartSystem} now={now}
-              points={weeklyHardest(data.problems, data.attempts, chartSystem, now, days)} />
-            <GradePyramid t={t} locale={locale} system={chartSystem}
-              rows={gradePyramid(data.problems, data.attempts, chartSystem, now, days)} />
-          </div> : null}
-          <ScaleLevels t={t} rows={scaleRows(snap)} font={{ level: snap.workingGrade.level, trend: fontTrend(snap) }} />
-          <Card>
-            <SectionTitle>{t.progress.weekly}</SectionTitle>
-            <div className="mt-3">
-              <WeeklyBars
-                weeks={snap.weekly}
-                locale={locale}
-                labels={{
-                  tops: t.progress.weeklyTops,
-                  sessions: t.progress.weeklySessions,
-                  caption: t.progress.weekly,
-                  range: t.progress.weeklyRange,
-                  help: t.progress.weeklyHelp,
-                  weekOf: t.progress.weeklyWeekOf,
-                }}
-              />
-            </div>
-          </Card>
-
+          <section aria-label={t.progress.summaryTitle} className="px-1">
+            <HeroFigure size="page" eyebrow={eyebrow}
+              value={lead?.value ?? formatPercent(snap.sendRate)}
+              label={lead ? fmt(pa.boulderHeroLabel, { scale: lead.scale }) : pa.boulderHeroNone}
+              stats={[
+                { label: t.progress.sessions, value: snap.counts.sessions },
+                { label: t.progress.sendRate, value: formatPercent(snap.sendRate), hint: formatCounts(snap.sendRate) },
+                { label: t.progress.flashRate, value: formatPercent(snap.flashRate), hint: formatCounts(snap.flashRate) },
+              ]} />
+          </section>
+          {chartSystem ? <LevelCurve t={t} locale={locale} system={chartSystem} now={now}
+            points={weeklyHardest(data.problems, data.attempts, chartSystem, now, days)} /> : null}
+          <Fold variant="card" title={pa.detailFold} hint={pa.detailHint}>
+            {chartSystem ? <GradePyramid t={t} locale={locale} system={chartSystem}
+              rows={gradePyramid(data.problems, data.attempts, chartSystem, now, days)} /> : null}
+            <ScaleLevels t={t} rows={scaleRows(snap)} font={{ level: snap.workingGrade.level, trend: fontTrend(snap) }} />
+          </Fold>
+          <Fold variant="card" title={pa.weeklyFold} hint={pa.weeklyHint}>
+            <Card className="space-y-4">
+              <p className="text-sm text-ink-2 tabular-nums">
+                {snap.counts.problems} {t.progress.problems.toLowerCase()}
+                {" · "}{snap.counts.attempts} {t.progress.attempts.toLowerCase()}
+                {" · "}{t.progress.attemptsPerSend} {snap.attemptsPerSend.value === null ? "—" : formatNumber(snap.attemptsPerSend.value)}
+                {" · "}{t.progress.topsPerSession} {formatNumber(snap.topsPerSession.mean)}
+              </p>
+              <WeeklyBars weeks={snap.weekly} locale={locale} labels={{
+                tops: t.progress.weeklyTops, sessions: t.progress.weeklySessions, caption: t.progress.weekly,
+                range: t.progress.weeklyRange, help: t.progress.weeklyHelp, weekOf: t.progress.weeklyWeekOf,
+              }} />
+            </Card>
+          </Fold>
+        </>
+      ) : scope.view === "gyms" ? (
+        <>
+          <section aria-label={sections.tabs.gyms} className="px-1">
+            <HeroFigure size="page" eyebrow={fmt(pa.gymsEyebrow, { period: periodLabel })} value={snap.gymBreakdown.length} label={pa.gymsLabel}
+              stats={[
+                { label: t.progress.sessions, value: snap.counts.sessions },
+                { label: t.progress.problems, value: snap.counts.problems },
+                { label: t.progress.sendRate, value: formatPercent(snap.sendRate), hint: formatCounts(snap.sendRate) },
+              ]} />
+          </section>
           <Card>
             <SectionTitle>{t.progress.crossGym}</SectionTitle>
             <h3 className="mt-3 font-bold">{t.progress.nativeView}</h3>
@@ -186,34 +331,49 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
             </div>
           </Card>
 
-          <Card>
-            <SectionTitle>{t.progress.byGym}</SectionTitle>
-            <ul className="mt-2 divide-y divide-line text-sm">
-              {snap.gymBreakdown.map((g) => (
-                <li key={g.gym.id} className="space-y-1.5 py-3">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-semibold">{gymName.get(g.gym.id)}</span>
-                    <span className="text-ink-3">{t.brands[g.gym.brand]}</span>
-                  </div>
-                  <p className="tabular-nums text-ink-2">
-                    {plural(locale, g.sessions, t.progress.sessionCount)} · {plural(locale, g.problems, t.progress.problemCount)}
-                    {" · "}
-                    {t.progress.sendRate} {formatRatio(g.sendRate)}
-                  </p>
-                  {g.distributions.map((d) => (
-                    <GradeCounts
-                      key={d.system}
-                      t={t}
-                      system={d.system}
-                      label={g.distributions.length > 1 ? t.grades.systems[d.system] : undefined}
-                      rows={d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, attempted: b.attempted }))}
-                    />
-                  ))}
-                </li>
-              ))}
-            </ul>
-          </Card>
-
+          <Fold variant="card" title={pa.byGymFold} hint={pa.byGymHint}>
+            <Card>
+              <SectionTitle>{t.progress.byGym}</SectionTitle>
+              <ul className="mt-2 divide-y divide-line text-sm">
+                {snap.gymBreakdown.map((g) => (
+                  <li key={g.gym.id} className="space-y-1.5 py-3">
+                    <div className="flex justify-between gap-2">
+                      <span className="font-semibold">{gymName.get(g.gym.id)}</span>
+                      <span className="text-ink-3">{t.brands[g.gym.brand]}</span>
+                    </div>
+                    <p className="tabular-nums text-ink-2">
+                      {plural(locale, g.sessions, t.progress.sessionCount)} · {plural(locale, g.problems, t.progress.problemCount)}
+                      {" · "}
+                      {t.progress.sendRate} {formatRatio(g.sendRate)}
+                    </p>
+                    {g.distributions.map((d) => (
+                      <GradeCounts
+                        key={d.system}
+                        t={t}
+                        system={d.system}
+                        label={g.distributions.length > 1 ? t.grades.systems[d.system] : undefined}
+                        rows={d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, attempted: b.attempted }))}
+                      />
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Fold>
+        </>
+      ) : (
+        <>
+          <section aria-label={sections.tabs.styles} className="px-1">
+            <HeroFigure size="page" eyebrow={fmt(pa.stylesEyebrow, { period: periodLabel })}
+              value={bestStyle ? t.styles[bestStyle.key] : bestAngle ? t.wallAngles[bestAngle.key] : "—"}
+              label={bestStyle ? `${pa.stylesLabel} · ${t.progress.sendRate} ${formatRatio(bestStyle.sendRate)}`
+                : bestAngle ? `${pa.anglesLabel} · ${t.progress.sendRate} ${formatRatio(bestAngle.sendRate)}` : pa.stylesNone}
+              stats={[
+                { label: t.progress.problems, value: snap.counts.problems },
+                { label: t.progress.sendRate, value: formatPercent(snap.sendRate), hint: formatCounts(snap.sendRate) },
+                { label: t.progress.flashRate, value: formatPercent(snap.flashRate), hint: formatCounts(snap.flashRate) },
+              ]} />
+          </section>
           <Card>
             <SectionTitle>{t.progress.byStyle}</SectionTitle>
             <div className="mt-3">
@@ -239,11 +399,8 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
           </Card>
 
           {snap.wearable.sessions.length ? (
-            <Card>
-              <details>
-                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
-                  {t.progress.wearableOverlay}
-                </summary>
+            <Card className="py-2">
+              <Fold variant="flush" title={t.progress.wearableOverlay}>
                 <ul className="mt-3 divide-y divide-line text-sm">
                   {snap.wearable.sessions.map((w) => (
                     <li key={w.sessionId} className="flex justify-between gap-2 py-2">
@@ -259,16 +416,11 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                   ))}
                 </ul>
                 <p className="mt-2 text-xs text-ink-3">{t.connections.medicalNote}</p>
-              </details>
+              </Fold>
             </Card>
           ) : null}
         </>
       )}
-      {show("route") && routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now} days={PERIODS[periodKey]}
-        title={(locale === "fr" ? "Voie" : "Routes") + " · " + (periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all)} /> : null}
-      {show("board") ? <BoardProgress locale={locale} pyramids={pyramids} title={"Board · " + periodLabel} /> : null}
-      {(scope?.discipline === "route" && !(routes && routes.length)) || (scope?.discipline === "board" && pyramids.length === 0)
-        ? <EmptyState body={sections.emptySection} /> : null}
     </div>
   );
 }

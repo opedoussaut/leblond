@@ -36,7 +36,7 @@ const fr = {
   },
   programmes: {
     title: "Programmes",
-    subtitle: "Ce que tu suis : ton programme principal, la mobilité à côté, ton alter ego.",
+    subtitle: "Ce que tu suis : ton programme principal, et la mobilité à côté.",
     mine: "Mes programmes",
     mineHint: "Crée, modifie et planifie tes programmes. Celui qui est en cours guide tes semaines.",
     journeyTitle: "Mon parcours, étape par étape",
@@ -52,15 +52,15 @@ const fr = {
     followError: "Le changement n’a pas pu être enregistré. Réessaie.",
     followEmpty: "Crée un programme dans « Créer et modifier », ou fais l’évaluation complète, pour pouvoir le suivre.",
     sections: "Rubriques de Mes programmes",
-    tabs: { overview: "En cours", editor: "Créer et modifier", rival: "Rival", checks: "Évaluation et mobilité", guide: "Mode d’emploi" },
+    tabs: { overview: "En cours", editor: "Créer et modifier", checks: "Évaluation et mobilité", guide: "Mode d’emploi" },
     checksIntro: "L’évaluation complète construit ou réajuste ton programme ; la mobilité des hanches se suit à côté.",
-    rivalIntro: "Ton rival fictif s’entraîne selon le plan. L’écart n’est qu’un score, pas une prédiction.",
   },
   climbing: {
     sections: "Rubriques de Grimpe",
     tabs: {
-      overview: "Tout", "boulder-indoor": "Bloc salle", "boulder-outdoor": "Bloc extérieur",
+      overview: "Résumé", "boulder-indoor": "Bloc salle", "boulder-outdoor": "Bloc extérieur",
       "route-indoor": "Voie salle", "route-outdoor": "Voie extérieur", boards: "Boards",
+      gyms: "Salles et cotations", styles: "Styles et cardio", avatar: "Avatar",
     },
     emptySection: "Rien de noté ici sur cette période.",
   },
@@ -96,7 +96,7 @@ const fr = {
     plannedOne: "1 séance prévue", plannedMany: "{n} séances prévues",
     doneOne: "1 séance faite", doneMany: "{n} séances faites", rest: "rien de noté",
     followTitle: "Suivre un programme",
-    followText: "Évalue ton niveau : LEBLOND prépare un programme vers ton objectif, avec la mobilité et ton alter ego.",
+    followText: "Évalue ton niveau : LEBLOND prépare un programme vers ton objectif, avec la mobilité et ton rival.",
     followCta: "Voir les programmes",
   },
 };
@@ -137,7 +137,7 @@ const en: Dict = {
   },
   programmes: {
     title: "Programmes",
-    subtitle: "What you follow: your main programme, mobility alongside, your alter ego.",
+    subtitle: "What you follow: your main programme, and mobility alongside.",
     mine: "My programmes",
     mineHint: "Create, edit and schedule your programmes. The one in progress guides your weeks.",
     journeyTitle: "My journey, step by step",
@@ -153,15 +153,15 @@ const en: Dict = {
     followError: "The change could not be saved. Try again.",
     followEmpty: "Create a programme in “Create and edit”, or take the full assessment, to be able to follow it.",
     sections: "My programmes sections",
-    tabs: { overview: "In progress", editor: "Create and edit", rival: "Rival", checks: "Assessment and mobility", guide: "How it works" },
+    tabs: { overview: "In progress", editor: "Create and edit", checks: "Assessment and mobility", guide: "How it works" },
     checksIntro: "The full assessment builds or re-adjusts your programme; hip mobility runs alongside.",
-    rivalIntro: "Your fictional rival trains by the plan. The gap is only a score, not a prediction.",
   },
   climbing: {
     sections: "Climbing sections",
     tabs: {
-      overview: "All", "boulder-indoor": "Gym boulder", "boulder-outdoor": "Crag boulder",
+      overview: "Summary", "boulder-indoor": "Gym boulder", "boulder-outdoor": "Crag boulder",
       "route-indoor": "Gym routes", "route-outdoor": "Crag routes", boards: "Boards",
+      gyms: "Gyms and grades", styles: "Styles and heart rate", avatar: "Avatar",
     },
     emptySection: "Nothing logged here over this period.",
   },
@@ -197,7 +197,7 @@ const en: Dict = {
     plannedOne: "1 session planned", plannedMany: "{n} sessions planned",
     doneOne: "1 session done", doneMany: "{n} sessions done", rest: "nothing logged",
     followTitle: "Follow a programme",
-    followText: "Assess your level: LEBLOND prepares a programme toward your goal, with mobility and your alter ego.",
+    followText: "Assess your level: LEBLOND prepares a programme toward your goal, with mobility and your rival.",
     followCta: "See the programmes",
   },
 };

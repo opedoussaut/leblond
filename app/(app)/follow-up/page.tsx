@@ -16,7 +16,7 @@ import { listTrainingSessions, loadExerciseMethods } from "@/lib/data/training-s
 import { loadRouteAscents } from "@/lib/data/routes";
 import { isOrderedSystem } from "@/lib/grading/systems";
 import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
-import { formatDate, formatRatio } from "@/lib/format";
+import { formatDate, formatCounts, formatPercent } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
 import { mobilityOverview } from "@/lib/analytics/mobility";
@@ -47,6 +47,14 @@ import { routePyramid, routeWeeklyActivity, routeWeeklyHardest } from "@/lib/ana
 import { TrainingLoad } from "@/components/charts/training-load";
 import { loadChartPoints, weeklyLoadRows } from "@/lib/analytics/training-load";
 import { loadTrainingLoadReport } from "@/lib/data/training-load";
+import { SectionTabs } from "@/components/layout/section-tabs";
+import { Fold } from "@/components/ui/fold";
+import { HeroFigure, SectionRows } from "@/components/ui/hero-figure";
+import { boulderGrade } from "@/lib/grading/display";
+import { progressAreaDictionary } from "@/lib/i18n/progress-area";
+import { trainingLoadDictionary } from "@/lib/i18n/training-load";
+import { routeAscentsInLastDays } from "@/lib/analytics/routes";
+import { FOLLOW_UP_TABS, followUpHref, parseFollowUpTab } from "@/lib/navigation/follow-up-tabs";
 
 /** Series the climber can pair on the same weeks. */
 const SERIES = ["boulder", "route", "hang", "sends", "train", "mobility"] as const;
@@ -107,6 +115,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const c = chartsDictionary(locale);
   const sp = await searchParams;
   const weeks = PERIODS.find((n) => String(n) === sp.weeks) ?? 12;
+  // One section at a time; the overview sums each one up in a figure.
+  const tab = parseFollowUpTab(sp.tab);
+  const pa = progressAreaDictionary(locale).followUp;
   const days = weeks * 7;
   const now = new Date();
   const mob = mobilityDictionary(locale);
@@ -158,7 +169,8 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const limits = limiterCounts(limiterSessions, since);
 
   // Training load: every recorded session as session-RPE load, fitness–fatigue model, verdict per native scale.
-  const loadReport = await loadTrainingLoadReport(viewer.supabase, { today, now, dataset, routes: routes ?? [], boardFacts, mobility, training, hangSets });
+  // Only the overview (its verdict) and the load section read it.
+  const loadReport = tab !== "overview" && tab !== "load" ? null : await loadTrainingLoadReport(viewer.supabase, { today, now, dataset, routes: routes ?? [], boardFacts, mobility, training, hangSets });
   const rd = routeDictionary(locale);
   const firstWeek = new Date(startOfIsoWeekUtc(new Date(today + "T12:00:00Z")).getTime() - (weeks - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
   const totals = (list: WeekTotal[], unit: string): WeeklyPoint[] => list.map((w, i) => ({ week: i, value: w.minutes, label: `${w.minutes} ${unit}` }));
@@ -205,153 +217,186 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const seriesA = pick(sp.a, "boulder");
   const seriesB = pick(sp.b, hangSets.length ? "hang" : "train");
 
+  const periodName = weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks });
+  const ld = trainingLoadDictionary(locale);
+  const routesInPeriod = routes ? routeAscentsInLastDays(routes, days, now).length : 0;
+
   return <div className="space-y-8">
-    <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={c.psubtitle} />
+    <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={tab === "overview" ? c.psubtitle : pa.tabs[tab]} />
+    <SectionTabs always label={pa.sections} current={tab}
+      tabs={FOLLOW_UP_TABS.map((id) => ({ id, href: followUpHref(id, weeks), label: pa.tabs[id] }))} />
 
     <nav aria-label={c.period} className="flex gap-2">
-      {PERIODS.map((n) => <Link key={n} href={`/follow-up?weeks=${n}`} aria-current={n === weeks ? "page" : undefined}
+      {PERIODS.map((w) => <Link key={w} href={followUpHref(tab, w)} aria-current={w === weeks ? "page" : undefined}
         className={cn("min-h-11 rounded-full border px-4 py-2.5 text-sm font-semibold",
-          n === weeks ? "border-accent bg-accent-soft" : "border-line text-ink-2")}>
-        {n === 52 ? c.yearOpt : fmt(c.weeksOpt, { n })}
+          w === weeks ? "border-accent bg-accent-soft" : "border-line text-ink-2")}>
+        {w === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: w })}
       </Link>)}
     </nav>
 
-    <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
-      boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
-      gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
+    {tab === "overview" ? <>
+      <section aria-label={pa.heroTitle} className="px-1">
+        <HeroFigure size="page" eyebrow={fmt(pa.heroEyebrow, { period: periodName })}
+          value={working.level ? boulderGrade(working.level) : snap.counts.tops}
+          label={working.level ? fmt(pa.heroLabel, { n: working.sampleSize }) : pa.heroSends}
+          note={working.level ? undefined : pa.heroNone}
+          badge={<Evidence kind="observed" fr={fr} />}
+          stats={[
+            { label: pa.climbSessions, value: snap.counts.sessions },
+            { label: pa.trainingDone, value: adh.completed },
+            { label: pa.mobility28, value: mobSessions28 },
+          ]} />
+      </section>
+      <SectionRows label={pa.sections} rows={[
+        { href: followUpHref("load", weeks), title: pa.loadCard,
+          value: loadReport && loadReport.model.length ? ld.verdict[loadReport.verdict.verdict] : "—",
+          detail: loadReport && loadReport.model.length ? `${ld.zoneLabel} : ${ld.zone[loadReport.verdict.zone]}` : pa.loadNone,
+          muted: !(loadReport && loadReport.model.length) },
+        { href: followUpHref("climbing", weeks), title: pa.climbCard, value: formatPercent(snap.sendRate),
+          detail: fmt(pa.climbDetail, { routes: routesInPeriod }) },
+        { href: followUpHref("training", weeks), title: pa.trainingCard, value: `${adh.completed} / ${adh.planned}`,
+          detail: fmt(pa.trainingDetail, { minutes: adh.activeMinutes }) },
+        { href: followUpHref("compare", weeks), title: pa.compareCard, value: "",
+          detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }) },
+      ]} />
+      <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
+        boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
+        gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
+    </> : null}
 
-    <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
-      points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} />
+    {tab === "load" && loadReport ? <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
+      points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} /> : null}
 
-    <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="climb-heading" className="text-lg font-bold">{c.climbTitle}</h2>
-        <Evidence kind="observed" fr={fr} />
-      </div>
-      {snap.counts.sessions === 0 ? <p className="text-sm text-ink-2">
-        {fr ? "Aucune séance de grimpe enregistrée sur cette période." : "No climbing sessions logged in this period."}{" "}
-        <Link href="/session/new" className={linkClass}>{fr ? "Commencer une séance" : "Start a session"}</Link>
-      </p> : <>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Tile label={fr ? "Séances" : "Sessions"} value={String(snap.counts.sessions)} />
-          <Tile label={fr ? "Essais" : "Attempts"} value={String(snap.counts.attempts)} />
-          <Tile label={fr ? "Blocs réussis" : "Sends"} value={String(snap.counts.tops)} hint={`${snap.counts.flashes} flash`} />
-          <Tile label={fr ? "Taux de réussite" : "Send rate"} value={formatRatio(snap.sendRate)} hint={fr ? `${snap.counts.problems} blocs essayés` : `${snap.counts.problems} problems tried`} />
+    {tab === "climbing" ? <>
+      <section aria-labelledby="climb-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="climb-heading" className="text-lg font-bold">{c.climbTitle}</h2>
+          <Evidence kind="observed" fr={fr} />
         </div>
-        {chartSystem ? <div className="grid grid-cols-1 gap-6 border-t border-line pt-4 lg:grid-cols-2">
-          <LevelCurve plain t={t} locale={locale} system={chartSystem} now={now}
-            points={weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days)} />
-          <GradePyramid plain t={t} locale={locale} system={chartSystem}
-            rows={gradePyramid(dataset.problems, dataset.attempts, chartSystem, now, days)} />
-        </div> : null}
-        <div className="border-t border-line pt-4">
-          <h3 className="text-base font-bold">{c.climbTops}</h3>
-          <div className="mt-2">
+        {snap.counts.sessions === 0 ? <p className="text-sm text-ink-2">
+          {fr ? "Aucune séance de grimpe enregistrée sur cette période." : "No climbing sessions logged in this period."}{" "}
+          <Link href="/session/new" className={linkClass}>{fr ? "Commencer une séance" : "Start a session"}</Link>
+        </p> : <>
+          <HeroFigure eyebrow={fmt(pa.climbEyebrow, { period: periodName })} value={snap.counts.tops}
+            label={fr ? "Blocs réussis" : "Sends"} note={`${snap.counts.flashes} flash`}
+            stats={[
+              { label: fr ? "Séances" : "Sessions", value: snap.counts.sessions },
+              { label: fr ? "Essais" : "Attempts", value: snap.counts.attempts },
+              { label: fr ? "Taux de réussite" : "Send rate", value: formatPercent(snap.sendRate),
+                hint: [formatCounts(snap.sendRate), fr ? `${snap.counts.problems} blocs essayés` : `${snap.counts.problems} problems tried`].filter(Boolean).join(" · ") },
+            ]} />
+          {chartSystem ? <div className="grid grid-cols-1 gap-6 border-t border-line pt-4 lg:grid-cols-2">
+            <LevelCurve plain t={t} locale={locale} system={chartSystem} now={now}
+              points={weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+            <GradePyramid plain t={t} locale={locale} system={chartSystem}
+              rows={gradePyramid(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+          </div> : null}
+          <Fold title={c.climbTops} hint={pa.weeklyHint}>
             <WeeklyBars weeks={climbWeeks} locale={locale}
               labels={{ tops: c.topsLabel, sessions: c.sessionsLabel, caption: c.climbTops, range: c.rangeLabel, help: t.progress.weeklyHelp, weekOf: c.weekOfLabel }} />
-          </div>
+          </Fold>
+        </>}
+        <Fold title={pa.limitersTitle} hint={pa.limitersHint}>
+          <LimiterBars locale={locale} rows={limits.rows} sessions={limits.sessions} />
+        </Fold>
+        <p className="text-sm text-ink-2">
+          <strong>{fr ? "Niveau de travail observé" : "Observed working grade"} :</strong>{" "}
+          {working.level ? `${working.level} (${working.sampleSize} ${fr ? "blocs, 60 j" : "problems, 60 d"})` : (fr ? "données insuffisantes" : "insufficient data")}
+        </p>
+        <Link href="/progress" className={cn(linkClass, "text-sm")}>{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} <IconNext /></Link>
+      </section>
+      {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now}>
+        <p className="border-t border-line pt-4 text-xs font-semibold text-ink-3">
+          {fmt(rd.chartsPeriod, { period: weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks }) })}
+        </p>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <LevelCurve plain t={t} locale={locale} now={now} id="route-level-curve" title={rd.chartLevelTitle} hint={rd.chartLevelHint}
+            scale={{ label: (g) => g, gradeAt: (i) => FRENCH_ROUTE_GRADES[i] ?? null }}
+            texts={{ levelEmpty: rd.chartLevelEmpty, levelPoint: rd.chartLevelPoint, levelCaption: rd.chartLevelCaption, sendsCol: rd.chartSendsCol }}
+            points={routeWeeklyHardest(routes, now, days)} />
+          <GradePyramid plain t={t} locale={locale} id="route-pyramid" title={rd.chartPyramidTitle} hint={rd.chartPyramidHint} label={(g) => g}
+            legend={{ flashed: rd.chartFirstGo, sent: rd.chartClean, tried: rd.chartTried }} rows={routePyramid(routes, now, days)} />
         </div>
-      </>}
-      <div className="border-t border-line pt-4">
-        <LimiterBars locale={locale} rows={limits.rows} sessions={limits.sessions} />
-      </div>
-      <p className="text-sm text-ink-2">
-        <strong>{fr ? "Niveau de travail observé" : "Observed working grade"} :</strong>{" "}
-        {working.level ? `${working.level} (${working.sampleSize} ${fr ? "blocs, 60 j" : "problems, 60 d"})` : (fr ? "données insuffisantes" : "insufficient data")}
-      </p>
-      <Link href="/progress" className={cn(linkClass, "text-sm")}>{fr ? "Tous mes résultats de grimpe" : "All my climbing results"} <IconNext /></Link>
-    </section>
-
-    {routes && routes.length ? <RouteStats locale={locale} ascents={routes} now={now}>
-      <p className="border-t border-line pt-4 text-xs font-semibold text-ink-3">
-        {fmt(rd.chartsPeriod, { period: weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks }) })}
-      </p>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <LevelCurve plain t={t} locale={locale} now={now} id="route-level-curve" title={rd.chartLevelTitle} hint={rd.chartLevelHint}
-          scale={{ label: (g) => g, gradeAt: (i) => FRENCH_ROUTE_GRADES[i] ?? null }}
-          texts={{ levelEmpty: rd.chartLevelEmpty, levelPoint: rd.chartLevelPoint, levelCaption: rd.chartLevelCaption, sendsCol: rd.chartSendsCol }}
-          points={routeWeeklyHardest(routes, now, days)} />
-        <GradePyramid plain t={t} locale={locale} id="route-pyramid" title={rd.chartPyramidTitle} hint={rd.chartPyramidHint} label={(g) => g}
-          legend={{ flashed: rd.chartFirstGo, sent: rd.chartClean, tried: rd.chartTried }} rows={routePyramid(routes, now, days)} />
-      </div>
-      <div className="border-t border-line pt-4">
-        <h3 className="text-base font-bold">{rd.chartWeekly}</h3>
-        <div className="mt-2">
+        <Fold title={rd.chartWeekly} hint={pa.routeWeeklyHint}>
           <WeeklyBars weeks={routeWeeklyActivity(routes, now, weeks)} locale={locale}
             labels={{ tops: rd.chartWeeklyLabel, sessions: c.sessionsLabel, caption: rd.chartWeekly, range: c.rangeLabel, help: rd.chartWeeklyHelp, weekOf: c.weekOfLabel }} />
-        </div>
-      </div>
-    </RouteStats> : null}
+        </Fold>
+      </RouteStats> : null}
+    </> : null}
 
-    <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="train-heading" className="text-lg font-bold">{c.trainTitle}</h2>
-        <Evidence kind="recorded" fr={fr} />
-      </div>
-      {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
-        : recent.length === 0 ? <p className="text-sm text-ink-2">
-          {(training ?? []).some((s) => !isMobility(s))
-            ? (fr ? "Pas d’entraînement sur cette période." : "No training in this period.")
-            : fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
-              : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
-          <Link href="/programmes" className={linkClass}>{fr ? "Découvrir les programmes" : "Explore programmes"}</Link>
-        </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
-            hint={adh.completionRate === null ? undefined : `${Math.round(adh.completionRate * 100)} %`} />
-          <Tile label={fr ? "Temps actif" : "Active time"} value={`${adh.activeMinutes} min`} />
-          <Tile label={fr ? "Effort perçu moyen" : "Average RPE"} value={adh.averageRpe === null ? "—" : `${adh.averageRpe} / 10`} />
-          <Tile label={fr ? "À venir" : "Upcoming"} value={String(adh.upcoming)} hint={adh.painReports ? (fr ? `${adh.painReports} douleur(s) ≥ 3 signalée(s)` : `${adh.painReports} pain report(s) ≥ 3`) : undefined} />
-        </div>}
-      {done.length ? <div className="border-t border-line pt-4">
-        <MinutesBars locale={locale} weeks={trainWeeks} caption={c.trainMinutes} help={c.trainHelp} />
-      </div> : null}
-      <Link href="/follow-up/training" className={cn(linkClass, "text-sm")}>{fr ? "Historique d’entraînement" : "Training history"} <IconNext /></Link>
-    </section>
-
-    {mobilityUsed ? <section aria-labelledby="mobility-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="mobility-heading" className="text-lg font-bold">{c.mobTitle}</h2>
-        <Evidence kind="recorded" fr={fr} />
-      </div>
-      <p className="text-sm text-ink-2">{fmt(mob.fuCardText, {
-        sessions: mobSessions28,
-        level: LEVEL_LABELS[contentLevel(mobility.enrollment?.workingLevel ?? 0)].name[locale],
-      })}</p>
-      <div className="border-t border-line pt-4">
-        <MinutesBars locale={locale} weeks={mobWeeks} caption={c.mobMinutes} help={c.mobHelp} />
-      </div>
-      <div className="space-y-2 border-t border-line pt-4">
+    {tab === "training" ? <>
+      <section aria-labelledby="train-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-bold">{c.mobTests}</h3>
+          <h2 id="train-heading" className="text-lg font-bold">{c.trainTitle}</h2>
+          <Evidence kind="recorded" fr={fr} />
+        </div>
+        {training === null ? <p role="alert" className="text-sm text-danger">{fr ? "Données d’entraînement indisponibles." : "Training data unavailable."}</p>
+          : recent.length === 0 ? <p className="text-sm text-ink-2">
+            {(training ?? []).some((s) => !isMobility(s))
+              ? (fr ? "Pas d’entraînement sur cette période." : "No training in this period.")
+              : fr ? "Pas encore de séance d’entraînement. Tes progrès en grimpe ci-dessus restent complets sans programme."
+                : "No training sessions yet. Your climbing progress above is complete without a plan."}{" "}
+            <Link href="/programmes" className={linkClass}>{fr ? "Découvrir les programmes" : "Explore programmes"}</Link>
+          </p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Tile label={fr ? "Réalisées / prévues" : "Completed / due"} value={`${adh.completed} / ${adh.planned}`}
+              hint={adh.completionRate === null ? undefined : `${Math.round(adh.completionRate * 100)} %`} />
+            <Tile label={fr ? "Temps actif" : "Active time"} value={`${adh.activeMinutes} min`} />
+            <Tile label={fr ? "Effort perçu moyen" : "Average RPE"} value={adh.averageRpe === null ? "—" : `${adh.averageRpe} / 10`} />
+            <Tile label={fr ? "À venir" : "Upcoming"} value={String(adh.upcoming)} hint={adh.painReports ? (fr ? `${adh.painReports} douleur(s) ≥ 3 signalée(s)` : `${adh.painReports} pain report(s) ≥ 3`) : undefined} />
+          </div>}
+        {done.length ? <Fold title={c.trainMinutes} hint={pa.trainMinutesHint}>
+          <MinutesBars locale={locale} weeks={trainWeeks} caption={c.trainMinutes} help={c.trainHelp} />
+        </Fold> : null}
+        <Link href="/follow-up/training" className={cn(linkClass, "text-sm")}>{fr ? "Historique d’entraînement" : "Training history"} <IconNext /></Link>
+      </section>
+      {mobilityUsed ? <section aria-labelledby="mobility-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="mobility-heading" className="text-lg font-bold">{c.mobTitle}</h2>
+          <Evidence kind="recorded" fr={fr} />
+        </div>
+        <p className="text-sm text-ink-2">{fmt(mob.fuCardText, {
+          sessions: mobSessions28,
+          level: LEVEL_LABELS[contentLevel(mobility.enrollment?.workingLevel ?? 0)].name[locale],
+        })}</p>
+        <Fold title={c.mobMinutes} hint={pa.mobMinutesHint}>
+          <MinutesBars locale={locale} weeks={mobWeeks} caption={c.mobMinutes} help={c.mobHelp} />
+        </Fold>
+        <Fold title={c.mobTests} hint={pa.mobTestsHint}>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-base font-bold">{c.mobTests}</h3>
+            <Evidence kind="self" fr={fr} />
+          </div>
+          <p className="text-xs text-ink-3">{c.mobTestsHelp}</p>
+          <ul aria-hidden="true" className="flex gap-5 text-xs font-semibold text-ink-2">
+            <li className="flex items-center gap-2"><span className="w-5 border-t-2 border-accent" />{c.left}</li>
+            <li className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed border-ink-3" />{c.right}</li>
+          </ul>
+          <MobilityTests locale={locale} points={mobility.assessments} />
+        </div>
+        </Fold>
+        <Link href="/follow-up/mobility" className={cn(linkClass, "text-sm")}>{mob.fuTitle} <IconNext /></Link>
+      </section> : null}
+      <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="assess-heading" className="text-lg font-bold">{fr ? "Évaluations" : "Assessments"}</h2>
           <Evidence kind="self" fr={fr} />
         </div>
-        <p className="text-xs text-ink-3">{c.mobTestsHelp}</p>
-        <ul aria-hidden="true" className="flex gap-5 text-xs font-semibold text-ink-2">
-          <li className="flex items-center gap-2"><span className="w-5 border-t-2 border-accent" />{c.left}</li>
-          <li className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed border-ink-3" />{c.right}</li>
-        </ul>
-        <MobilityTests locale={locale} points={mobility.assessments} />
-      </div>
-      <Link href="/follow-up/mobility" className={cn(linkClass, "text-sm")}>{mob.fuTitle} <IconNext /></Link>
-    </section> : null}
+        {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucune évaluation. C’est facultatif." : "No assessments. They are optional."}</p>
+          : <p className="text-sm text-ink-2">
+            {fr ? `${assessments!.length} évaluation(s) · dernière le ` : `${assessments!.length} assessment(s) · latest on `}
+            {formatDate(assessments![0].created_at, locale)}
+          </p>}
+        <Link href="/training-assessment" className={cn(linkClass, "text-sm")}>{fr ? "Comparer mes évaluations" : "Compare my assessments"} <IconNext /></Link>
+        <p className="text-xs text-ink-3">{fr
+          ? "Les scénarios d’évolution sont illustratifs et ne prédisent pas une cotation. Ils restent séparés des résultats observés."
+          : "Progress scenarios are illustrative and do not predict a grade. They stay separate from observed results."}</p>
+      </section>
+    </> : null}
 
-    <PairedCurves locale={locale} weeks={weeks} firstWeek={firstWeek}
-      options={SERIES.map((id) => ({ id, label: n.series[id] }))} top={buildSeries(seriesA)} bottom={buildSeries(seriesB)} />
-
-    <section aria-labelledby="assess-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="assess-heading" className="text-lg font-bold">{fr ? "Évaluations" : "Assessments"}</h2>
-        <Evidence kind="self" fr={fr} />
-      </div>
-      {(assessments ?? []).length === 0 ? <p className="text-sm text-ink-2">{fr ? "Aucune évaluation. C’est facultatif." : "No assessments. They are optional."}</p>
-        : <p className="text-sm text-ink-2">
-          {fr ? `${assessments!.length} évaluation(s) · dernière le ` : `${assessments!.length} assessment(s) · latest on `}
-          {formatDate(assessments![0].created_at, locale)}
-        </p>}
-      <Link href="/training-assessment" className={cn(linkClass, "text-sm")}>{fr ? "Comparer mes évaluations" : "Compare my assessments"} <IconNext /></Link>
-      <p className="text-xs text-ink-3">{fr
-        ? "Les scénarios d’évolution sont illustratifs et ne prédisent pas une cotation. Ils restent séparés des résultats observés."
-        : "Progress scenarios are illustrative and do not predict a grade. They stay separate from observed results."}</p>
-    </section>
+    {tab === "compare" ? <>
+      <PairedCurves locale={locale} weeks={weeks} firstWeek={firstWeek}
+        options={SERIES.map((id) => ({ id, label: n.series[id] }))} top={buildSeries(seriesA)} bottom={buildSeries(seriesB)} />
+    </> : null}
   </div>;
 }

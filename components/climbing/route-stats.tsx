@@ -6,8 +6,10 @@ import { routeDictionary } from "@/lib/i18n/routes";
 import { linkClass } from "@/components/ui/button";
 
 /** Observed route statistics (French sport grades), always separate from bouldering. */
-export function RouteStats({ locale, ascents, now, days = 30, title, children }: {
+export function RouteStats({ locale, ascents, now, days = 30, title, tiles = true, children }: {
   locale: Locale; ascents: RouteAscentFact[]; now: Date; days?: number | null; title?: string;
+  /** The four figures at the top; off where the page already leads with them. */
+  tiles?: boolean;
   /** Diagrams shown instead of the compact pyramid (the same ones as for bouldering). */
   children?: React.ReactNode;
 }) {
@@ -26,7 +28,7 @@ export function RouteStats({ locale, ascents, now, days = 30, title, children }:
     </div>
     {s.ascents === 0 ? <p className="text-sm text-ink-2">{r.noRoutes}{" "}
       <Link href="/session/new" className={linkClass}>{fr ? "Commencer une séance" : "Start a session"}</Link></p>
-      : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      : !tiles ? null : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           [fr ? "Voies" : "Routes", String(s.ascents), `${s.lead} ${r.styles.LEAD.toLowerCase()} · ${s.toprope + s.autobelay} ${fr ? "autres" : "other"}`],
           [fr ? "Enchaînées" : "Clean", String(s.clean), `${s.onsights} ${r.onsights} · ${s.flashes} flash`],
