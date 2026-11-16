@@ -34,6 +34,12 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
   await card.getByRole("link", { name: /Découvrir le programme/ }).click();
   await expect(page).toHaveURL(/\/train\/mobility$/);
   await expect(page.getByText("Pas encore de bilan.", { exact: false })).toBeVisible();
+  // Before any assessment: every test is explained, and the next step (level 1) is already shown.
+  const testsBefore = page.getByRole("region", { name: "Tes tests, expliqués" });
+  await expect(testsBefore.getByRole("article")).toHaveCount(4);
+  await expect(testsBefore.getByRole("article", { name: /^A · Rotation de hanche/ }).getByText("Ce qu’il mesure", { exact: false })).toBeVisible();
+  await expect(testsBefore.getByRole("article", { name: /^A · Rotation de hanche/ }).getByText("Pas encore testé.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ce que tu vises" }).getByRole("article", { name: "Niveau 1" })).toBeVisible();
   await page.getByRole("button", { name: "Commencer le programme" }).click();
 
   // Level 0 session: five exercises at their starting dose, no increase offered yet.
@@ -87,6 +93,26 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
   await expect(page.getByText("Bilan enregistré")).toBeVisible();
   await expect(page.getByText("Ton niveau : Niveau 0 · Très limité, beaucoup d’appui")).toBeVisible();
   await expect(page.getByText("pas un bilan médical", { exact: false }).first()).toBeVisible();
+
+  // The programme page explains where I am and what I aim for, from that self-reported assessment.
+  await page.goto("/train/mobility");
+  const where = page.getByRole("region", { name: "Où tu en es" });
+  await expect(where.getByText("Niveau 0", { exact: true })).toBeVisible();
+  await expect(where.getByText("Très limité, beaucoup d’appui", { exact: true })).toBeVisible();
+  await expect(where.getByText("D’après ton bilan auto-déclaré du", { exact: false })).toBeVisible();
+  await expect(where.getByRole("list", { name: "Les cinq niveaux du programme" }).getByRole("listitem")).toHaveCount(5);
+  const testA = page.getByRole("region", { name: "Tes tests, expliqués" }).getByRole("article", { name: /^A · Rotation de hanche/ });
+  await expect(testA.getByText("Fixe ton niveau")).toBeVisible();
+  await expect(testA.getByText("Auto-déclaré", { exact: true })).toBeVisible();
+  await expect(testA.getByText("Gauche : niveau 1/4", { exact: false })).toBeVisible();
+  await expect(testA.getByText("Niveau retenu : 1/4 (côté le plus faible)")).toBeVisible();
+  await expect(testA.getByText("Pour atteindre le niveau 1 :")).toBeVisible();
+  await expect(testA.getByRole("img", { name: "A : niveau 1 sur 4, prochain palier 2, objectif 4" })).toBeVisible();
+  const aim = page.getByRole("region", { name: "Ce que tu vises" });
+  const nextStep = aim.getByRole("article", { name: "Niveau 1" });
+  await expect(nextStep.getByText("2 test(s) sur 3 déjà au niveau demandé")).toBeVisible();
+  await expect(nextStep.getByText("Encore 1 niveau(x)")).toHaveCount(1);
+  await expect(aim.getByRole("article", { name: "Niveau 4" }).getByText("0 test(s) sur 4 déjà au niveau demandé")).toBeVisible();
 
   // Follow-up: the session, the left/right record and the warning sign, kept apart from measurements.
   await page.goto("/follow-up/mobility");

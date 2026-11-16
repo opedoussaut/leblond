@@ -43,6 +43,7 @@ export const fr = {
     today: "Aujourd’hui",
     sessions: "Séances",
     programmes: "Programmes",
+    rival: "Rival",
     progress: "Progrès",
     patrick: "Patrick",
     // Pages
@@ -51,6 +52,8 @@ export const fr = {
     projects: "Projets",
     myProgrammes: "Mes programmes",
     library: "Bibliothèque",
+    rivalDuel: "Duel",
+    rivalSettings: "Réglages du rival",
     dayCheck: "Forme du jour",
     newSession: "Nouvelle séance",
     climbingProgress: "Grimpe",

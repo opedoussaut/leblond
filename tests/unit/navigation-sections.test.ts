@@ -3,11 +3,11 @@ import { ACCOUNT_PAGES, AREAS, SECTION_IDS, activeSubPage, isAreaOverview, pages
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 
-describe("five areas (structure v2)", () => {
-  it("has exactly Today, Séances, Programmes, Progress and Patrick, in that order", () => {
-    expect(AREAS.map((a) => a.id)).toEqual(["today", "sessions", "programmes", "progress", "patrick"]);
+describe("six areas (structure v2, Rival on its own)", () => {
+  it("has exactly Today, Séances, Programmes, Rival, Progress and Patrick, in that order", () => {
+    expect(AREAS.map((a) => a.id)).toEqual(["today", "sessions", "programmes", "rival", "progress", "patrick"]);
     expect([...SECTION_IDS]).toEqual(AREAS.map((a) => a.id));
-    expect(AREAS.map((a) => a.href)).toEqual(["/home", "/session", "/programmes", "/follow-up", "/patrick"]);
+    expect(AREAS.map((a) => a.href)).toEqual(["/home", "/session", "/programmes", "/rival", "/follow-up", "/patrick"]);
   });
   it("lists the agreed pages", () => {
     const pages = Object.fromEntries(AREAS.map((a) => [a.id, a.children.map((c) => c.href)]));
@@ -15,6 +15,7 @@ describe("five areas (structure v2)", () => {
       today: [],
       sessions: ["/session", "/calendar", "/projects"],
       programmes: ["/programmes", "/atlas"],
+      rival: ["/rival", "/rival/settings"],
       progress: ["/progress", "/follow-up/training", "/follow-up/mobility", "/training-assessment"],
       patrick: [],
     });
@@ -43,8 +44,12 @@ describe("every URL keeps working and maps to its area", () => {
       expect(sectionForPath(path)).toBe("sessions");
     }
   });
-  it("puts programmes, the assessment wizard, mobility, the rival and the library in Programmes", () => {
-    for (const path of ["/programmes", "/train", "/train/assess", "/train/alter-ego", "/train/mobility", "/train/mobility/assess",
+  it("gives the rival its own area, its old address included", () => {
+    for (const path of ["/rival", "/rival/settings", "/train/alter-ego"]) expect(sectionForPath(path)).toBe("rival");
+    expect(sectionForPath("/rivalx")).not.toBe("rival");
+  });
+  it("puts programmes, the assessment wizard, mobility and the library in Programmes", () => {
+    for (const path of ["/programmes", "/train", "/train/assess", "/train/mobility", "/train/mobility/assess",
       "/training-plans", "/atlas", "/atlas/max-hangs", "/training"]) {
       expect(sectionForPath(path)).toBe("programmes");
     }
@@ -82,7 +87,9 @@ describe("one current page", () => {
     expect(activeSubPage("/calendar")?.href).toBe("/calendar");
     expect(activeSubPage("/projects/routes/x")?.href).toBe("/projects");
     expect(activeSubPage("/programmes")?.href).toBe("/programmes");
-    expect(activeSubPage("/train/alter-ego")?.href).toBe("/programmes");
+    expect(activeSubPage("/rival")?.href).toBe("/rival");
+    expect(activeSubPage("/rival/settings")?.href).toBe("/rival/settings");
+    expect(activeSubPage("/train/alter-ego")?.href).toBe("/rival");
     expect(activeSubPage("/train/mobility")?.href).toBe("/programmes");
     expect(activeSubPage("/train/assess")?.href).toBe("/programmes");
     expect(activeSubPage("/training-plans")?.href).toBe("/programmes");
@@ -98,11 +105,12 @@ describe("one current page", () => {
     expect(activeSubPage("/train/today")).toBeNull();
   });
   it("marks the listed page, not the area link, when the area opens on a listed page", () => {
-    const [today, sessions, programmes, progress, patrick] = AREAS;
+    const [today, sessions, programmes, rival, progress, patrick] = AREAS;
     expect(isAreaOverview(today, "/home")).toBe(true);
     expect(isAreaOverview(today, "/")).toBe(true);
     expect(isAreaOverview(sessions, "/session")).toBe(false);
     expect(isAreaOverview(programmes, "/programmes")).toBe(false);
+    expect(isAreaOverview(rival, "/rival")).toBe(false);
     expect(isAreaOverview(progress, "/follow-up")).toBe(true);
     expect(activeSubPage("/follow-up")).toBeNull();
     expect(isAreaOverview(patrick, "/patrick")).toBe(true);

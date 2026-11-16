@@ -20,7 +20,7 @@ import { cn } from "@/components/ui/cn";
 
 
 
-export async function TrainingAssessmentView({ backHref }: { backHref: "/programmes" | "/follow-up" }) {
+export async function TrainingAssessmentView({ backHref, startInForm = false }: { backHref: "/programmes" | "/follow-up"; startInForm?: boolean }) {
   const doing = backHref === "/programmes";
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
@@ -101,7 +101,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/program
   return (
     <div className="pb-12">
       <div className="flex flex-wrap justify-between gap-3">
-        <Link href={backHref} className={cn(linkClass, "text-sm")}><IconBack /> {backHref === "/programmes" ? "Programmes" : (locale === "fr" ? "Progrès" : "Progress")}</Link>
+        <Link href={backHref === "/programmes" ? "/programmes?tab=checks" : backHref} className={cn(linkClass, "text-sm")}><IconBack /> {backHref === "/programmes" ? "Programmes" : (locale === "fr" ? "Progrès" : "Progress")}</Link>
         <Link href="/progress" className={cn(linkClass, "text-sm")}>{locale==="fr"?"Mes résultats":"My results"} <IconNext /></Link>
       </div>
       <div className="mt-6">
@@ -119,7 +119,7 @@ export async function TrainingAssessmentView({ backHref }: { backHref: "/program
       ) : null}
       {assessmentError || checkinsError
         ? <p role="alert" className="mt-6 rounded-xl border border-warn p-4 text-sm">{a.savedAccess} — database migration may be missing.</p>
-        : <AssessmentWorkspace locale={locale} initialAssessments={saved} initialCheckins={entries}
+        : <AssessmentWorkspace locale={locale} startInForm={startInForm} initialAssessments={saved} initialCheckins={entries}
           levels={levels} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
           today={localDate_(new Date())} observedEvidence={observed}
           defaults={{ discipline: viewer.profile.target_discipline === "ROUTE" || viewer.profile.target_discipline === "BOTH" ? viewer.profile.target_discipline : "BOULDER",

@@ -3,7 +3,7 @@
  * its own shareable address: /programmes (the programme in progress),
  * /programmes?tab=editor, … A method added from the library opens the editor.
  */
-export const PROGRAMME_TABS = ["overview", "editor", "rival", "checks", "guide"] as const;
+export const PROGRAMME_TABS = ["overview", "editor", "checks", "guide"] as const;
 export type ProgrammeTab = (typeof PROGRAMME_TABS)[number];
 
 /** The section asked for in the URL; `?add=<method>` opens the editor; anything unknown falls back to the overview. */
