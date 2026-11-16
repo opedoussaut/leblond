@@ -63,7 +63,7 @@ export default async function ProjectsPage() {
               <Link href={`/projects/${p.id}`} className="block rounded-2xl border border-line bg-surface p-4 hover:bg-surface-2">
                 <div className="flex items-center justify-between gap-2">
                   {p.problems ? (
-                    <GradeChip t={t} system={p.problems.native_grade_system} grade={p.problems.native_grade} showFont />
+                    <GradeChip t={t} system={p.problems.native_grade_system} grade={p.problems.native_grade} showFont size="xl" />
                   ) : null}
                   <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.projects.status[p.status]}</span>
                 </div>

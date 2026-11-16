@@ -54,7 +54,7 @@ export function BoardProjects({ locale, projects, goals = [] }: { locale: Locale
     {projects.length ? <ul className="space-y-2">
       {projects.map((p) => <li key={p.id} className="rounded-2xl border border-line bg-surface p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-display text-lg font-black tabular-nums">{boulderGrade(p.grade)}</span>
+          <span className="text-lg font-black tabular-nums">{boulderGrade(p.grade)}</span>
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{b.projectStatus[p.status as BoardProjectStatus]}</span>
         </div>
         <p className="mt-1 font-semibold">{p.climb_name}</p>
@@ -94,7 +94,7 @@ function GoalItem({ goal: g, b, locale, pending, run }: {
   });
   return <li className="rounded-2xl border border-line bg-surface p-4">
     <div className="flex items-center justify-between gap-2">
-      <span className="font-display text-lg font-black tabular-nums">{b.goalTarget} {boulderGrade(g.grade)}</span>
+      <span className="text-lg font-black tabular-nums">{b.goalTarget} {boulderGrade(g.grade)}</span>
       <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
         {g.reached && status === "ACTIVE" && g.reachedAt ? fmt(b.goalReached, { date: formatDate(g.reachedAt, locale) }) : b.goalStatus[status]}
       </span>
