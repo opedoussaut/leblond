@@ -29,7 +29,7 @@ export const ILLUSTRATION_SIZES = {
   "leg-swings": [259, 410],
   "legs-up-breathing": [619, 301],
   "low-lunge-rotation": [281, 408],
-  "passive-hang-feet": [580, 335],
+  "passive-hang-feet": [580, 389],
   "quadruped-hip-circles": [279, 404],
   "quadruped-thoracic-rotation": [280, 401],
   "romanian-deadlift": [304, 358],
@@ -49,11 +49,15 @@ export const ILLUSTRATION_SIZES = {
   "dumbbell-curl": [960, 785],
   "hanging-knee-raise": [960, 751],
   "heel-raised-assisted-squat": [960, 829],
-  "horse-stance-squat": [960, 671],
+  "horse-stance-squat": [960, 663],
   "jefferson-curl": [960, 758],
   "long-lunge-pulse": [960, 674],
   "parallel-bar-dips": [960, 758],
   "wall-sit": [736, 909],
+  "band-external-rotation": [960, 1083],
+  "band-internal-rotation": [960, 1121],
+  "band-pull-apart": [585, 1305],
+  "easy-pull-up": [960, 1060],
 } as const satisfies Record<string, readonly [number, number]>;
 
 export type IllustrationId = keyof typeof ILLUSTRATION_SIZES;

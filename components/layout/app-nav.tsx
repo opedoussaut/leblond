@@ -7,7 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/components/ui/cn";
 import { AREAS, activeSubPage, isAreaOverview, pagesFor, sectionForPath } from "@/lib/navigation/sections";
 import { AccountMenu } from "./account-menu";
-import { LibraryNavGroup, ProgressNavGroup } from "./library-nav-group";
+import { LibraryNavGroup, ProgrammesNavGroup, ProgressNavGroup } from "./library-nav-group";
 import { AREA_ICONS, PAGE_ICONS } from "./nav-icons";
 
 /** A sub-page link in the sidebar; only the current page is filled. */
@@ -74,7 +74,8 @@ export function AppNav({ hasLiveSession, hasLiveTraining, displayName, isAdmin, 
                           <span>{t.nav[child.key]}</span>
                         </Link>;
                         // Pages with sections (?tab=…) list them as a third level.
-                        const Group = child.key === "library" ? LibraryNavGroup : child.key === "climbingProgress" ? ProgressNavGroup : null;
+                        const Group = child.key === "library" ? LibraryNavGroup : child.key === "climbingProgress" ? ProgressNavGroup
+                          : child.key === "myProgrammes" ? ProgrammesNavGroup : null;
                         return <li key={child.href}>
                           {Group ? <Suspense fallback={plain}>
                             <Group href={child.href} active={active} label={t.nav[child.key]}

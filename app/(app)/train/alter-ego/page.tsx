@@ -44,7 +44,7 @@ export default async function AlterEgoPage() {
   const today = localDate_(new Date());
   const rival = await loadOpenRival(viewer.supabase);
   const pact = rival?.pact ?? null;
-  const back = <Link href="/programmes" className={cn(linkClass, "text-sm")}><IconBack /> Programmes</Link>;
+  const back = <Link href="/programmes?tab=rival" className={cn(linkClass, "text-sm")}><IconBack /> Programmes</Link>;
 
   if (!pact) {
     const { data: plans } = await viewer.supabase.from("training_plans").select("id, name, weeks").order("updated_at", { ascending: false });
