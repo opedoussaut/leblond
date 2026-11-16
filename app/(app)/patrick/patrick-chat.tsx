@@ -10,6 +10,7 @@ import { Notice } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { Select } from "@/components/ui/field";
 import { QUICK_ACTIONS, type QuickAction } from "@/lib/coach/context";
+import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string };
@@ -74,13 +75,13 @@ export function PatrickChat({
 }: {
   configured: boolean;
   dailyLimit: number;
-  conversations: Array<{ id: string; title: string; updated_at: string }>;
+  conversations: Array<{ id: string; title: string; updated_at: string; messages: number }>;
   conversationId: string | null;
   initialMessages: Msg[];
   projects: Array<{ id: string; label: string }>;
   focus: { sessionId: string | null; projectId: string | null; routeProjectId: string | null; initialAction: QuickAction | null };
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [messages, setMessages] = useState<Msg[]>(initialMessages);
   const [conversationId, setConversationId] = useState(initialConversationId);
@@ -89,6 +90,18 @@ export function PatrickChat({
   const [error, setError] = useState<string | null>(null);
   const [pickProject, setPickProject] = useState(false);
   const [projectId, setProjectId] = useState(focus.projectId ?? projects[0]?.id ?? "");
+  // Opening another conversation (or a new one) only changes the URL: the page
+  // stays mounted, so load that conversation's messages when the id changes.
+  const [shownId, setShownId] = useState(initialConversationId);
+  if (initialConversationId !== shownId) {
+    setShownId(initialConversationId);
+    if (initialConversationId !== conversationId) {
+      setConversationId(initialConversationId);
+      setMessages(initialMessages);
+      setError(null);
+      setPickProject(false);
+    }
+  }
   const autoSent = useRef(false);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -178,6 +191,8 @@ export function PatrickChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const current = conversations.find((c) => c.id === conversationId) ?? null;
+
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       <header className="flex items-start gap-3">
@@ -187,7 +202,7 @@ export function PatrickChat({
           <p className="text-sm text-ink-2">{t.patrick.subtitle}</p>
         </div>
         {messages.length ? (
-          <Link href="/patrick" className="shrink-0 text-sm text-accent" onClick={() => setMessages([])}>
+          <Link href="/patrick" className="shrink-0 text-sm font-semibold text-accent">
             {t.patrick.newConversation}
           </Link>
         ) : null}
@@ -244,11 +259,23 @@ export function PatrickChat({
             {conversations.length ? (
               <div className="pt-4">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{t.patrick.conversations}</p>
-                <ul className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface">
+                <p className="mt-1 text-sm text-ink-2">{t.patrick.conversationsHint}</p>
+                <ul className="mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                   {conversations.map((c) => (
                     <li key={c.id}>
-                      <Link href={`/patrick?c=${c.id}`} className="block truncate px-4 py-3 text-sm hover:bg-surface-2">
-                        {c.title || "…"}
+                      <Link
+                        href={`/patrick?c=${c.id}`}
+                        className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-surface-2"
+                        data-testid="patrick-conversation"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">{c.title || t.patrick.untitled}</span>
+                          <span className="mt-0.5 block text-xs text-ink-3 tabular-nums">
+                            {formatDate(c.updated_at, locale, { dateStyle: "medium", timeStyle: "short" })}
+                            {c.messages ? ` · ${fmt(c.messages === 1 ? t.patrick.messageOne : t.patrick.messageMany, { n: c.messages })}` : ""}
+                          </span>
+                        </span>
+                        <span aria-hidden className="shrink-0 text-lg text-ink-3">›</span>
                       </Link>
                     </li>
                   ))}
@@ -257,7 +284,14 @@ export function PatrickChat({
             ) : null}
           </>
         ) : (
-          messages.map((m) => (
+          <>
+          {current ? (
+            <div className="flex items-center justify-between gap-3 border-b border-line pb-2 text-xs text-ink-3">
+              <Link href="/patrick" className="min-h-11 py-3 font-semibold text-accent">‹ {t.patrick.allConversations}</Link>
+              <span className="truncate tabular-nums">{formatDate(current.updated_at, locale, { dateStyle: "medium", timeStyle: "short" })}</span>
+            </div>
+          ) : null}
+          {messages.map((m) => (
             <div
               key={m.id}
               className={cn(
@@ -271,7 +305,8 @@ export function PatrickChat({
                 m.content
               )}
             </div>
-          ))
+          ))}
+          </>
         )}
         {error ? <Notice tone="error">{error}</Notice> : null}
         <div ref={endRef} />
