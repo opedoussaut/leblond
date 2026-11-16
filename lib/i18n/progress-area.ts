@@ -33,7 +33,6 @@ const fr = {
     mobTestsHint: "Tes tests de mobilité, côté gauche et côté droit.",
   },
   climbing: {
-    avatarPillars: "Les six piliers, et ce qu’il manque pour chacun",
     period: "Période",
     summaryEyebrow: "Grimpe · {period}",
     summaryLabel: "Blocs réussis, en salle et dehors",
@@ -110,7 +109,6 @@ const en: Dict = {
     mobTestsHint: "Your mobility tests, left and right side.",
   },
   climbing: {
-    avatarPillars: "The six pillars, and what each one still needs",
     period: "Period",
     summaryEyebrow: "Climbing · {period}",
     summaryLabel: "Problems sent, indoors and out",
