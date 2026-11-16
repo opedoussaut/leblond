@@ -47,7 +47,7 @@ const fr = {
   bodyLink: "Évaluation des hanches",
   pillarTop: "Validé jusqu’au Noir",
   pillarCapped: "Violet, le maximum pour l’instant",
-  rule: "Ton avatar est toujours ton pilier le plus bas : les six doivent atteindre une couleur pour la débloquer. Jusqu’au Vert, la salle suffit : tes blocs et voies en salle comptent aussi pour les piliers extérieurs. À partir du Violet, l’extérieur devient obligatoire : seuls les blocs et voies réussis dehors (sur un site extérieur) font monter les piliers extérieurs, avec plus de jours et, pour Bleu et Noir, au moins deux sites différents.",
+  rule: "Ton avatar est toujours ton pilier le plus bas : les six doivent atteindre une couleur pour la débloquer. Chaque niveau se confirme sur au moins 5 séances (5 jours dehors) et au moins 3 blocs ou voies différents. Jusqu’au Vert, la salle suffit : tes blocs et voies en salle comptent aussi pour les piliers extérieurs. À partir du Violet, l’extérieur devient obligatoire : seuls les blocs et voies réussis dehors (sur un site extérieur) font monter les piliers extérieurs et, pour Bleu et Noir, il faut au moins deux sites différents.",
   how: "Blocs : niveaux Font seulement (blocs cotés en Font, couleurs de salle avec une estimation Font fiable, pan en Font), jamais convertis. Voies : en tête, enchaînées (à vue, flash ou après travail). Mobilité (tests C et D) et souplesse (tests A et B) : l’évaluation des hanches. Des repères LEBLOND, pas une mesure de ton niveau.",
   list: { and: " et " },
 };
@@ -98,7 +98,7 @@ const en: typeof fr = {
   bodyLink: "Hip assessment",
   pillarTop: "Validated up to Black",
   pillarCapped: "Violet, the maximum for now",
-  rule: "Your avatar is always your lowest pillar: all six must reach a colour to unlock it. Up to Green, the gym is enough: your indoor boulders and routes count for the outdoor pillars too. From Violet on, outdoor climbing is required: only boulders and routes done outside (at an outdoor site) raise the outdoor pillars, over more days and, for Blue and Black, at two different sites at least.",
+  rule: "Your avatar is always your lowest pillar: all six must reach a colour to unlock it. Each level is confirmed over at least 5 sessions (5 days outside) and at least 3 different boulders or routes. Up to Green, the gym is enough: your indoor boulders and routes count for the outdoor pillars too. From Violet on, outdoor climbing is required: only boulders and routes done outside (at an outdoor site) raise the outdoor pillars and, for Blue and Black, at two different sites at least.",
   how: "Boulders: Font grades only (Font-graded problems, gym colours with a reliable Font estimate, boards in Font), never converted. Routes: led clean (onsight, flash or redpoint). Mobility (tests C and D) and flexibility (tests A and B): the hip assessment. LEBLOND reference points, not a measurement of your level.",
   list: { and: " and " },
 };
