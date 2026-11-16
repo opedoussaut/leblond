@@ -615,7 +615,14 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   const day = page.getByRole("region", { name: "Ta séance idéale aujourd’hui" });
   await expect(day.getByText("De la mobilité douce à la place")).toBeVisible();
   await expect(day.getByText(/Très fatigué : récupérer/)).toBeVisible();
-  await page.reload();
+  // Three choices for the suggested séance: start now, keep it for later today, or plan it.
+  await expect(day.getByRole("button", { name: /Démarrer maintenant/ })).toBeVisible();
+  await day.getByRole("button", { name: "Planifier" }).click();
+  await expect(day.getByLabel("Heure (facultatif)")).toBeVisible();
+  await day.getByRole("button", { name: "Garder pour aujourd’hui" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("region", { name: "Ta journée" }).getByRole("link", { name: /Mobilité et gainage doux/ })).toBeVisible();
+  await page.goto("/train/today");
   await expect(page.getByText(/Forme du jour déjà notée/)).toBeVisible();
   await page.goto("/home");
   // Filled check-in: the self-reported form, the answers, today's session and a way to edit.
