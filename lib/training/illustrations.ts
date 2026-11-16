@@ -58,6 +58,7 @@ export const ILLUSTRATION_SIZES = {
   "band-internal-rotation": [960, 1121],
   "band-pull-apart": [585, 1305],
   "easy-pull-up": [960, 1060],
+  "no-hang-pin": [960, 724],
 } as const satisfies Record<string, readonly [number, number]>;
 
 export type IllustrationId = keyof typeof ILLUSTRATION_SIZES;
