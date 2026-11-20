@@ -67,6 +67,7 @@ export async function SessionSummaryView({ viewer, view }: { viewer: Viewer; vie
         .from("wearable_activities")
         .select("id, started_at, duration_seconds, device_name")
         .is("session_id", null)
+        .is("training_session_id", null)
         .gte("started_at", windowStart)
         .lte("started_at", windowEnd);
   const sessionWindow = {

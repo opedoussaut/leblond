@@ -11,6 +11,7 @@ import { formatDateTime, formatDuration } from "@/lib/format";
 import { fmt, type Locale } from "@/lib/i18n";
 import { overlapsSession } from "@/lib/integrations/wearables/overlap";
 import { cn } from "@/components/ui/cn";
+import { fitImportDictionary } from "@/lib/i18n/fit-import";
 
 type Activity = {
   id: string;
@@ -22,11 +23,13 @@ type Activity = {
   calories: number | null;
   device_name: string | null;
   session_id: string | null;
+  training_session_id: string | null;
 };
 type SessionOpt = { id: string; startedAt: string; endedAt: string | null; gymName: string };
 
 export function ActivityList({ activities, sessions, locale }: { activities: Activity[]; sessions: SessionOpt[]; locale: Locale }) {
   const { t } = useI18n();
+  const fi = fitImportDictionary(locale);
   const router = useRouter();
   const [pending, start] = useTransition();
   const [choice, setChoice] = useState<Record<string, string>>({});
@@ -62,7 +65,13 @@ export function ActivityList({ activities, sessions, locale }: { activities: Act
               {a.max_heart_rate != null ? ` · ${t.session.maxHr} ${a.max_heart_rate}` : ""}
               {a.calories != null ? ` · ${a.calories} kcal` : ""}
             </p>
-            {linked ? (
+            {a.training_session_id ? (
+              <p className="text-sm">
+                <Link href={`/train/sessions/${a.training_session_id}`} className={cn(linkClass, "hover:underline")}>
+                  {fi.filedAsTraining}
+                </Link>
+              </p>
+            ) : linked ? (
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Link href={`/session/${linked.id}`} className={cn(linkClass, "hover:underline")}>
                   {fmt(t.connections.linkedTo, { date: formatDateTime(linked.startedAt, locale) })}

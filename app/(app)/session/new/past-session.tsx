@@ -19,14 +19,17 @@ import { FitFileButton, fitErrorText, timingLine, type FitUploaded } from "@/com
 import { linkActivityToSession } from "@/lib/actions/wearables";
 import { fmt } from "@/lib/i18n";
 import { fitAttachDictionary } from "@/lib/i18n/fit-attach";
+import { fitImportDictionary } from "@/lib/i18n/fit-import";
 import { prefillFromActivity } from "@/lib/integrations/wearables/fit/attach";
 import { compareTiming } from "@/lib/integrations/wearables/timing";
 
 type Place = { id: string; name: string; hasBouldering: boolean; hasRoutes: boolean };
 
 /** Create a finished session after the fact (optionally from a watch FIT file), then fill it in on the edit page. */
-export function PastSession({ gyms, favouriteIds, areas, sites }: {
+export function PastSession({ gyms, favouriteIds, areas, sites, initialFit = null }: {
   gyms: Tables<"gyms">[]; favouriteIds: string[]; areas: AreaItem[]; sites: OutdoorSite[];
+  /** Already imported (one-step FIT import without a known venue): pre-filled and linked once the venue is picked. */
+  initialFit?: FitUploaded | null;
 }) {
   const { t, locale } = useI18n();
   const e = sessionEditDictionary(locale);
@@ -40,9 +43,10 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
     d.setMinutes(Math.floor(d.getMinutes() / 15) * 15, 0, 0);
     return utcToZoned(d);
   });
-  const [date, setDate] = useState(defaults.date);
-  const [time, setTime] = useState(defaults.time);
-  const [minutes, setMinutes] = useState(90);
+  const [initial] = useState(() => (initialFit ? prefillFromActivity(initialFit) : null));
+  const [date, setDate] = useState(initial?.date ?? defaults.date);
+  const [time, setTime] = useState(initial?.time ?? defaults.time);
+  const [minutes, setMinutes] = useState(initial?.minutes ?? 90);
   const [discipline, setDiscipline] = useState<"BOULDER" | "ROUTE">("BOULDER");
   const [title, setTitle] = useState("");
   const L = loggingDictionary(locale);
@@ -50,7 +54,7 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
   const [pending, start] = useTransition();
   const F = fitAttachDictionary(locale);
   // Watch file chosen in the form: imported at once, linked to the séance once it is created.
-  const [fit, setFit] = useState<FitUploaded | null>(null);
+  const [fit, setFit] = useState<FitUploaded | null>(initialFit);
   const [fitError, setFitError] = useState("");
   const fitPrefill = fit ? prefillFromActivity(fit) : null;
   const fitCmp = fit ? compareTiming(fit, { startedAt: fit.startedAt, endedAt: fit.startedAt, durationMinutes: null }) : null;
@@ -79,6 +83,8 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
     <div>
       <h2 className="text-lg font-bold">{e.pastTitle}</h2>
       <p className="mt-1 text-sm text-ink-2">{e.pastHint}</p>
+      {initialFit ? <p role="status" className="mt-2 text-sm font-semibold text-ink-2" data-testid="past-session-from-fit">
+        ⌚ {fitImportDictionary(locale).pickVenue}</p> : null}
     </div>
     {place ? (
       <form onSubmit={submit} aria-label={e.pastTitle} className="space-y-4 rounded-2xl border border-line bg-surface p-4">
@@ -115,7 +121,7 @@ export function PastSession({ gyms, favouriteIds, areas, sites }: {
             <FitFileButton label={fit ? F.replace : F.attach} disabled={pending} onUploaded={(r) => {
               setFitError("");
               if (r.kind === "error") { setFitError(fitErrorText(F, r.code)); return; }
-              if (r.linkedSessionId) { setFitError(F.elsewhere); return; }
+              if (r.linkedSessionId || r.linkedTrainingSessionId) { setFitError(F.elsewhere); return; }
               const p = prefillFromActivity(r);
               setFit(r); setDate(p.date); setTime(p.time); setMinutes(p.minutes);
             }} />

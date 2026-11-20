@@ -2103,6 +2103,7 @@ export type Database = {
           session_id: string | null;
           started_at: string;
           training_load: number | null;
+          training_session_id: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -2125,6 +2126,7 @@ export type Database = {
           session_id?: string | null;
           started_at: string;
           training_load?: number | null;
+          training_session_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -2147,6 +2149,7 @@ export type Database = {
           session_id?: string | null;
           started_at?: string;
           training_load?: number | null;
+          training_session_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -2156,6 +2159,13 @@ export type Database = {
             columns: ["session_id"];
             isOneToOne: false;
             referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wearable_activities_training_session_id_fkey";
+            columns: ["training_session_id"];
+            isOneToOne: false;
+            referencedRelation: "training_sessions";
             referencedColumns: ["id"];
           },
         ];
@@ -2280,6 +2290,7 @@ export type Database = {
         Returns: boolean;
       };
       link_wearable_activity: { Args: { p_activity_id: string; p_session_id: string }; Returns: undefined };
+      link_training_activity: { Args: { p_activity_id: string; p_training_session_id: string | null }; Returns: undefined };
       apply_activity_timing: { Args: { p_session_id: string }; Returns: Database["public"]["Tables"]["sessions"]["Row"] };
       reschedule_session: {
         Args: { p_session_id: string; p_started_at: string; p_duration_minutes: number };

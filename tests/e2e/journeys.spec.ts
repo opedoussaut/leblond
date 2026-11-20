@@ -1,4 +1,4 @@
-import { Encoder, Profile, type FileIdMesg, type SessionMesg } from "@garmin/fitsdk";
+import { Encoder, Profile, type FileIdMesg, type SessionMesg, type SportMesg } from "@garmin/fitsdk";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
@@ -452,6 +452,88 @@ test("A4b — FIT file on a climbing séance: at creation, removed, attached aga
   await page.getByTestId("fit-file-input").setInputFiles(file);
   await expect(page.getByText(/Fichier FIT joint\./)).toBeVisible();
   await expect(watch.getByText("Fichier FIT importé")).toBeVisible();
+});
+
+/** A watch activity of a given sport (FIT strings, as Garmin's SDK names them), optionally named. Made-up values only. */
+function fitSportActivity(start: Date, minutes: number, serial: number, sport: string | null, subSport: string | null, name?: string): Buffer {
+  const enc = new Encoder();
+  enc.onMesg(Profile.MesgNum.FILE_ID, { type: "activity", manufacturer: "development", product: 1, serialNumber: serial, timeCreated: start } as FileIdMesg);
+  if (name && sport) enc.onMesg(Profile.MesgNum.SPORT, { sport, subSport: subSport ?? "generic", name } as SportMesg);
+  enc.onMesg(Profile.MesgNum.SESSION, {
+    timestamp: new Date(start.getTime() + minutes * 60_000), startTime: start, totalElapsedTime: minutes * 60, avgHeartRate: 128, maxHeartRate: 162,
+    ...(sport ? { sport } : {}), ...(subSport ? { subSport } : {}),
+  } as SessionMesg);
+  return Buffer.from(enc.close());
+}
+
+test("A4c — one-step FIT import: climbing and training recognised, corrected, asked", async ({ page }) => {
+  test.setTimeout(180_000);
+  await register(page, "Watch", "watch@leblond.local");
+  const hoursAgo = (h: number) => { const d = new Date(Date.now() - h * 3_600_000); d.setUTCSeconds(0, 0); return d; };
+  const fit = (name: string, buffer: Buffer) => ({ name, mimeType: "application/octet-stream", buffer });
+  const importFile = async (file: ReturnType<typeof fit>) => {
+    await page.goto("/session");
+    await page.getByTestId("fit-import-input").setInputFiles(file);
+  };
+
+  // 1. Bouldering, but no venue known yet: the past-séance form opens with the file attached, to pick the gym.
+  const first = hoursAgo(72);
+  await importFile(fit("bloc-1.fit", fitSportActivity(first, 80, 7101, "rockClimbing", "bouldering")));
+  await expect(page).toHaveURL(/\/session\/new\?where=past&fit=[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("past-session-from-fit")).toBeVisible();
+  await chooseGym(page, "Demo Arkose");
+  const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await expect(form.getByLabel("Date")).toHaveValue(parisDate(first));
+  await form.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+
+  // 2. Another bouldering file: filed at once, at the venue of the latest boulder séance.
+  await importFile(fit("bloc-2.fit", fitSportActivity(hoursAgo(48), 95, 7102, "rockClimbing", "bouldering")));
+  await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}$/);
+  const notice = page.getByTestId("fit-import-notice");
+  await expect(notice).toContainText("Reconnu comme : bloc en salle");
+  await expect(notice).toContainText("d’après le sport enregistré par la montre");
+  await expect(notice).toContainText("Lieu repris de ta dernière séance du même type.");
+  await expect(page.getByRole("heading", { name: "Demo Arkose" })).toBeVisible();
+  await expect(page.getByText("Fichier FIT importé")).toBeVisible();
+
+  // 3. Not right: it was training. The empty séance becomes a training séance with the watch's data.
+  await notice.getByRole("button", { name: "Entraînement" }).click();
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("fit-import-notice")).toContainText("Reconnu comme : entraînement — selon ton choix");
+  const watch = page.getByTestId("training-watch");
+  await expect(watch).toContainText("128 bpm");
+  await expect(watch).toContainText("1h35");
+
+  // 4. A strength file named "Renfo": straight to a training séance titled after it.
+  await importFile(fit("renfo.fit", fitSportActivity(hoursAgo(26), 45, 7103, "training", "strengthTraining", "Renfo")));
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Renfo" })).toBeVisible();
+  await expect(page.getByTestId("fit-import-notice")).toContainText("Reconnu comme : entraînement — renforcement");
+  // The file can be taken off; the séance stays.
+  page.once("dialog", (d) => d.accept());
+  await page.getByTestId("training-watch").getByRole("button", { name: "Retirer le fichier FIT" }).click();
+  await expect(page.getByTestId("training-watch")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Renfo" })).toBeVisible();
+
+  // 5. A generic hour with no name: the climber is asked, once.
+  const generic = fit("activite.fit", fitSportActivity(hoursAgo(5), 60, 7104, null, null));
+  await importFile(generic);
+  const ask = page.getByTestId("fit-import");
+  await expect(ask.getByText("Grimpe ou entraînement ?")).toBeVisible();
+  await ask.getByRole("button", { name: "Entraînement" }).click();
+  await expect(page).toHaveURL(/\/train\/sessions\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Séance d’entraînement" })).toBeVisible();
+
+  // 6. The same file again is not imported twice.
+  await importFile(generic);
+  await expect(page.getByTestId("fit-import").getByText("Ce fichier est déjà dans ton journal.")).toBeVisible();
+
+  // The journal lists them all.
+  await page.goto("/session");
+  await expect(page.getByRole("link", { name: /Renfo/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Séance d’entraînement/ }).first()).toBeVisible();
 });
 
 test("A6 — faster logging: session name, several problems/routes, tries, comments, projects, colours", async ({ page }) => {
