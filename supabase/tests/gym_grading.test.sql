@@ -34,3 +34,8 @@ select pg_temp.expect((select grading_system = 'LELABO_COLOR' from public.gyms w
   'Le Labo in the catalogue with its scale');
 select pg_temp.expect((select grading_system = 'MROC_COLOR' from public.gyms where name = 'MROC Laennec' and external_provider is null),
   'MROC Laennec in the catalogue with its scale');
+
+-- Climb World (Paris 14e): bouldering only, generic colours until its scale is known.
+select pg_temp.expect((select grading_system = 'CUSTOM_COLOR' and has_bouldering and not has_routes and city = 'Paris 14e'
+  from public.gyms where name = 'Climb World' and external_provider is null and active),
+  'Climb World in the catalogue, bouldering only');
