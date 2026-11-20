@@ -2370,7 +2370,7 @@ export type Database = {
       coach_role: "user" | "assistant";
       connection_status: "CONNECTED" | "DISCONNECTED" | "ERROR";
       discipline: "bouldering" | "sport";
-      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN" | "BLOCKOUT_LEVEL" | "CLIMB_UP_COLOR" | "VERTICAL_ART_COLOR" | "CLIMBING_DISTRICT_LEVEL" | "LELABO_COLOR" | "MROC_COLOR";
+      grade_system: "ARKOSE_COLOR" | "CLIMBING_DISTRICT_COLOR" | "FONT" | "CUSTOM_COLOR" | "UNKNOWN" | "BLOCKOUT_LEVEL" | "CLIMB_UP_COLOR" | "VERTICAL_ART_COLOR" | "CLIMBING_DISTRICT_LEVEL" | "LELABO_COLOR" | "MROC_COLOR" | "CLIMB_WORLD_LEVEL";
       gym_brand: "ARKOSE" | "CLIMBING_DISTRICT" | "BLOCKOUT" | "CLIMB_UP" | "VERTICAL_ART" | "INDEPENDENT" | "OUTDOOR" | "OTHER";
       media_type: "PROBLEM_PHOTO" | "ATTEMPT_VIDEO" | "SEND_VIDEO";
       normalization_source: "FONT_NATIVE" | "USER_ESTIMATE" | "GYM_PUBLISHED";
@@ -2492,7 +2492,7 @@ export const Constants = {
       coach_role: ["user", "assistant"],
       connection_status: ["CONNECTED", "DISCONNECTED", "ERROR"],
       discipline: ["bouldering", "sport"],
-      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN", "BLOCKOUT_LEVEL", "CLIMB_UP_COLOR", "VERTICAL_ART_COLOR", "CLIMBING_DISTRICT_LEVEL", "LELABO_COLOR", "MROC_COLOR"],
+      grade_system: ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR", "FONT", "CUSTOM_COLOR", "UNKNOWN", "BLOCKOUT_LEVEL", "CLIMB_UP_COLOR", "VERTICAL_ART_COLOR", "CLIMBING_DISTRICT_LEVEL", "LELABO_COLOR", "MROC_COLOR", "CLIMB_WORLD_LEVEL"],
       gym_brand: ["ARKOSE", "CLIMBING_DISTRICT", "BLOCKOUT", "INDEPENDENT", "OUTDOOR", "OTHER"],
       media_type: ["PROBLEM_PHOTO", "ATTEMPT_VIDEO", "SEND_VIDEO"],
       normalization_source: ["FONT_NATIVE", "USER_ESTIMATE", "GYM_PUBLISHED"],

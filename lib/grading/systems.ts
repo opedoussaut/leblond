@@ -18,6 +18,8 @@ import type { GradeSystem } from "@/lib/climbing/types";
  * - Climb Up: https://www.climb-up.fr/faq/ (7 niveaux : jaune, vert, bleu, violet, rouge, blanc, noir)
  * - Vertical'Art: https://www.vertical-art.fr/faq/ (blanc → violet, référence cotation Bleau)
  * - Le Labo (Grenoble), MROC Laennec (Lyon): colour order as listed on their statistics pages (hosted by Arkose)
+ * - Climb World (Paris 14e): levels 1–7, Débutant → Élite, as the gym names them (given by Olivier on 2026-11-20;
+ *   https://climb-world.fr publishes no scale)
  */
 
 export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
@@ -25,7 +27,7 @@ export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
 /**
  * What a system's grades ARE, independently of the gym using it:
  *  - COLOUR: hold colours (Arkose, Climbing District colours, custom colours…);
- *  - NUMERIC: numbered gym levels (Block'Out B1–B14, Climbing District 1–12) —
+ *  - NUMERIC: numbered gym levels (Block'Out B1–B14, Climbing District 1–12, Climb World 1–7) —
  *    gym levels, NOT Font or French grades even when they look like numbers;
  *  - CONVENTIONAL: a recognised climbing scale (Font for boulders).
  * French route grades are a separate scale (lib/grading/route-grades.ts).
@@ -44,6 +46,7 @@ export const GRADE_SYSTEM_KIND: Record<GradeSystem, GradeSystemKind> = {
   VERTICAL_ART_COLOR: "COLOUR",
   LELABO_COLOR: "COLOUR",
   MROC_COLOR: "COLOUR",
+  CLIMB_WORLD_LEVEL: "NUMERIC",
 };
 
 export function gradeSystemKind(system: GradeSystem): GradeSystemKind {
@@ -236,6 +239,20 @@ export const MROC_GRADES: GradeDefinition[] = ordered("MROC_COLOR", [
   ["BLACK", undefined, "#151515", "#ffffff"],
 ]);
 
+/**
+ * Climb World levels, 1 (Débutant) → 7 (Élite). Stored as "1" … "7". The gym's own
+ * levels: never read them as Font ("7" ≠ 7A) or as Climbing District levels.
+ */
+export const CLIMB_WORLD_LEVEL_GRADES: GradeDefinition[] = ordered("CLIMB_WORLD_LEVEL", [
+  ["1", "levelBeginner"],
+  ["2", "levelEasy"],
+  ["3", "levelMedium"],
+  ["4", "levelHard"],
+  ["5", "levelVeryHard"],
+  ["6", "levelExtreme"],
+  ["7", "levelElite"],
+]);
+
 export const UNKNOWN_GRADES: GradeDefinition[] = [
   { id: "UNKNOWN", system: "UNKNOWN", kind: "UNORDERED", ordinal: null },
 ];
@@ -252,6 +269,7 @@ export const GRADES_BY_SYSTEM: Record<GradeSystem, GradeDefinition[]> = {
   CLIMBING_DISTRICT_LEVEL: CLIMBING_DISTRICT_LEVEL_GRADES,
   LELABO_COLOR: LELABO_GRADES,
   MROC_COLOR: MROC_GRADES,
+  CLIMB_WORLD_LEVEL: CLIMB_WORLD_LEVEL_GRADES,
 };
 
 /** Whether grades in this system can be placed on an ordinal scale. */
@@ -265,4 +283,12 @@ export function isColorSystem(system: GradeSystem): boolean {
 
 export function isNumericSystem(system: GradeSystem): boolean {
   return gradeSystemKind(system) === "NUMERIC";
+}
+
+/**
+ * Gym levels stored as bare numbers (Climbing District 1–12, Climb World 1–7): shown with
+ * their "level" prefix and picked from big numerals, so "7" is never taken for a Font grade.
+ */
+export function isBareLevelSystem(system: GradeSystem): boolean {
+  return system === "CLIMBING_DISTRICT_LEVEL" || system === "CLIMB_WORLD_LEVEL";
 }
