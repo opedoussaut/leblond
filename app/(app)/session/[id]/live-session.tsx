@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isColorSystem } from "@/lib/grading/systems";
+import { isBareLevelSystem, isColorSystem } from "@/lib/grading/systems";
 import { gradeSpokenLabel } from "@/lib/grading/labels";
 import { QuickBoulderEntry, type QuickChoice } from "./quick-boulder-entry";
 import { ScaleSwitch } from "./scale-switch";
@@ -966,8 +966,8 @@ function GradeGrid({
 }) {
   const { t } = useI18n();
   const grades = listGrades(system);
-  // Climbing District levels: twelve big numerals (other scales keep their layout).
-  const levels = system === "CLIMBING_DISTRICT_LEVEL";
+  // Gym levels (Climbing District 1–12, Climb World 1–7): big numerals (other scales keep their layout).
+  const levels = isBareLevelSystem(system);
   return (
     <section className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3 flex items-center justify-between">
