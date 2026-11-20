@@ -124,10 +124,10 @@ select pg_temp.expect_error(
    where id = ''70000000-0000-0000-0000-000000000001''',
   'authenticated clients cannot change event owner');
 
--- Official directory: seed all five networks, preserve the true disciplines
+-- Official directory: seed all five networks plus Climb World, preserve the true disciplines
 -- and keep rows visible only to signed-in climbers.
-select pg_temp.expect((select count(*) from public.gyms where source_url is not null and external_provider is null and brand <> 'OUTDOOR' and city not in ('Grenoble', 'Lyon', 'Toulouse')) = 29,
-  'all 29 verified Île-de-France venues are seeded');
+select pg_temp.expect((select count(*) from public.gyms where source_url is not null and external_provider is null and brand <> 'OUTDOOR' and city not in ('Grenoble', 'Lyon', 'Toulouse')) = 30,
+  'all 30 verified Île-de-France venues are seeded');
 select pg_temp.expect((select brand = 'OUTDOOR' and grading_system = 'FONT' and has_bouldering and not has_routes from public.gyms
   where external_provider = 'LEBLOND' and external_id = 'dampierre-maincourt'),
   'Dampierre Maincourt is an outdoor bouldering site on the Font scale');
