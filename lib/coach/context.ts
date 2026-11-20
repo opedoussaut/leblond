@@ -394,6 +394,10 @@ function period(s: Snapshot) {
 export const CLIMBING_DISTRICT_SCALES_NOTE =
   "CLIMBING_DISTRICT_LEVEL = Climbing District's current numbered levels 1–12 (1 easiest; gym levels, not Font or French grades). CLIMBING_DISTRICT_COLOR = its former colour scale (PINK unranked). Separate scales with no verified equivalence: never convert, merge or compare them.";
 
+/** Said to Patrick whenever Climb World grades are in the context. */
+export const CLIMB_WORLD_SCALE_NOTE =
+  "CLIMB_WORLD_LEVEL = Climb World's own levels 1–7 (1 Débutant, 2 Facile, 3 Moyen, 4 Difficile, 5 Très difficile, 6 Extrême, 7 Élite; gym levels, not Font or French grades, and not Climbing District levels). No verified equivalence with any other scale: never convert, merge or compare.";
+
 /**
  * Bounded training-load facts for Patrick: verdict and its basis, load zone and
  * ratio, today's fitness/fatigue/form, the week's healthy range, flags and up
@@ -446,6 +450,7 @@ export function buildCoachContext(input: CoachContextInput) {
     ...input.activeProjects.map((p) => p.system as GradeSystem),
   ].filter((s) => s in GRADES_BY_SYSTEM));
   const climbingDistrict = "CLIMBING_DISTRICT_LEVEL" in scales || "CLIMBING_DISTRICT_COLOR" in scales;
+  const climbWorld = "CLIMB_WORLD_LEVEL" in scales;
   const ctx = {
     generatedAt: input.now.toISOString(),
     climber: {
@@ -472,6 +477,7 @@ export function buildCoachContext(input: CoachContextInput) {
       gradeScales: "Each system's grades, easiest first. The next grade up is the next item. Unranked grades (e.g. Climbing District PINK) have no position. Every grade figure names its system; grades of different systems are never comparable.",
       boulderResults: "Boulders: FLASH = sent on the first try (onsight is not recorded separately for boulders); TOP = sent after tries; tried but not sent never counts as a send (hardestTriedNotSent).",
       ...(climbingDistrict ? { climbingDistrictScales: CLIMBING_DISTRICT_SCALES_NOTE } : {}),
+      ...(climbWorld ? { climbWorldScale: CLIMB_WORLD_SCALE_NOTE } : {}),
       routeResults: "Route (sport/roped) ascents: ONSIGHT = first go without beta, FLASH = first go with beta, REDPOINT = no fall after working it (these three are 'clean'); TOP_WITH_REST = reached the top with falls/rests on the rope; ATTEMPT = did not reach the anchor. Styles: LEAD, TOPROPE, AUTOBELAY.",
       routeLeadWorkingGrade: "Hardest French route grade climbed clean on LEAD at least twice in the last 60 days; null unless ≥6 routes were logged in that window. Top-rope and auto-belay never count toward it.",
       routeVsBoulder: "Route grades (French sport scale, lower-case, e.g. 6b+) and boulder grades (Font, colours) are separate scales. Never convert one into the other.",

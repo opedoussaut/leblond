@@ -1,26 +1,26 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import { getGradeDefinition } from "./ordering";
-import { isColorSystem } from "./systems";
+import { isBareLevelSystem, isColorSystem } from "./systems";
 import { boulderGrade } from "./display";
 
 /**
  * Human label for a native grade ("Rouge", "6C+", "Rose", "Niv. 7").
- * Climbing District levels always carry their "level" prefix, so a bare "7"
- * is never mistaken for a Font or French grade.
+ * Climbing District and Climb World levels always carry their "level" prefix,
+ * so a bare "7" is never mistaken for a Font or French grade.
  */
 export function gradeLabel(t: Dictionary, system: GradeSystem, grade: string): string {
   if (isColorSystem(system) || system === "UNKNOWN") {
     return (t.grades.colors as Record<string, string>)[grade] ?? grade;
   }
-  if (system === "CLIMBING_DISTRICT_LEVEL") return fmt(t.grades.level, { n: grade });
+  if (isBareLevelSystem(system)) return fmt(t.grades.level, { n: grade });
   if (system === "FONT") return boulderGrade(grade);
   return grade;
 }
 
 /** Long, spoken form of a grade (accessible names): "Niveau 7", "Rouge", "6C+". */
 export function gradeSpokenLabel(t: Dictionary, system: GradeSystem, grade: string): string {
-  if (system === "CLIMBING_DISTRICT_LEVEL") return fmt(t.grades.levelLong, { n: grade });
+  if (isBareLevelSystem(system)) return fmt(t.grades.levelLong, { n: grade });
   return gradeLabel(t, system, grade);
 }
 
