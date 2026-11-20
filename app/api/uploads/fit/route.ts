@@ -1,8 +1,6 @@
-import { randomUUID } from "node:crypto";
 import { getViewer } from "@/lib/auth/viewer";
 import { overlapsSession } from "@/lib/integrations/wearables/dedup";
-import { FitParseError, MAX_FIT_BYTES, parseFitFile } from "@/lib/integrations/wearables/fit/parse";
-import { saveWorkout } from "@/lib/integrations/wearables/store";
+import { receiveFitUpload } from "@/lib/integrations/wearables/fit/receive";
 
 export const runtime = "nodejs";
 
@@ -10,54 +8,19 @@ export const runtime = "nodejs";
  * FIT import (provider-neutral fallback). Validates size and FIT integrity,
  * keeps the raw file in the user's private folder for provenance, normalises
  * it, de-duplicates, and suggests the climbing session it overlaps.
- * The answer also carries the activity's start, duration and linked session,
- * so a séance page can attach the file right away (lib/integrations/wearables/fit/attach.ts).
+ * The answer also carries the activity's start, duration and linked séance
+ * (climbing or training), so a séance page can attach the file right away
+ * (lib/integrations/wearables/fit/attach.ts).
  */
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer) return Response.json({ error: "unauthenticated" }, { status: 401 });
   if (!viewer.active) return Response.json({ error: "forbidden" }, { status: 403 });
 
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > MAX_FIT_BYTES + 64 * 1024) return Response.json({ error: "too_large" }, { status: 413 });
-
-  const form = await request.formData().catch(() => null);
-  const file = form?.get("file");
-  if (!(file instanceof File)) return Response.json({ error: "invalid_request" }, { status: 400 });
-  if (file.size === 0 || file.size > MAX_FIT_BYTES) return Response.json({ error: "too_large" }, { status: 413 });
-  if (!file.name.toLowerCase().endsWith(".fit")) return Response.json({ error: "not_fit" }, { status: 415 });
-
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const path = `${viewer.userId}/${randomUUID()}.fit`;
-  let workout;
-  try {
-    workout = parseFitFile(bytes, path);
-  } catch (e) {
-    const code = e instanceof FitParseError ? e.code : "CORRUPT";
-    return Response.json({ error: code === "NO_ACTIVITY" ? "no_activity" : "not_fit" }, { status: 422 });
-  }
-
-  const result = await saveWorkout(viewer.supabase, viewer.userId, { ...workout, rawFileReference: null }).catch(() => null);
-  if (!result) return Response.json({ error: "server_error" }, { status: 500 });
-  if (result.status === "duplicate") {
-    const { data: existing } = await viewer.supabase
-      .from("wearable_activities")
-      .select("started_at, duration_seconds, session_id")
-      .eq("id", result.id)
-      .maybeSingle();
-    if (!existing) return Response.json({ error: "server_error" }, { status: 500 });
-    return Response.json({
-      status: "duplicate",
-      activityId: result.id,
-      activity: { startedAt: existing.started_at, durationSeconds: existing.duration_seconds, sessionId: existing.session_id },
-    });
-  }
-
-  // Keep the original file (private bucket, user's folder) and record the reference.
-  const { error: upErr } = await viewer.supabase.storage
-    .from("wearable-files")
-    .upload(path, bytes, { contentType: "application/octet-stream", upsert: false });
-  if (!upErr) await viewer.supabase.from("wearable_activities").update({ raw_file_reference: path }).eq("id", result.id);
+  const received = await receiveFitUpload(viewer, request);
+  if (!received.ok) return Response.json({ error: received.error }, { status: received.status });
+  const { workout, activityId, activity } = received;
+  if (received.duplicate) return Response.json({ status: "duplicate", activityId, activity });
 
   const { data: sessions } = await viewer.supabase
     .from("sessions")
@@ -68,10 +31,5 @@ export async function POST(request: Request) {
   const match = (sessions ?? []).find((s) =>
     overlapsSession(workout, { startedAt: new Date(s.started_at), endedAt: s.ended_at ? new Date(s.ended_at) : null }),
   );
-  return Response.json({
-    status: "inserted",
-    activityId: result.id,
-    suggestedSessionId: match?.id ?? null,
-    activity: { startedAt: workout.startedAt.toISOString(), durationSeconds: workout.durationSeconds, sessionId: null },
-  });
+  return Response.json({ status: "inserted", activityId, suggestedSessionId: match?.id ?? null, activity });
 }

@@ -24,6 +24,10 @@ import { fmt } from "@/lib/i18n";
 import { IconBack, IconExternal } from "@/components/ui/icons";
 import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
+import { FitImportNotice } from "@/components/wearables/fit-import-notice";
+import { TrainingWatchCard } from "@/components/wearables/training-watch";
+import { trainingSessionIsEmpty } from "@/lib/integrations/wearables/fit/file";
+import { readImportedAs } from "@/lib/integrations/wearables/fit/import-flow";
 
 export const metadata = { title: "LEBLOND — Training session" };
 
@@ -37,7 +41,7 @@ async function recentClimbs(supabase: Awaited<ReturnType<typeof requireViewer>>[
 
 export default async function TrainingSessionPage({ params }: PageProps<"/train/sessions/[id]">) {
   const viewer = await requireViewer();
-  const { locale } = await getI18n(viewer.profile.preferred_language);
+  const { locale, t: common } = await getI18n(viewer.profile.preferred_language);
   const t = trainingSessionDictionary(locale);
   const c = coachSessionsDictionary(locale);
   const { id } = await params;
@@ -52,6 +56,12 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     : { data: [] };
   const exercises = withCurrentPictures(loaded.exercises,
     (coachRows ?? []).map(coachSessionFromRow).filter((c) => c !== null));
+
+  // The watch activity filed as this séance (one-step FIT import), if any.
+  const { data: watch } = await viewer.supabase.from("wearable_activities")
+    .select("id, provider, device_name, duration_seconds, avg_heart_rate, max_heart_rate, calories, training_load, raw_metadata")
+    .eq("training_session_id", session.id).maybeSingle();
+  const importedEmpty = watch && readImportedAs(watch.raw_metadata) ? await trainingSessionIsEmpty(viewer, session.id) : false;
 
   const running = session.status === "IN_PROGRESS";
   const finished = session.status === "COMPLETED" || session.status === "INTERRUPTED";
@@ -82,10 +92,13 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
       </p>
     </header>
 
+    {watch ? <FitImportNotice activity={watch} empty={importedEmpty} locale={locale} /> : null}
+
     {running ? <TrainingPlayer locale={locale} session={session} exercises={exercises} ego={ego}
       climbs={climbs.map((c) => ({ id: c.id, label: `${c.gyms?.name ?? "Session"} · ${formatDate(c.started_at, locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` }))} /> : null}
 
     {finished ? <SessionSummary locale={locale} session={session} exercises={exercises} /> : null}
+    {watch ? <TrainingWatchCard activity={watch} t={common} locale={locale} /> : null}
     {!running ? <SessionExport locale={locale} session={session} exercises={exercises} /> : null}
 
     {!running && !finished ? <section aria-labelledby="exercise-list" className="space-y-3">

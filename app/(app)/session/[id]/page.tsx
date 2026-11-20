@@ -11,6 +11,9 @@ import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { RouteSessionSummary } from "./route-summary";
 import { SessionLogger, loadRouteAscents } from "./session-logger";
 import { SessionWearableSection } from "./session-wearable-section";
+import { FitImportNotice } from "@/components/wearables/fit-import-notice";
+import { climbingSessionIsEmpty } from "@/lib/integrations/wearables/fit/file";
+import { readImportedAs } from "@/lib/integrations/wearables/fit/import-flow";
 
 export default async function SessionPage({ params, searchParams }: PageProps<"/session/[id]">) {
   const { id } = await params;
@@ -43,13 +46,21 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
 
   if (!view.session.ended_at) return <SessionLogger viewer={viewer} view={view} mode="live" />;
 
+  // Created by the one-step FIT import: say what it was recognised as, and offer a correction while it is empty.
+  const { locale } = await getI18n(viewer.profile.preferred_language);
+  const imported = view.activity && readImportedAs(view.activity.raw_metadata);
+  const notice = imported && view.activity
+    ? <FitImportNotice activity={view.activity} empty={await climbingSessionIsEmpty(viewer, view.session.id)} locale={locale} />
+    : null;
+
   if (view.session.discipline === "ROUTE") {
-    const { locale } = await getI18n(viewer.profile.preferred_language);
     const ascents = await loadRouteAscents(viewer, view.session.id);
     return <div className="space-y-5">
+      {notice}
       <RouteSessionSummary locale={locale} session={view.session} gymName={view.gym.name} ascents={ascents} />
       <SessionWearableSection supabase={viewer.supabase} view={view} />
     </div>;
   }
-  return <SessionSummaryView viewer={viewer} view={view} />;
+  if (!notice) return <SessionSummaryView viewer={viewer} view={view} />;
+  return <div className="space-y-5">{notice}<SessionSummaryView viewer={viewer} view={view} /></div>;
 }

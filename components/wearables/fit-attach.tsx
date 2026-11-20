@@ -10,7 +10,7 @@ import { linkActivityToSession } from "@/lib/actions/wearables";
 import { formatDate, formatDuration } from "@/lib/format";
 import { fmt, type Locale } from "@/lib/i18n";
 import { fitAttachDictionary, type FitAttachDictionary } from "@/lib/i18n/fit-attach";
-import { planFitAttach, readFitUploadResponse, type FitUpload, type FitUploadErrorCode } from "@/lib/integrations/wearables/fit/attach";
+import { linkedSessionHref, planFitAttach, readFitUploadResponse, type FitUpload, type FitUploadErrorCode } from "@/lib/integrations/wearables/fit/attach";
 import { compareTiming, type TimingSide } from "@/lib/integrations/wearables/timing";
 
 export type FitUploaded = Extract<FitUpload, { kind: "ok" }>;
@@ -81,7 +81,7 @@ export function FitFileButton({ label, onUploaded, variant = "secondary", disabl
 type SessionTiming = { id: string; startedAt: string; endedAt: string | null; durationMinutes: number | null };
 
 type Message =
-  | { tone: "ok" | "warn" | "error" | "info"; text: string; otherSessionId?: string }
+  | { tone: "ok" | "warn" | "error" | "info"; text: string; otherHref?: string }
   | null;
 
 /**
@@ -121,7 +121,7 @@ export function SessionFitAttach({ session, hasActivity }: { session: SessionTim
     if (result.kind === "error") { setMessage({ tone: "error", text: fitErrorText(d, result.code) }); return; }
     const plan = planFitAttach(result, session);
     if (plan === "already") setMessage({ tone: "info", text: d.alreadyHere });
-    else if (plan === "elsewhere") setMessage({ tone: "warn", text: d.elsewhere, otherSessionId: result.linkedSessionId ?? undefined });
+    else if (plan === "elsewhere") setMessage({ tone: "warn", text: d.elsewhere, otherHref: linkedSessionHref(result) ?? undefined });
     else if (plan === "confirm") setPendingConfirm(result);
     else link(result);
   }
@@ -148,10 +148,10 @@ export function SessionFitAttach({ session, hasActivity }: { session: SessionTim
       {message ? (
         <Notice tone={message.tone}>
           {message.text}
-          {message.otherSessionId ? (
+          {message.otherHref ? (
             <>
               {" "}
-              <Link className="underline" href={`/session/${message.otherSessionId}`}>{d.openOther}</Link>
+              <Link className="underline" href={message.otherHref}>{d.openOther}</Link>
             </>
           ) : null}
         </Notice>

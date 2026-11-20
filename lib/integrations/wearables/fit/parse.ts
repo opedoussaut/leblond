@@ -56,6 +56,18 @@ export function parseFitFile(bytes: Uint8Array, rawFileReference: string | null 
   const session = m.sessionMesgs?.[0];
   const fileId = m.fileIdMesgs?.[0];
   const records = m.recordMesgs ?? [];
+  // Sport and name: the session summary first, then the sport and workout messages.
+  const sportMesg = m.sportMesgs?.[0];
+  const workoutMesg = m.workoutMesgs?.[0];
+  const sport = str(session?.sport) ?? str(sportMesg?.sport);
+  const subSport = str(session?.subSport) ?? str(sportMesg?.subSport);
+  const names = [str(session?.sportProfileName), str(sportMesg?.name), str(workoutMesg?.wktName)]
+    .map((n) => n?.trim() ?? "")
+    .filter((n, i, all) => n && all.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i);
+  const activityName = names.join(" · ").slice(0, MAX_NAME_LENGTH) || null;
+  const firstFix = records.find((r) => num(r.positionLat) !== null && num(r.positionLong) !== null);
+  const startPosition = toPosition(session?.startPositionLat, session?.startPositionLong)
+    ?? toPosition(firstFix?.positionLat, firstFix?.positionLong);
 
   const firstRecordTime = date(records[0]?.timestamp);
   const lastRecordTime = date(records.at(-1)?.timestamp);
@@ -93,7 +105,7 @@ export function parseFitFile(bytes: Uint8Array, rawFileReference: string | null 
   return {
     provider: "FIT_IMPORT",
     externalActivityId,
-    activityType: [str(session?.sport), str(session?.subSport)].filter(Boolean).join("/") || "unknown",
+    activityType: [sport, subSport].filter(Boolean).join("/") || "unknown",
     startedAt,
     durationSeconds: Math.round(durationSeconds),
     calories: num(session?.totalCalories),
@@ -105,11 +117,30 @@ export function parseFitFile(bytes: Uint8Array, rawFileReference: string | null 
     deviceName: [manufacturer, product].filter(Boolean).join(" ") || null,
     deviceManufacturer: manufacturer,
     rawFileReference,
+    startPosition,
     rawMetadata: {
       source: "fit-file",
       hasSessionMessage: Boolean(session),
       records: records.length,
       heartRateFrom: num(session?.avgHeartRate) !== null ? "session" : hr.length ? "records" : "none",
+      // What the watch called the activity, and whether it recorded a position (never the position itself).
+      activityName,
+      hasGps: startPosition !== null,
     },
   };
+}
+
+/** Longest activity name kept (sport profile · sport · workout names). */
+const MAX_NAME_LENGTH = 120;
+
+/** FIT positions are semicircles: degrees = semicircles × 180 / 2³¹. */
+function toPosition(lat: unknown, long: unknown): { lat: number; lon: number } | null {
+  const a = num(lat);
+  const b = num(long);
+  if (a === null || b === null) return null;
+  const k = 180 / 2 ** 31;
+  const position = { lat: a * k, lon: b * k };
+  // 0,0 and out-of-range values are "no fix", not a place.
+  if (Math.abs(position.lat) > 90 || Math.abs(position.lon) > 180 || (position.lat === 0 && position.lon === 0)) return null;
+  return position;
 }

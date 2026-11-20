@@ -28,7 +28,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/sett
     viewer.supabase.from("wearable_connections").select("provider, status, last_sync_at, last_error"),
     viewer.supabase
       .from("wearable_activities")
-      .select("id, provider, started_at, duration_seconds, avg_heart_rate, max_heart_rate, calories, device_name, session_id")
+      .select("id, provider, started_at, duration_seconds, avg_heart_rate, max_heart_rate, calories, device_name, session_id, training_session_id")
       .order("started_at", { ascending: false })
       .limit(20),
     viewer.supabase

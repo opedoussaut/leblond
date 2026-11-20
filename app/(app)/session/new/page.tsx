@@ -19,6 +19,8 @@ import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { localDate_ } from "@/lib/training/sessions";
 import { StartSession } from "./start-session";
+import { FitImportButton } from "@/components/wearables/fit-import-button";
+import { fitImportDictionary } from "@/lib/i18n/fit-import";
 
 export const metadata = { title: "Nouvelle séance" };
 
@@ -33,6 +35,13 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   const { t: common, locale } = await getI18n(viewer.profile.preferred_language);
   const a = areasDictionary(locale).newSession;
   const kind = sp.kind === "train" || typeof sp.coach === "string" || typeof sp.method === "string" ? "train" : "climb";
+
+  const fitImport = (
+    <section aria-label={fitImportDictionary(locale).button} className="mb-5 space-y-1">
+      <FitImportButton size="md" />
+      <p className="text-xs text-ink-3">{fitImportDictionary(locale).hint}</p>
+    </section>
+  );
 
   const kindSwitch = (
     <nav aria-label={a.kind} className={cn(segmentGroupClass, "mb-5 grid-cols-2")}>
@@ -59,7 +68,16 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
         .limit(1)
         .maybeSingle(),
     ]);
-    const where = sp.where;
+    // A one-step FIT import whose venue could not be found lands here, its file attached already.
+    const { data: fitActivity } = typeof sp.fit === "string" && /^[0-9a-f-]{36}$/i.test(sp.fit)
+      ? await viewer.supabase.from("wearable_activities").select("id, started_at, duration_seconds, session_id, training_session_id")
+        .eq("id", sp.fit).maybeSingle()
+      : { data: null };
+    const initialFit = fitActivity && !fitActivity.session_id && !fitActivity.training_session_id
+      ? { kind: "ok" as const, activityId: fitActivity.id, duplicate: true, startedAt: fitActivity.started_at,
+          durationSeconds: fitActivity.duration_seconds, linkedSessionId: null, linkedTrainingSessionId: null }
+      : null;
+    const where = initialFit ? "past" : sp.where;
     const initialTab =
       where === "past" ? "past" : where === "board" ? "board"
       : where === "outdoor" || (where !== "gym" && last?.gyms?.external_provider) ? "outdoor" : "gym";
@@ -67,7 +85,8 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
       <div>
         <PageHeader icon={<PAGE_ICONS.newSession />} title={common.session.newTitle} subtitle={common.session.whereToday} />
         {kindSwitch}
-        <StartSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} initialTab={initialTab} />
+        {initialFit ? null : fitImport}
+        <StartSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} initialTab={initialTab} initialFit={initialFit} />
       </div>
     );
   }
@@ -88,6 +107,7 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
       <div>
         <PageHeader icon={<PAGE_ICONS.newSession />} title={a.title} subtitle={a.subtitle} />
         {kindSwitch}
+        {fitImport}
       </div>
       {sessions === null ? <p role="alert" className="rounded-xl border border-warn p-4 text-sm">{t.error}</p> : null}
 

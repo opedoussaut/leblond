@@ -16,6 +16,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { linkClass, segmentClass, tileClass } from "@/components/ui/button";
 import Link from "next/link";
 import { arkoseImportDictionary } from "@/lib/i18n/arkose-import";
+import type { FitUploaded } from "@/components/wearables/fit-attach";
 
 export function StartSession({
   gyms,
@@ -23,12 +24,15 @@ export function StartSession({
   areas,
   sites,
   initialTab,
+  initialFit = null,
 }: {
   gyms: Tables<"gyms">[];
   favouriteIds: string[];
   areas: AreaItem[];
   sites: OutdoorSite[];
   initialTab: "gym" | "outdoor" | "board" | "past";
+  /** A watch file imported in one step whose venue could not be found: the past-séance form takes it. */
+  initialFit?: FitUploaded | null;
 }) {
   const { t, locale } = useI18n();
   const r = routeDictionary(locale);
@@ -72,7 +76,7 @@ export function StartSession({
       {error ? <Notice tone="error">{t.common.unknownError}</Notice> : null}
       {tab === "past" ? (
         <>
-          <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} />
+          <PastSession gyms={gyms} favouriteIds={favouriteIds} areas={areas} sites={sites} initialFit={initialFit} />
           <Link href="/session/arkose-import" className={`${linkClass} text-sm`}>{arkoseImportDictionary(locale).link}</Link>
         </>
       ) : tab === "board" ? (

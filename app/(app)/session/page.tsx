@@ -19,6 +19,8 @@ import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { localDate_, type TrainingSession } from "@/lib/training/sessions";
 import { IconNext, IconPast, LiveDot } from "@/components/ui/icons";
+import { FitImportButton } from "@/components/wearables/fit-import-button";
+import { fitImportDictionary } from "@/lib/i18n/fit-import";
 
 export const metadata = { title: "Journal" };
 
@@ -131,6 +133,10 @@ export default async function JournalPage({ searchParams }: PageProps<"/session"
           variant="secondary" size="xl" className="w-full sm:flex-1">
           <IconPast /> {a.addPast}
         </LinkButton>
+      </div>
+      <div className="space-y-1">
+        <FitImportButton />
+        <p className="text-xs text-ink-3">{fitImportDictionary(locale).hint}</p>
       </div>
 
       <nav aria-label={a.filter} className={cn(segmentGroupClass, "grid-cols-3")}>

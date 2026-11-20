@@ -38,6 +38,11 @@ export interface NormalizedWorkout {
   deviceName: string | null;
   deviceManufacturer: string | null;
   rawFileReference: string | null;
+  /**
+   * Where the activity started (degrees), when the source has it. Used in memory
+   * only (e.g. to find the crag of an imported FIT file); never stored.
+   */
+  startPosition?: { lat: number; lon: number } | null;
   /** Provenance: which source fields were present (never fabricated). */
   rawMetadata: Record<string, unknown>;
 }

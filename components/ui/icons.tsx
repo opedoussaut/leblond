@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Check, ChevronLeft, Camera, CircleDashed, Clock, History, MessageCircle, Pencil, TriangleAlert, Undo2, Pause, Play, RotateCcw, Square, Star, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronLeft, Camera, CircleDashed, Clock, History, MessageCircle, Pencil, TriangleAlert, Undo2, Pause, Play, RotateCcw, Square, Star, Watch, Zap } from "lucide-react";
 
 /*
  * The small icons that sit inside words: after a link ("Voir →"), before a
@@ -26,6 +26,8 @@ export const IconTry = () => <CircleDashed aria-hidden="true" className={inline}
 
 /** A duration. */
 export const IconClock = () => <Clock aria-hidden="true" className={inline} strokeWidth={2.25} />;
+/** A watch file (FIT import). */
+export const IconWatch = () => <Watch aria-hidden="true" className={inline} strokeWidth={2.25} />;
 
 /** Undo the last action. */
 export const IconUndo = () => <Undo2 aria-hidden="true" className={inline} strokeWidth={2.25} />;
