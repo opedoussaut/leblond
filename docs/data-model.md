@@ -39,7 +39,7 @@ erDiagram
 | `coach_conversations`, `coach_messages` | Patrick history, private. |
 | `ai_usage` | Append-only for users (rate-limit integrity). Tokens, latency, request type — no prompt text. |
 | `wearable_connections` | Status + encrypted tokens. Clients can read status columns only. |
-| `wearable_activities` | Normalised workouts; unique per (user, provider, provider id) + `dedup_key`. |
+| `wearable_activities` | Normalised workouts; unique per (user, provider, provider id) + `dedup_key`. Linked to a climbing séance (`session_id`) or, since `20261201000000_fit_training_link.sql`, to a training séance (`training_session_id`, at most one activity per training séance), never both. |
 | `wearable_activity_samples` | Downsampled HR series kept out of the main row. |
 | `outdoor_areas`, `outdoor_circuits`, `outdoor_problems` | Topo catalogue. `source = 'BOOLDER'`: Fontainebleau imported from Boolder (CC BY 4.0); each area owns one `gyms` row (`external_provider = 'BOOLDER'`, unique on `(external_provider, external_id)`). `source = 'LEBLOND'`: team topos (Google My Maps) on other outdoor sites, written only by `admin_import_leblond_topo()` (admin session); their circuits carry `area_id`, their circuits and problems a `source_key` unique per area. Read: active beta users; write: service role or that function only. |
 | `outdoor_data_imports` | One row per import, Boolder or team topo (source commit, date, counts, skipped). |
@@ -102,3 +102,10 @@ training_exercise_sets       one row per set, unique (exercise_id, set_index) �
 - `problems.beta`, `topo_ref`, `topo_url` and `route_ascents.sector`, `beta`, `topo_ref`, `topo_url`: details for climbs logged outside a topo. A boulder's sector uses `problems.wall_zone`. Links must be https; beta and notes are capped at 2000 characters. Topo references are citations only.
 - `media.route_ascent_id`: photos and videos of a route ascent. RLS checks that the climber owns the ascent, and the problem for problem media.
 - `gyms.source_url` must be a web address.
+
+## Watch files on training séances (`20261201000000_fit_training_link.sql`)
+
+- `wearable_activities.training_session_id` (nullable, `on delete set null`): the training séance a watch activity is filed as. A unique partial index keeps one activity per training séance; the check `wearable_activities_one_target` forbids an activity being climbing and training at once.
+- RLS: the owner-only policy now also checks, on write, that `training_session_id` points to one of the climber's own training séances.
+- `link_training_activity(activity, training_session | null)` files (or unfiles) an activity as a training séance: it leaves any climbing séance it was on (that séance keeps its times, as manual ones) and replaces the training séance's previous activity. `link_wearable_activity` now clears `training_session_id` when an activity moves to a climbing séance.
+- The one-step FIT import records what it filed in `raw_metadata.importedAs` (`what`, `by`, `via`), with the activity's name (`activityName`) and whether it had a GPS fix (`hasGps`). The start position itself is never stored. See [wearables.md](wearables.md#one-step-fit-import).

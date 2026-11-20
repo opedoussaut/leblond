@@ -17,8 +17,10 @@ export type FitUpload =
       duplicate: boolean;
       startedAt: string;
       durationSeconds: number;
-      /** Séance the activity is already linked to, if any. */
+      /** Climbing séance the activity is already linked to, if any. */
       linkedSessionId: string | null;
+      /** Training séance the activity is already filed as, if any. */
+      linkedTrainingSessionId: string | null;
     }
   | { kind: "error"; code: FitUploadErrorCode };
 
@@ -44,13 +46,14 @@ export function readFitUploadResponse(httpOk: boolean, body: unknown): FitUpload
     startedAt: a.startedAt,
     durationSeconds: a.durationSeconds,
     linkedSessionId: typeof a.sessionId === "string" ? a.sessionId : null,
+    linkedTrainingSessionId: typeof a.trainingSessionId === "string" ? a.trainingSessionId : null,
   };
 }
 
 export type FitAttachPlan =
   /** Already linked to this séance: nothing to do. */
   | "already"
-  /** Linked to another séance: never moved silently. */
+  /** Linked to another séance (climbing or training): never moved silently. */
   | "elsewhere"
   /** Overlaps the séance: link straight away (the watch's times win, and the change is shown). */
   | "link"
@@ -58,16 +61,22 @@ export type FitAttachPlan =
   | "confirm";
 
 export function planFitAttach(
-  upload: { activityId: string; startedAt: string; durationSeconds: number; linkedSessionId: string | null },
+  upload: { activityId: string; startedAt: string; durationSeconds: number; linkedSessionId: string | null; linkedTrainingSessionId?: string | null },
   session: { id: string; startedAt: string; endedAt: string | null },
 ): FitAttachPlan {
   if (upload.linkedSessionId === session.id) return "already";
-  if (upload.linkedSessionId) return "elsewhere";
+  if (upload.linkedSessionId || upload.linkedTrainingSessionId) return "elsewhere";
   const overlaps = overlapsSession(
     { startedAt: new Date(upload.startedAt), durationSeconds: upload.durationSeconds },
     { startedAt: new Date(session.startedAt), endedAt: session.endedAt ? new Date(session.endedAt) : null },
   );
   return overlaps ? "link" : "confirm";
+}
+
+/** Where the séance an activity is already linked to lives, if any. */
+export function linkedSessionHref(upload: { linkedSessionId: string | null; linkedTrainingSessionId?: string | null }): string | null {
+  return upload.linkedSessionId ? `/session/${upload.linkedSessionId}`
+    : upload.linkedTrainingSessionId ? `/train/sessions/${upload.linkedTrainingSessionId}` : null;
 }
 
 /** Bounds of the past-séance form's duration field (createPastSession accepts 10–720 min). */

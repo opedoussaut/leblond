@@ -21,6 +21,7 @@ export async function loadActivityCandidates(
     .from("wearable_activities")
     .select("id, started_at, duration_seconds, device_name")
     .is("session_id", null)
+    .is("training_session_id", null)
     .gte("started_at", windowStart)
     .lte("started_at", windowEnd);
   const window = { startedAt: new Date(session.started_at), endedAt: session.ended_at ? new Date(session.ended_at) : null };

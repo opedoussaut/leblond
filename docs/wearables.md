@@ -22,6 +22,16 @@ Every source becomes a `NormalizedWorkout` (`lib/integrations/wearables/types.ts
 - **Where the times come from.** `sessions.timing_source` is `ACTIVITY` until the times are edited by hand, then `MANUAL`. The session page shows which, and whether the activity came from an imported FIT file.
 - **No duplicates.** One activity per session; re-importing the same file is reported as a duplicate.
 
+## One-step FIT import
+
+"Importer un fichier FIT" (Journal and Nouvelle séance) → `POST /api/uploads/fit/import` → the same reception as `/api/uploads/fit` (`lib/integrations/wearables/fit/receive.ts`) → detection → the séance is created and the file linked, then the climber lands on it.
+
+- **Detection** (`lib/integrations/wearables/fit/classify.ts`, pure, unit-tested): the FIT `sport`/`sub_sport` first (rock climbing + bouldering → bloc; + indoor climbing → voie en salle; plain rock climbing → grimpe, outdoors when the watch had GPS; training + strength / yoga / pilates / flexibility / breathing / cardio / HIIT; running, cycling, swimming… → cardio). Then the activity's name (sport profile, sport and workout names; French and English words such as bloc, voie, falaise, poutre, renfo, mobilité). Then the duration (a generic activity under 15 minutes is training). Otherwise the climber is asked: Bloc, Voie or Entraînement.
+- **Climbing séance**: `sessions` row (`source = 'IMPORT'`), linked with `link_wearable_activity` so it takes the watch's exact times. Venue: the nearest venue with coordinates within 2 km of where the watch started (Fontainebleau areas have them); else the venue of the climber's latest séance of that discipline (same indoor/outdoor setting first); else a favourite. If none, the climber picks it in the past-séance form, which opens with the file attached (`/session/new?where=past&fit=<activity>`). The start position is only used in memory for this.
+- **Training séance**: `training_sessions` row, `COMPLETED`, titled after the activity (or "Renforcement", "Mobilité", "Cardio"…), method from the catalogue where one fits (strength & conditioning, mobility, max hangs / repeaters / campus), linked with `link_training_activity`. Its page shows a "Montre" card (device, duration, heart rate, calories) and can remove the file.
+- **Correcting**: the séance says what it was recognised as and why. While nothing is logged in it (no climb, exercise or notes), "Ce n'est pas ça ?" files it again as another kind, or hands it to the past-séance form to pick another venue.
+- **Duplicates**: a file already in the journal opens nothing new; the climber is pointed at its séance. A file filed as training is never offered for linking to a climbing séance, and attaching it to one from a séance page says it is already elsewhere.
+
 ## Providers
 
 | Provider | Auth | Activity delivery | Configuration |

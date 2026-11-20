@@ -1,4 +1,4 @@
-import { Encoder, Profile, type FileIdMesg, type RecordMesg, type SessionMesg } from "@garmin/fitsdk";
+import { Encoder, Profile, type FileIdMesg, type RecordMesg, type SessionMesg, type SportMesg, type WorkoutMesg } from "@garmin/fitsdk";
 import { describe, expect, it } from "vitest";
 import {
   computeDedupKey,
@@ -64,6 +64,38 @@ describe("FIT import", () => {
     expect(w.maxHeartRate).toBe(130);
     expect(w.calories).toBeNull();
     expect(w.rawMetadata.heartRateFrom).toBe("records");
+  });
+
+  it("keeps the activity's names and whether it had GPS, but never the position", () => {
+    const enc = new Encoder();
+    enc.onMesg(Profile.MesgNum.FILE_ID, { type: "activity", manufacturer: "development", product: 1, serialNumber: 7, timeCreated: START } as FileIdMesg);
+    enc.onMesg(Profile.MesgNum.SPORT, { sport: "rockClimbing", subSport: "bouldering", name: "Bloc" } as SportMesg);
+    enc.onMesg(Profile.MesgNum.WORKOUT, { sport: "rockClimbing", wktName: "Pyramide 6A" } as WorkoutMesg);
+    // Made-up place: semicircles for 48.4° N, 2.6° E.
+    const toSemi = (deg: number) => Math.round((deg * 2 ** 31) / 180);
+    enc.onMesg(Profile.MesgNum.RECORD, { timestamp: START, heartRate: 100, positionLat: toSemi(48.4), positionLong: toSemi(2.6) } as RecordMesg);
+    enc.onMesg(Profile.MesgNum.RECORD, { timestamp: new Date(START.getTime() + 600_000), heartRate: 120 } as RecordMesg);
+    const w = parseFitFile(enc.close());
+    // No session message: sport and sub-sport come from the sport message.
+    expect(w.activityType).toBe("rockClimbing/bouldering");
+    expect(w.rawMetadata).toMatchObject({ activityName: "Bloc · Pyramide 6A", hasGps: true });
+    expect(w.startPosition?.lat).toBeCloseTo(48.4, 5);
+    expect(w.startPosition?.lon).toBeCloseTo(2.6, 5);
+    expect(JSON.stringify(w.rawMetadata)).not.toContain("48.4");
+  });
+
+  it("reads the sport profile name from the session and reports no GPS when there is none", () => {
+    const enc = new Encoder();
+    enc.onMesg(Profile.MesgNum.FILE_ID, { type: "activity", manufacturer: "development", product: 1, serialNumber: 8, timeCreated: START } as FileIdMesg);
+    enc.onMesg(Profile.MesgNum.RECORD, { timestamp: START, heartRate: 90 } as RecordMesg);
+    enc.onMesg(Profile.MesgNum.SESSION, {
+      timestamp: new Date(START.getTime() + 1800_000), startTime: START, totalElapsedTime: 1800,
+      sport: "training", subSport: "strengthTraining", sportProfileName: "Renfo",
+    } as SessionMesg);
+    const w = parseFitFile(enc.close());
+    expect(w.activityType).toBe("training/strengthTraining");
+    expect(w.rawMetadata).toMatchObject({ activityName: "Renfo", hasGps: false });
+    expect(w.startPosition).toBeNull();
   });
 
   it("rejects files that are not FIT", () => {

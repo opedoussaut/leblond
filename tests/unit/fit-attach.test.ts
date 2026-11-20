@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planFitAttach, prefillFromActivity, readFitUploadResponse } from "@/lib/integrations/wearables/fit/attach";
+import { linkedSessionHref, planFitAttach, prefillFromActivity, readFitUploadResponse } from "@/lib/integrations/wearables/fit/attach";
 import { fitAttachDictionary } from "@/lib/i18n/fit-attach";
 
 const ACTIVITY = "11111111-1111-4111-8111-111111111111";
@@ -11,7 +11,7 @@ describe("readFitUploadResponse", () => {
     expect(readFitUploadResponse(true, {
       status: "inserted", activityId: ACTIVITY, suggestedSessionId: null,
       activity: { startedAt: "2026-11-14T16:02:00.000Z", durationSeconds: 6300, sessionId: null },
-    })).toEqual({ kind: "ok", activityId: ACTIVITY, duplicate: false, startedAt: "2026-11-14T16:02:00.000Z", durationSeconds: 6300, linkedSessionId: null });
+    })).toEqual({ kind: "ok", activityId: ACTIVITY, duplicate: false, startedAt: "2026-11-14T16:02:00.000Z", durationSeconds: 6300, linkedSessionId: null, linkedTrainingSessionId: null });
   });
 
   it("reads a duplicate already linked to a séance", () => {
@@ -19,7 +19,16 @@ describe("readFitUploadResponse", () => {
       status: "duplicate", activityId: ACTIVITY,
       activity: { startedAt: "2026-11-14T16:02:00Z", durationSeconds: 60, sessionId: OTHER },
     });
-    expect(r).toMatchObject({ kind: "ok", duplicate: true, linkedSessionId: OTHER });
+    expect(r).toMatchObject({ kind: "ok", duplicate: true, linkedSessionId: OTHER, linkedTrainingSessionId: null });
+  });
+
+  it("reads a duplicate already filed as a training séance", () => {
+    const r = readFitUploadResponse(true, {
+      status: "duplicate", activityId: ACTIVITY,
+      activity: { startedAt: "2026-11-14T16:02:00Z", durationSeconds: 60, sessionId: null, trainingSessionId: OTHER },
+    });
+    expect(r).toMatchObject({ kind: "ok", linkedSessionId: null, linkedTrainingSessionId: OTHER });
+    expect(r.kind === "ok" && linkedSessionHref(r)).toBe(`/train/sessions/${OTHER}`);
   });
 
   it("maps the endpoint's error codes and hides anything else", () => {
@@ -54,6 +63,9 @@ describe("planFitAttach", () => {
   it("never moves a file linked to another séance, and does nothing when it is already here", () => {
     expect(planFitAttach({ ...upload, linkedSessionId: OTHER }, session)).toBe("elsewhere");
     expect(planFitAttach({ ...upload, linkedSessionId: SESSION }, session)).toBe("already");
+    expect(planFitAttach({ ...upload, linkedTrainingSessionId: OTHER }, session)).toBe("elsewhere");
+    expect(linkedSessionHref({ linkedSessionId: OTHER })).toBe(`/session/${OTHER}`);
+    expect(linkedSessionHref({ linkedSessionId: null, linkedTrainingSessionId: null })).toBeNull();
   });
 });
 
