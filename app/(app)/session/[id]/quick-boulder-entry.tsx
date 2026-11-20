@@ -8,6 +8,7 @@ import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades, isColorSystem } from "@/lib/grading";
+import { isBareLevelSystem } from "@/lib/grading/systems";
 import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
 import { gradeLabel, gradeSpokenLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
@@ -34,8 +35,8 @@ export function QuickBoulderEntry({ system, onSubmit, onClose }: {
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const grades = listGrades(system);
-  // Climbing District levels: twelve big numerals, the chosen one clearly marked.
-  const levels = system === "CLIMBING_DISTRICT_LEVEL";
+  // Gym levels (Climbing District 1–12, Climb World 1–7): big numerals, the chosen one clearly marked.
+  const levels = isBareLevelSystem(system);
 
   function submit(outcome: Outcome) {
     if (!grade) return;
