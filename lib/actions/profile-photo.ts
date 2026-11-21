@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { MEDIA_BUCKET } from "@/lib/media";
-import { PROFILE_PHOTO_FOLDER, PROFILE_PHOTO_MAX_BYTES, isOwnProfilePhotoPath, isProfilePhotoType } from "@/lib/profile-photo";
+import { checkUploadedPhoto } from "@/lib/data/uploaded-photo";
+import { PROFILE_PHOTO_FOLDER, isOwnProfilePhotoPath } from "@/lib/profile-photo";
 import type { ActionResult } from "@/lib/validation/common";
 
 const setSchema = z.object({ storagePath: z.string().max(200) });
@@ -19,22 +20,9 @@ export async function setProfilePhoto(input: z.input<typeof setSchema>): Promise
   const parsed = setSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const path = parsed.data.storagePath;
-  if (!isOwnProfilePhotoPath(viewer.userId, path)) return { ok: false, error: "forbidden" };
-
+  const check = await checkUploadedPhoto(viewer.supabase, viewer.userId, PROFILE_PHOTO_FOLDER, path);
+  if (!check.ok) return check;
   const storage = viewer.supabase.storage.from(MEDIA_BUCKET);
-  const file = path.split("/")[2]!;
-  const { data: listed } = await storage.list(`${viewer.userId}/${PROFILE_PHOTO_FOLDER}`, { search: file });
-  const object = listed?.find((o) => o.name === file);
-  if (!object) return { ok: false, error: "notFound" };
-  const meta = (object.metadata ?? {}) as { size?: number; mimetype?: string };
-  if (typeof meta.size === "number" && meta.size > PROFILE_PHOTO_MAX_BYTES) {
-    await storage.remove([path]);
-    return { ok: false, error: "tooLarge" };
-  }
-  if (typeof meta.mimetype === "string" && !isProfilePhotoType(meta.mimetype)) {
-    await storage.remove([path]);
-    return { ok: false, error: "badType" };
-  }
 
   const previous = viewer.profile.avatar_url;
   const { error } = await viewer.supabase.from("profiles").update({ avatar_url: path }).eq("id", viewer.userId);

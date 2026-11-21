@@ -8,30 +8,9 @@ import { removeProfilePhoto, setProfilePhoto } from "@/lib/actions/profile-photo
 import type { Locale } from "@/lib/i18n";
 import { profilePhotoDictionary } from "@/lib/i18n/profile-photo";
 import { MEDIA_BUCKET } from "@/lib/media";
-import { PROFILE_PHOTO_SIZE, PROFILE_PHOTO_SOURCE_MAX_BYTES, profilePhotoPath, squareCrop, type ProfilePhotoType } from "@/lib/profile-photo";
+import { resizeSquarePhoto } from "@/lib/photo-resize";
+import { PROFILE_PHOTO_SOURCE_MAX_BYTES, profilePhotoPath } from "@/lib/profile-photo";
 import { getBrowserClient } from "@/lib/supabase/client";
-
-/** Crops the photo to a centred square and resizes it to 512 px (WebP, else JPEG). */
-async function resize(file: File): Promise<{ blob: Blob; type: ProfilePhotoType }> {
-  const bitmap = await createImageBitmap(file);
-  const { sx, sy, side } = squareCrop(bitmap.width, bitmap.height);
-  const out = Math.min(PROFILE_PHOTO_SIZE, side);
-  const canvas = document.createElement("canvas");
-  canvas.width = out;
-  canvas.height = out;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, out, out);
-  bitmap.close();
-  const encode = (type: string, quality: number) => new Promise<Blob | null>((r) => canvas.toBlob(r, type, quality));
-  // Safari may not encode WebP: it then returns a PNG, so fall back to JPEG.
-  const webp = await encode("image/webp", 0.86);
-  if (webp?.type === "image/webp") return { blob: webp, type: "image/webp" };
-  const jpeg = await encode("image/jpeg", 0.88);
-  if (!jpeg) throw new Error("encode");
-  return { blob: jpeg, type: "image/jpeg" };
-}
 
 /**
  * Settings: the profile picture. Without an upload the progression avatar is
@@ -56,9 +35,9 @@ export function ProfilePhotoEditor({ locale, userId, photoUrl, level }: {
     if (file.size > PROFILE_PHOTO_SOURCE_MAX_BYTES) return setMessage({ kind: "error", text: t.tooLarge });
     setBusy("upload");
     try {
-      let resized: Awaited<ReturnType<typeof resize>>;
+      let resized: Awaited<ReturnType<typeof resizeSquarePhoto>>;
       try {
-        resized = await resize(file);
+        resized = await resizeSquarePhoto(file);
       } catch {
         return setMessage({ kind: "error", text: t.badType });
       }

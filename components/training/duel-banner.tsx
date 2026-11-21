@@ -15,7 +15,7 @@ import { StandingMedal } from "./standing-medal";
  * in séances and a tug bar of the séances done since signing. It states the
  * gap and never prescribes work to close it.
  */
-export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, paused, breakdown, href = "/rival" }: {
+export function DuelBanner({ locale, name, standing, week, total, portrait, avatar, photo = null, rivalPhoto = null, paused, breakdown, href = "/rival" }: {
   /** The link to the full duel; null on the duel page itself. */
   href?: "/rival" | null;
   locale: Locale; name: string; standing: Standing; week: number; total: number;
@@ -24,6 +24,8 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
   breakdown?: Record<WorkKind, KindTally>;
   /** The climber's uploaded photo (signed URL); without one, the avatar. */
   photo?: string | null;
+  /** The photo the climber gave the rival (signed URL); without one, its portrait. */
+  rivalPhoto?: string | null;
 }) {
   const t = alterEgoDictionary(locale);
   const c = chartsDictionary(locale);
@@ -53,7 +55,7 @@ export function DuelBanner({ locale, name, standing, week, total, portrait, avat
         <span aria-hidden="true" className="text-[11px] uppercase tracking-[0.14em] text-blue-200">{c.bannerSessions}</span>
       </p>
       <div className="flex min-w-0 flex-row-reverse items-center gap-3 text-right">
-        <span className="rounded-full ring-2 ring-white/40"><RivalPortrait portrait={portrait} size={56} /></span>
+        <span className="rounded-full ring-2 ring-white/40"><RivalPortrait portrait={portrait} photoUrl={rivalPhoto} size={56} /></span>
         <span className="min-w-0"><strong className="block truncate text-base">{name}</strong>{side(name, ego)}</span>
       </div>
     </div>

@@ -19,9 +19,11 @@ const LEAD_MARGIN = 0.05;
  * The ego training through the same session, live. It is driven by the player's
  * own clock, so it pauses with the player and needs no network.
  */
-export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, portrait, avatar, photo = null }: {
+export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, youFraction, portrait, avatar, photo = null, rivalPhoto = null }: {
   locale: Locale; name: string; phases: Phase[]; exerciseNames: string[];
   elapsed: number; youFraction: number; portrait?: RivalPortraitId; avatar?: number; photo?: string | null;
+  /** The photo the climber gave the rival, shown instead of its portrait. */
+  rivalPhoto?: string | null;
 }) {
   const t = alterEgoDictionary(locale);
   const s = trainingSessionDictionary(locale);
@@ -52,7 +54,7 @@ export function AlterEgoLane({ locale, name, phases, exerciseNames, elapsed, you
       phase.reps === null ? formatClock(at.remaining) : fmt(t.laneReps, { done: at.repsDone ?? 0, total: phase.reps })].join(" · ");
   return <div aria-label={fmt(t.laneLabel, { name })} role="group" className="mt-2 rounded-xl bg-surface-2 px-3 py-2">
     <div className="flex items-center justify-between gap-3 text-xs">
-      <strong className="flex min-w-0 items-center gap-2 truncate">{portrait ? <RivalPortrait portrait={portrait} size={28} /> : null}{name}</strong>
+      <strong className="flex min-w-0 items-center gap-2 truncate">{portrait ? <RivalPortrait portrait={portrait} photoUrl={rivalPhoto} size={28} /> : null}{name}</strong>
       <span className="shrink-0 font-semibold text-ink-2">{verdict}</span>
     </div>
     {finished ? <p role="status" className="mt-1 text-sm font-bold">

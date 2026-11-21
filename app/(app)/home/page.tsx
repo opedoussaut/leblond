@@ -17,7 +17,7 @@ import { DuelBanner } from "@/components/training/duel-banner";
 import { climberBreakdown, pactClock, pactWeek } from "@/lib/analytics/alter-ego";
 import { rivalStanding } from "@/lib/analytics/rival";
 import { viewerAvatarLevel, viewerPhotoUrl } from "@/lib/data/profile-picture";
-import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival, rivalPhotoUrl } from "@/lib/data/alter-ego";
 import { boardsDictionary } from "@/lib/i18n/boards";
 import { DayFormCard } from "@/components/training/day-form-card";
 import { injuriesSchema } from "@/lib/training/health";
@@ -53,8 +53,10 @@ export default async function HomePage() {
   // The duel, only while a pact is open.
   const rival = await loadOpenRival(viewer.supabase);
   const duel = rival ? await (async () => {
-    const [work, avatar, photo] = await Promise.all([loadClimberWork(viewer.supabase), viewerAvatarLevel(), viewerPhotoUrl()]);
-    return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar, photo,
+    const [work, avatar, photo, rivalPhoto] = await Promise.all([
+      loadClimberWork(viewer.supabase), viewerAvatarLevel(), viewerPhotoUrl(), rivalPhotoUrl(viewer.supabase, rival),
+    ]);
+    return { standing: rivalStanding(rival.pact, rival.settings, work, today), avatar, photo, rivalPhoto,
       breakdown: climberBreakdown(work, rival.pact.startDate),
       week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
   })() : null;
@@ -106,7 +108,7 @@ export default async function HomePage() {
     </div>
 
     {rival && duel ? <DuelBanner locale={locale} name={rival.pact.displayName} standing={duel.standing}
-      week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar} photo={duel.photo}
+      week={duel.week} total={rival.pact.horizonWeeks} portrait={rival.settings.portrait} avatar={duel.avatar} photo={duel.photo} rivalPhoto={duel.rivalPhoto}
       paused={rival.pact.status === "PAUSED"} breakdown={duel.breakdown} /> : null}
 
     <section aria-labelledby="your-day" className="space-y-4">

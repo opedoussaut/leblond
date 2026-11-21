@@ -5,6 +5,9 @@ import { z } from "zod";
 import { PROGRESSION_V1, pactTransition } from "@/lib/analytics/alter-ego";
 import { RIVAL_LEVELS, RIVAL_PORTRAITS, RIVAL_TONES } from "@/lib/analytics/rival";
 import { requireViewer } from "@/lib/auth/viewer";
+import { checkUploadedPhoto } from "@/lib/data/uploaded-photo";
+import { MEDIA_BUCKET } from "@/lib/media";
+import { RIVAL_PHOTO_FOLDER, isOwnPhotoPath } from "@/lib/profile-photo";
 import { changePactSchema, pactFromRow, signPactSchema } from "@/lib/training/alter-ego";
 import { planSessionSchema } from "@/lib/training/plans";
 import { localDate_ } from "@/lib/training/sessions";
@@ -61,6 +64,7 @@ export async function changePact(input: unknown): Promise<{ ok: boolean }> {
 
 const rivalSettingsSchema = z.object({
   id: z.guid(),
+  name: z.string().trim().min(1).max(40),
   portrait: z.enum(RIVAL_PORTRAITS),
   tone: z.enum(RIVAL_TONES),
   level: z.enum(RIVAL_LEVELS),
@@ -68,7 +72,7 @@ const rivalSettingsSchema = z.object({
   goalDate: z.iso.date().nullable(),
 }).strict().refine((v) => v.level !== "GOAL" || v.goalDate !== null, "The goal level needs a date");
 
-/** The rival's face, voice and level. The signed terms (name, programme, duration) never change. */
+/** The rival's name, face, voice and level. The other signed terms (programme, start, duration) never change. */
 export async function updateRivalSettings(input: unknown): Promise<{ ok: boolean }> {
   const viewer = await requireViewer();
   const parsed = rivalSettingsSchema.safeParse(input);
@@ -76,9 +80,52 @@ export async function updateRivalSettings(input: unknown): Promise<{ ok: boolean
   const v = parsed.data;
   if (v.goalDate && v.goalDate <= localDate_(new Date())) return { ok: false };
   const { data, error } = await viewer.supabase.from("alter_ego_pacts").update({
-    portrait: v.portrait, tone: v.tone, level: v.level, chase_projects: v.chaseProjects, goal_date: v.goalDate,
+    display_name: v.name, portrait: v.portrait, tone: v.tone, level: v.level, chase_projects: v.chaseProjects, goal_date: v.goalDate,
   }).eq("id", v.id).eq("user_id", viewer.userId).select("id");
   if (error || !data?.length) return { ok: false };
+  revalidatePact();
+  return { ok: true };
+}
+
+const rivalPhotoSchema = z.object({ id: z.guid(), storagePath: z.string().max(200) }).strict();
+
+/**
+ * Gives the rival the photo the browser has just uploaded to "<me>/rival/":
+ * checked like the profile photo, then the previous rival photo is deleted.
+ */
+export async function setRivalPhoto(input: unknown): Promise<{ ok: boolean; error?: string }> {
+  const viewer = await requireViewer();
+  const parsed = rivalPhotoSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { id, storagePath: path } = parsed.data;
+  const check = await checkUploadedPhoto(viewer.supabase, viewer.userId, RIVAL_PHOTO_FOLDER, path);
+  if (!check.ok) return check;
+  const storage = viewer.supabase.storage.from(MEDIA_BUCKET);
+  const { data: row } = await viewer.supabase.from("alter_ego_pacts").select("photo_path").eq("id", id).eq("user_id", viewer.userId).maybeSingle();
+  if (!row) {
+    await storage.remove([path]);
+    return { ok: false, error: "notFound" };
+  }
+  const { error } = await viewer.supabase.from("alter_ego_pacts").update({ photo_path: path }).eq("id", id).eq("user_id", viewer.userId);
+  if (error) {
+    await storage.remove([path]);
+    return { ok: false, error: "unknownError" };
+  }
+  if (row.photo_path !== path && isOwnPhotoPath(viewer.userId, RIVAL_PHOTO_FOLDER, row.photo_path)) await storage.remove([row.photo_path]);
+  revalidatePact();
+  return { ok: true };
+}
+
+/** Removes the rival's photo: its drawn portrait is shown again. */
+export async function removeRivalPhoto(input: unknown): Promise<{ ok: boolean }> {
+  const viewer = await requireViewer();
+  const parsed = z.object({ id: z.guid() }).strict().safeParse(input);
+  if (!parsed.success) return { ok: false };
+  const { data: row } = await viewer.supabase.from("alter_ego_pacts").select("photo_path").eq("id", parsed.data.id).eq("user_id", viewer.userId).maybeSingle();
+  if (!row) return { ok: false };
+  const { error } = await viewer.supabase.from("alter_ego_pacts").update({ photo_path: null }).eq("id", parsed.data.id).eq("user_id", viewer.userId);
+  if (error) return { ok: false };
+  if (isOwnPhotoPath(viewer.userId, RIVAL_PHOTO_FOLDER, row.photo_path)) await viewer.supabase.storage.from(MEDIA_BUCKET).remove([row.photo_path]);
   revalidatePact();
   return { ok: true };
 }

@@ -55,11 +55,13 @@ select pg_temp.expect_error($$update public.alter_ego_pacts set paused_since = n
 update public.alter_ego_pacts set status = 'ACTIVE', paused_since = null, paused_days = 3 where id = 'e4000000-0000-0000-0000-00000000000c';
 select pg_temp.expect((select paused_days = 3 and status = 'ACTIVE' from public.alter_ego_pacts where id = 'e4000000-0000-0000-0000-00000000000c'), 'resume records the pause');
 
--- Signed terms are frozen.
+-- Signed terms are frozen (the name and photo are settings since 2026-11-21).
 select pg_temp.expect_error($$update public.alter_ego_pacts set plan_snapshot = '[]' where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'rewriting the plan');
 select pg_temp.expect_error($$update public.alter_ego_pacts set start_date = '2026-01-01' where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'moving the start date');
 select pg_temp.expect_error($$update public.alter_ego_pacts set progression = '{}' where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'changing the progression');
 select pg_temp.expect_error($$update public.alter_ego_pacts set user_id = 'f1000000-0000-0000-0000-00000000000b' where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'changing the owner');
+select pg_temp.expect_error($$update public.alter_ego_pacts set horizon_weeks = 8 where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'changing the duration');
+select pg_temp.expect_error($$update public.alter_ego_pacts set plan_name = 'Autre' where id = 'e4000000-0000-0000-0000-00000000000c'$$, 'renaming the plan');
 
 -- Other climbers see and touch nothing.
 select set_config('request.jwt.claims', '{"sub":"f1000000-0000-0000-0000-00000000000b","email":"ego-b@ego.test","role":"authenticated"}', false);

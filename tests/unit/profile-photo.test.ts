@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { profilePhotoDictionary } from "@/lib/i18n/profile-photo";
+import { rivalDictionary } from "@/lib/i18n/rival";
 import {
-  PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_SOURCE_MAX_BYTES, isOwnProfilePhotoPath, isProfilePhotoType,
-  pictureSource, profilePhotoPath, squareCrop,
+  PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_SOURCE_MAX_BYTES, RIVAL_PHOTO_FOLDER, isOwnPhotoPath, isOwnProfilePhotoPath, isProfilePhotoType,
+  photoObjectPath, pictureSource, profilePhotoPath, squareCrop,
 } from "@/lib/profile-photo";
 
 const ME = "11111111-1111-4111-8111-111111111111";
@@ -41,6 +42,30 @@ describe("profile photo storage path", () => {
     expect(isProfilePhotoType("image/heic")).toBe(false);
     expect(isProfilePhotoType("video/mp4")).toBe(false);
     expect(PROFILE_PHOTO_MAX_BYTES).toBeLessThan(PROFILE_PHOTO_SOURCE_MAX_BYTES);
+  });
+});
+
+describe("the rival's photo storage path", () => {
+  it("lives in the climber's own rival folder, apart from the profile photo", () => {
+    const rival = photoObjectPath(ME, RIVAL_PHOTO_FOLDER, FILE, "image/webp");
+    expect(rival).toBe(`${ME}/rival/${FILE}.webp`);
+    expect(isOwnPhotoPath(ME, RIVAL_PHOTO_FOLDER, rival)).toBe(true);
+    expect(isOwnProfilePhotoPath(ME, rival)).toBe(false);
+    expect(isOwnPhotoPath(ME, RIVAL_PHOTO_FOLDER, profilePhotoPath(ME, FILE, "image/webp"))).toBe(false);
+  });
+  it("rejects another climber's folder and anything else", () => {
+    for (const bad of [
+      null, `${OTHER}/rival/${FILE}.webp`, `${ME}/rival/${FILE}.gif`, `${ME}/rival/x/${FILE}.webp`,
+      `https://evil.example/${ME}/rival/${FILE}.webp`, `${ME}/rival/${FILE}.webp#x`,
+    ]) expect(isOwnPhotoPath(ME, RIVAL_PHOTO_FOLDER, bad), String(bad)).toBe(false);
+  });
+  it("has the same strings in French and English", () => {
+    const fr = rivalDictionary("fr");
+    const en = rivalDictionary("en");
+    expect(Object.keys(en.photo).sort()).toEqual(Object.keys(fr.photo).sort());
+    for (const v of [...Object.values(fr.photo), ...Object.values(en.photo), fr.name, en.name, fr.nameHint, en.nameHint]) {
+      expect(v.trim()).not.toBe("");
+    }
   });
 });
 

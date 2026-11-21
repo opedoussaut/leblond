@@ -78,6 +78,7 @@ export type Database = {
           level: "REACH" | "RELENTLESS" | "GOAL";
           chase_projects: boolean;
           goal_date: string | null;
+          photo_path: string | null;
         };
         Insert: {
           id?: string;
@@ -103,6 +104,7 @@ export type Database = {
           level?: "REACH" | "RELENTLESS" | "GOAL";
           chase_projects?: boolean;
           goal_date?: string | null;
+          photo_path?: string | null;
         };
         Update: {
           id?: string;
@@ -128,6 +130,7 @@ export type Database = {
           level?: "REACH" | "RELENTLESS" | "GOAL";
           chase_projects?: boolean;
           goal_date?: string | null;
+          photo_path?: string | null;
         };
         Relationships: [];
       };

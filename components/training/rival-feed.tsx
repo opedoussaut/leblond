@@ -20,8 +20,10 @@ function ToneBadge({ tone, label }: { tone: RivalTone; label: string }) {
 }
 
 /** The alter ego's profile, its season and its feed (all derived; nothing stored). */
-export function RivalFeed({ locale, name, settings, feed, duels, today, yesterday }: {
+export function RivalFeed({ locale, name, settings, feed, duels, today, yesterday, rivalPhoto = null }: {
   locale: Locale; name: string; settings: RivalSettings;
+  /** The photo the climber gave the rival, shown instead of its portrait. */
+  rivalPhoto?: string | null;
   feed: FeedItem[]; duels: Duel[]; today: string; yesterday: string;
 }) {
   const r = rivalDictionary(locale);
@@ -48,7 +50,7 @@ export function RivalFeed({ locale, name, settings, feed, duels, today, yesterda
 
   return <section aria-labelledby="rival-heading" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
     <div className="flex items-center gap-4">
-      <RivalPortrait portrait={settings.portrait} size={64} />
+      <RivalPortrait portrait={settings.portrait} photoUrl={rivalPhoto} size={64} />
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h2 id="rival-heading" className="flex flex-wrap items-center gap-2 font-display text-2xl font-black">
           {name} <span className="rounded-full bg-surface-2 px-2 py-0.5 font-sans text-xs font-semibold text-ink-3">{r.fictional}</span>

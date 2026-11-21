@@ -122,7 +122,20 @@ update public.alter_ego_pacts set tone = 'SYMPA', portrait = 'p4', chase_project
 select pg_temp.expect_error($$update public.alter_ego_pacts set tone = 'MECHANT' where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'an unknown tone');
 select pg_temp.expect_error($$update public.alter_ego_pacts set level = 'GOAL' where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'the goal level without a date');
 update public.alter_ego_pacts set level = 'GOAL', goal_date = '2027-03-01' where id = 'c7600000-0000-0000-0000-00000000000a';
-select pg_temp.expect_error($$update public.alter_ego_pacts set display_name = 'Autre' where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'the signed name stays');
+-- The name and the photo became settings (2026-11-21).
+update public.alter_ego_pacts set display_name = 'Autre' where id = 'c7600000-0000-0000-0000-00000000000a';
+select pg_temp.expect((select display_name = 'Autre' from public.alter_ego_pacts where id = 'c7600000-0000-0000-0000-00000000000a'), 'the rival can be renamed');
+select pg_temp.expect_error($$update public.alter_ego_pacts set display_name = '   ' where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'a blank name');
+select pg_temp.expect_error($$update public.alter_ego_pacts set display_name = repeat('x', 41) where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'a name over 40 characters');
+update public.alter_ego_pacts set photo_path = 'c7000000-0000-0000-0000-00000000000a/rival/0b5c3a52-7f0e-4c1d-9a51-3d6f2b8e9c10.webp'
+  where id = 'c7600000-0000-0000-0000-00000000000a';
+select pg_temp.expect((select photo_path like 'c7000000-0000-0000-0000-00000000000a/rival/%' from public.alter_ego_pacts
+  where id = 'c7600000-0000-0000-0000-00000000000a'), 'the rival gets a photo from the climber''s own folder');
+select pg_temp.expect_error($$update public.alter_ego_pacts set photo_path = 'c7000000-0000-0000-0000-00000000000b/rival/0b5c3a52-7f0e-4c1d-9a51-3d6f2b8e9c10.webp'
+  where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'a photo from another climber''s folder');
+select pg_temp.expect_error($$update public.alter_ego_pacts set photo_path = 'c7000000-0000-0000-0000-00000000000a/profile/0b5c3a52-7f0e-4c1d-9a51-3d6f2b8e9c10.webp'
+  where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'a photo outside the rival folder');
+select pg_temp.expect_error($$update public.alter_ego_pacts set photo_path = 'https://example.com/x.webp' where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'a URL instead of a path');
 select pg_temp.expect_error($$update public.alter_ego_pacts set horizon_weeks = 2 where id = 'c7600000-0000-0000-0000-00000000000a'$$, 'the signed duration stays');
 
 -- ── Another climber sees and touches nothing ───────────────────────────────
@@ -138,12 +151,15 @@ update public.board_ascents set notes = 'piraté';
 delete from public.board_ascents;
 delete from public.board_projects;
 update public.alter_ego_pacts set tone = 'SANS_PITIE';
+update public.alter_ego_pacts set display_name = 'Piraté', photo_path = null;
 update public.training_plans set followed_since = null;
 
 select set_config('request.jwt.claims', '{"sub":"c7000000-0000-0000-0000-00000000000a","email":"v2-a@v2.test","role":"authenticated"}', false);
 select pg_temp.expect((select count(*) = 2 from public.board_ascents where notes <> 'piraté'), 'the climbs survived the other climber');
 select pg_temp.expect((select count(*) = 2 from public.board_projects), 'the projects survived the other climber');
 select pg_temp.expect((select tone = 'SYMPA' from public.alter_ego_pacts where id = 'c7600000-0000-0000-0000-00000000000a'), 'the rival settings survived the other climber');
+select pg_temp.expect((select display_name = 'Autre' and photo_path is not null from public.alter_ego_pacts where id = 'c7600000-0000-0000-0000-00000000000a'),
+  'the rival''s name and photo survived the other climber');
 select pg_temp.expect((select followed_since = '2026-11-17' from public.training_plans where id = 'c7500000-0000-0000-0000-00000000000c'),
   'the followed programme survived the other climber');
 
