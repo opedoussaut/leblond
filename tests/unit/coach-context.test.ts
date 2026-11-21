@@ -166,14 +166,20 @@ describe("Patrick training-load context", () => {
     });
     const report = trainingLoadReport({
       today: "2026-09-28", climbs, scaledAttempts: [], training: [], mobility: [],
+      // Five results in each 6-week window: enough for a direction.
       perf: [{ key: "route", kind: "route", threshold: 1, points: [
-        { date: "2026-08-01", score: 10, display: "6a" }, { date: "2026-09-20", score: 12, display: "6b" },
+        ...["2026-07-20", "2026-07-24", "2026-07-28", "2026-08-01", "2026-08-05"].map((date) => ({ date, score: 10, display: "6a" })),
+        ...["2026-09-08", "2026-09-12", "2026-09-16", "2026-09-20", "2026-09-24"].map((date) => ({ date, score: 12, display: "6b" })),
       ] }],
     });
     const facts = trainingLoadContext(report)!;
     expect(facts.verdict).toBe("progressing");
-    expect(facts.resultTrends).toEqual([{ scale: "route FRENCH", direction: "up", bestRecent: "6b", bestPrevious: "6a", recentCount: 1, previousCount: 1 }]);
+    expect(facts.resultTrends).toEqual([{ scale: "route FRENCH", direction: "up", bestRecent: "6b", bestPrevious: "6a", recentCount: 5, previousCount: 5 }]);
     expect(facts.weekAhead?.minSessions).toBeGreaterThan(0);
+    // A steady rhythm sits in the band, on the rolling ratio.
+    expect(facts.fingersRatio).toBeGreaterThan(0.8);
+    expect(facts.fingersRatio).toBeLessThan(1.3);
+    expect(facts.zone).toBe("optimal");
     expect(JSON.stringify(facts)).not.toContain("2026-06-0");
     expect(trainingLoadContext(null)).toBeNull();
 

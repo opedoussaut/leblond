@@ -14,6 +14,7 @@ import { currentPlan, loadMobility } from "@/lib/data/mobility";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
+import { batteryDictionary } from "@/lib/i18n/mobility-battery";
 import { getI18n } from "@/lib/i18n/server";
 import { classifyStage, MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
 import { EXERCISES, LEVEL_LABELS, NOT_CLINICAL, ROADMAP, contentLevel } from "@/lib/training/hip-mobility/content";
@@ -26,6 +27,7 @@ export default async function HipMobilityPage() {
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const m = mobilityDictionary(locale);
+  const b = batteryDictionary(locale);
   const state = await loadMobility(viewer.supabase);
   const enrollment = state.enrollment;
   const plan = currentPlan(state);
@@ -148,6 +150,12 @@ export default async function HipMobilityPage() {
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-2">{r.focus.map((f, i) => <li key={i}>{f[locale]}</li>)}</ul>
         </li>)}
       </ol>
+    </section>
+
+    <section aria-labelledby="battery-entry" className="leblond-premium-surface space-y-2 p-5 sm:p-6">
+      <h2 id="battery-entry" className="text-lg font-bold">{b.entryTitle}</h2>
+      <p className="text-sm text-ink-2">{b.entryText}</p>
+      <Link href="/train/mobility/battery" className={buttonClass("primary", "md")}>{b.entryCta} <IconNext /></Link>
     </section>
 
     <div className="flex flex-wrap gap-3">

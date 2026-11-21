@@ -985,6 +985,110 @@ export type Database = {
         };
         Relationships: [];
       };
+      mobility_battery_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          protocol_version: number;
+          started_on: string;
+          status: "IN_PROGRESS" | "COMPLETED" | "STOPPED";
+          stop_reason: "NEURO_WORSE" | "SYMPTOM" | "CHOICE" | null;
+          conditions: Json;
+          knee_pain_today: boolean;
+          clinical_review_on: string | null;
+          d1_check: Json | null;
+          completed_at: string | null;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          protocol_version: number;
+          started_on: string;
+          status?: "IN_PROGRESS" | "COMPLETED" | "STOPPED";
+          stop_reason?: "NEURO_WORSE" | "SYMPTOM" | "CHOICE" | null;
+          conditions?: Json;
+          knee_pain_today?: boolean;
+          clinical_review_on?: string | null;
+          d1_check?: Json | null;
+          completed_at?: string | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: "IN_PROGRESS" | "COMPLETED" | "STOPPED";
+          stop_reason?: "NEURO_WORSE" | "SYMPTOM" | "CHOICE" | null;
+          conditions?: Json;
+          knee_pain_today?: boolean;
+          clinical_review_on?: string | null;
+          d1_check?: Json | null;
+          completed_at?: string | null;
+          notes?: string;
+        };
+        Relationships: [];
+      };
+      mobility_battery_results: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string;
+          card_id: string;
+          card_version: number;
+          side: "LEFT" | "RIGHT" | "BOTH";
+          item: number;
+          trial: number;
+          status: "DONE" | "NOT_DONE";
+          value: number | null;
+          category: string | null;
+          unit: "SCORE" | "SECONDS" | "REPS" | "CM" | "DEGREES" | "CATEGORY" | "REPORT";
+          not_done_reason: "PAIN" | "STOPPED_SYMPTOM" | "LOCKED" | "NO_EQUIPMENT" | "NO_TIME" | "NOT_SAFE" | "OTHER" | null;
+          pain_before: number | null;
+          pain_after: number | null;
+          radiation: "NONE" | "SAME" | "LOWER_OR_STRONGER" | null;
+          details: Json;
+          note: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id?: string;
+          card_id: string;
+          card_version: number;
+          side: "LEFT" | "RIGHT" | "BOTH";
+          item?: number;
+          trial?: number;
+          status: "DONE" | "NOT_DONE";
+          value?: number | null;
+          category?: string | null;
+          unit: "SCORE" | "SECONDS" | "REPS" | "CM" | "DEGREES" | "CATEGORY" | "REPORT";
+          not_done_reason?: "PAIN" | "STOPPED_SYMPTOM" | "LOCKED" | "NO_EQUIPMENT" | "NO_TIME" | "NOT_SAFE" | "OTHER" | null;
+          pain_before?: number | null;
+          pain_after?: number | null;
+          radiation?: "NONE" | "SAME" | "LOWER_OR_STRONGER" | null;
+          details?: Json;
+          note?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: "DONE" | "NOT_DONE";
+          value?: number | null;
+          category?: string | null;
+          unit?: "SCORE" | "SECONDS" | "REPS" | "CM" | "DEGREES" | "CATEGORY" | "REPORT";
+          not_done_reason?: "PAIN" | "STOPPED_SYMPTOM" | "LOCKED" | "NO_EQUIPMENT" | "NO_TIME" | "NOT_SAFE" | "OTHER" | null;
+          pain_before?: number | null;
+          pain_after?: number | null;
+          radiation?: "NONE" | "SAME" | "LOWER_OR_STRONGER" | null;
+          details?: Json;
+          note?: string;
+        };
+        Relationships: [];
+      };
       training_assessments: {
         Row: {
           id: string;
