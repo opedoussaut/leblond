@@ -25,6 +25,8 @@ import { assessmentStatus } from "@/lib/training/assessment";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { healthFromContext } from "@/lib/training/health";
 import { HIP_PROGRAMME, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
+import { loadRebuild } from "@/lib/data/mobility-rebuild";
+import { RebuildEntryCard } from "@/components/training/rebuild-view";
 import { PLAN_COLUMNS, planFromRow, type SavedTrainingPlan } from "@/lib/training/plans";
 import { localDate_, mondayOf } from "@/lib/training/sessions";
 
@@ -41,6 +43,7 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
   const fr = locale === "fr";
   const a = areasDictionary(locale).programmes;
   const mob = mobilityDictionary(locale);
+  const rebuild = await loadRebuild(viewer.supabase);
   const tp = trainingDictionary(locale);
   const h = journeyDictionary(locale).hub;
   const sp = await searchParams;
@@ -178,6 +181,7 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
         </div>
         <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
       </section>
+      {rebuild ? <RebuildEntryCard locale={locale} state={rebuild} /> : null}
     </div> : null}
 
     {tab === "guide" ? <>
