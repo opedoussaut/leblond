@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteTrainingSession, logPastTrainingSession, updateTrainingSession } from "@/lib/actions/training-sessions";
 import type { Locale } from "@/lib/i18n";
+import { methodName } from "@/lib/i18n/method-titles";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { buttonClass } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export function PastTrainingForm({ locale, today }: { locale: Locale; today: str
   }}>
     <label className="block text-sm font-semibold">{t.type}
       <select className={field} value={methodId} onChange={(e) => setMethodId(e.target.value)}>
-        {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+        {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{methodName(m, locale)}</option>)}
         <option value="">{t.otherType}</option>
       </select>
     </label>
