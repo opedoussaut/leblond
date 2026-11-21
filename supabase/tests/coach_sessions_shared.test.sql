@@ -57,4 +57,28 @@ select set_config('request.jwt.claims', '{"sub":"fa000000-0000-0000-0000-0000000
 select pg_temp.expect((select count(*) = 0 from public.coach_sessions where slug = 'library-1'), 'unshared: hidden again');
 reset role;
 
+-- Caps: an administrator's key holds up to 500 sessions (the shared library), any other key 100.
+insert into public.coach_sessions (user_id, slug, title, minutes, content, shared)
+  select 'fa000000-0000-0000-0000-00000000000a', 'lib-' || n, 'Lib ' || n, 60, '{"exercises":[{"block":"MAIN","name":"X"}]}', true
+  from generate_series(1, 150) n;
+insert into public.coach_sessions (user_id, slug, title, minutes, content)
+  select 'fa000000-0000-0000-0000-00000000000c', 'c-' || n, 'C ' || n, 60, '{"exercises":[{"block":"MAIN","name":"X"}]}'
+  from generate_series(1, 99) n;
+set role anon;
+select set_config('request.jwt.claims', '', false);
+select public.coach_key_put_session(:'key_admin', 'library-151', 'Bibliothèque', '', 60, null, '{"exercises":[{"block":"MAIN","name":"X"}]}', true);
+select pg_temp.expect((select count(*) > 150 from public.coach_key_list_sessions(:'key_admin')), 'an admin key goes past 100 sessions');
+select pg_temp.expect_error(format($$select public.coach_key_put_session(%L, 'c-new', 'X', '', 60, null, '{"exercises":[{"block":"MAIN","name":"X"}]}')$$, :'key_c'),
+  'another key stays capped at 100');
+select public.coach_key_put_session(:'key_c', 'c-1', 'C 1 bis', '', 60, null, '{"exercises":[{"block":"MAIN","name":"X"}]}');
+select pg_temp.expect((select count(*) = 100 from public.coach_key_list_sessions(:'key_c')), 'at the cap, an existing session can still be replaced');
+reset role;
+insert into public.coach_sessions (user_id, slug, title, minutes, content, shared)
+  select 'fa000000-0000-0000-0000-00000000000a', 'lib-more-' || n, 'Lib ' || n, 60, '{"exercises":[{"block":"MAIN","name":"X"}]}', true
+  from generate_series(1, 500 - (select count(*)::int from public.coach_sessions where user_id = 'fa000000-0000-0000-0000-00000000000a')) n;
+set role anon;
+select pg_temp.expect_error(format($$select public.coach_key_put_session(%L, 'library-501', 'X', '', 60, null, '{"exercises":[{"block":"MAIN","name":"X"}]}', true)$$, :'key_admin'),
+  'an admin key stops at 500');
+reset role;
+
 \echo 'coach_sessions_shared.test.sql: all assertions passed'
