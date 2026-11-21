@@ -52,7 +52,7 @@ const fr = {
   weekTextNoSessions: "Pour finir la semaine dans la bande : entre {min} et {max} {what}.",
   weekWhatFingers: "sur les doigts et le haut du corps",
   weekWhatGlobal: "de charge",
-  weekDone: "Déjà fait sur 7 jours : {done}. Au-delà de {danger}, tu passerais au-dessus de 1,5.",
+  weekDone: "Déjà fait sur 7 jours : {done} ; au-delà de {danger}, tu passerais au-dessus de 1,5.",
 
   ratioTitle: "Ratio de charge, jour par jour",
   ratioHint: "Charge des 7 derniers jours divisée par ta moyenne par semaine des 4 dernières semaines. Bande verte : 0,8 à 1,3. Bleu : doigts et haut du corps (bloc, voie, board, entraînement). Gris : global, la mobilité y compte à moitié.",
@@ -202,7 +202,7 @@ const en: Dict = {
   weekTextNoSessions: "To end the week in the band: between {min} and {max} {what}.",
   weekWhatFingers: "on fingers and upper body",
   weekWhatGlobal: "of load",
-  weekDone: "Done over 7 days: {done}. Above {danger}, you would go over 1.5.",
+  weekDone: "Done over 7 days: {done}; above {danger}, you would go over 1.5.",
 
   ratioTitle: "Load ratio, day by day",
   ratioHint: "Load of the last 7 days divided by your weekly average of the last 4 weeks. Green band: 0.8 to 1.3. Blue: fingers and upper body (boulder, routes, board, training). Grey: overall, mobility counted at half.",

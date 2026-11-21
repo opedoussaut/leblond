@@ -101,8 +101,10 @@ export function RatioChart({ days, locale, labels }: { days: readonly RatioDay[]
 
       <span />
       <div className="relative mx-1.5 mt-1.5 h-4">
+        {/* Every other date on a phone (the last one always), so labels never run into each other. */}
         {xTicks.map((i) => <span key={i} className={cn("absolute whitespace-nowrap text-[11px] tabular-nums text-ink-3",
-          i === n - 1 ? "-translate-x-full" : i === 0 ? "" : "-translate-x-1/2")} style={{ left: `${x(i)}%` }}>{dayMonth.format(at(days[i].date))}</span>)}
+          i === n - 1 ? "-translate-x-full" : i === 0 ? "" : "-translate-x-1/2",
+          ((n - 1 - i) / every) % 2 === 1 && "max-sm:hidden")} style={{ left: `${x(i)}%` }}>{dayMonth.format(at(days[i].date))}</span>)}
       </div>
     </div>
   </div>;

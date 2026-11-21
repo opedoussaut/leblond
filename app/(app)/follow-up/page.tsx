@@ -233,6 +233,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   // The overview's markers: today's load zone, the main scale's top-grade send rate.
   const loadVerdict = loadReport && loadReport.model.length ? loadReport.verdict : null;
   const mainLevel = topLevels[0] as TopLevelSeries | undefined;
+  const topGrade = mainLevel?.grades[0];
   const ratioFormat = new Intl.NumberFormat(intlLocale(locale), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const percentFormat = new Intl.NumberFormat(intlLocale(locale), { style: "percent", maximumFractionDigits: 0 });
 
@@ -259,15 +260,16 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
             : fmt(pa.tileLoadCaption, { zone: ld.zone[loadVerdict.zone] }),
           spark: <Sparkline values={ratioDays.map((d) => zoneRatio(d).ratio)} min={0}
             band={{ low: LOAD_THRESHOLDS.low, high: LOAD_THRESHOLDS.high }} /> },
-        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, title: pa.tileLevel,
-          value: mainLevel && mainLevel.recent.rate !== null ? percentFormat.format(mainLevel.recent.rate) : "—",
-          muted: !mainLevel || mainLevel.recent.rate === null,
-          caption: mainLevel ? fmt(pa.tileLevelCaption, {
-            levels: mainLevel.levels.map((g) => gradeLabel(t, mainLevel.system, g)).join(", "),
-            scale: (t.grades.systems as Record<string, string>)[mainLevel.system] ?? mainLevel.system,
-            direction: c.tlDirection[mainLevel.direction],
+        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing,
+          title: topGrade ? fmt(pa.tileLevel, { grade: gradeLabel(t, mainLevel!.system, topGrade.grade) }) : pa.tileLevelEmpty,
+          value: topGrade && topGrade.recent.rate !== null ? percentFormat.format(topGrade.recent.rate) : "—",
+          muted: !topGrade || topGrade.recent.rate === null,
+          caption: topGrade ? fmt(pa.tileLevelCaption, {
+            scale: (t.grades.systems as Record<string, string>)[mainLevel!.system] ?? mainLevel!.system,
+            previous: topGrade.previous.rate === null ? "—" : percentFormat.format(topGrade.previous.rate),
+            direction: c.tlDirection[topGrade.direction],
           }) : pa.tileLevelNone,
-          spark: <Sparkline values={mainLevel?.rolling ?? []} min={0} max={1} /> },
+          spark: <Sparkline values={topGrade?.rolling ?? []} min={0} max={1} /> },
         { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, title: pa.tileVolume, value: snap.counts.tops,
           caption: fmt(pa.tileVolumeCaption, { sessions: snap.counts.sessions, routes: routesInPeriod }),
           spark: <Sparkline kind="bars" values={climbWeeks.map((w) => w.tops)} /> },

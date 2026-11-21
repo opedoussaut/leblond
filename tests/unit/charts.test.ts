@@ -41,31 +41,45 @@ describe("progress diagrams", () => {
     const series = topLevelRates(problems, attempts, ["FONT", "ARKOSE_COLOR"], now, 12);
     const font = series.find((s) => s.system === "FONT")!;
     // 6B was tried but never sent: the two grades are 6A (hardest sent) and 5c (next one tried).
-    expect(font.levels).toEqual(["6A", "5c"]);
+    expect(font.grades.map((g) => g.grade)).toEqual(["6A", "5c"]);
     expect(font.weeks).toHaveLength(12);
     expect(font.weeks.slice(-2)).toEqual([
       { weekStart: "2026-11-02", tried: 1, sent: 0 },
       { weekStart: "2026-11-09", tried: 2, sent: 2 },
     ]);
-    expect(font.recent).toEqual({ tried: 2, sent: 2, rate: 1 });
+    const [a6, c5] = font.grades;
+    expect(a6.recent).toEqual({ tried: 1, sent: 1, rate: 1 });
     // c was tried on 4 Nov and sent on 11 Nov: one problem over the two weeks, sent.
-    expect(font.rolling.slice(-3)).toEqual([null, 0, 1]);
+    expect(c5.rolling.slice(-3)).toEqual([null, 0, 1]);
+    expect(a6.rolling.slice(-2)).toEqual([null, 1]);
     expect(font.direction).toBe("insufficient");
-    expect(series.find((s) => s.system === "ARKOSE_COLOR")!.levels).toEqual(["BLUE"]);
+    expect(series.find((s) => s.system === "ARKOSE_COLOR")!.grades.map((g) => g.grade)).toEqual(["BLUE"]);
     expect(topLevelRates(problems, [attempt("d", "ATTEMPT", "2026-11-12T18:00:00Z")], ["FONT"], now, 12)).toEqual([]);
   });
 
-  it("calls a move of 10 points or more up, with five problems on each side", () => {
-    const grid = Array.from({ length: 12 }, (_, i) => problem(`p${i}`, i % 2 ? "6A" : "6A+"));
-    const before = grid.slice(0, 6).map((p, i) => attempt(p.id, i < 2 ? "TOP" : "ATTEMPT", "2026-10-07T18:00:00Z"));
-    const after = grid.slice(6).map((p, i) => attempt(p.id, i < 5 ? "TOP" : "ATTEMPT", "2026-11-10T18:00:00Z"));
-    const [s] = topLevelRates(grid, [...before, ...after], ["FONT"], now, 12);
-    expect(s.levels).toEqual(["6A+", "6A"]);
-    expect(s.previous).toEqual({ tried: 6, sent: 2, rate: 2 / 6 });
-    expect(s.recent.rate).toBeCloseTo(5 / 6);
+  it("judges each grade on its own: a move at the hard grade is not hidden by the easier one", () => {
+    // 6A+: 2/6 then 5/6. 6A: 5/6 both times.
+    const hard = Array.from({ length: 12 }, (_, i) => problem(`h${i}`, "6A+"));
+    const easy = Array.from({ length: 12 }, (_, i) => problem(`e${i}`, "6A"));
+    const at = (list: ProblemFact[], sent: number, when: string) => list.map((p, i) => attempt(p.id, i < sent ? "TOP" : "ATTEMPT", when));
+    const log = [
+      ...at(hard.slice(0, 6), 2, "2026-10-07T18:00:00Z"), ...at(hard.slice(6), 5, "2026-11-10T18:00:00Z"),
+      ...at(easy.slice(0, 6), 5, "2026-10-07T18:00:00Z"), ...at(easy.slice(6), 5, "2026-11-10T18:00:00Z"),
+    ];
+    const [s] = topLevelRates([...hard, ...easy], log, ["FONT"], now, 12);
+    const [h, e] = s.grades;
+    expect([h.grade, e.grade]).toEqual(["6A+", "6A"]);
+    expect(h.previous).toEqual({ tried: 6, sent: 2, rate: 2 / 6 });
+    expect(h.recent.rate).toBeCloseTo(5 / 6);
+    expect(h.direction).toBe("up");
+    expect(e.direction).toBe("flat");
     expect(s.direction).toBe("up");
+    // One grade up and one down: no single direction.
+    const mixed = [...log.filter((x) => !x.problemId.startsWith("e")),
+      ...at(easy.slice(0, 6), 5, "2026-10-07T18:00:00Z"), ...at(easy.slice(6), 1, "2026-11-10T18:00:00Z")];
+    expect(topLevelRates([...hard, ...easy], mixed, ["FONT"], now, 12)[0].direction).toBe("flat");
     // Too short a period to hold both windows: no direction.
-    expect(topLevelRates(grid, [...before, ...after], ["FONT"], now, 4)[0].direction).toBe("insufficient");
+    expect(topLevelRates([...hard, ...easy], log, ["FONT"], now, 4)[0].direction).toBe("insufficient");
   });
 
   it("picks the system most problems were tried on", () => {
