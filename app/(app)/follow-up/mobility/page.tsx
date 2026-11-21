@@ -10,6 +10,7 @@ import { loadMobility } from "@/lib/data/mobility";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
+import { batteryDictionary } from "@/lib/i18n/mobility-battery";
 import { getI18n } from "@/lib/i18n/server";
 import { MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
 import { EXERCISE_BY_ID, LEVEL_LABELS, NOT_CLINICAL } from "@/lib/training/hip-mobility/content";
@@ -42,6 +43,7 @@ export default async function MobilityFollowUpPage() {
   const viewer = await requireViewer();
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const m = mobilityDictionary(locale);
+  const b = batteryDictionary(locale);
   const state = await loadMobility(viewer.supabase);
   const { records, assessments, today } = state;
   const empty = records.length === 0 && assessments.length === 0;
@@ -206,6 +208,12 @@ export default async function MobilityFollowUpPage() {
         </ul> : <p className="text-sm text-ink-2">{m.fuDiscomfortNone}</p>}
       </section>
     </>}
+
+    <section aria-labelledby="battery-follow" className="rounded-2xl border border-line bg-surface p-5">
+      <h2 id="battery-follow" className="text-lg font-bold">{b.followTitle}</h2>
+      <p className="text-sm text-ink-2">{b.followText}</p>
+      <Link href="/follow-up/mobility/battery" className={buttonClass("secondary", "md", "mt-3")}>{b.followCta} <IconNext /></Link>
+    </section>
 
     <div className="flex flex-wrap gap-3">
       <Link href="/train/mobility" className={buttonClass("secondary", "md")}>{m.title} <IconNext /></Link>
