@@ -1260,7 +1260,7 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
     key: "souplesse-test", title: "Souplesse test", summary: "Bassin et épaules", category: "MOBILITY", axis: "STIFFNESS",
     level: { key: level, label, rank }, tags: ["flexibilité"],
   });
-  for (const [level, label, rank, minutes] of [["tres-raide", "Très raide", 1, 30], ["tres-raide", "Très raide", 1, 60], ["raide", "Raide", 2, 60]] as const) {
+  for (const [level, label, rank, minutes] of [["tres-raide", "Très raide", 1, 30], ["tres-raide", "Très raide", 1, 60], ["raide", "Raide", 2, 60], ["standard", "Standard", 3, 90]] as const) {
     expect((await request.post("/api/coach-sessions", { headers: auth, data: {
       slug: `souplesse-${level}-${minutes}`, title: `Souplesse test · ${label.toLowerCase()}`, minutes,
       exercises: [{ block: "MAIN", name: `Pancake ${label} ${minutes}`, modality: "HOLD", seconds: 60 }],
@@ -1272,7 +1272,7 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   await expect(page.getByRole("button", { name: /Haut et bas test/ })).toHaveCount(0);
   await page.getByRole("button", { name: /Souplesse test/ }).click();
   const pickerCard = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /Souplesse test/ }) });
-  // The middle level comes first: Raide, 60 min, the only duration it has.
+  // The middle of the three levels comes first: Raide, 60 min, the only duration it has.
   await expect(pickerCard.getByRole("radio", { name: "Raide", exact: true })).toBeChecked();
   await expect(page.getByText("Durée prévue par le coach : 1 h")).toBeVisible();
   await pickerCard.getByText("Très raide", { exact: true }).click();
