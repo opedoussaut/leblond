@@ -11,9 +11,10 @@ import { DAY_MS, type AttemptFact, type ProblemFact } from "./types";
  * Training load and progression: how much stress the climber puts on the
  * body day after day (session-RPE load, Foster 2001), the fitness–fatigue
  * picture built from it (Banister's model as popularised by CTL/ATL/TSB, 42-
- * and 7-day exponential averages), the acute:chronic ratio with its band
- * (0.8–1.3, danger above 1.5, Gabbett 2016 — debated, see the page), and a
- * verdict that also looks at performance in each native scale.
+ * and 7-day exponential averages, shown in the details), the acute:chronic
+ * ratio as a rolling 7-day ÷ 28-day sum with its band (0.8–1.3, danger above
+ * 1.5, Gabbett 2016 — debated, see the page), for fingers and upper body and
+ * for everything, and a verdict from performance in each native scale.
  *
  * Climbing sessions carry no RPE: their intensity is estimated from the
  * discipline, how close the attempts were to the climber's own best in the
@@ -27,6 +28,9 @@ export const LOAD_THRESHOLDS = {
   /** Chronic (fitness) and acute (fatigue) time constants, days. */
   chronicDays: 42,
   acuteDays: 7,
+  /** The ratio's windows: the last 7 days against the weekly average of the last 28 (rolling, Hulin 2016). */
+  ratioAcuteDays: 7,
+  ratioChronicDays: 28,
   /** Acute:chronic band where fitness builds without a spike (Gabbett 2016). */
   low: 0.8,
   high: 1.3,
@@ -42,6 +46,10 @@ export const LOAD_THRESHOLDS = {
 
 export type LoadSource = "BOULDER" | "ROUTE" | "BOARD" | "TRAINING" | "MOBILITY";
 export const LOAD_SOURCES: readonly LoadSource[] = ["BOULDER", "ROUTE", "BOARD", "TRAINING", "MOBILITY"];
+/** What weighs on fingers, elbows and shoulders: all climbing and the training that is not mobility. */
+export const FINGER_SOURCES: readonly LoadSource[] = ["BOULDER", "ROUTE", "BOARD", "TRAINING"];
+/** Mobility counts at half its session load: stretching and joint work tire the tissues little (our choice, no study). */
+export const MOBILITY_WEIGHT = 0.5;
 export type Discipline = "BOULDER" | "ROUTE" | "BOARD";
 
 export type ClimbSessionFact = {
@@ -105,9 +113,9 @@ export function climbIntensity(s: Pick<ClimbSessionFact, "discipline" | "attempt
 }
 
 /**
- * Every session as a load in arbitrary units (intensity × minutes). A guided
- * session linked to a climbing session is not counted twice: its RPE, when
- * recorded, replaces the climbing session's estimate.
+ * Every session as a load in arbitrary units (intensity × minutes; mobility
+ * × MOBILITY_WEIGHT). A guided session linked to a climbing session is not
+ * counted twice: its RPE, when recorded, replaces the climbing session's estimate.
  */
 export function sessionLoads(
   climbs: readonly ClimbSessionFact[], training: readonly TrainingLoadFact[], mobility: readonly MobilityRecordFact[],
@@ -129,14 +137,14 @@ export function sessionLoads(
     const recorded = t.actualMinutes && t.actualMinutes > 0 ? t.actualMinutes : null;
     const minutes = recorded ?? (t.plannedMinutes && t.plannedMinutes > 0 ? t.plannedMinutes : DEFAULT_MINUTES[source]);
     const intensity = t.rpe ?? BASE_INTENSITY[source];
-    out.push({ date: t.date, source, minutes, intensity, load: Math.round(intensity * minutes),
+    out.push({ date: t.date, source, minutes, intensity, load: Math.round(intensity * minutes * (t.mobility ? MOBILITY_WEIGHT : 1)),
       estimated: { minutes: recorded === null, intensity: t.rpe === null } });
   }
   for (const r of mobility) {
     const recorded = r.minutes && r.minutes > 0 ? r.minutes : null;
     const minutes = recorded ?? DEFAULT_MINUTES.MOBILITY;
     const intensity = r.rpe ?? BASE_INTENSITY.MOBILITY;
-    out.push({ date: r.date, source: "MOBILITY", minutes, intensity, load: Math.round(intensity * minutes),
+    out.push({ date: r.date, source: "MOBILITY", minutes, intensity, load: Math.round(intensity * minutes * MOBILITY_WEIGHT),
       estimated: { minutes: recorded === null, intensity: r.rpe == null } });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));
@@ -228,14 +236,13 @@ export type LoadDay = {
   fatigue: number;
   /** Fitness − fatigue: positive = fresh, negative = tired. */
   form: number;
-  /** Acute ÷ chronic, null while calibrating or without chronic load. */
-  ratio: number | null;
 };
 
 /**
  * Day-by-day load model from the first recorded day to `today` (empty days
  * count as zero load). Exponential averages as in Banister's model:
- * value += (load − value) / timeConstant.
+ * value += (load − value) / timeConstant. Drawn in the details only: the
+ * ratio and the zone come from ratioSeries, which does not start from zero.
  */
 export function loadModel(loads: readonly SessionLoad[], today: string): LoadDay[] {
   const valid = loads.filter((l) => l.date <= today);
@@ -251,11 +258,71 @@ export function loadModel(loads: readonly SessionLoad[], today: string): LoadDay
     const load = byDay.get(date) ?? 0;
     fitness += (load - fitness) / LOAD_THRESHOLDS.chronicDays;
     fatigue += (load - fatigue) / LOAD_THRESHOLDS.acuteDays;
-    const calibrated = i + 1 >= LOAD_THRESHOLDS.calibrationDays && fitness > 0.5;
-    out.push({ date, load, fitness: round1(fitness), fatigue: round1(fatigue), form: round1(fitness - fatigue),
-      ratio: calibrated ? Math.round((fatigue / fitness) * 100) / 100 : null });
+    out.push({ date, load, fitness: round1(fitness), fatigue: round1(fatigue), form: round1(fitness - fatigue) });
   }
   return out;
+}
+
+export type RatioDay = {
+  date: string;
+  /** The day's load on fingers and upper body (climbing and training), and in all (mobility weighted). */
+  fingersLoad: number; globalLoad: number;
+  /**
+   * Last 7 days' load ÷ (last 28 days' load ÷ 4), today included: the week
+   * against the climber's usual week. Null in the first 28 days of history or
+   * without load in the 28 days.
+   */
+  fingers: number | null; global: number | null;
+  /** 28 days of history behind this day: a null ratio then means four weeks without load, not too little history. */
+  calibrated: boolean;
+};
+
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
+/**
+ * The acute:chronic ratio day by day, as a rolling ratio of sums (no
+ * exponential average: it does not start from zero, and the 4 weeks before
+ * are forgotten after 4 weeks). One line for fingers and upper body, one for
+ * everything.
+ */
+export function ratioSeries(loads: readonly SessionLoad[], today: string): RatioDay[] {
+  const valid = loads.filter((l) => l.date <= today);
+  if (!valid.length) return [];
+  const fingersByDay = new Map<string, number>(), globalByDay = new Map<string, number>();
+  for (const l of valid) {
+    globalByDay.set(l.date, (globalByDay.get(l.date) ?? 0) + l.load);
+    if (FINGER_SOURCES.includes(l.source)) fingersByDay.set(l.date, (fingersByDay.get(l.date) ?? 0) + l.load);
+  }
+  const first = valid.reduce((m, l) => (l.date < m ? l.date : m), valid[0].date);
+  const days = daysBetween(first, today);
+  const { ratioAcuteDays: acute, ratioChronicDays: chronic } = LOAD_THRESHOLDS;
+  const f: number[] = [], g: number[] = [];
+  const out: RatioDay[] = [];
+  const sum = (list: number[], from: number, to: number) => { let s = 0; for (let k = Math.max(0, from); k <= to; k++) s += list[k]; return s; };
+  for (let i = 0; i <= days; i++) {
+    const date = addDays(first, i);
+    f.push(fingersByDay.get(date) ?? 0);
+    g.push(globalByDay.get(date) ?? 0);
+    const ratio = (list: number[]) => {
+      if (i + 1 < chronic) return null;
+      const base = sum(list, i - chronic + 1, i) / (chronic / acute);
+      return base > 0 ? round2(sum(list, i - acute + 1, i) / base) : null;
+    };
+    out.push({ date, fingersLoad: f[i], globalLoad: g[i], fingers: ratio(f), global: ratio(g), calibrated: i + 1 >= chronic });
+  }
+  return out;
+}
+
+/**
+ * The ratio the zone reads: fingers and upper body when there is any, else
+ * everything; 0 after four weeks without any load (below the band, not
+ * calibrating); null before 28 days of history.
+ */
+export function zoneRatio(day: RatioDay | undefined): { ratio: number | null; basis: "fingers" | "global" } {
+  if (!day) return { ratio: null, basis: "fingers" };
+  if (day.fingers !== null) return { ratio: day.fingers, basis: "fingers" };
+  if (day.global !== null) return { ratio: day.global, basis: "global" };
+  return { ratio: day.calibrated ? 0 : null, basis: "fingers" };
 }
 
 export type LoadZone = "calibrating" | "under" | "optimal" | "high" | "danger";
@@ -284,58 +351,47 @@ export function projectLoad(model: readonly LoadDay[], days = 14): { daily: numb
     fitness += (daily - fitness) / LOAD_THRESHOLDS.chronicDays;
     fatigue += (daily - fatigue) / LOAD_THRESHOLDS.acuteDays;
     points.push({ date: addDays(last.date, i), load: round1(daily), fitness: round1(fitness), fatigue: round1(fatigue),
-      form: round1(fitness - fatigue), ratio: fitness > 0.5 && last.ratio !== null ? Math.round((fatigue / fitness) * 100) / 100 : null });
+      form: round1(fitness - fatigue) });
   }
   return { daily: round1(daily), points };
 }
 
 export type WeeklyGuide = {
-  /**
-   * Load over the next 7 days (spread evenly) that brings the ratio to the
-   * band's limits at the end of the week, simulated with the same model from
-   * today's fitness and fatigue. maxLoad 0 means only rest gets back under 1.3.
-   */
+  /** Which load the guide reads: fingers and upper body, or everything when there is no climbing or training. */
+  basis: "fingers" | "global";
+  /** Load over the next 7 days that ends the week at 0.8, 1.3 and 1.5 (the 28-day window then holds the last 21 days and these 7). */
   minLoad: number; maxLoad: number; dangerLoad: number;
-  /** The same range in sessions like the climber's typical one (median of the last 42 days), or null. */
+  /** The same range in sessions like the climber's typical one (median of the last 42 days, mobility left out), or null. */
   typicalLoad: number | null; minSessions: number | null; maxSessions: number | null;
-  /** Load already done in the last 7 days. */
+  /** Load already done in the last 7 days, on the same basis. */
   last7: number;
 };
 
-/** Ratio at the end of `days` days of even load `total`, from a fitness and a fatigue. */
-export function ratioAfter(fitness: number, fatigue: number, total: number, days = 7): number {
-  const daily = total / days;
-  for (let i = 0; i < days; i++) {
-    fitness += (daily - fitness) / LOAD_THRESHOLDS.chronicDays;
-    fatigue += (daily - fatigue) / LOAD_THRESHOLDS.acuteDays;
-  }
-  return fitness > 0 ? fatigue / fitness : Infinity;
+/** The ratio at the end of the next 7 days if `next7` is done on top of the last 21 days' `last21`. */
+export function ratioAfterWeek(last21: number, next7: number): number {
+  const base = (last21 + next7) / (LOAD_THRESHOLDS.ratioChronicDays / LOAD_THRESHOLDS.ratioAcuteDays);
+  return base > 0 ? next7 / base : 0;
 }
 
-/** The 7-day load that ends the week at `target` ratio (bisection; the ratio grows with the load). 0 when even rest ends above it. */
-function loadForRatio(fitness: number, fatigue: number, target: number): number {
-  if (ratioAfter(fitness, fatigue, 0) >= target) return 0;
-  let lo = 0, hi = Math.max(1, 7 * fitness * 10);
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-    if (ratioAfter(fitness, fatigue, mid) < target) lo = mid; else hi = mid;
-  }
-  return Math.round(lo);
-}
+/** next7 / ((last21 + next7) / 4) = target, solved for next7. */
+const loadForRatio = (last21: number, target: number) => Math.round((target * last21) / (4 - target));
 
-/** The week ahead, in load and in typical sessions, from today's fitness and fatigue. Null while calibrating. */
-export function weeklyGuide(model: readonly LoadDay[], loads: readonly SessionLoad[], today: string): WeeklyGuide | null {
-  const last = model.at(-1);
-  if (!last || last.ratio === null) return null;
+/** The week ahead, in load and in typical sessions. Null while the ratio is not shown yet. */
+export function weeklyGuide(ratios: readonly RatioDay[], loads: readonly SessionLoad[], today: string): WeeklyGuide | null {
+  const { ratio, basis } = zoneRatio(ratios.at(-1));
+  if (ratio === null) return null;
+  const pick = (d: RatioDay) => (basis === "fingers" ? d.fingersLoad : d.globalLoad);
+  const last21 = ratios.slice(-21).reduce((s, d) => s + pick(d), 0);
+  if (last21 <= 0) return null;
+  const last7 = ratios.slice(-7).reduce((s, d) => s + pick(d), 0);
   const since = addDays(today, -41);
   const recent = loads.filter((l) => l.date >= since && l.date <= today && l.source !== "MOBILITY").map((l) => l.load).sort((x, y) => x - y);
   const typical = recent.length ? recent[Math.floor((recent.length - 1) / 2)] : null;
-  const last7 = model.slice(-7).reduce((sum, d) => sum + d.load, 0);
   const toSessions = (v: number) => (typical ? Math.round((v / typical) * 2) / 2 : null);
-  const minLoad = loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.low);
-  const maxLoad = loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.high);
+  const minLoad = loadForRatio(last21, LOAD_THRESHOLDS.low);
+  const maxLoad = loadForRatio(last21, LOAD_THRESHOLDS.high);
   return {
-    minLoad, maxLoad, dangerLoad: loadForRatio(last.fitness, last.fatigue, LOAD_THRESHOLDS.danger),
+    basis, minLoad, maxLoad, dangerLoad: loadForRatio(last21, LOAD_THRESHOLDS.danger),
     typicalLoad: typical, minSessions: toSessions(minLoad), maxSessions: toSessions(maxLoad), last7,
   };
 }
@@ -423,12 +479,15 @@ const top3 = (pts: PerfPoint[]) => {
   return best.length ? best.reduce((s, p) => s + p.score, 0) / best.length : null;
 };
 
+/** Results a scale needs in each window before it gets a direction: fewer, and one good day decides. */
+export const MIN_RESULTS_PER_WINDOW = 5;
+
 /**
  * Each scale's last `windowDays` against the `windowDays` before: the average
- * of the three best results in each window. A scale needs at least one result
- * in both windows to have a direction.
+ * of the three best results in each window. A scale needs `minResults`
+ * results in both windows to have a direction.
  */
-export function performanceTrends(series: readonly PerfSeries[], today: string, windowDays = 42): PerfTrend[] {
+export function performanceTrends(series: readonly PerfSeries[], today: string, windowDays = 42, minResults = MIN_RESULTS_PER_WINDOW): PerfTrend[] {
   const recentFrom = addDays(today, -(windowDays - 1));
   const previousFrom = addDays(today, -(2 * windowDays - 1));
   return series.map((s) => {
@@ -437,7 +496,7 @@ export function performanceTrends(series: readonly PerfSeries[], today: string, 
     const recent = top3(recentPts), previous = top3(previousPts);
     const bestOf = (pts: PerfPoint[]) => [...pts].sort((a, b) => b.score - a.score || a.date.localeCompare(b.date))[0] ?? null;
     let direction: PerfDirection = "insufficient";
-    if (recent !== null && previous !== null) {
+    if (recent !== null && previous !== null && recentPts.length >= minResults && previousPts.length >= minResults) {
       const delta = recent - previous;
       direction = delta >= s.threshold ? "up" : delta <= -s.threshold ? "down" : "flat";
     }
@@ -451,32 +510,42 @@ export function performanceTrends(series: readonly PerfSeries[], today: string, 
 export type Verdict = "progressing" | "stagnating" | "declining" | "insufficient";
 export type VerdictResult = {
   verdict: Verdict;
-  /** "performance" when at least one scale has a direction; otherwise the verdict rests on load alone. */
-  basis: "performance" | "load" | "none";
+  /** "performance" when at least one scale has a direction; otherwise there is no verdict yet. */
+  basis: "performance" | "none";
   ups: PerfTrend[]; downs: PerfTrend[]; flats: PerfTrend[];
-  /** Change of chronic load over the last 28 days (0.1 = +10 %), null without enough history. */
-  fitnessChange: number | null;
+  /** Change of the 28-day load against the 28 days before (0.1 = +10 %), null without load before. */
+  loadChange: number | null;
   zone: LoadZone;
+  /** Today's ratio the zone reads, and on which load. */
+  ratio: number | null; ratioBasis: "fingers" | "global";
   flags: Array<"spike" | "high" | "under" | "monotony" | "pain">;
 };
 
-/** Thresholds the verdict uses on chronic load: building above +10 %, losing below −20 % over 28 days. */
-export const FITNESS_RULE = { build: 0.1, loss: -0.2, days: 28 } as const;
+/** A tie in performance with the 28-day load down by more than 20 % is a decline. */
+export const LOAD_LOSS = -0.2;
+
+/** The last 28 days' total load against the 28 days before, everything counted. */
+export function loadChange28(ratios: readonly RatioDay[]): number | null {
+  const days = LOAD_THRESHOLDS.ratioChronicDays;
+  if (ratios.length < 2 * days) return null;
+  const now = ratios.slice(-days).reduce((s, d) => s + d.globalLoad, 0);
+  const before = ratios.slice(-2 * days, -days).reduce((s, d) => s + d.globalLoad, 0);
+  return before > 0 ? round2((now - before) / before) : null;
+}
 
 /**
- * Progressing, stagnating or declining. Performance decides when it can: more
- * scales up than down is progress, more down than up is decline; a tie (or
- * all flat) is stagnation, unless chronic load also fell by more than 20 %.
- * Without any comparable performance, chronic load alone decides and the
- * page says so.
+ * Progressing, stagnating or declining, from performance only: more scales up
+ * than down is progress, more down than up is decline; a tie (or all flat) is
+ * stagnation, unless the load also fell by more than 20 %. Without a scale
+ * that has enough results in both windows, there is no verdict: more load is
+ * not progress.
  */
 export function progressVerdict(
-  trends: readonly PerfTrend[], model: readonly LoadDay[], extra: { monotony: number | null; recentPain: number },
+  trends: readonly PerfTrend[], ratios: readonly RatioDay[], extra: { monotony: number | null; recentPain: number },
 ): VerdictResult {
-  const last = model.at(-1);
-  const before = model.length > FITNESS_RULE.days ? model[model.length - 1 - FITNESS_RULE.days] : null;
-  const fitnessChange = last && before && before.fitness > 0.5 ? Math.round(((last.fitness - before.fitness) / before.fitness) * 100) / 100 : null;
-  const zone = loadZone(last?.ratio ?? null);
+  const loadChange = loadChange28(ratios);
+  const { ratio, basis: ratioBasis } = zoneRatio(ratios.at(-1));
+  const zone = loadZone(ratio);
   const flags: VerdictResult["flags"] = [];
   if (zone === "danger") flags.push("spike");
   if (zone === "high") flags.push("high");
@@ -493,15 +562,12 @@ export function progressVerdict(
     basis = "performance";
     if (ups.length > downs.length) verdict = "progressing";
     else if (downs.length > ups.length) verdict = "declining";
-    else verdict = fitnessChange !== null && fitnessChange <= FITNESS_RULE.loss ? "declining" : "stagnating";
-  } else if (fitnessChange !== null) {
-    basis = "load";
-    verdict = fitnessChange >= FITNESS_RULE.build ? "progressing" : fitnessChange <= FITNESS_RULE.loss ? "declining" : "stagnating";
+    else verdict = loadChange !== null && loadChange <= LOAD_LOSS ? "declining" : "stagnating";
   } else {
     basis = "none";
     verdict = "insufficient";
   }
-  return { verdict, basis, ups, downs, flats, fitnessChange, zone, flags };
+  return { verdict, basis, ups, downs, flats, loadChange, zone, ratio, ratioBasis, flags };
 }
 
 /** Training sessions in the last 7 days with pain at 3/10 or more. */
@@ -531,7 +597,7 @@ export type TrainingLoadInput = {
 };
 
 export type TrainingLoadReport = {
-  loads: SessionLoad[]; model: LoadDay[]; projection: ReturnType<typeof projectLoad>;
+  loads: SessionLoad[]; model: LoadDay[]; ratios: RatioDay[]; projection: ReturnType<typeof projectLoad>;
   guide: WeeklyGuide | null; monotony: number | null; trends: PerfTrend[]; verdict: VerdictResult;
   bySource: ReturnType<typeof loadBySource>;
   /** Share of the last 28 days' sessions whose minutes / intensity were estimated (0–1), null without sessions. */
@@ -546,13 +612,14 @@ export function trainingLoadReport(input: TrainingLoadInput): TrainingLoadReport
   const climbs = input.climbs.map((c) => ({ ...c, ...(near.get(c.id) ?? { attempts: 0, nearLimit: 0 }) }));
   const loads = sessionLoads(climbs, input.training, input.mobility);
   const model = loadModel(loads, input.today);
+  const ratios = ratioSeries(loads, input.today);
   const mono = monotony(model);
   const trends = performanceTrends(input.perf, input.today);
   const since = addDays(input.today, -27);
   const recent = loads.filter((l) => l.date >= since && l.date <= input.today);
   return {
-    loads, model, projection: projectLoad(model), guide: weeklyGuide(model, loads, input.today), monotony: mono, trends,
-    verdict: progressVerdict(trends, model, { monotony: mono, recentPain: recentPainCount(input.training, input.today) }),
+    loads, model, ratios, projection: projectLoad(model), guide: weeklyGuide(ratios, loads, input.today), monotony: mono, trends,
+    verdict: progressVerdict(trends, ratios, { monotony: mono, recentPain: recentPainCount(input.training, input.today) }),
     bySource: loadBySource(loads, input.today),
     estimated: recent.length ? {
       minutes: recent.filter((l) => l.estimated.minutes).length / recent.length,
@@ -577,21 +644,26 @@ export function weeklyLoadRows(model: readonly LoadDay[]): WeeklyLoadRow[] {
   return [...rows.values()];
 }
 
-export type LoadChartPoint = {
-  date: string; projected: boolean; load: number; fitness: number; fatigue: number; form: number;
-  /** The healthy fatigue band (0.8–1.3 × fitness) and the 1.5 line; null while calibrating. */
-  bandLow: number | null; bandHigh: number | null; danger: number | null;
-};
+export type LoadChartPoint = { date: string; projected: boolean; load: number; fitness: number; fatigue: number; form: number };
 
-/** The days the diagram draws, from `from` to the end of the projection. */
+/** The days the fitness–fatigue diagram draws, from `from` to the end of the projection. */
 export function loadChartPoints(model: readonly LoadDay[], projection: readonly LoadDay[], from: string): LoadChartPoint[] {
-  const calibrated = model.at(-1)?.ratio !== null && model.length > 0;
-  const point = (d: LoadDay, projected: boolean): LoadChartPoint => {
-    const banded = projected ? calibrated : d.ratio !== null;
-    return { date: d.date, projected, load: d.load, fitness: d.fitness, fatigue: d.fatigue, form: d.form,
-      bandLow: banded ? round1(d.fitness * LOAD_THRESHOLDS.low) : null,
-      bandHigh: banded ? round1(d.fitness * LOAD_THRESHOLDS.high) : null,
-      danger: banded ? round1(d.fitness * LOAD_THRESHOLDS.danger) : null };
-  };
+  const point = (d: LoadDay, projected: boolean): LoadChartPoint =>
+    ({ date: d.date, projected, load: d.load, fitness: d.fitness, fatigue: d.fatigue, form: d.form });
   return [...model.filter((d) => d.date >= from).map((d) => point(d, false)), ...projection.map((d) => point(d, true))];
+}
+
+export type WeeklyRatioRow = { weekStart: string; fingers: number | null; global: number | null; fingersLoad: number; globalLoad: number };
+
+/** The ratio at the end of each ISO week (the last day drawn), with the week's load, for the accessible table. */
+export function weeklyRatioRows(ratios: readonly RatioDay[]): WeeklyRatioRow[] {
+  const rows = new Map<string, WeeklyRatioRow>();
+  for (const d of ratios) {
+    const t = Date.parse(d.date + "T00:00:00Z");
+    const weekStart = new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10);
+    const cur = rows.get(weekStart);
+    rows.set(weekStart, { weekStart, fingers: d.fingers, global: d.global,
+      fingersLoad: (cur?.fingersLoad ?? 0) + d.fingersLoad, globalLoad: (cur?.globalLoad ?? 0) + d.globalLoad });
+  }
+  return [...rows.values()];
 }

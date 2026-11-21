@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradePyramid, isMobilityWork, mainSystem, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
+import { gradePyramid, isMobilityWork, mainSystem, topLevelRates, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
 import type { AttemptFact, ProblemFact } from "@/lib/analytics/types";
 
 const problem = (id: string, grade: string, system: ProblemFact["nativeGradeSystem"] = "FONT"): ProblemFact =>
@@ -35,6 +35,37 @@ describe("progress diagrams", () => {
     expect(gradePyramid(problems, attempts, "FONT", now, 90).map((r) => [r.grade, r.sent, r.flashed, r.tried])).toEqual([
       ["6B", 0, 0, 1], ["6A", 1, 0, 0], ["5c", 1, 0, 0], ["5b", 1, 1, 0],
     ]);
+  });
+
+  it("follows the send rate at the two hardest grades sent, week by week, scale by scale", () => {
+    const series = topLevelRates(problems, attempts, ["FONT", "ARKOSE_COLOR"], now, 12);
+    const font = series.find((s) => s.system === "FONT")!;
+    // 6B was tried but never sent: the two grades are 6A (hardest sent) and 5c (next one tried).
+    expect(font.levels).toEqual(["6A", "5c"]);
+    expect(font.weeks).toHaveLength(12);
+    expect(font.weeks.slice(-2)).toEqual([
+      { weekStart: "2026-11-02", tried: 1, sent: 0 },
+      { weekStart: "2026-11-09", tried: 2, sent: 2 },
+    ]);
+    expect(font.recent).toEqual({ tried: 2, sent: 2, rate: 1 });
+    // c was tried on 4 Nov and sent on 11 Nov: one problem over the two weeks, sent.
+    expect(font.rolling.slice(-3)).toEqual([null, 0, 1]);
+    expect(font.direction).toBe("insufficient");
+    expect(series.find((s) => s.system === "ARKOSE_COLOR")!.levels).toEqual(["BLUE"]);
+    expect(topLevelRates(problems, [attempt("d", "ATTEMPT", "2026-11-12T18:00:00Z")], ["FONT"], now, 12)).toEqual([]);
+  });
+
+  it("calls a move of 10 points or more up, with five problems on each side", () => {
+    const grid = Array.from({ length: 12 }, (_, i) => problem(`p${i}`, i % 2 ? "6A" : "6A+"));
+    const before = grid.slice(0, 6).map((p, i) => attempt(p.id, i < 2 ? "TOP" : "ATTEMPT", "2026-10-07T18:00:00Z"));
+    const after = grid.slice(6).map((p, i) => attempt(p.id, i < 5 ? "TOP" : "ATTEMPT", "2026-11-10T18:00:00Z"));
+    const [s] = topLevelRates(grid, [...before, ...after], ["FONT"], now, 12);
+    expect(s.levels).toEqual(["6A+", "6A"]);
+    expect(s.previous).toEqual({ tried: 6, sent: 2, rate: 2 / 6 });
+    expect(s.recent.rate).toBeCloseTo(5 / 6);
+    expect(s.direction).toBe("up");
+    // Too short a period to hold both windows: no direction.
+    expect(topLevelRates(grid, [...before, ...after], ["FONT"], now, 4)[0].direction).toBe("insufficient");
   });
 
   it("picks the system most problems were tried on", () => {

@@ -6,7 +6,7 @@ import { fmt, intlLocale, type Locale } from "@/lib/i18n";
 import { cn } from "@/components/ui/cn";
 
 type Labels = {
-  fitness: string; fatigue: string; band: string; danger: string; projection: string; today: string;
+  fitness: string; fatigue: string; projection: string; today: string;
   formTitle: string; formHint: string; fresh: string; tired: string; tooltip: string; tooltipProjected: string;
 };
 
@@ -23,9 +23,9 @@ function ticks(lo: number, hi: number): number[] {
 }
 
 /**
- * Fitness (chronic load), fatigue (acute load) and the climber's healthy band
- * (0.8–1.3 × fitness, 1.5 dashed) day by day, a projection after today, and
- * freshness underneath on its own scale. All figures come from
+ * Fitness (chronic load) and fatigue (acute load) day by day, a projection
+ * after today, and freshness underneath on its own scale. The band lives on
+ * the ratio chart (RatioChart), not here. All figures come from
  * lib/analytics/training-load; this only draws them. Built like LinePlot: the
  * lines stretch with the box, text keeps its size.
  */
@@ -38,7 +38,7 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
   const short = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "UTC", day: "numeric", month: "short" });
   const dateOf = (d: string) => short.format(new Date(d + "T00:00:00Z"));
 
-  const hi = Math.max(1, ...points.flatMap((p) => [p.fitness, p.fatigue, p.danger ?? 0]));
+  const hi = Math.max(1, ...points.flatMap((p) => [p.fitness, p.fatigue]));
   const yTicks = ticks(0, hi * 1.05);
   const yMax = yTicks.at(-1)! || 1;
   const x = (i: number) => (i / (n - 1)) * 100;
@@ -53,10 +53,6 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
     }
     return d.trim();
   };
-  const banded = points.map((p, i) => ({ p, i })).filter(({ p }) => p.bandLow !== null && p.bandHigh !== null);
-  const band = banded.length > 1
-    ? `M${banded.map(({ p, i }) => `${x(i)} ${y(p.bandHigh!)}`).join(" L")} L${[...banded].reverse().map(({ p, i }) => `${x(i)} ${y(p.bandLow!)}`).join(" L")} Z`
-    : "";
 
   const formMax = Math.max(5, ...points.map((p) => Math.abs(p.form)));
   const formTicks = ticks(-formMax, formMax).filter((v) => Math.abs(v) <= formMax * 1.2);
@@ -95,8 +91,6 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
     <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-ink-2">
       <li className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-accent" />{labels.fitness}</li>
       <li className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-ink-2" />{labels.fatigue}</li>
-      <li className="flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-accent/15" />{labels.band}</li>
-      <li className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-danger" />{labels.danger}</li>
       {todayIndex > 0 ? <li className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dotted border-ink-3" />{labels.projection}</li> : null}
     </ul>
 
@@ -108,8 +102,6 @@ export function LoadChart({ points, locale, labels }: { points: LoadChartPoint[]
       {plot("h-56", <>
         {yTicks.map((v) => <span key={v} className="absolute inset-x-0 border-t border-line" style={{ top: `${y(v)}%` }} />)}
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
-          {band ? <path d={band} className="fill-accent/15" /> : null}
-          <path d={line(0, n - 1, (p) => p.danger)} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={1.5} strokeDasharray="5 4" className="stroke-danger" />
           <path d={line(0, lastReal, (p) => p.fatigue)} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={1.5} strokeLinejoin="round" className="stroke-ink-2" />
           <path d={line(0, lastReal, (p) => p.fitness)} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={2.5} strokeLinejoin="round" className="stroke-accent" />
           {todayIndex > 0 ? <>
