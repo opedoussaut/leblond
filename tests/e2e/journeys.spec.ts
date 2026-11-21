@@ -1444,11 +1444,29 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page).toHaveURL(/\/rival\/settings$/);
   await page.getByRole("button", { name: "Sans pitié" }).click();
   await page.getByRole("button", { name: "Portrait 4" }).click();
+  // The name is a setting too: it changes everywhere.
+  await expect(page.getByLabel("Nom du rival")).toHaveValue("Max");
+  await page.getByLabel("Nom du rival").fill("Ozzy");
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Réglages enregistrés.")).toBeVisible();
   await page.goto("/rival");
   await expect(page.getByRole("img", { name: "Ton : Sans pitié" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^Ozzy\s*fictif$/ })).toBeVisible();
+  // The climber's own picture replaces the portrait (a 1×1 PNG, cropped and sent to the private bucket).
   await page.goto("/rival/settings");
+  const rivalPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await page.getByLabel("Choisir une photo").setInputFiles({ name: "rival.png", mimeType: "image/png", buffer: rivalPng });
+  await expect(page.getByText("Photo du rival mise à jour.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("img", { name: "Photo actuelle du rival" })).toBeVisible();
+  await page.goto("/rival");
+  await expect(page.locator("img[data-rival-photo]").first()).toBeVisible();
+  await page.goto("/rival/settings");
+  await page.getByRole("button", { name: "Retirer la photo" }).click();
+  await expect(page.getByText("Photo retirée : le portrait est de retour.")).toBeVisible();
+  await expect(page.locator("img[data-rival-photo]")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "À ta portée" })).toHaveAttribute("aria-pressed", "true");
   // The climber manages load and pain: no safety footnote under the feed.
   await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);

@@ -11,6 +11,10 @@
 
 /** Folder under the climber's own prefix. */
 export const PROFILE_PHOTO_FOLDER = "profile";
+/** The rival's photo, when the climber gives it one (`alter_ego_pacts.photo_path`). */
+export const RIVAL_PHOTO_FOLDER = "rival";
+/** The single-picture folders: same size, types and checks. */
+export type PhotoFolder = typeof PROFILE_PHOTO_FOLDER | typeof RIVAL_PHOTO_FOLDER;
 /** The browser crops and resizes to a square this many pixels wide. */
 export const PROFILE_PHOTO_SIZE = 512;
 /** What the server accepts once resized (a 512 px photo is ~50–150 KB). */
@@ -26,21 +30,29 @@ export function isProfilePhotoType(mime: string): mime is ProfilePhotoType {
   return (PROFILE_PHOTO_TYPES as readonly string[]).includes(mime);
 }
 
+export function photoObjectPath(userId: string, folder: PhotoFolder, id: string, mime: ProfilePhotoType): string {
+  return `${userId}/${folder}/${id}.${EXTENSIONS[mime]}`;
+}
+
 export function profilePhotoPath(userId: string, id: string, mime: ProfilePhotoType): string {
-  return `${userId}/${PROFILE_PHOTO_FOLDER}/${id}.${EXTENSIONS[mime]}`;
+  return photoObjectPath(userId, PROFILE_PHOTO_FOLDER, id, mime);
 }
 
 const FILE_NAME = /^[0-9a-f-]{36}\.(webp|jpg|png)$/;
 
 /**
- * True only for "<userId>/profile/<uuid>.<webp|jpg|png>". Anything else in
- * `avatar_url` (an old value, a hand-edited row, another user's folder) is
- * ignored and the avatar is shown instead.
+ * True only for "<userId>/<folder>/<uuid>.<webp|jpg|png>". Anything else in
+ * `avatar_url` or `photo_path` (an old value, a hand-edited row, another
+ * user's folder) is ignored and the drawn picture is shown instead.
  */
-export function isOwnProfilePhotoPath(userId: string, path: string | null | undefined): path is string {
+export function isOwnPhotoPath(userId: string, folder: PhotoFolder, path: string | null | undefined): path is string {
   if (!path || !userId) return false;
   const parts = path.split("/");
-  return parts.length === 3 && parts[0] === userId && parts[1] === PROFILE_PHOTO_FOLDER && FILE_NAME.test(parts[2]!);
+  return parts.length === 3 && parts[0] === userId && parts[1] === folder && FILE_NAME.test(parts[2]!);
+}
+
+export function isOwnProfilePhotoPath(userId: string, path: string | null | undefined): path is string {
+  return isOwnPhotoPath(userId, PROFILE_PHOTO_FOLDER, path);
 }
 
 /** The picture to show: the uploaded photo if there is one, else the avatar. */

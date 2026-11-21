@@ -11,30 +11,41 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { rivalDictionary } from "@/lib/i18n/rival";
 import { RivalPortrait } from "./rival-portrait";
 
-/** Portrait, tone, level and projects. The signed terms of the pact stay as they are. */
-export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGrades, open = false }: {
-  locale: Locale; pactId: string; initial: RivalSettings; today: string; hasBoulderGrades: boolean;
+/** Name, portrait, tone, level and projects. The other signed terms of the pact stay as they are. */
+export function RivalSettingsForm({ locale, pactId, initialName, initial, today, hasBoulderGrades, hasPhoto = false, open = false }: {
+  locale: Locale; pactId: string; initialName: string; initial: RivalSettings; today: string; hasBoulderGrades: boolean;
+  /** The climber gave the rival a photo: it shows instead of the portrait. */
+  hasPhoto?: boolean;
   /** On its own page: always open, with a heading instead of a fold. */
   open?: boolean;
 }) {
   const r = rivalDictionary(locale);
   const router = useRouter();
   const [v, setV] = useState(initial);
+  const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [pending, start] = useTransition();
   const set = (patch: Partial<RivalSettings>) => { setV((x) => ({ ...x, ...patch })); setStatus("idle"); };
 
   function save() {
     start(async () => {
-      const res = await updateRivalSettings({ id: pactId, ...v, goalDate: v.level === "GOAL" ? v.goalDate : null });
+      const res = await updateRivalSettings({ id: pactId, name: name.trim(), ...v, goalDate: v.level === "GOAL" ? v.goalDate : null });
       setStatus(res.ok ? "saved" : "error");
       if (res.ok) router.refresh();
     });
   }
 
   const form = <form className="mt-3 space-y-5" onSubmit={(e) => { e.preventDefault(); save(); }}>
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold">{r.name}
+          <input type="text" required maxLength={40} autoComplete="off" className={fieldClass} value={name}
+            onChange={(e) => { setName(e.target.value); setStatus("idle"); }} />
+        </label>
+        <p className="text-xs text-ink-3">{r.nameHint}</p>
+      </div>
       <fieldset>
         <legend className="text-sm font-semibold">{r.portrait}</legend>
+        {hasPhoto ? <p className="mt-1 text-xs text-ink-2">{r.portraitUnderPhoto}</p> : null}
         <div className="mt-2 flex flex-wrap gap-2">
           {RIVAL_PORTRAITS.map((p, i) => <button key={p} type="button" aria-pressed={v.portrait === p} aria-label={fmt(r.portraitN, { n: i + 1 })}
             onClick={() => set({ portrait: p })}
@@ -66,7 +77,7 @@ export function RivalSettingsForm({ locale, pactId, initial, today, hasBoulderGr
         <input type="checkbox" className="size-5 accent-accent" checked={v.chaseProjects} onChange={(e) => set({ chaseProjects: e.target.checked })} />
         {r.chase}
       </label>
-      <button type="submit" disabled={pending} className={buttonClass("primary", "md")}>{r.save}</button>
+      <button type="submit" disabled={pending || !name.trim()} className={buttonClass("primary", "md")}>{r.save}</button>
       {status === "saved" ? <p role="status" className="text-sm font-semibold text-accent">{r.saved}</p> : null}
       {status === "error" ? <p role="alert" className="text-sm font-semibold text-danger">{r.error}</p> : null}
     </form>

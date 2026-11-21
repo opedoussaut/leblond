@@ -6,7 +6,7 @@ import { SessionSummary } from "@/components/training/session-summary";
 import { TrainingPlayer } from "@/components/training/training-player";
 import { EditTrainingForm } from "@/components/training/training-free-forms";
 import { loadFactor, pactClock, pactWeek } from "@/lib/analytics/alter-ego";
-import { loadOpenRival } from "@/lib/data/alter-ego";
+import { loadOpenRival, rivalPhotoUrl } from "@/lib/data/alter-ego";
 import { viewerAvatarLevel, viewerPhotoUrl } from "@/lib/data/profile-picture";
 import { REACH_MARGIN } from "@/lib/analytics/rival";
 import { utcToZoned } from "@/lib/time";
@@ -76,6 +76,7 @@ export default async function TrainingSessionPage({ params }: PageProps<"/train/
     portrait: rival.settings.portrait,
     avatar: await viewerAvatarLevel(),
     photo: await viewerPhotoUrl(),
+    rivalPhoto: await rivalPhotoUrl(viewer.supabase, rival),
   } : null;
 
   return <div className="space-y-6">

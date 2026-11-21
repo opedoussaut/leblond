@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { climberBreakdown, pactProgress } from "@/lib/analytics/alter-ego";
 import { requireViewer } from "@/lib/auth/viewer";
-import { loadClimberWork, loadOpenRival } from "@/lib/data/alter-ego";
+import { loadClimberWork, loadOpenRival, rivalPhotoUrl } from "@/lib/data/alter-ego";
 import { RivalFeed } from "@/components/training/rival-feed";
 import {
   RIVAL_MESSAGES, duelRace, recentEndTimes, rivalFeed, rivalStanding, usualTrainingTime, weeklyDuels, yourDays,
@@ -72,7 +72,7 @@ export default async function RivalDuelPage() {
     viewer.supabase.from("projects").select("problems(name, native_grade)").eq("status", "ACTIVE").limit(20),
     viewer.supabase.from("route_projects").select("route_name").eq("status", "ACTIVE").limit(20),
   ]);
-  const [avatar, photo] = await Promise.all([loadAvatar(viewer.supabase, { dataset }), viewerPhotoUrl()]);
+  const [avatar, photo, rivalPhoto] = await Promise.all([loadAvatar(viewer.supabase, { dataset }), viewerPhotoUrl(), rivalPhotoUrl(viewer.supabase, rival)]);
   const snapshot = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, 60);
   // The twin: the climber from their measured level on the start date, following the plan to the letter.
   const measuredNow = { boulder: snapshot.workingGrade.level, route: routeWorkingGrade(routes ?? [], now).grade };
@@ -109,15 +109,15 @@ export default async function RivalDuelPage() {
   return <div className="space-y-5">
     <PageHeader icon={<AREA_ICONS.rival />} title={t.title} subtitle={fmt(t.planLabel, { plan: pact.planName })} />
     <DuelBanner locale={locale} name={pact.displayName} standing={progress.standing} week={progress.week + 1} total={pact.horizonWeeks}
-      portrait={settings.portrait} avatar={avatar.level} photo={photo} paused={pact.status === "PAUSED"} breakdown={breakdown} href={null} />
-    <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo}
+      portrait={settings.portrait} avatar={avatar.level} photo={photo} rivalPhoto={rivalPhoto} paused={pact.status === "PAUSED"} breakdown={breakdown} href={null} />
+    <AlterEgoScore locale={locale} pact={pact} progress={progress} portrait={settings.portrait} avatar={avatar.level} photo={photo} rivalPhoto={rivalPhoto}
       observed={measuredNow} twinPace={settings.level !== "GOAL"} detailed />
     <WeeklyDuels locale={locale} name={pact.displayName} duels={duels} />
     <DuelRace locale={locale} name={pact.displayName} race={duelRace(pact, settings, work, today)} total={pact.horizonWeeks} />
     {progress.next ? <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
       {fmt(t.next, { name: pact.displayName, date: formatDate(progress.next.date + "T12:00:00", locale, { weekday: "long", day: "numeric", month: "long" }) })}
     </p> : null}
-    <RivalFeed locale={locale} name={pact.displayName} settings={settings} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
+    <RivalFeed locale={locale} name={pact.displayName} settings={settings} rivalPhoto={rivalPhoto} feed={feed} duels={duels} today={today} yesterday={addDays(today, -1)} />
     <TwinCard locale={locale} name={pact.displayName} twin={twin} measured={measuredNow} />
     <p className="text-sm font-semibold text-ink-2">{t.gapNote}</p>
     <AvatarCard locale={locale} progress={avatar} />
