@@ -1,3 +1,4 @@
+import { methodName } from "@/lib/i18n/method-titles";
 import { METHODS_FOR_PLANS } from "./catalogue";
 import { SESSION_CATEGORIES, type CoachFamily, type FamilyAxis, type SessionCategory } from "./coach-sessions";
 
@@ -98,8 +99,9 @@ export function buildPickerEntries(
   const methods: PickerMethod[] = METHODS_FOR_PLANS.map((m) => {
     const extra = ATLAS_PICKER[m.id] ?? { category: "TECHNIQUE" as const, keywords: "" };
     const summary = m.description[locale];
-    return { kind: "atlas", value: m.id, title: m.title, summary, category: extra.category,
-      haystack: haystack(m.title, summary, extra.keywords, categoryLabels[extra.category]) };
+    // Searchable by its name in the reader's language and by the English one ("max hangs").
+    return { kind: "atlas", value: m.id, title: methodName(m, locale), summary, category: extra.category,
+      haystack: haystack(methodName(m, locale), m.title, summary, extra.keywords, categoryLabels[extra.category]) };
   });
 
   return [...families, ...singles, ...methods];

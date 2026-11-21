@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer, type Viewer } from "@/lib/auth/viewer";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import { methodName } from "@/lib/i18n/method-titles";
 import { PLAN_COLUMNS, phasesOf, planFromRow } from "@/lib/training/plans";
 import { snapshotOf, templateFor } from "@/lib/training/session-templates";
 import { COACH_SESSION_COLUMNS, coachExerciseRows, coachSessionFromRow } from "@/lib/training/coach-sessions";
@@ -38,8 +39,10 @@ function revalidateTraining(sessionId?: string) {
   if (sessionId) revalidatePath("/train/sessions/" + sessionId);
 }
 
-function methodTitle(methodId: string | null): string | null {
-  return METHODS_FOR_PLANS.find((m) => m.id === methodId)?.title ?? null;
+/** The method's name, in French when `fr` (séances the climber starts or logs); plan séances keep the catalogue title. */
+function methodTitle(methodId: string | null, fr = false): string | null {
+  const method = METHODS_FOR_PLANS.find((m) => m.id === methodId);
+  return method ? methodName(method, fr ? "fr" : "en") : null;
 }
 
 async function liveSessionId(viewer: Viewer): Promise<string | null> {
@@ -122,7 +125,7 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
 
   if (v.source === "quick") {
     result = await insertSession(viewer, {
-      title: v.title || methodTitle(v.methodId) || (fr ? "Séance d’entraînement" : "Training session"),
+      title: v.title || methodTitle(v.methodId, fr) || (fr ? "Séance d’entraînement" : "Training session"),
       objective: "", methodId: v.methodId, date: v.date, time: v.time, minutes: v.minutes, startNow: v.startNow,
     });
   } else if (v.source === "coach") {
@@ -452,7 +455,7 @@ export async function logPastTrainingSession(input: unknown): Promise<Result<{ i
   const fr = viewer.profile.preferred_language !== "en";
   const { data, error } = await viewer.supabase.from("training_sessions").insert({
     user_id: viewer.userId,
-    title: v.title || methodTitle(v.methodId) || (fr ? "Séance d’entraînement" : "Training session"),
+    title: v.title || methodTitle(v.methodId, fr) || (fr ? "Séance d’entraînement" : "Training session"),
     method_id: v.methodId, status: "COMPLETED",
     scheduled_date: v.date, scheduled_time: v.time, planned_minutes: v.minutes, actual_minutes: v.minutes,
     started_at: start.toISOString(), completed_at: new Date(start.getTime() + v.minutes * 60_000).toISOString(),
