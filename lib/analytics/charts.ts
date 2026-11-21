@@ -72,6 +72,97 @@ export function gradePyramid(
   return [...rows.values()].sort((a, b) => b.score - a.score);
 }
 
+export type TopLevelWeek = { weekStart: string; tried: number; sent: number };
+export type TopLevelWindow = { tried: number; sent: number; rate: number | null };
+export type TopLevelDirection = "up" | "flat" | "down" | "insufficient";
+export type TopLevelGrade = {
+  grade: string;
+  /** The last four weeks and the four before, counted per problem. */
+  recent: TopLevelWindow; previous: TopLevelWindow;
+  /** For each week of the period, the send rate over the four weeks ending with it (null without a try); smoother than week by week. */
+  rolling: Array<number | null>;
+  /** up / down when both windows have TOP_LEVEL_MIN problems at this grade and the rate moved by 10 points or more. */
+  direction: TopLevelDirection;
+};
+export type TopLevelSeries = {
+  system: GradeSystem;
+  /** The climber's two hardest grades with a send in the period, hardest first (one when nothing easier was tried), each judged on its own. */
+  grades: TopLevelGrade[];
+  /** Every week of the period, oldest first: problems tried at those grades that week, and how many were sent that week. */
+  weeks: TopLevelWeek[];
+  /** Up when a grade went up and none went down (down the other way round); flat when the judged grades held or disagree. */
+  direction: TopLevelDirection;
+};
+
+/** Problems a window needs before its rate is compared; and the move in send rate that counts. */
+export const TOP_LEVEL_MIN = 5;
+export const TOP_LEVEL_MOVE = 0.1;
+
+/**
+ * The send rate at the climber's top two grades, week by week, on each native
+ * scale: coarse colour circuits show progress here even when the hardest
+ * grade sent stays the same (Rouge 3/10 → 6/10). Grades are never merged or
+ * converted, and each of the two is judged on its own (pooled, an easy grade
+ * would hide the move at the hard one); they are fixed for the whole period
+ * so the weeks compare.
+ */
+export function topLevelRates(
+  problems: readonly ProblemFact[], attempts: readonly AttemptFact[], systems: readonly GradeSystem[], now: Date, weeks: number,
+): TopLevelSeries[] {
+  const currentWeek = startOfIsoWeekUtc(now).getTime();
+  const firstWeek = currentWeek - (weeks - 1) * 7 * DAY_MS;
+  const inPeriod = attempts.filter((a) => a.createdAt.getTime() >= firstWeek && a.createdAt <= now);
+  const byId = new Map(problems.map((p) => [p.id, p]));
+  const out: TopLevelSeries[] = [];
+  for (const system of systems) {
+    const score = new Map<string, number>();
+    const gradeAt = new Map<number, string>();
+    for (const a of inPeriod) {
+      const p = byId.get(a.problemId);
+      if (!p || p.nativeGradeSystem !== system || score.has(p.id)) continue;
+      const s = gradeToScore(system, p.nativeGrade);
+      if (s !== null) { score.set(p.id, s); gradeAt.set(s, p.nativeGrade); }
+    }
+    const mine = inPeriod.filter((a) => score.has(a.problemId));
+    const sentScores = mine.filter((a) => isSend(a.result)).map((a) => score.get(a.problemId)!);
+    if (!sentScores.length) continue;
+    const top = Math.max(...sentScores);
+    const below = [...new Set(score.values())].filter((s) => s < top).sort((a, b) => b - a)[0];
+    const keep = new Set(below === undefined ? [top] : [top, below]);
+    const atLevel = mine.filter((a) => keep.has(score.get(a.problemId)!));
+    const weekOf = (a: AttemptFact) => startOfIsoWeekUtc(a.createdAt).getTime();
+    const list: TopLevelWeek[] = Array.from({ length: weeks }, (_, i) => {
+      const start = firstWeek + i * 7 * DAY_MS;
+      const these = atLevel.filter((a) => weekOf(a) === start);
+      return { weekStart: new Date(start).toISOString().slice(0, 10), tried: new Set(these.map((a) => a.problemId)).size,
+        sent: new Set(these.filter((a) => isSend(a.result)).map((a) => a.problemId)).size };
+    });
+    const grades = [...keep].sort((a, b) => b - a).map((s): TopLevelGrade => {
+      const at = atLevel.filter((a) => score.get(a.problemId) === s);
+      const window = (fromWeek: number, toWeek: number): TopLevelWindow => {
+        const these = at.filter((a) => weekOf(a) >= fromWeek && weekOf(a) <= toWeek);
+        const tried = new Set(these.map((a) => a.problemId)).size;
+        const sent = new Set(these.filter((a) => isSend(a.result)).map((a) => a.problemId)).size;
+        return { tried, sent, rate: tried ? sent / tried : null };
+      };
+      const recent = window(currentWeek - 3 * 7 * DAY_MS, currentWeek);
+      const previous = window(currentWeek - 7 * 7 * DAY_MS, currentWeek - 4 * 7 * DAY_MS);
+      let direction: TopLevelDirection = "insufficient";
+      if (weeks >= 8 && recent.tried >= TOP_LEVEL_MIN && previous.tried >= TOP_LEVEL_MIN) {
+        const move = recent.rate! - previous.rate!;
+        direction = move >= TOP_LEVEL_MOVE ? "up" : move <= -TOP_LEVEL_MOVE ? "down" : "flat";
+      }
+      const rolling = list.map((_, i) => window(firstWeek + (i - 3) * 7 * DAY_MS, firstWeek + i * 7 * DAY_MS).rate);
+      return { grade: gradeAt.get(s)!, recent, previous, rolling, direction };
+    });
+    const judged = grades.filter((g) => g.direction !== "insufficient");
+    const ups = judged.some((g) => g.direction === "up"), downs = judged.some((g) => g.direction === "down");
+    const direction: TopLevelDirection = !judged.length ? "insufficient" : ups && !downs ? "up" : downs && !ups ? "down" : "flat";
+    out.push({ system, grades, weeks: list, direction });
+  }
+  return out.sort((a, b) => b.weeks.reduce((s, w) => s + w.tried, 0) - a.weeks.reduce((s, w) => s + w.tried, 0));
+}
+
 /** The system most of the period's attempted problems are graded on, among those with an order. */
 export function mainSystem(problems: readonly ProblemFact[], attempts: readonly AttemptFact[], candidates: readonly GradeSystem[]): GradeSystem | null {
   const tried = new Set(attempts.map((a) => a.problemId));

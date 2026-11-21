@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   LOAD_THRESHOLDS, boardScaledAttempts, boulderPerf, boulderScaledAttempts, climbIntensity, climbMinutes, estimateShares,
-  hangPerf, loadBySource, loadModel, loadZone, monotony, nearLimitCounts, performanceTrends, progressVerdict, projectLoad,
-  recentPainCount, routePerf, routeScaledAttempts, sessionLoads, weeklyGuide,
+  hangPerf, loadBySource, loadChange28, loadModel, loadZone, monotony, nearLimitCounts, performanceTrends, progressVerdict, projectLoad,
+  ratioAfterWeek, ratioSeries, recentPainCount, routePerf, routeScaledAttempts, sessionLoads, weeklyGuide, weeklyRatioRows, zoneRatio,
   type ClimbSessionFact, type LoadDay, type PerfSeries, type SessionLoad, type TrainingLoadFact,
 } from "@/lib/analytics/training-load";
 import type { AttemptFact, ProblemFact } from "@/lib/analytics/types";
@@ -60,7 +60,8 @@ describe("sessionLoads", () => {
     expect(loads).toEqual([
       { date: "2026-11-10", source: "BOULDER", minutes: 60, intensity: 6, load: 360, estimated: { minutes: false, intensity: true } },
       { date: "2026-11-10", source: "TRAINING", minutes: 40, intensity: 7, load: 280, estimated: { minutes: false, intensity: false } },
-      { date: "2026-11-11", source: "MOBILITY", minutes: 20, intensity: 2, load: 40, estimated: { minutes: true, intensity: true } },
+      // Mobility counts at half its load.
+      { date: "2026-11-11", source: "MOBILITY", minutes: 20, intensity: 2, load: 20, estimated: { minutes: true, intensity: true } },
     ]);
   });
   it("does not count a guided board session twice and uses its RPE for the climbing session", () => {
@@ -70,7 +71,7 @@ describe("sessionLoads", () => {
   });
   it("skips unfinished training and falls back to planned minutes", () => {
     const loads = sessionLoads([], [training({ completed: false }), training({ id: "t2", actualMinutes: null, rpe: null, mobility: true })], []);
-    expect(loads).toEqual([{ date: "2026-11-10", source: "MOBILITY", minutes: 45, intensity: 2, load: 90, estimated: { minutes: true, intensity: true } }]);
+    expect(loads).toEqual([{ date: "2026-11-10", source: "MOBILITY", minutes: 45, intensity: 2, load: 45, estimated: { minutes: true, intensity: true } }]);
   });
   it("reports estimate shares per source", () => {
     const loads = sessionLoads([climb({ durationMinutes: 60 }), climb({ id: "c2", attempts: 10 })], [], []);
@@ -115,22 +116,56 @@ describe("loadModel", () => {
   it("builds 42- and 7-day exponential averages day by day, empty days included", () => {
     const model = loadModel(loadsEvery("2026-11-01", 1, 1, 420), "2026-11-03");
     expect(model.map((d) => d.date)).toEqual(["2026-11-01", "2026-11-02", "2026-11-03"]);
-    expect(model[0]).toMatchObject({ load: 420, fitness: 10, fatigue: 60, form: -50, ratio: null });
+    expect(model[0]).toEqual({ date: "2026-11-01", load: 420, fitness: 10, fatigue: 60, form: -50 });
     expect(model[1].fatigue).toBeCloseTo(51.4, 1);
-  });
-  it("shows the ratio only after four weeks", () => {
-    const model = loadModel(loadsEvery("2026-09-01", 60, 2, 400), "2026-10-30");
-    expect(model[26].ratio).toBeNull();
-    expect(model[27].ratio).not.toBeNull();
-  });
-  it("settles near 1 when the same rhythm is kept", () => {
-    const model = loadModel(loadsEvery("2026-01-01", 300, 2, 400), addDays("2026-01-01", 299));
-    expect(model.at(-1)!.ratio!).toBeGreaterThan(0.8);
-    expect(model.at(-1)!.ratio!).toBeLessThan(1.3);
-    expect(loadZone(model.at(-1)!.ratio)).toBe("optimal");
   });
   it("is empty without loads", () => {
     expect(loadModel([], "2026-11-01")).toEqual([]);
+  });
+});
+
+describe("ratioSeries", () => {
+  it("divides the last 7 days by the weekly average of the last 28, from day 28", () => {
+    const ratios = ratioSeries(loadsEvery("2026-09-01", 60, 2, 400), "2026-10-30");
+    expect(ratios[26].fingers).toBeNull();
+    expect(ratios[26].calibrated).toBe(false);
+    expect(ratios[27].calibrated).toBe(true);
+    // Day index 27: sessions on even days, 14 in the 28 days, 3 in the last 7 (22, 24, 26).
+    expect(ratios[27].fingers).toBeCloseTo((3 * 400) / ((14 * 400) / 4), 2);
+  });
+  it("does not start from zero: a steady rhythm is in the band from the first day it shows", () => {
+    // An exponential average starting from zero gave about 2.0 here.
+    const ratios = ratioSeries(loadsEvery("2026-01-01", 40, 1, 300), addDays("2026-01-01", 39));
+    for (const d of ratios.slice(27)) expect(d.global).toBe(1);
+    expect(zoneRatio(ratios.at(-1))).toEqual({ ratio: 1, basis: "fingers" });
+  });
+  it("keeps fingers and upper body apart from mobility", () => {
+    const mobility: SessionLoad[] = Array.from({ length: 35 }, (_, i) => ({
+      date: addDays("2026-01-01", i), source: "MOBILITY", minutes: 40, intensity: 3, load: 60, estimated: { minutes: false, intensity: false },
+    }));
+    const climbing = loadsEvery("2026-01-01", 28, 2, 400);
+    const ratios = ratioSeries([...climbing, ...mobility], addDays("2026-01-01", 34));
+    const last = ratios.at(-1)!;
+    // No climbing in the last 7 days: the fingers ratio drops to 0, the global one keeps the mobility.
+    expect(last.fingers).toBe(0);
+    expect(last.global).toBeGreaterThan(0);
+    expect(last.fingersLoad).toBe(0);
+    expect(last.globalLoad).toBe(60);
+  });
+  it("reads everything when there is no climbing or training, and 0 after four empty weeks", () => {
+    const mobilityOnly: SessionLoad[] = loadsEvery("2026-01-01", 40, 2, 100).map((l) => ({ ...l, source: "MOBILITY" }));
+    expect(zoneRatio(ratioSeries(mobilityOnly, addDays("2026-01-01", 39)).at(-1)).basis).toBe("global");
+    const stopped = ratioSeries(loadsEvery("2026-01-01", 30, 2, 400), addDays("2026-01-01", 80));
+    expect(zoneRatio(stopped.at(-1))).toEqual({ ratio: 0, basis: "fingers" });
+    expect(loadZone(zoneRatio(stopped.at(-1)).ratio)).toBe("under");
+    expect(zoneRatio(ratioSeries(loadsEvery("2026-01-01", 5, 1, 300), "2026-01-05").at(-1)).ratio).toBeNull();
+  });
+  it("sums each week with its last ratio for the table", () => {
+    const rows = weeklyRatioRows(ratioSeries(loadsEvery("2026-11-02", 14, 1, 100), "2026-11-15"));
+    expect(rows).toEqual([
+      { weekStart: "2026-11-02", fingers: null, global: null, fingersLoad: 700, globalLoad: 700 },
+      { weekStart: "2026-11-09", fingers: null, global: null, fingersLoad: 700, globalLoad: 700 },
+    ]);
   });
 });
 
@@ -149,6 +184,7 @@ describe("projection and weekly guide", () => {
   const today = addDays("2026-01-01", 119);
   const loads = loadsEvery("2026-01-01", 120, 3, 300);
   const model = loadModel(loads, today);
+  const ratios = ratioSeries(loads, today);
   it("projects 14 days at the last 28 days' average", () => {
     const p = projectLoad(model);
     expect(p.points).toHaveLength(14);
@@ -157,33 +193,33 @@ describe("projection and weekly guide", () => {
     expect(p.daily).toBeLessThan(110);
   });
   it("gives the week's range in load and in typical sessions", () => {
-    const g = weeklyGuide(model, loads, today)!;
+    const g = weeklyGuide(ratios, loads, today)!;
+    expect(g.basis).toBe("fingers");
     expect(g.typicalLoad).toBe(300);
     expect(g.minLoad).toBeLessThan(g.maxLoad);
     expect(g.maxLoad).toBeLessThan(g.dangerLoad);
     expect(g.minSessions).toBeGreaterThan(1);
     expect(g.maxSessions).toBeLessThan(4);
   });
-  it("lands the week on the band's limits when simulated", async () => {
-    const { ratioAfter } = await import("@/lib/analytics/training-load");
-    const g = weeklyGuide(model, loads, today)!;
-    const last = model.at(-1)!;
-    expect(ratioAfter(last.fitness, last.fatigue, g.minLoad)).toBeCloseTo(0.8, 2);
-    expect(ratioAfter(last.fitness, last.fatigue, g.maxLoad)).toBeCloseTo(1.3, 2);
+  it("lands the week exactly on the band's limits", () => {
+    const g = weeklyGuide(ratios, loads, today)!;
+    const last21 = ratios.slice(-21).reduce((s, d) => s + d.fingersLoad, 0);
+    expect(ratioAfterWeek(last21, g.minLoad)).toBeCloseTo(0.8, 2);
+    expect(ratioAfterWeek(last21, g.maxLoad)).toBeCloseTo(1.3, 2);
+    expect(ratioAfterWeek(last21, g.dangerLoad)).toBeCloseTo(1.5, 2);
   });
-  it("asks for rest after a big spike", () => {
-    const spiked = loadModel([...loadsEvery("2026-01-01", 60, 4, 200), ...loadsEvery("2026-03-02", 7, 1, 900)], "2026-03-08");
-    const g = weeklyGuide(spiked, [], "2026-03-08")!;
-    expect(g.minLoad).toBe(0);
-    expect(g.maxLoad).toBeLessThan(g.dangerLoad);
+  it("leaves mobility out of the typical session", () => {
+    const withMobility: SessionLoad[] = [...loads, { date: today, source: "MOBILITY", minutes: 30, intensity: 2, load: 30, estimated: { minutes: false, intensity: false } }];
+    expect(weeklyGuide(ratioSeries(withMobility, today), withMobility, today)!.typicalLoad).toBe(300);
   });
-  it("has no guide while calibrating", () => {
-    expect(weeklyGuide(loadModel(loadsEvery("2026-01-01", 5, 1, 300), "2026-01-05"), [], "2026-01-05")).toBeNull();
+  it("has no guide while the ratio is not shown", () => {
+    const short = loadsEvery("2026-01-01", 5, 1, 300);
+    expect(weeklyGuide(ratioSeries(short, "2026-01-05"), short, "2026-01-05")).toBeNull();
   });
 });
 
 describe("monotony", () => {
-  const day = (load: number, i: number): LoadDay => ({ date: addDays("2026-11-01", i), load, fitness: 0, fatigue: 0, form: 0, ratio: null });
+  const day = (load: number, i: number): LoadDay => ({ date: addDays("2026-11-01", i), load, fitness: 0, fatigue: 0, form: 0 });
   it("is mean ÷ standard deviation of the last week", () => {
     expect(monotony([300, 0, 300, 0, 300, 0, 300].map(day))).toBeCloseTo(1.15, 2);
     expect(monotony([300, 300, 300, 300, 300, 300, 200].map(day))).toBeGreaterThan(2);
@@ -197,16 +233,22 @@ describe("performance", () => {
     ({ key: "s", kind: "boulder", threshold, points: points.map(([date, score]) => ({ date, score, display: String(score) })) });
   const today = "2026-11-15";
   it("compares the top-3 average of the last 6 weeks with the 6 weeks before", () => {
-    const [t] = performanceTrends([series([["2026-09-10", 5], ["2026-09-20", 6], ["2026-10-20", 6], ["2026-11-01", 7], ["2026-11-10", 8]])], today);
+    const [t] = performanceTrends([series([["2026-09-10", 5], ["2026-09-20", 6], ["2026-10-20", 6], ["2026-11-01", 7], ["2026-11-10", 8]])], today, 42, 1);
     expect(t.previous).toBe(5.5);
     expect(t.recent).toBe(7);
     expect(t.direction).toBe("up");
     expect(t.recentBest).toMatchObject({ score: 8 });
   });
   it("calls small moves flat and needs both windows", () => {
-    expect(performanceTrends([series([["2026-09-20", 6], ["2026-11-10", 6]])], today)[0].direction).toBe("flat");
-    expect(performanceTrends([series([["2026-09-20", 7], ["2026-11-10", 6]])], today)[0].direction).toBe("down");
-    expect(performanceTrends([series([["2026-11-10", 6]])], today)[0].direction).toBe("insufficient");
+    expect(performanceTrends([series([["2026-09-20", 6], ["2026-11-10", 6]])], today, 42, 1)[0].direction).toBe("flat");
+    expect(performanceTrends([series([["2026-09-20", 7], ["2026-11-10", 6]])], today, 42, 1)[0].direction).toBe("down");
+    expect(performanceTrends([series([["2026-11-10", 6]])], today, 42, 1)[0].direction).toBe("insufficient");
+  });
+  it("needs five results in each window by default", () => {
+    const four: Array<[string, number]> = [["2026-09-20", 5], ["2026-09-21", 5], ["2026-09-22", 5], ["2026-09-23", 5]];
+    const recent: Array<[string, number]> = [["2026-11-01", 8], ["2026-11-02", 8], ["2026-11-03", 8], ["2026-11-04", 8], ["2026-11-05", 8]];
+    expect(performanceTrends([series([...four, ...recent])], today)[0].direction).toBe("insufficient");
+    expect(performanceTrends([series([...four, ["2026-09-24", 5], ...recent])], today)[0].direction).toBe("up");
   });
   it("builds series per native scale, never merging them", () => {
     const problems = [
@@ -228,28 +270,30 @@ describe("performance", () => {
 
 describe("progressVerdict", () => {
   const trend = (direction: "up" | "down" | "flat" | "insufficient") => ({ direction } as unknown as Parameters<typeof progressVerdict>[0][number]);
-  const steady = loadModel(loadsEvery("2026-01-01", 200, 2, 400), addDays("2026-01-01", 199));
+  const steady = ratioSeries(loadsEvery("2026-01-01", 200, 2, 400), addDays("2026-01-01", 199));
   const extra = { monotony: null, recentPain: 0 };
-  it("lets performance decide when it can", () => {
+  it("lets performance decide", () => {
     expect(progressVerdict([trend("up"), trend("flat")], steady, extra).verdict).toBe("progressing");
     expect(progressVerdict([trend("down"), trend("up"), trend("down")], steady, extra).verdict).toBe("declining");
-    expect(progressVerdict([trend("flat")], steady, extra)).toMatchObject({ verdict: "stagnating", basis: "performance" });
+    expect(progressVerdict([trend("flat")], steady, extra)).toMatchObject({ verdict: "stagnating", basis: "performance", zone: "optimal" });
   });
-  it("turns a flat performance with a big loss of fitness into decline", () => {
-    const stopped = loadModel(loadsEvery("2026-01-01", 120, 2, 400), addDays("2026-01-01", 170));
+  it("turns a flat performance with a big loss of load into decline", () => {
+    const stopped = ratioSeries(loadsEvery("2026-01-01", 120, 2, 400), addDays("2026-01-01", 140));
     const v = progressVerdict([trend("flat")], stopped, extra);
-    expect(v.fitnessChange!).toBeLessThan(-0.2);
+    expect(v.loadChange!).toBeLessThan(-0.2);
     expect(v.verdict).toBe("declining");
     expect(v.flags).toContain("under");
   });
-  it("falls back on load alone, then on nothing", () => {
-    const building = loadModel([...loadsEvery("2026-01-01", 60, 3, 200), ...loadsEvery("2026-03-02", 40, 1, 400)], "2026-04-10");
-    expect(progressVerdict([trend("insufficient")], building, extra)).toMatchObject({ verdict: "progressing", basis: "load" });
-    expect(progressVerdict([], [], extra)).toMatchObject({ verdict: "insufficient", basis: "none" });
+  it("gives no verdict without comparable results, even when the load grows", () => {
+    const building = ratioSeries([...loadsEvery("2026-01-01", 60, 3, 200), ...loadsEvery("2026-03-02", 40, 1, 400)], "2026-04-10");
+    expect(loadChange28(building)!).toBeGreaterThan(0.1);
+    expect(progressVerdict([trend("insufficient")], building, extra)).toMatchObject({ verdict: "insufficient", basis: "none" });
+    expect(progressVerdict([], [], extra)).toMatchObject({ verdict: "insufficient", basis: "none", zone: "calibrating", loadChange: null });
   });
   it("raises flags for spikes, monotony and pain", () => {
-    const spike = loadModel([...loadsEvery("2026-01-01", 60, 4, 200), ...loadsEvery("2026-03-02", 6, 1, 600)], "2026-03-07");
+    const spike = ratioSeries([...loadsEvery("2026-01-01", 60, 4, 200), ...loadsEvery("2026-03-02", 6, 1, 600)], "2026-03-07");
     const v = progressVerdict([], spike, { monotony: 2.5, recentPain: 1 });
+    expect(v.ratio!).toBeGreaterThan(1.5);
     expect(v.flags).toEqual(expect.arrayContaining(["spike", "monotony", "pain"]));
   });
 });
@@ -289,16 +333,12 @@ describe("trainingLoadReport", () => {
 });
 
 describe("loadChartPoints", () => {
-  it("draws the band only once calibrated and marks the projection", async () => {
+  it("starts at the period and marks the projection", async () => {
     const { loadChartPoints } = await import("@/lib/analytics/training-load");
     const model = loadModel(loadsEvery("2026-01-01", 60, 2, 400), "2026-03-01");
     const pts = loadChartPoints(model, projectLoad(model, 3).points, "2026-01-20");
     expect(pts[0].date).toBe("2026-01-20");
-    expect(pts[0].bandLow).toBeNull();
-    const last = pts.at(-4)!;
-    expect(last.projected).toBe(false);
-    expect(last.bandHigh).toBeCloseTo(last.fitness * 1.3, 0);
+    expect(pts.at(-4)!.projected).toBe(false);
     expect(pts.at(-1)!.projected).toBe(true);
-    expect(pts.at(-1)!.danger).not.toBeNull();
   });
 });

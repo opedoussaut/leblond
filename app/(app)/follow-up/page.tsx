@@ -7,7 +7,10 @@ import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { PageHeader } from "@/components/ui/card";
 import { AREA_ICONS } from "@/components/layout/nav-icons";
 import { computeSnapshot } from "@/lib/analytics";
-import { gradePyramid, isMobilityWork, mainSystem, weeklyHardest, weeklyTotals, type WeekTotal } from "@/lib/analytics/charts";
+import { gradePyramid, isMobilityWork, mainSystem, topLevelRates, weeklyHardest, weeklyTotals, type TopLevelSeries, type WeekTotal } from "@/lib/analytics/charts";
+import { OverviewTiles } from "@/components/charts/overview-tiles";
+import { Sparkline } from "@/components/charts/sparkline";
+import { TopLevelRates } from "@/components/charts/top-level-rates";
 import { calculateWeeklyActivity } from "@/lib/analytics/progress";
 import { requireViewer } from "@/lib/auth/viewer";
 import { GRADE_SYSTEMS } from "@/lib/climbing/types";
@@ -21,7 +24,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
 import { mobilityOverview } from "@/lib/analytics/mobility";
 import { loadMobility } from "@/lib/data/mobility";
-import { fmt, type Locale } from "@/lib/i18n";
+import { fmt, intlLocale, type Locale } from "@/lib/i18n";
 import { chartsDictionary } from "@/lib/i18n/charts";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { HIP_METHOD_ID, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
@@ -45,12 +48,11 @@ import { notebookDictionary } from "@/lib/i18n/notebook";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { routePyramid, routeWeeklyActivity, routeWeeklyHardest } from "@/lib/analytics/routes";
 import { TrainingLoad } from "@/components/charts/training-load";
-import { loadChartPoints, weeklyLoadRows } from "@/lib/analytics/training-load";
+import { LOAD_THRESHOLDS, loadChartPoints, weeklyLoadRows, weeklyRatioRows, zoneRatio } from "@/lib/analytics/training-load";
 import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { SectionTabs } from "@/components/layout/section-tabs";
 import { Fold } from "@/components/ui/fold";
 import { HeroFigure, SectionRows } from "@/components/ui/hero-figure";
-import { boulderGrade } from "@/lib/grading/display";
 import { progressAreaDictionary } from "@/lib/i18n/progress-area";
 import { trainingLoadDictionary } from "@/lib/i18n/training-load";
 import { routeAscentsInLastDays } from "@/lib/analytics/routes";
@@ -153,15 +155,22 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const chartSystem = mainSystem(dataset.problems, dataset.attempts.filter((x) => x.createdAt.getTime() >= sinceMs),
     GRADE_SYSTEMS.filter(isOrderedSystem));
   const climbWeeks = calculateWeeklyActivity(dataset.sessions, dataset.attempts, now, weeks);
+  // Send rate at the top two grades, one series per native scale (the Grimpe tab and the overview's level tile).
+  const topLevels = tab === "climbing" || tab === "overview"
+    ? topLevelRates(dataset.problems, dataset.attempts, GRADE_SYSTEMS.filter(isOrderedSystem), now, weeks) : [];
   const done = (training ?? []).filter((x) => x.status === "COMPLETED" && !isMobility(x));
-  const trainWeeks = weeklyTotals(done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes })), today, weeks);
+  const trainItems = done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes }));
+  const mobItems = [
+    ...mobility.records.filter((r) => r.status === "COMPLETED").map((m) => ({ date: m.date, minutes: m.minutes })),
+    ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
+  ];
+  const trainWeeks = weeklyTotals(trainItems, today, weeks);
+  const mobWeeks = weeklyTotals(mobItems, today, weeks);
+  // Training and mobility minutes together, for the overview's tile.
+  const activeWeeks = weeklyTotals([...trainItems, ...mobItems], today, weeks);
   const [boardRows, hangSets, limiterSessions] = await Promise.all([
     loadBoardAscents(viewer.supabase), loadHangSets(viewer.supabase), loadSessionLimiters(viewer.supabase, since),
   ]);
-  const mobWeeks = weeklyTotals([
-    ...mobility.records.filter((r) => r.status === "COMPLETED").map((m) => ({ date: m.date, minutes: m.minutes, rpe: m.rpe })),
-    ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
-  ], today, weeks);
 
   // The notebook: records, paired weekly curves, limiters.
   const n = notebookDictionary(locale);
@@ -173,6 +182,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const loadReport = tab !== "overview" && tab !== "load" ? null : await loadTrainingLoadReport(viewer.supabase, { today, now, dataset, routes: routes ?? [], boardFacts, mobility, training, hangSets });
   const rd = routeDictionary(locale);
   const firstWeek = new Date(startOfIsoWeekUtc(new Date(today + "T12:00:00Z")).getTime() - (weeks - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
+  const ratioDays = loadReport ? loadReport.ratios.filter((d) => d.date >= firstWeek) : [];
   const totals = (list: WeekTotal[], unit: string): WeeklyPoint[] => list.map((w, i) => ({ week: i, value: w.minutes, label: `${w.minutes} ${unit}` }));
   const buildSeries = (id: SeriesId): CurveSeries => {
     const title = n.series[id];
@@ -220,6 +230,12 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const periodName = weeks === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: weeks });
   const ld = trainingLoadDictionary(locale);
   const routesInPeriod = routes ? routeAscentsInLastDays(routes, days, now).length : 0;
+  // The overview's markers: today's load zone, the main scale's top-grade send rate.
+  const loadVerdict = loadReport && loadReport.model.length ? loadReport.verdict : null;
+  const mainLevel = topLevels[0] as TopLevelSeries | undefined;
+  const topGrade = mainLevel?.grades[0];
+  const ratioFormat = new Intl.NumberFormat(intlLocale(locale), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const percentFormat = new Intl.NumberFormat(intlLocale(locale), { style: "percent", maximumFractionDigits: 0 });
 
   return <div className="space-y-8">
     <PageHeader icon={<AREA_ICONS.progress />} title={c.ptitle} subtitle={tab === "overview" ? c.psubtitle : pa.tabs[tab]} />
@@ -235,27 +251,33 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </nav>
 
     {tab === "overview" ? <>
-      <section aria-label={pa.heroTitle} className="px-1">
-        <HeroFigure size="page" eyebrow={fmt(pa.heroEyebrow, { period: periodName })}
-          value={working.level ? boulderGrade(working.level) : snap.counts.tops}
-          label={working.level ? fmt(pa.heroLabel, { n: working.sampleSize }) : pa.heroSends}
-          note={working.level ? undefined : pa.heroNone}
-          badge={<Evidence kind="observed" fr={fr} />}
-          stats={[
-            { label: pa.climbSessions, value: snap.counts.sessions },
-            { label: pa.trainingDone, value: adh.completed },
-            { label: pa.mobility28, value: mobSessions28 },
-          ]} />
-      </section>
-      <SectionRows label={pa.sections} rows={[
-        { href: followUpHref("load", weeks), title: pa.loadCard,
-          value: loadReport && loadReport.model.length ? ld.verdict[loadReport.verdict.verdict] : "—",
-          detail: loadReport && loadReport.model.length ? `${ld.zoneLabel} : ${ld.zone[loadReport.verdict.zone]}` : pa.loadNone,
-          muted: !(loadReport && loadReport.model.length) },
-        { href: followUpHref("climbing", weeks), title: pa.climbCard, value: formatPercent(snap.sendRate),
-          detail: fmt(pa.climbDetail, { routes: routesInPeriod }) },
-        { href: followUpHref("training", weeks), title: pa.trainingCard, value: `${adh.completed} / ${adh.planned}`,
-          detail: fmt(pa.trainingDetail, { minutes: adh.activeMinutes }) },
+      <OverviewTiles title={pa.tilesTitle} hint={pa.tilesHint} tiles={[
+        { href: followUpHref("load", weeks), section: pa.tabs.load,
+          title: loadVerdict?.ratioBasis === "global" ? pa.tileLoadGlobal : pa.tileLoad,
+          value: loadVerdict && loadVerdict.zone !== "calibrating" && loadVerdict.ratio !== null ? ratioFormat.format(loadVerdict.ratio) : "—",
+          muted: !loadVerdict || loadVerdict.zone === "calibrating",
+          caption: !loadVerdict ? pa.loadNone : loadVerdict.zone === "calibrating" ? pa.tileLoadCalibrating
+            : fmt(pa.tileLoadCaption, { zone: ld.zone[loadVerdict.zone] }),
+          spark: <Sparkline values={ratioDays.map((d) => zoneRatio(d).ratio)} min={0}
+            band={{ low: LOAD_THRESHOLDS.low, high: LOAD_THRESHOLDS.high }} /> },
+        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing,
+          title: topGrade ? fmt(pa.tileLevel, { grade: gradeLabel(t, mainLevel!.system, topGrade.grade) }) : pa.tileLevelEmpty,
+          value: topGrade && topGrade.recent.rate !== null ? percentFormat.format(topGrade.recent.rate) : "—",
+          muted: !topGrade || topGrade.recent.rate === null,
+          caption: topGrade ? fmt(pa.tileLevelCaption, {
+            scale: (t.grades.systems as Record<string, string>)[mainLevel!.system] ?? mainLevel!.system,
+            previous: topGrade.previous.rate === null ? "—" : percentFormat.format(topGrade.previous.rate),
+            direction: c.tlDirection[topGrade.direction],
+          }) : pa.tileLevelNone,
+          spark: <Sparkline values={topGrade?.rolling ?? []} min={0} max={1} /> },
+        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, title: pa.tileVolume, value: snap.counts.tops,
+          caption: fmt(pa.tileVolumeCaption, { sessions: snap.counts.sessions, routes: routesInPeriod }),
+          spark: <Sparkline kind="bars" values={climbWeeks.map((w) => w.tops)} /> },
+        { href: followUpHref("training", weeks), section: pa.tabs.training, title: pa.tileTraining, value: `${adh.completed} / ${adh.planned}`,
+          caption: fmt(pa.tileTrainingCaption, { minutes: adh.activeMinutes, mobility: mobSessions28 }),
+          spark: <Sparkline kind="bars" values={activeWeeks.map((w) => w.minutes)} /> },
+      ]} />
+      <SectionRows label={pa.compareCard} rows={[
         { href: followUpHref("compare", weeks), title: pa.compareCard, value: "",
           detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }) },
       ]} />
@@ -265,6 +287,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     </> : null}
 
     {tab === "load" && loadReport ? <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
+      ratioDays={ratioDays} ratioWeeks={weeklyRatioRows(ratioDays)}
       points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} /> : null}
 
     {tab === "climbing" ? <>
@@ -285,12 +308,17 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
               { label: fr ? "Taux de réussite" : "Send rate", value: formatPercent(snap.sendRate),
                 hint: [formatCounts(snap.sendRate), fr ? `${snap.counts.problems} blocs essayés` : `${snap.counts.problems} problems tried`].filter(Boolean).join(" · ") },
             ]} />
-          {chartSystem ? <div className="grid grid-cols-1 gap-6 border-t border-line pt-4 lg:grid-cols-2">
-            <LevelCurve plain t={t} locale={locale} system={chartSystem} now={now}
-              points={weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+          <div className="border-t border-line pt-4">
+            <TopLevelRates t={t} locale={locale} series={topLevels} />
+          </div>
+          {chartSystem ? <div className="border-t border-line pt-4">
             <GradePyramid plain t={t} locale={locale} system={chartSystem}
               rows={gradePyramid(dataset.problems, dataset.attempts, chartSystem, now, days)} />
           </div> : null}
+          {chartSystem ? <Fold title={c.levelFold} hint={c.levelFoldHint}>
+            <LevelCurve plain t={t} locale={locale} system={chartSystem} now={now}
+              points={weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+          </Fold> : null}
           <Fold title={c.climbTops} hint={pa.weeklyHint}>
             <WeeklyBars weeks={climbWeeks} locale={locale}
               labels={{ tops: c.topsLabel, sessions: c.sessionsLabel, caption: c.climbTops, range: c.rangeLabel, help: t.progress.weeklyHelp, weekOf: c.weekOfLabel }} />
