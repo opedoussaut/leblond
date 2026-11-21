@@ -84,6 +84,27 @@ test("R — mobility rebuild: key assignment, idempotence, symptom gates, guided
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
   expect(status.first_date > today).toBe(true);
 
+  // A bilan done outside the app (synthetic values), imported with the same key.
+  const yesterday = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(Date.now() - 86_400_000));
+  const bilan = {
+    startedOn: yesterday, status: "STOPPED", stopReason: "CHOICE", conditions: { chairHeightCm: 46 }, notes: "imported, self-reported",
+    cards: [
+      { cardId: "M01", entries: [{ side: "BOTH", item: 1, status: "DONE", value: 2 }, { side: "BOTH", item: 2, status: "DONE", value: 0 }] },
+      { cardId: "M05", entries: [{ side: "RIGHT", status: "DONE", value: 7 }, { side: "LEFT", status: "DONE", value: 5 }] },
+    ],
+  };
+  expect((await request.post("/api/coach-bilans", { data: bilan })).status()).toBe(401);
+  expect((await request.post("/api/coach-bilans", { headers: auth, data: { ...bilan, startedOn: "2099-01-01" } })).status()).toBe(409);
+  expect((await request.post("/api/coach-bilans", { headers: auth, data: { ...bilan, cards: [{ cardId: "M05", entries: [{ side: "BOTH", status: "DONE", value: 7 }] }] } })).status()).toBe(400);
+  const imported = await request.post("/api/coach-bilans", { headers: auth, data: bilan });
+  expect(imported.status()).toBe(200);
+  const importedBody = await imported.json();
+  expect(importedBody).toMatchObject({ created: true, results: 4 });
+  expect(await (await request.post("/api/coach-bilans", { headers: auth, data: bilan })).json())
+    .toMatchObject({ created: false, session_id: importedBody.session_id, results: 4 });
+  await page.goto("/follow-up/mobility/battery");
+  await expect(page.getByRole("link", { name: /Arrêté/ })).toHaveCount(1);
+
   // Entraînement: assigned with no selection, clinical review still to document.
   await page.goto("/train/mobility");
   const entry = page.getByRole("region", { name: "Reconquête mobilité | 12 semaines" });
@@ -173,4 +194,6 @@ test("R — mobility rebuild: key assignment, idempotence, symptom gates, guided
   await expect(other.getByText("Ce programme n’est pas encore affecté à ton compte.")).toBeVisible();
   const res = await other.goto(sessionUrl);
   expect(res?.status()).toBe(404);
+  await other.goto("/follow-up/mobility/battery");
+  await expect(other.getByText("Pas encore de bilan terminé.")).toBeVisible();
 });

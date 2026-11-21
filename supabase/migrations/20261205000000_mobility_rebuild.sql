@@ -191,3 +191,60 @@ end $$;
 
 revoke all on function public.coach_key_assign_rebuild(text, smallint[], jsonb, jsonb), public.coach_key_rebuild_status(text) from public;
 grant execute on function public.coach_key_assign_rebuild(text, smallint[], jsonb, jsonb), public.coach_key_rebuild_status(text) to anon, authenticated;
+
+-- ── Coach key: import a bilan done outside the app (for example the baseline S0) ──
+-- p_rows: mobility_battery_results rows built and validated by the app (buildCardRows, the
+-- same rules as a card entered in the app). The owner comes from the key only; the date is
+-- today or earlier; one bilan per day is imported (re-running returns the existing one);
+-- the usual guards (one open bilan, clinical and knee rules, locked once finished) apply.
+create or replace function public.coach_key_import_battery(p_key text, p_protocol smallint, p_started_on date,
+  p_status text, p_stop_reason text, p_knee_pain boolean, p_conditions jsonb, p_notes text, p_rows jsonb)
+returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_user uuid := public.coach_key_owner(p_key);
+  v_today date := (now() at time zone 'Europe/Paris')::date;
+  v_session uuid;
+  v_count integer;
+begin
+  if p_started_on is null or p_started_on > v_today then
+    raise exception 'future_date' using errcode = '22023';
+  end if;
+  if p_status not in ('COMPLETED', 'STOPPED') or jsonb_typeof(p_rows) <> 'array'
+     or jsonb_array_length(p_rows) not between 1 and 200 then
+    raise exception 'invalid_bilan' using errcode = '22023';
+  end if;
+  select id into v_session from public.mobility_battery_sessions
+    where user_id = v_user and started_on = p_started_on and status <> 'IN_PROGRESS'
+    order by created_at limit 1;
+  if v_session is not null then
+    select count(*) into v_count from public.mobility_battery_results where session_id = v_session;
+    return jsonb_build_object('session_id', v_session, 'created', false, 'results', v_count);
+  end if;
+  if exists (select 1 from public.mobility_battery_sessions where user_id = v_user and status = 'IN_PROGRESS') then
+    raise exception 'bilan_open' using errcode = '23505';
+  end if;
+
+  insert into public.mobility_battery_sessions (user_id, protocol_version, started_on, conditions, knee_pain_today, notes)
+  values (v_user, p_protocol, p_started_on, coalesce(p_conditions, '{}'::jsonb), coalesce(p_knee_pain, false), coalesce(p_notes, ''))
+  returning id into v_session;
+
+  insert into public.mobility_battery_results (session_id, user_id, card_id, card_version, side, item, trial, status,
+    value, category, unit, not_done_reason, pain_before, pain_after, radiation, details, note)
+  select v_session, v_user, x.card_id, x.card_version, x.side, x.item, x.trial, x.status,
+    x.value, x.category, x.unit, x.not_done_reason, x.pain_before, x.pain_after, x.radiation,
+    coalesce(x.details, '{}'::jsonb), coalesce(x.note, '')
+  from jsonb_to_recordset(p_rows) as x(card_id text, card_version smallint, side text, item smallint, trial smallint,
+    status text, value numeric, category text, unit text, not_done_reason text, pain_before smallint, pain_after smallint,
+    radiation text, details jsonb, note text);
+  get diagnostics v_count = row_count;
+
+  update public.mobility_battery_sessions
+    set status = p_status, stop_reason = case when p_status = 'STOPPED' then p_stop_reason end, completed_at = now()
+    where id = v_session;
+  return jsonb_build_object('session_id', v_session, 'created', true, 'results', v_count);
+end $$;
+
+revoke all on function public.coach_key_import_battery(text, smallint, date, text, text, boolean, jsonb, text, jsonb) from public;
+grant execute on function public.coach_key_import_battery(text, smallint, date, text, text, boolean, jsonb, text, jsonb) to anon, authenticated;

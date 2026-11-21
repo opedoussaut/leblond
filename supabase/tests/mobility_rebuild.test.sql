@@ -65,6 +65,17 @@ select public.coach_key_rebuild_status(:'key_a') as status \gset
 select pg_temp.expect((:'status'::jsonb ->> 'sessions')::int = 4 and (:'status'::jsonb ->> 'slots')::int = 4
   and (:'status'::jsonb ->> 'exercises')::int = 5 and :'status'::jsonb ->> 'started_on' = :'d1'
   and (:'status'::jsonb -> 'by_status' ->> 'PLANNED')::int = 4, 'status counts the assignment');
+-- Importing a bilan done outside the app (synthetic values)
+\set rows '[{"card_id":"M01","card_version":1,"side":"BOTH","item":1,"trial":1,"status":"DONE","value":2,"unit":"SCORE","details":{},"note":""},{"card_id":"M05","card_version":1,"side":"LEFT","item":1,"trial":1,"status":"DONE","value":4,"unit":"CM","details":{},"note":""}]'
+select pg_temp.expect_error(format($$select public.coach_key_import_battery(%L, 1::smallint, (%L::date + 1), 'COMPLETED', null, false, '{}', '', %L)$$, :'key_a', :'today', :'rows'), 'a bilan in the future is refused');
+select pg_temp.expect_error(format($$select public.coach_key_import_battery(%L, 1::smallint, %L::date, 'IN_PROGRESS', null, false, '{}', '', %L)$$, :'key_a', :'today', :'rows'), 'an imported bilan is finished');
+select pg_temp.expect_error(format($$select public.coach_key_import_battery(%L, 1::smallint, %L::date, 'COMPLETED', null, false, '{}', '', '[{"card_id":"M11","card_version":1,"side":"BOTH","item":1,"trial":1,"status":"DONE","value":3,"unit":"CM"}]')$$, :'key_a', :'today'), 'card rules still apply (clinical review)');
+select pg_temp.expect_error(format($$select public.coach_key_import_battery(%L, 1::smallint, %L::date, 'COMPLETED', null, true, '{}', '', %L)$$, :'key_a', :'today', :'rows'), 'card rules still apply (knee pain)');
+select public.coach_key_import_battery(:'key_a', 1::smallint, :'today'::date - 1, 'STOPPED', 'CHOICE', false, '{"chairHeightCm":45}', 'auto-déclaré', :'rows') as bilan \gset
+select pg_temp.expect((:'bilan'::jsonb ->> 'created')::boolean and (:'bilan'::jsonb ->> 'results')::int = 2, 'bilan imported with its results');
+select public.coach_key_import_battery(:'key_a', 1::smallint, :'today'::date - 1, 'STOPPED', 'CHOICE', false, '{}', '', :'rows') as bilan2 \gset
+select pg_temp.expect(not (:'bilan2'::jsonb ->> 'created')::boolean and :'bilan2'::jsonb ->> 'session_id' = :'bilan'::jsonb ->> 'session_id', 're-importing creates no duplicate');
+select pg_temp.expect_error($$select count(*) from public.mobility_battery_sessions$$, 'anon cannot read bilans');
 select pg_temp.expect_error($$select count(*) from public.training_sessions$$, 'anon cannot read séances');
 select pg_temp.expect_error($$select count(*) from public.mobility_session_checks$$, 'anon cannot read check-ins');
 reset role;
@@ -72,6 +83,11 @@ select pg_temp.expect((select count(*) = 4 and bool_and(user_id = 'e1200000-0000
   and status = 'PLANNED' and original_date = scheduled_date and scheduled_date > (now() at time zone 'Europe/Paris')::date)
   from public.training_sessions where enrollment_id is not null), 'written for the key owner only, all in the future');
 select pg_temp.expect((select count(*) = 0 from public.training_sessions where user_id = 'e1200000-0000-0000-0000-00000000000b'), 'nothing written for B');
+select pg_temp.expect((select count(*) = 1 and bool_and(user_id = 'e1200000-0000-0000-0000-00000000000a' and status = 'STOPPED' and stop_reason = 'CHOICE'
+  and completed_at is not null) from public.mobility_battery_sessions where id = (:'bilan'::jsonb ->> 'session_id')::uuid), 'the bilan belongs to the key owner, finished');
+select pg_temp.expect((select count(*) = 2 and bool_and(user_id = 'e1200000-0000-0000-0000-00000000000a') from public.mobility_battery_results
+  where session_id = (:'bilan'::jsonb ->> 'session_id')::uuid), 'its results too');
+select pg_temp.expect((select count(*) = 0 from public.mobility_battery_sessions where user_id = 'e1200000-0000-0000-0000-00000000000b'), 'no bilan written for B');
 select id as sess_a from public.training_sessions where programme_slot = 1 \gset
 select pg_temp.expect((select instructions ->> 'alternative' = 'Assis' and target_sets = 2 from public.training_session_exercises
   where session_id = :'sess_a' and position = 1), 'exercise rows keep sets, minutes and the alternative');
@@ -104,6 +120,7 @@ select set_config('request.jwt.claims', '{"sub":"e1200000-0000-0000-0000-0000000
 select pg_temp.expect((select count(*) = 0 from public.training_sessions), 'B cannot read A''s séances');
 select pg_temp.expect((select count(*) = 0 from public.mobility_enrollments), 'B cannot read A''s enrolment');
 select pg_temp.expect((select count(*) = 0 from public.mobility_session_checks), 'B cannot read A''s check-ins');
+select pg_temp.expect((select count(*) = 0 from public.mobility_battery_sessions), 'B cannot read A''s imported bilan');
 select pg_temp.expect_error(format($$insert into public.mobility_session_checks (user_id, session_id, moment, verdict)
   values ('e1200000-0000-0000-0000-00000000000b', %L, 'AFTER', 'GO')$$, :'sess_a'), 'B cannot attach a check-in to A''s séance');
 select pg_temp.expect_error(format($$insert into public.mobility_session_checks (user_id, session_id, moment, verdict)

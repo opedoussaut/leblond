@@ -2443,6 +2443,20 @@ export type Database = {
         Returns: Json;
       };
       coach_key_rebuild_status: { Args: { p_key: string }; Returns: Json };
+      coach_key_import_battery: {
+        Args: {
+          p_key: string;
+          p_protocol: number;
+          p_started_on: string;
+          p_status: string;
+          p_stop_reason: string | null;
+          p_knee_pain: boolean;
+          p_conditions: Json;
+          p_notes: string;
+          p_rows: Json;
+        };
+        Returns: Json;
+      };
       admin_beta_overview: {
         Args: Record<PropertyKey, never>;
         Returns: {
