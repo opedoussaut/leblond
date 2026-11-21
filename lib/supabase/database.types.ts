@@ -692,6 +692,10 @@ export type Database = {
           notes: string;
           created_at: string;
           updated_at: string;
+          enrollment_id: string | null;
+          programme_slot: number | null;
+          programme_phase: number | null;
+          original_date: string | null;
         };
         Insert: {
           id?: string;
@@ -720,8 +724,13 @@ export type Database = {
           notes?: string;
           created_at?: string;
           updated_at?: string;
+          enrollment_id?: string | null;
+          programme_slot?: number | null;
+          programme_phase?: number | null;
+          original_date?: string | null;
         };
         Update: {
+          original_date?: string | null;
           id?: string;
           user_id?: string;
           title?: string;
@@ -919,7 +928,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          programme: "HIP";
+          programme: "HIP" | "REBUILD_12W";
           started_on: string;
           working_level: number;
           level_changed_at: string;
@@ -928,11 +937,15 @@ export type Database = {
           status: "ACTIVE" | "PAUSED";
           created_at: string;
           updated_at: string;
+          schedule_days: number[] | null;
+          content: Json;
+          clinical_review_on: string | null;
+          clinical_restrictions: string;
         };
         Insert: {
           id?: string;
           user_id?: string;
-          programme: "HIP";
+          programme: "HIP" | "REBUILD_12W";
           started_on: string;
           working_level?: number;
           level_changed_at?: string;
@@ -941,6 +954,10 @@ export type Database = {
           status?: "ACTIVE" | "PAUSED";
           created_at?: string;
           updated_at?: string;
+          schedule_days?: number[] | null;
+          content?: Json;
+          clinical_review_on?: string | null;
+          clinical_restrictions?: string;
         };
         Update: {
           working_level?: number;
@@ -948,6 +965,57 @@ export type Database = {
           sessions_per_week?: number;
           session_length?: "SHORT" | "STANDARD";
           status?: "ACTIVE" | "PAUSED";
+          schedule_days?: number[] | null;
+          clinical_review_on?: string | null;
+          clinical_restrictions?: string;
+        };
+        Relationships: [];
+      };
+      mobility_session_checks: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string;
+          moment: "BEFORE" | "AFTER" | "D1";
+          back_pain: number | null;
+          leg_radiation: number | null;
+          radiation_spreading: boolean;
+          unusual_pain: boolean;
+          verdict: "GO" | "ADAPT" | "STOP" | "EMERGENCY" | null;
+          phase_used: number | null;
+          stop_reason: "RADIATION_WORSE" | "PAINFUL_BLOCK" | "BALANCE_UNSAFE" | "UNUSUAL_PAIN" | "NEURO" | null;
+          overall: "BETTER" | "SAME" | "WORSE" | null;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          session_id: string;
+          moment: "BEFORE" | "AFTER" | "D1";
+          back_pain?: number | null;
+          leg_radiation?: number | null;
+          radiation_spreading?: boolean;
+          unusual_pain?: boolean;
+          verdict?: "GO" | "ADAPT" | "STOP" | "EMERGENCY" | null;
+          phase_used?: number | null;
+          stop_reason?: "RADIATION_WORSE" | "PAINFUL_BLOCK" | "BALANCE_UNSAFE" | "UNUSUAL_PAIN" | "NEURO" | null;
+          overall?: "BETTER" | "SAME" | "WORSE" | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          back_pain?: number | null;
+          leg_radiation?: number | null;
+          radiation_spreading?: boolean;
+          unusual_pain?: boolean;
+          verdict?: "GO" | "ADAPT" | "STOP" | "EMERGENCY" | null;
+          phase_used?: number | null;
+          stop_reason?: "RADIATION_WORSE" | "PAINFUL_BLOCK" | "BALANCE_UNSAFE" | "UNUSUAL_PAIN" | "NEURO" | null;
+          overall?: "BETTER" | "SAME" | "WORSE" | null;
+          notes?: string;
         };
         Relationships: [];
       };
@@ -2370,6 +2438,11 @@ export type Database = {
         Returns: { slug: string; title: string; minutes: number; shared: boolean; updated_at: string }[];
       };
       coach_key_delete_session: { Args: { p_key: string; p_slug: string }; Returns: boolean };
+      coach_key_assign_rebuild: {
+        Args: { p_key: string; p_days: number[]; p_content: Json; p_sessions: Json };
+        Returns: Json;
+      };
+      coach_key_rebuild_status: { Args: { p_key: string }; Returns: Json };
       admin_beta_overview: {
         Args: Record<PropertyKey, never>;
         Returns: {

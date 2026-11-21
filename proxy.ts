@@ -11,7 +11,7 @@ const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/auth/confirm", "/offlin
  * instead of the session cookie (checked in the database, see
  * app/api/coach-sessions/route.ts). Exact paths only.
  */
-const KEY_AUTH_PATHS = ["/api/coach-sessions"];
+const KEY_AUTH_PATHS = ["/api/coach-sessions", "/api/coach-programmes"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname) || KEY_AUTH_PATHS.includes(pathname);

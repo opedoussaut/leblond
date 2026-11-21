@@ -20,6 +20,8 @@ import { classifyStage, MOBILITY_TESTS } from "@/lib/training/hip-mobility/asses
 import { EXERCISES, LEVEL_LABELS, NOT_CLINICAL, ROADMAP, contentLevel } from "@/lib/training/hip-mobility/content";
 import { pick } from "@/lib/training/sessions";
 import { IconBack, IconExternal, IconNext } from "@/components/ui/icons";
+import { loadRebuild } from "@/lib/data/mobility-rebuild";
+import { RebuildEntryCard } from "@/components/training/rebuild-view";
 
 export const metadata = { title: "LEBLOND — Hip mobility" };
 
@@ -29,6 +31,7 @@ export default async function HipMobilityPage() {
   const m = mobilityDictionary(locale);
   const b = batteryDictionary(locale);
   const state = await loadMobility(viewer.supabase);
+  const rebuild = await loadRebuild(viewer.supabase);
   const enrollment = state.enrollment;
   const plan = currentPlan(state);
   const latest = state.assessments[0] ?? null;
@@ -44,6 +47,8 @@ export default async function HipMobilityPage() {
   return <div className="space-y-6">
     <p className="text-sm"><Link href="/programmes?tab=checks" className={linkClass}><IconBack /> Programmes</Link></p>
     <PageHeader icon={<PAGE_ICONS.mobility />} title={m.title} subtitle={m.subtitle} />
+
+    {rebuild ? <RebuildEntryCard locale={locale} state={rebuild} /> : null}
 
     {plan.clinician.recommended ? <div role="alert" className="rounded-2xl border border-danger/40 bg-danger/10 p-5">
       <h2 className="text-base font-bold text-danger">{m.clinicianTitle}</h2>

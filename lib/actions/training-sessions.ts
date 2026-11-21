@@ -18,6 +18,15 @@ import { HIP_METHOD_ID, LEVEL_SESSIONS, type SessionLength } from "@/lib/trainin
 import { mobilityExerciseRows, sessionTitle } from "@/lib/training/hip-mobility/prescription";
 import { scheduleMobilitySchema } from "@/lib/training/sessions";
 import { zonedToUtc } from "@/lib/time";
+import { REBUILD_METHOD_ID } from "@/lib/training/mobility-rebuild/engine";
+
+/** A Mobility Rebuild séance only starts after a symptom check that allowed it, in the last 12 hours. */
+async function rebuildCheckAllows(viewer: Viewer, sessionId: string): Promise<boolean> {
+  const { data } = await viewer.supabase.from("mobility_session_checks").select("verdict,updated_at")
+    .eq("session_id", sessionId).eq("moment", "BEFORE").maybeSingle();
+  return !!data && (data.verdict === "GO" || data.verdict === "ADAPT")
+    && Date.now() - new Date(data.updated_at).getTime() <= 12 * 3_600_000;
+}
 
 type Result<T = undefined> = { ok: true; data: T } | { ok: false; error: "invalid" | "not_found" | "live" | "state" | "limit" | "unknown"; liveId?: string };
 
@@ -274,6 +283,7 @@ export async function startTrainingSession(sessionId: string): Promise<Result<{ 
   if (!canTransition(s.status, "IN_PROGRESS")) return { ok: false, error: "state" };
   const live = await liveSessionId(viewer);
   if (live && live !== s.id) return { ok: false, error: "live", liveId: live };
+  if (s.method_id === REBUILD_METHOD_ID && !(await rebuildCheckAllows(viewer, s.id))) return { ok: false, error: "state" };
   if (s.status === "PLANNED" && s.method_id === HIP_METHOD_ID && !(await refreshPlannedMobility(viewer, s.id, s.planned_minutes))) {
     return { ok: false, error: "unknown" };
   }
