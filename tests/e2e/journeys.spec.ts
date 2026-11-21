@@ -1255,6 +1255,13 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   await expect(timer.getByText("Ensuite : Tractions lestées")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tractions lestées" })).toBeVisible();
 
+  // Finish it: one training séance runs at a time.
+  await page.getByRole("button", { name: "Terminer la séance", exact: true }).last().click();
+  const finish = page.getByRole("form", { name: "Terminer la séance" });
+  await finish.getByRole("button", { name: "7", exact: true }).click();
+  await finish.getByRole("button", { name: "Enregistrer et terminer" }).click();
+  await expect(page.getByRole("heading", { name: "Résumé de la séance" })).toBeVisible();
+
   // A family: several levels and durations of one session fold into one card of the picker.
   const family = (level: string, label: string, rank: number) => ({
     key: "souplesse-test", title: "Souplesse test", summary: "Bassin et épaules", category: "MOBILITY", axis: "STIFFNESS",
