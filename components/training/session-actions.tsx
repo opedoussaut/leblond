@@ -11,11 +11,13 @@ import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
 import { formatDuration } from "@/lib/duration";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import type { PickerSession } from "@/lib/training/session-picker";
 import type { TrainingStatus } from "@/lib/training/sessions";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { DurationField } from "@/components/ui/duration-field";
 import { fieldClass as field } from "@/components/ui/field";
 import { IconNext, IconPlay } from "@/components/ui/icons";
+import { SessionPicker } from "./session-picker";
 
 type LiveError = { liveId?: string };
 
@@ -65,8 +67,8 @@ export function SessionLifecycleActions({ locale, id, status }: { locale: Locale
   </div>;
 }
 
-/** One-off session: start now or schedule, with or without an Atlas method. */
-export type CoachChoice = { id: string; title: string; minutes: number };
+/** A coach session as the one-off form offers it (its family groups it with its other levels and durations). */
+export type CoachChoice = PickerSession;
 
 /**
  * One-off session: start now or schedule. The type is a coach session (its own
@@ -98,17 +100,7 @@ export function QuickSessionForm({ locale, today, presetMethod = "", coachSessio
     });
   }
   return <form onSubmit={(e) => { e.preventDefault(); create(true); }} className="space-y-4" aria-label={t.newSession}>
-    <label className="block text-sm font-semibold">{t.method}
-      <select className={field} value={methodId} onChange={(e) => setMethodId(e.target.value)}>
-        <option value="">{t.noMethod}</option>
-        {coachSessions.length ? <optgroup label={c.group}>
-          {coachSessions.map((s) => <option key={s.id} value={"coach:" + s.id}>{s.title} · {formatDuration(s.minutes)}</option>)}
-        </optgroup> : null}
-        <optgroup label={c.atlasGroup}>
-          {METHODS_FOR_PLANS.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
-        </optgroup>
-      </select>
-    </label>
+    <SessionPicker locale={locale} sessions={coachSessions} value={methodId} onChange={setMethodId} />
     {coach ? <p className="text-sm text-ink-2">{fmt(c.durationFromCoach, { d: formatDuration(coach.minutes) })}</p> :
       <label className="block text-sm font-semibold">{t.sessionTitle}
         <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />

@@ -110,6 +110,22 @@ training session, so the player, history and analytics do not change.
   next exercise (kept in the exercise snapshot as `restAfter`): the player starts
   that timer when the climber moves on, unless the exercise was skipped.
 - Loads and volumes are the coach's proposal, not a validated prescription.
+- **Families**: an optional `family` (stored in `content`) groups the levels and
+  durations of one session, e.g. "Souplesse et mobilité" × Très raide / Raide /
+  Standard × 30 / 60 / 90 min. Every session of a family repeats its `key`,
+  `title`, `summary`, `category`, `axis` (`STIFFNESS`, `LEVEL` or `TOMORROW`) and
+  `tags`, and has its own `level` (`key`, `label`, `rank`) and `minutes`. A family
+  whose levels have one duration each (the day-before families) shows the duration
+  that goes with each level. A stored family that no longer parses only ungroups
+  the session.
+- **Séance picker** (`/session/new`, `components/training/session-picker.tsx`,
+  logic in `lib/training/session-picker.ts`): one card per family (level, then
+  duration), one per session without a family, then the Atlas methods (folded
+  away until the climber searches or filters). Search ignores accents and word
+  order and covers titles, summaries, tags, level names and French keywords for
+  the Atlas methods (`ATLAS_PICKER`); filters by category and by duration. The
+  chosen séance stays pinned when a filter would hide it. The Bibliothèque's
+  templates tab shows the same family cards.
 
 ## MongoDB decision
 

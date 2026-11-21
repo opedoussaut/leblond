@@ -99,6 +99,35 @@ export const coachSourceSchema = z.object({
   url: z.url({ protocol: /^https$/ }).max(500),
 }).strict();
 
+/** What a session trains, for the search filters (coach families and Atlas methods share them). */
+export const SESSION_CATEGORIES = ["MOBILITY", "STRENGTH", "FINGERS", "POWER", "ENDURANCE", "TECHNIQUE", "PREP", "PLANNING"] as const;
+export type SessionCategory = (typeof SESSION_CATEGORIES)[number];
+
+/** What the level of a family measures: how stiff the climber is, how hard the session is, or how hard tomorrow's climbing is. */
+export const FAMILY_AXES = ["STIFFNESS", "LEVEL", "TOMORROW"] as const;
+export type FamilyAxis = (typeof FAMILY_AXES)[number];
+
+const key = (max: number) => z.string().regex(new RegExp(`^[a-z0-9][a-z0-9-]{0,${max - 1}}$`));
+
+/**
+ * The family a session belongs to: one card in the session picker, where the
+ * climber picks the level, then the duration. Sessions of a family share key,
+ * title, summary, category, axis and tags; each has its own level and minutes.
+ */
+export const coachFamilySchema = z.object({
+  key: key(40),
+  title: z.string().trim().min(1).max(80),
+  summary: text(160).default(""),
+  category: z.enum(SESSION_CATEGORIES),
+  axis: z.enum(FAMILY_AXES),
+  /** rank orders the levels on the card (1 first). */
+  level: z.object({ key: key(30), label: z.string().trim().min(1).max(30), rank: z.number().int().min(1).max(9) }).strict(),
+  /** Extra search words (French and English), e.g. "flexibilité", "stretching". */
+  tags: z.array(z.string().trim().min(1).max(30)).max(16).default([]),
+}).strict();
+
+export type CoachFamily = z.infer<typeof coachFamilySchema>;
+
 export const coachSessionSchema = z.object({
   slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,59}$/),
   title: z.string().trim().min(1).max(120),
@@ -115,6 +144,8 @@ export const coachSessionSchema = z.object({
    * no one's personal or health details.
    */
   shared: z.boolean().default(false),
+  /** Optional: groups the session with its other levels and durations in the picker. */
+  family: coachFamilySchema.nullable().default(null),
 }).strict();
 
 export type CoachExercise = z.infer<typeof coachExerciseSchema>;
@@ -124,7 +155,7 @@ export type CoachSession = CoachSessionData & { id: string; ownerId: string; aut
 
 /** The jsonb `content` column: everything but the columns of their own. */
 export function coachContent(s: CoachSessionData) {
-  return { exercises: s.exercises, sources: s.sources, notes: s.notes };
+  return { exercises: s.exercises, sources: s.sources, notes: s.notes, ...(s.family ? { family: s.family } : {}) };
 }
 
 export const COACH_SESSION_COLUMNS = "id,user_id,slug,title,objective,minutes,place,author,shared,content,updated_at" as const;
@@ -140,6 +171,8 @@ export function coachSessionFromRow(row: Row): CoachSession | null {
   const parsed = coachSessionSchema.safeParse({
     slug: row.slug, title: row.title, objective: row.objective, minutes: row.minutes, place: row.place,
     exercises: content.exercises, sources: content.sources ?? [], notes: content.notes ?? "", shared: row.shared,
+    // A family that no longer parses only ungroups the session; it never hides it.
+    family: coachFamilySchema.safeParse(content.family).success ? content.family : null,
   });
   if (!parsed.success) return null;
   return { ...parsed.data, id: row.id, ownerId: row.user_id, author: row.author === "PATRICK" ? "PATRICK" : "CLAUDE", updatedAt: row.updated_at };
