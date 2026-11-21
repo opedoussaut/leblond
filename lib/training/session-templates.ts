@@ -53,6 +53,10 @@ export type ExerciseSnapshot = {
   demo?: { label: string; url: string };
   /** Coach sessions only: one of LEBLOND's own drawings (lib/training/illustrations.ts). */
   illustration?: string;
+  /** Mobility Rebuild séances only: minutes booked for the exercise, rests included. */
+  minutes?: number;
+  /** Mobility Rebuild séances only: what to do instead if the exercise hurts or blocks. */
+  alternative?: string;
   /** Mobility programme sessions only: the exercise, its prescribed version and its variations. */
   mobility?: MobilitySnapshot;
 };

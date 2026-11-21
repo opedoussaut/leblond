@@ -17,6 +17,8 @@ import { EXERCISE_BY_ID, LEVEL_LABELS, NOT_CLINICAL } from "@/lib/training/hip-m
 import { VARIANT_NAMES } from "@/lib/training/hip-mobility/prescription";
 import { pick } from "@/lib/training/sessions";
 import { IconBack, IconNext } from "@/components/ui/icons";
+import { loadRebuild } from "@/lib/data/mobility-rebuild";
+import { RebuildTrack } from "@/components/training/rebuild-view";
 
 export const metadata = { title: "LEBLOND — Hip mobility follow-up" };
 
@@ -45,6 +47,7 @@ export default async function MobilityFollowUpPage() {
   const m = mobilityDictionary(locale);
   const b = batteryDictionary(locale);
   const state = await loadMobility(viewer.supabase);
+  const rebuild = await loadRebuild(viewer.supabase);
   const { records, assessments, today } = state;
   const empty = records.length === 0 && assessments.length === 0;
   const overview = mobilityOverview(records, assessments, today);
@@ -67,6 +70,8 @@ export default async function MobilityFollowUpPage() {
   return <div className="space-y-6">
     <p className="text-sm"><Link href="/follow-up" className={linkClass}><IconBack /> {locale === "fr" ? "Progrès" : "Progress"}</Link></p>
     <PageHeader icon={<PAGE_ICONS.mobility />} title={m.fuTitle} subtitle={m.fuSubtitle} />
+
+    {rebuild ? <RebuildTrack locale={locale} state={rebuild} /> : null}
 
     {empty ? <div className="rounded-2xl border border-dashed border-line p-6 text-center">
       <p className="text-sm text-ink-2">{m.fuEmpty}</p>

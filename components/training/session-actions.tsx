@@ -29,7 +29,11 @@ function LiveNotice({ locale, liveId }: { locale: Locale; liveId?: string }) {
 }
 
 /** Start / skip / cancel / delete controls for a session that is not running. */
-export function SessionLifecycleActions({ locale, id, status }: { locale: Locale; id: string; status: TrainingStatus }) {
+export function SessionLifecycleActions({ locale, id, status, canStart = true }: {
+  locale: Locale; id: string; status: TrainingStatus;
+  /** False when the séance starts through its own gate (Mobility Rebuild symptom check). */
+  canStart?: boolean;
+}) {
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -46,7 +50,7 @@ export function SessionLifecycleActions({ locale, id, status }: { locale: Locale
     {error ? (error.msg === "live" ? <LiveNotice locale={locale} liveId={error.liveId} /> :
       <p role="alert" className="text-sm font-semibold text-danger">{error.msg}</p>) : null}
     <div className="flex flex-wrap gap-3">
-      {status === "PLANNED" || status === "INTERRUPTED" ? (
+      {canStart && (status === "PLANNED" || status === "INTERRUPTED") ? (
         <button type="button" disabled={pending} onClick={() => run(() => startTrainingSession(id))}
           className={buttonClass("primary", "md", "flex-1 sm:flex-none")}>
           <IconPlay /> {status === "INTERRUPTED" ? t.resume : t.start}
