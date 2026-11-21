@@ -2,10 +2,16 @@ import "server-only";
 import type { ServerSupabase } from "@/lib/supabase/server";
 import { COACH_SESSION_COLUMNS, coachSessionFromRow, type CoachSession } from "@/lib/training/coach-sessions";
 
+/**
+ * Enough for the shared library (an administrator's key holds up to 500 sessions)
+ * plus the climber's own (a key holds up to 100): see coach_key_put_session.
+ */
+export const COACH_SESSIONS_LOAD_LIMIT = 600;
+
 /** Coach sessions offered to the signed-in climber: their own and the shared library (RLS), most recent first. */
 export async function listCoachSessions(supabase: ServerSupabase): Promise<CoachSession[]> {
   const { data } = await supabase.from("coach_sessions").select(COACH_SESSION_COLUMNS)
-    .order("updated_at", { ascending: false }).limit(100);
+    .order("updated_at", { ascending: false }).limit(COACH_SESSIONS_LOAD_LIMIT);
   return (data ?? []).map(coachSessionFromRow).filter((s): s is CoachSession => s !== null);
 }
 
