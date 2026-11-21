@@ -1,6 +1,8 @@
 import "server-only";
 import type { ClimberWork, Pact, WorkKind, WorkTarget } from "@/lib/analytics/alter-ego";
 import { rivalSettingsFromRow, type RivalSettings } from "@/lib/analytics/rival";
+import { signedPhotoUrl } from "@/lib/data/uploaded-photo";
+import { RIVAL_PHOTO_FOLDER, isOwnPhotoPath } from "@/lib/profile-photo";
 import type { ServerSupabase } from "@/lib/supabase/server";
 import { pactFromRow } from "@/lib/training/alter-ego";
 import { localDate_ } from "@/lib/training/sessions";
@@ -10,11 +12,25 @@ export async function loadOpenPact(supabase: ServerSupabase): Promise<Pact | nul
   return (await loadOpenRival(supabase))?.pact ?? null;
 }
 
+export type OpenRival = {
+  pact: Pact;
+  settings: RivalSettings;
+  /** The climber's own photo for the rival ("<me>/rival/…"), or null for the drawn portrait. */
+  photoPath: string | null;
+};
+
 /** The open pact with the rival's settings (defaults before the rival migration). */
-export async function loadOpenRival(supabase: ServerSupabase): Promise<{ pact: Pact; settings: RivalSettings } | null> {
+export async function loadOpenRival(supabase: ServerSupabase): Promise<OpenRival | null> {
   const { data } = await supabase.from("alter_ego_pacts").select("*").in("status", ["ACTIVE", "PAUSED"]).maybeSingle();
   const pact = data ? pactFromRow(data) : null;
-  return pact && data ? { pact, settings: rivalSettingsFromRow(data as Record<string, unknown>) } : null;
+  if (!pact || !data) return null;
+  const photoPath = isOwnPhotoPath(data.user_id, RIVAL_PHOTO_FOLDER, data.photo_path) ? data.photo_path : null;
+  return { pact, settings: rivalSettingsFromRow(data as Record<string, unknown>), photoPath };
+}
+
+/** A short-lived URL for the rival's photo, or null when it has none (only pages that show it ask). */
+export async function rivalPhotoUrl(supabase: ServerSupabase, rival: OpenRival | null): Promise<string | null> {
+  return rival?.photoPath ? signedPhotoUrl(supabase, rival.photoPath) : null;
 }
 
 type SetRow = { reps: number | null; training_session_exercises: { session_id: string; modality: string } | null };

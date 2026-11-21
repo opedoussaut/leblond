@@ -14,7 +14,7 @@ import { linkClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
 /** The race at a glance. It states the gap and never prescribes work to close it. */
-export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, breakdown, twinPace = false, detailed = false, title }: {
+export function AlterEgoScore({ locale, pact, progress, observed, href, portrait, avatar, photo = null, rivalPhoto = null, breakdown, twinPace = false, detailed = false, title }: {
   /** The duel page: a gap column and the rule that decides who leads. */
   detailed?: boolean;
   /** Replaces the "You vs …" heading. */
@@ -24,6 +24,8 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
   avatar?: number;
   /** The climber's uploaded photo, shown instead of the avatar. */
   photo?: string | null;
+  /** The photo the climber gave the rival, shown instead of its portrait. */
+  rivalPhoto?: string | null;
   /** The climber's séances by type since signing. */
   breakdown?: Record<WorkKind, KindTally>;
   observed?: { boulder: string | null; route: string | null }; href?: "/rival";
@@ -48,7 +50,7 @@ export function AlterEgoScore({ locale, pact, progress, observed, href, portrait
     <div className="flex items-center gap-3">
       {avatar !== undefined || portrait ? <div className="flex shrink-0 items-center -space-x-2">
         {avatar !== undefined ? <ProfilePicture photoUrl={photo} level={avatar} size={48} /> : null}
-        {portrait ? <RivalPortrait portrait={portrait} size={48} /> : null}
+        {portrait ? <RivalPortrait portrait={portrait} photoUrl={rivalPhoto} size={48} /> : null}
       </div> : null}
       <div>
       <h2 id="ego-heading" className="text-lg font-bold">{title ?? fmt(t.scoreTitle, { name })}</h2>
