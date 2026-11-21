@@ -2,21 +2,70 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { removeCoachSession } from "@/lib/actions/coach-sessions";
 import { formatDuration } from "@/lib/duration";
 import { fmt, type Locale } from "@/lib/i18n";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { sessionPickerDictionary } from "@/lib/i18n/session-picker";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { demoUrl, musclewikiUrl, type CoachSession } from "@/lib/training/coach-sessions";
+import { buildPickerEntries, defaultVariant, variantFor, type PickerFamily } from "@/lib/training/session-picker";
 import { MobilityIllustration } from "./mobility-illustrations";
 import { formatClock } from "@/lib/training/sessions";
 import { buttonClass, linkClass } from "@/components/ui/button";
 import { IconClock, IconExternal } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
+import { CATEGORY_ICONS, FamilyChoice } from "./session-picker";
 
-/** The climber's coach sessions: preview of the exercises, choose one for the form above, remove. */
+/**
+ * The climber's coach sessions: one card per family (pick the level and the
+ * duration), one per session without a family; preview of the exercises,
+ * choose one for the session form, remove.
+ */
 export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Locale; sessions: CoachSession[]; viewerId: string }) {
+  const p = sessionPickerDictionary(locale);
+  const entries = useMemo(() => buildPickerEntries(
+    sessions.map((s) => ({ id: s.id, title: s.title, objective: s.objective, minutes: s.minutes, exercises: s.exercises.length, family: s.family })),
+    locale, p.categories,
+  ).filter((e) => e.kind !== "atlas"), [sessions, locale, p.categories]);
+  const byId = new Map(sessions.map((s) => [s.id, s]));
+  return <ul className="space-y-3">
+    {entries.map((e) => e.kind === "family"
+      ? <FamilyItem key={"f:" + e.key} locale={locale} family={e} byId={byId} viewerId={viewerId} />
+      : e.kind === "coach" ? <li key={e.value} className="rounded-2xl border border-line bg-surface p-4">
+        <SessionDetails locale={locale} s={byId.get(e.value.slice("coach:".length))!} viewerId={viewerId} />
+      </li> : null)}
+  </ul>;
+}
+
+function FamilyItem({ locale, family, byId, viewerId }: {
+  locale: Locale; family: PickerFamily; byId: Map<string, CoachSession>; viewerId: string;
+}) {
+  const p = sessionPickerDictionary(locale);
+  const first = defaultVariant(family);
+  const [choice, setChoice] = useState({ level: first.level.key, minutes: first.variant.minutes });
+  const level = family.levels.find((l) => l.key === choice.level) ?? first.level;
+  const variant = variantFor(level, choice.minutes);
+  const Icon = CATEGORY_ICONS[family.category];
+  return <li className="rounded-2xl border border-line bg-surface p-4" data-testid="coach-family">
+    <div className="flex items-start gap-3">
+      <Icon aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-accent" />
+      <div className="min-w-0">
+        <h3 className="text-lg font-black">{family.title}</h3>
+        {family.summary ? <p className="text-sm text-ink-2">{family.summary}</p> : null}
+        <p className="mt-0.5 text-xs font-semibold text-ink-3">{p.categories[family.category]}</p>
+      </div>
+    </div>
+    <div className="mt-3"><FamilyChoice locale={locale} family={family} level={level} minutes={variant.minutes}
+      onChange={(_, l, m) => setChoice({ level: l.key, minutes: m })} /></div>
+    <div className="mt-4 border-t border-line pt-3">
+      <SessionDetails locale={locale} s={byId.get(variant.id)!} viewerId={viewerId} />
+    </div>
+  </li>;
+}
+
+function SessionDetails({ locale, s, viewerId }: { locale: Locale; s: CoachSession; viewerId: string }) {
   const c = coachSessionsDictionary(locale);
   const t = trainingSessionDictionary(locale);
   const router = useRouter();
@@ -30,8 +79,7 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
     });
   }
 
-  return <ul className="space-y-3">
-    {sessions.map((s) => <li key={s.id} className="rounded-2xl border border-line bg-surface p-4">
+  return <div>
       <div className="flex items-start justify-between gap-3">
         <strong className="text-base">{s.title}</strong>
         <span aria-label={fmt(c.duration, { d: formatDuration(s.minutes) })} data-testid="coach-session-duration"
@@ -67,6 +115,5 @@ export function CoachSessionsList({ locale, sessions, viewerId }: { locale: Loca
         <Link href={`/session/new?kind=train&coach=${s.id}#new-heading`} className={buttonClass("primary", "sm")}>{c.choose}</Link>
         {s.ownerId === viewerId ? <button type="button" disabled={pending} onClick={() => remove(s.id)} className={buttonClass("ghost", "sm")}>{c.remove}</button> : null}
       </div>
-    </li>)}
-  </ul>;
+  </div>;
 }

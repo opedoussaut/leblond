@@ -1254,6 +1254,41 @@ test("H — coach sessions: a personal key lets the coach add a session, the cli
   await expect(timer).toBeVisible();
   await expect(timer.getByText("Ensuite : Tractions lestées")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tractions lestées" })).toBeVisible();
+
+  // A family: several levels and durations of one session fold into one card of the picker.
+  const family = (level: string, label: string, rank: number) => ({
+    key: "souplesse-test", title: "Souplesse test", summary: "Bassin et épaules", category: "MOBILITY", axis: "STIFFNESS",
+    level: { key: level, label, rank }, tags: ["flexibilité"],
+  });
+  for (const [level, label, rank, minutes] of [["tres-raide", "Très raide", 1, 30], ["tres-raide", "Très raide", 1, 60], ["raide", "Raide", 2, 60]] as const) {
+    expect((await request.post("/api/coach-sessions", { headers: auth, data: {
+      slug: `souplesse-${level}-${minutes}`, title: `Souplesse test · ${label.toLowerCase()}`, minutes,
+      exercises: [{ block: "MAIN", name: `Pancake ${label} ${minutes}`, modality: "HOLD", seconds: 60 }],
+      family: family(level, label, rank),
+    } })).status()).toBe(200);
+  }
+  await page.goto("/session/new?kind=train");
+  await page.getByRole("searchbox", { name: "Rechercher une séance" }).fill("flexibilite");
+  await expect(page.getByRole("button", { name: /Haut et bas test/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /Souplesse test/ }).click();
+  const pickerCard = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /Souplesse test/ }) });
+  // The middle level comes first: Raide, 60 min, the only duration it has.
+  await expect(pickerCard.getByRole("radio", { name: "Raide", exact: true })).toBeChecked();
+  await expect(page.getByText("Durée prévue par le coach : 1 h")).toBeVisible();
+  await pickerCard.getByText("Très raide", { exact: true }).click();
+  await pickerCard.getByText("30 min", { exact: true }).click();
+  await expect(pickerCard.getByRole("radio", { name: "30 min", exact: true })).toBeChecked();
+  await expect(page.getByText("Durée prévue par le coach : 30 min")).toBeVisible();
+  await page.getByRole("button", { name: /Commencer maintenant/ }).click();
+  await expect(page.getByRole("heading", { name: "Pancake Très raide 30" })).toBeVisible();
+
+  // The Bibliothèque shows the same family as one card.
+  await page.goto("/atlas?tab=templates");
+  const familyCard = page.getByTestId("coach-family").filter({ hasText: "Souplesse test" });
+  await expect(familyCard).toHaveCount(1);
+  await familyCard.getByText("Très raide", { exact: true }).click();
+  await familyCard.getByText("Voir les exercices").click();
+  await expect(familyCard.getByText(/Pancake Très raide 60/)).toBeVisible();
 });
 
 test("I — board séance on the Kilter, BoardLib import, board projects and progress", async ({ page }) => {
