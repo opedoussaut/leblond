@@ -27,6 +27,11 @@ const TONE_ON_PANEL: Record<Tone, string> = {
   amber: "text-amber-200", sky: "text-sky-200", rose: "text-rose-200", gold: "text-yellow-200",
 };
 
+/** The thin accent bar in front of a list's heading, so headings read the same across Progrès. */
+export function HeadingMark() {
+  return <span aria-hidden="true" className="inline-block h-[0.9em] w-1 shrink-0 rounded-full bg-accent" />;
+}
+
 /** A small icon tile in a section's tone. Decorative: the label next to it names the figure. */
 export function ToneIcon({ icon: Icon, tone, onPanel = false, size = "md", className }: {
   icon: LucideIcon; tone: Tone; onPanel?: boolean; size?: "sm" | "md"; className?: string;
@@ -103,7 +108,7 @@ export type SectionRow = {
 export function SectionRows({ label, rows, title }: { label: string; rows: readonly SectionRow[]; title?: string }) {
   return <nav aria-label={label} className="space-y-3">
     {title ? <h2 className="flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
-      <span aria-hidden="true" className="h-3.5 w-1 rounded-full bg-accent" />{title}
+      <HeadingMark />{title}
     </h2> : null}
     <ul className={cn("leblond-premium-surface divide-y divide-line overflow-hidden", rows.some((r) => r.icon) && "leblond-elevated")}>
       {rows.map((r) => <li key={r.href}>

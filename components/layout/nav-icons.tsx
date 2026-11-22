@@ -7,13 +7,14 @@
  * sidebar, mobile bottom bar and chips, page headers and hub cards.
  */
 import {
-  ArrowUpToLine, Award, BrickWall, Grid3x3, MapPin, MountainSnow, Sparkles, Trees,
+  Activity, ArrowUpToLine, Award, GitCompareArrows, BrickWall, Grid3x3, MapPin, MountainSnow, Sparkles, Trees,
   BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
   Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, SlidersHorizontal, Sun, Swords, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionId, SubPageKey } from "@/lib/navigation/sections";
 import type { ProgressTab } from "@/lib/navigation/progress-tabs";
+import type { FollowUpTab } from "@/lib/navigation/follow-up-tabs";
 import type { Tone } from "@/components/ui/hero-figure";
 
 export type { LucideIcon };
@@ -66,4 +67,12 @@ export const PROGRESS_SECTION_ICONS: Record<Exclude<ProgressTab, "overview">, { 
   gyms: { icon: MapPin, tone: "sky" },
   styles: { icon: Sparkles, tone: "rose" },
   avatar: { icon: Award, tone: "gold" },
+};
+
+/** Progrès › Aperçu: one icon and tone per section its tiles open. */
+export const FOLLOW_UP_SECTION_ICONS: Record<Exclude<FollowUpTab, "overview">, { icon: LucideIcon; tone: Tone }> = {
+  load: { icon: Activity, tone: "amber" },
+  climbing: { icon: Mountain, tone: "blue" },
+  training: { icon: Dumbbell, tone: "sky" },
+  compare: { icon: GitCompareArrows, tone: "violet" },
 };

@@ -5,7 +5,7 @@ import { LevelCurve } from "@/components/charts/level-curve";
 import { MobilityTests } from "@/components/charts/mobility-tests";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { PageHeader } from "@/components/ui/card";
-import { AREA_ICONS } from "@/components/layout/nav-icons";
+import { AREA_ICONS, FOLLOW_UP_SECTION_ICONS as SECTION } from "@/components/layout/nav-icons";
 import { computeSnapshot } from "@/lib/analytics";
 import { gradePyramid, isMobilityWork, mainSystem, topLevelRates, weeklyHardest, weeklyTotals, type TopLevelSeries, type WeekTotal } from "@/lib/analytics/charts";
 import { OverviewTiles } from "@/components/charts/overview-tiles";
@@ -29,7 +29,7 @@ import { chartsDictionary } from "@/lib/i18n/charts";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { HIP_METHOD_ID, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
 import { IconNext } from "@/components/ui/icons";
-import { linkClass } from "@/components/ui/button";
+import { linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { LimiterBars } from "@/components/charts/limiter-bars";
 import { NotebookRecords } from "@/components/charts/notebook-records";
@@ -242,25 +242,29 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     <SectionTabs always label={pa.sections} current={tab}
       tabs={FOLLOW_UP_TABS.map((id) => ({ id, href: followUpHref(id, weeks), label: pa.tabs[id] }))} />
 
-    <nav aria-label={c.period} className="flex gap-2">
-      {PERIODS.map((w) => <Link key={w} href={followUpHref(tab, w)} aria-current={w === weeks ? "page" : undefined}
-        className={cn("min-h-11 rounded-full border px-4 py-2.5 text-sm font-semibold",
-          w === weeks ? "border-accent bg-accent-soft" : "border-line text-ink-2")}>
-        {w === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: w })}
-      </Link>)}
+    {/* The same period switch as Progrès › Grimpe. */}
+    <nav aria-label={c.period}>
+      <ul className={cn(segmentGroupClass, "inline-grid grid-cols-3")}>
+        {PERIODS.map((w) => <li key={w} className="flex">
+          <Link href={followUpHref(tab, w)} aria-current={w === weeks ? "page" : undefined}
+            className={segmentClass(w === weeks, "inline-flex w-full items-center justify-center px-4")}>
+            {w === 52 ? c.yearOpt : fmt(c.weeksOpt, { n: w })}
+          </Link>
+        </li>)}
+      </ul>
     </nav>
 
     {tab === "overview" ? <>
       <OverviewTiles title={pa.tilesTitle} hint={pa.tilesHint} tiles={[
-        { href: followUpHref("load", weeks), section: pa.tabs.load,
+        { href: followUpHref("load", weeks), section: pa.tabs.load, ...SECTION.load,
           title: loadVerdict?.ratioBasis === "global" ? pa.tileLoadGlobal : pa.tileLoad,
           value: loadVerdict && loadVerdict.zone !== "calibrating" && loadVerdict.ratio !== null ? ratioFormat.format(loadVerdict.ratio) : "—",
           muted: !loadVerdict || loadVerdict.zone === "calibrating",
           caption: !loadVerdict ? pa.loadNone : loadVerdict.zone === "calibrating" ? pa.tileLoadCalibrating
             : fmt(pa.tileLoadCaption, { zone: ld.zone[loadVerdict.zone] }),
           spark: <Sparkline values={ratioDays.map((d) => zoneRatio(d).ratio)} min={0}
-            band={{ low: LOAD_THRESHOLDS.low, high: LOAD_THRESHOLDS.high }} /> },
-        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing,
+            band={{ low: LOAD_THRESHOLDS.low, high: LOAD_THRESHOLDS.high }} tone={SECTION.load.tone} /> },
+        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, ...SECTION.climbing,
           title: topGrade ? fmt(pa.tileLevel, { grade: gradeLabel(t, mainLevel!.system, topGrade.grade) }) : pa.tileLevelEmpty,
           value: topGrade && topGrade.recent.rate !== null ? percentFormat.format(topGrade.recent.rate) : "—",
           muted: !topGrade || topGrade.recent.rate === null,
@@ -269,17 +273,17 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
             previous: topGrade.previous.rate === null ? "—" : percentFormat.format(topGrade.previous.rate),
             direction: c.tlDirection[topGrade.direction],
           }) : pa.tileLevelNone,
-          spark: <Sparkline values={topGrade?.rolling ?? []} min={0} max={1} /> },
-        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, title: pa.tileVolume, value: snap.counts.tops,
+          spark: <Sparkline values={topGrade?.rolling ?? []} min={0} max={1} tone={SECTION.climbing.tone} /> },
+        { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, ...SECTION.climbing, title: pa.tileVolume, value: snap.counts.tops,
           caption: fmt(pa.tileVolumeCaption, { sessions: snap.counts.sessions, routes: routesInPeriod }),
-          spark: <Sparkline kind="bars" values={climbWeeks.map((w) => w.tops)} /> },
-        { href: followUpHref("training", weeks), section: pa.tabs.training, title: pa.tileTraining, value: `${adh.completed} / ${adh.planned}`,
+          spark: <Sparkline kind="bars" values={climbWeeks.map((w) => w.tops)} tone={SECTION.climbing.tone} /> },
+        { href: followUpHref("training", weeks), section: pa.tabs.training, ...SECTION.training, title: pa.tileTraining, value: `${adh.completed} / ${adh.planned}`,
           caption: fmt(pa.tileTrainingCaption, { minutes: adh.activeMinutes, mobility: mobSessions28 }),
-          spark: <Sparkline kind="bars" values={activeWeeks.map((w) => w.minutes)} /> },
+          spark: <Sparkline kind="bars" values={activeWeeks.map((w) => w.minutes)} tone={SECTION.training.tone} /> },
       ]} />
       <SectionRows label={pa.compareCard} rows={[
         { href: followUpHref("compare", weeks), title: pa.compareCard, value: "",
-          detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }) },
+          detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }), ...SECTION.compare },
       ]} />
       <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
         boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
