@@ -168,6 +168,7 @@ export const en: Dictionary = {
       SHARED_ESTIMATE: "Shared estimate, unofficial",
       REFERENCE_TABLE: "Indicative estimate (LEBLOND reference table)",
       LEBLOND_ESTIMATE: "LEBLOND first estimate, to refine in Settings",
+      USER_SETTING: "Your setting (Settings › Grade correspondence)",
     },
     systems: {
       ARKOSE_COLOR: "Arkose colours",

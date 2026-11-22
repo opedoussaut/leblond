@@ -40,6 +40,15 @@ describe("indicative Font ranges next to grades (same default table as Progrès)
       }
     }
   });
+  it("uses the climber's own line from Réglages over the default", () => {
+    const own = [{ system: "ARKOSE_COLOR" as const, grade: "RED", from: "6B+" as const, to: "6C" as const }];
+    expect(fontRangeFor("ARKOSE_COLOR", "RED", own)).toEqual({ from: "6B+", to: "6C", source: "USER_SETTING" });
+    expect(fontRangeFor("ARKOSE_COLOR", "BLUE", own)).toEqual({ from: "6A", to: "6A", source: "OBSERVED" });
+    // A line for a grade with no default (custom colours) never creates a range.
+    expect(fontRangeFor("CUSTOM_COLOR", "RED", [{ system: "CUSTOM_COLOR", grade: "RED", from: "6A", to: "6A" }])).toBeNull();
+    // Vertical'Art violet keeps "≥" only while the climber keeps the default.
+    expect(formatFontRange(fontRangeFor("VERTICAL_ART_COLOR", "PURPLE", [{ system: "VERTICAL_ART_COLOR", grade: "PURPLE", from: "7B+", to: "7C" }])!)).toBe("≈ 7B+–7C");
+  });
   it("never invents a range for grades absent from the table", () => {
     expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "PINK")).toBeNull();
     expect(fontRangeFor("CUSTOM_COLOR", "RED")).toBeNull();

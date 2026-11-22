@@ -1,7 +1,7 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { getGradeDefinition, isMysteryGrade, isNumericSystem } from "@/lib/grading";
 import { gradeLabel } from "@/lib/grading/labels";
-import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
+import { ChipFontRange } from "@/components/climbing/grade-ranges";
 import type { Dictionary } from "@/lib/i18n";
 import { cn } from "@/components/ui/cn";
 
@@ -22,10 +22,9 @@ export function GradeChip({
   grade: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
-  /** Also show the indicative Font range (the default correspondence Progrès uses). */
+  /** Also show the indicative Font range (the climber's correspondence, as in Progrès). */
   showFont?: boolean;
 }) {
-  const range = showFont ? fontRangeFor(system, grade) : null;
   const def = getGradeDefinition(system, grade);
   const label = gradeLabel(t, system, grade);
   const mystery = isMysteryGrade(system, grade);
@@ -54,7 +53,7 @@ export function GradeChip({
       ) : null}
       <span>{label}</span>
       {mystery ? <span className="font-medium normal-case text-ink-3">({t.grades.mystery})</span> : null}
-      {range ? <span className="font-medium normal-case text-ink-3" title={t.grades.rangeSource[range.source]}>{formatFontRange(range)}</span> : null}
+      {showFont ? <ChipFontRange system={system} grade={grade} titles={t.grades.rangeSource} /> : null}
     </span>
   );
 }

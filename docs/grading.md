@@ -91,7 +91,9 @@ in the default correspondence (e.g. Arkose red "≈ 6B–6B+", Vertical'Art viol
 Progrès. The chip's tooltip names the line's source (published by the gym, observed by Kaskad, shared estimate,
 LEBLOND first estimate). The ranges are estimates, never replace the native grade, and do not feed the
 per-problem estimates. Grades with no line (the mystery pink, independent gyms' custom colours) show nothing.
-The climber's own lines from Réglages apply in Progrès only; the chip shows the default.
+The climber's own lines from Réglages win there too: the app shell loads them once
+(`GradeRangesProvider` in `components/climbing/grade-ranges.tsx`) and every chip and logging picker reads them;
+saving a line revalidates the shell.
 
 ## Routes at colour-graded gyms
 

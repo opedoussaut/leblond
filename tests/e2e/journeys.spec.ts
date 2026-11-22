@@ -1523,6 +1523,15 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.goto("/follow-up?tab=load");
   await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
+  // The "≈ range" next to the colour while logging follows the climber's line too.
+  await page.goto("/session/new?where=past");
+  await chooseGym(page, "Demo Arkose");
+  const past = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await past.getByLabel("Date").fill(parisDate(new Date(Date.now() - 86_400_000)));
+  await past.getByRole("button", { name: /Créer la séance/ }).click();
+  await expect(page).toHaveURL(/\/edit$/);
+  await expect(page.getByRole("button", { name: /^Rouge/ })).toContainText("≈ 6B+");
+  await expect(page.getByRole("button", { name: /^Rouge/ })).not.toContainText("6B–6B+");
 
   // Back to the default table.
   await page.goto("/settings");

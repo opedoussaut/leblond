@@ -172,6 +172,7 @@ export const fr = {
       SHARED_ESTIMATE: "Estimation transmise, non officielle",
       REFERENCE_TABLE: "Estimation indicative (table de référence LEBLOND)",
       LEBLOND_ESTIMATE: "Première estimation LEBLOND, à affiner dans Réglages",
+      USER_SETTING: "Ton réglage (Réglages › Correspondance des cotations)",
     },
     systems: {
       ARKOSE_COLOR: "Couleurs Arkose",
