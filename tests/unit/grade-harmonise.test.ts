@@ -46,7 +46,12 @@ describe("default conversion table", () => {
   });
   it("cites the gym when it publishes the table, and calls the rest estimates", () => {
     expect(DEFAULT_BOULDER_TABLE.VERTICAL_ART_COLOR!.BLUE).toEqual({ from: "6A", to: "6B", source: "GYM_PUBLISHED" });
-    expect(DEFAULT_BOULDER_TABLE.BLOCKOUT_LEVEL!.B8.source).toBe("REFERENCE_TABLE");
+    expect(DEFAULT_BOULDER_TABLE.BLOCKOUT_LEVEL!.B8).toEqual({ from: "6C", to: "6C", source: "OBSERVED" });
+    expect(DEFAULT_BOULDER_TABLE.ARKOSE_COLOR!.RED).toEqual({ from: "6B", to: "6B+", source: "OBSERVED" });
+    expect(DEFAULT_BOULDER_TABLE.CLIMBING_DISTRICT_LEVEL!["12"]).toEqual({ from: "7C", to: "8A+", source: "SHARED_ESTIMATE" });
+    // Former Climbing District colours read like the levels that replaced them.
+    expect(DEFAULT_BOULDER_TABLE.CLIMBING_DISTRICT_COLOR!.BLUE).toEqual({ from: "6B", to: "6B+", source: "SHARED_ESTIMATE" });
+    expect(DEFAULT_BOULDER_TABLE.CLIMBING_DISTRICT_LEVEL!["7"].from).toBe("6B");
     expect(DEFAULT_BOULDER_TABLE.CLIMB_WORLD_LEVEL!["4"].source).toBe("LEBLOND_ESTIMATE");
     expect(SOURCE_CONFIDENCE.LEBLOND_ESTIMATE).toBeLessThan(0.5);
   });
@@ -58,9 +63,9 @@ describe("convertBoulder", () => {
     expect(convertBoulder(problem("p", "FONT", "6B+"), table)).toMatchObject({ from: "6B+", to: "6B+", confidence: 1, source: "FONT_NATIVE" });
   });
   it("reads a gym grade through the table, scored at the middle of its span", () => {
-    const c = convertBoulder(problem("p", "BLOCKOUT_LEVEL", "B5"), table)!;
-    expect(c).toMatchObject({ from: "6A", to: "6A+", source: "REFERENCE_TABLE", confidence: SOURCE_CONFIDENCE.REFERENCE_TABLE });
-    expect(c.score).toBe(fontIndex("6A") + 0.5);
+    const c = convertBoulder(problem("p", "BLOCKOUT_LEVEL", "B3"), table)!;
+    expect(c).toMatchObject({ from: "5b", to: "5c", source: "OBSERVED", confidence: SOURCE_CONFIDENCE.OBSERVED });
+    expect(c.score).toBe(fontIndex("5b") + 0.5);
   });
   it("uses the climber's own line over the default", () => {
     const mine = conversionTable([{ system: "CLIMB_WORLD_LEVEL", grade: "4", from: "6A+", to: "6A+" }]);
@@ -70,7 +75,7 @@ describe("convertBoulder", () => {
   it("prefers a confident estimate given on the problem itself, and ignores a rough one", () => {
     const own = { normalizedGrade: "6C", normalizedGradeSystem: "FONT", normalizationConfidence: 0.85 };
     expect(convertBoulder(problem("p", "ARKOSE_COLOR", "RED", own), table)).toMatchObject({ from: "6C", source: "PROBLEM_ESTIMATE", confidence: 0.85 });
-    expect(convertBoulder(problem("p", "ARKOSE_COLOR", "RED", { ...own, normalizationConfidence: 0.3 }), table)!.source).toBe("REFERENCE_TABLE");
+    expect(convertBoulder(problem("p", "ARKOSE_COLOR", "RED", { ...own, normalizationConfidence: 0.3 }), table)!.source).toBe("OBSERVED");
   });
   it("converts nothing it cannot place: custom colours, the mystery pink, unknown grades", () => {
     expect(convertBoulder(problem("p", "CUSTOM_COLOR", "RED"), table)).toBeNull();
@@ -126,7 +131,7 @@ describe("harmonisedBoulderPerf", () => {
     expect(out.series!.points.map((p) => p.date)).toEqual(["2026-11-02", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
   });
   it("keeps the grade as logged and how it was converted on every point", () => {
-    expect(out.series!.points[0]).toMatchObject({ display: "5C–6A", native: { system: "ARKOSE_COLOR", grade: "BLUE" }, source: "REFERENCE_TABLE" });
+    expect(out.series!.points[0]).toMatchObject({ display: "6A", native: { system: "ARKOSE_COLOR", grade: "BLUE" }, source: "OBSERVED" });
     expect(out.series!.points[4]).toMatchObject({ display: "6A", native: { system: "FONT", grade: "6A" }, source: "FONT_NATIVE", confidence: 1 });
   });
   it("counts sends per native scale and the ones it could not convert", () => {

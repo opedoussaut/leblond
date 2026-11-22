@@ -13,7 +13,7 @@
 | `ARKOSE_COLOR` | YELLOW, GREEN, BLUE, RED, BLACK, PURPLE | Initiation, beginner, intermediate, advanced, very good, expert. Source: Arkose “niveau escalade bloc couleur”. |
 | `CLIMBING_DISTRICT_COLOR` | WHITE, YELLOW, ORANGE, GREEN, BLUE, RED, BLACK, PURPLE + **PINK** | Climbing District's **former** bouldering scale. PINK = mystery: kind `MYSTERY`, ordinal `null`. Colours overlap (≈4a–8a+ overall). Source: Climbing District FAQ. |
 | `CLIMBING_DISTRICT_LEVEL` | `1` … `12` | Climbing District's **current** bouldering scale (since migration `20261119000001`). Numbered gym levels, not Font or French grades; shown as "Niv. 7" / "Lvl 7". No published table links them to the colours or to Font, so LEBLOND has none. |
-| `BLOCKOUT_LEVEL` | B1 … B14 | Block'Out's numbered levels. |
+| `BLOCKOUT_LEVEL` | B0 … B15 | Block'Out's numbered levels (B0 and B15 from Kaskad's observed table, 2026-11-22). |
 | `FONT` | 1a, 1b, 1c … 5a, 5b, 5c, 6A, 6A+ … 8C+, 9A (34 steps) | Native Font problems are their own normalised grade (confidence 1). Lettered below 6A, as on the Fontainebleau circuits and in Boolder. |
 | `CUSTOM_COLOR` | Generic colours | Unordered: LEBLOND does not know an independent gym's ranking. |
 | `UNKNOWN` | UNKNOWN | Unordered. |
@@ -53,9 +53,10 @@ Asked by the product owner on 2026-11-22: Progrès › Charge reads results on t
 - **Boulders on Font.** Every first send is converted through a correspondence table (`DEFAULT_BOULDER_TABLE`)
   to a Font span, scored at its middle, and combined into one series (`lib/analytics/harmonised.ts`). Each point
   keeps its native grade, its source and its confidence: `GYM_PUBLISHED` (Vertical'Art FAQ, 0.8), `USER_SETTING`
-  (0.7), `REFERENCE_TABLE` (the CSV above: Arkose, Climbing District colours, Block'Out, 0.6), `LEBLOND_ESTIMATE`
-  (first estimates for Climbing District levels 1–12, Climb World 1–7, Climb Up, MROC, Le Labo and Climbing
-  District white/orange, 0.35). A confident per-problem estimate (≥ 0.5) wins over the table. Custom colours,
+  (0.7), `OBSERVED` (Kaskad's observed tables for Arkose colours and Block'Out B0–B15, "pas une norme officielle",
+  0.6), `SHARED_ESTIMATE` (a summary of Climbing District's levels 1–12, also bridging its former colours, 0.45),
+  `LEBLOND_ESTIMATE` (first estimates for Climb World 1–7, Climb Up, MROC and Le Labo, 0.35). A confident
+  per-problem estimate (≥ 0.5) wins over the table. Custom colours,
   the mystery pink and unknown grades are not converted and are counted apart.
 - **Routes on the French scale**, as logged (`route_ascents.grade`), with the gym's colour shown next to it.
 - The verdict reads these two series (plus board and hangs). The per-native-scale results stay in a fold below.

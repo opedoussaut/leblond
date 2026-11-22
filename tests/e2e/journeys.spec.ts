@@ -1481,7 +1481,7 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await expect(boulder.getByText("converti, estimé")).toBeVisible();
   // Each entry keeps the grade as logged next to the converted one.
   await expect(boulder.getByText("← Rouge, Couleurs Arkose")).toBeVisible();
-  await expect(boulder.getByText("6A+–6C+", { exact: true })).toBeVisible();
+  await expect(boulder.getByText("6B–6B+", { exact: true })).toBeVisible();
   await expect(boulder.getByText(/Converti depuis : Couleurs Arkose 2/)).toBeVisible();
 
   // Réglages › correspondence: the climber moves red up; Progrès follows, the native grade stays.
@@ -1489,13 +1489,13 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await expect(page).toHaveURL(/\/settings\/grades$/);
   await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
   const red = page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" });
-  await red.getByLabel("De").selectOption("6B");
+  await red.getByLabel("De").selectOption("6B+");
   await expect(red.getByText("Enregistré")).toBeVisible();
   await page.reload();
   await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
-  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B");
+  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B+");
   await page.goto("/follow-up?tab=load");
-  await expect(page.getByTestId("harmonised-boulder").getByText("6B–6C+", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
 
   // Back to the default table.
@@ -1504,5 +1504,5 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
   await page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" })
     .getByRole("button", { name: "Revenir au défaut" }).click();
-  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6A+");
+  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B");
 });

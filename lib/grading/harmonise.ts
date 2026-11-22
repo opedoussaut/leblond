@@ -24,14 +24,23 @@ import { RELIABLE_CONFIDENCE } from "./normalization";
  *
  * SOURCES of the default table:
  *  - GYM_PUBLISHED: the gym publishes the correspondence (Vertical'Art FAQ).
+ *  - OBSERVED: a coach's observed table, "observé, pas une norme officielle":
+ *    Kaskad (kaskadcoaching.com) for Arkose colours and Block'Out B0–B15, sent by
+ *    Olivier on 2026-11-22.
+ *  - SHARED_ESTIMATE: an estimate passed on without a primary source (Climbing
+ *    District levels 1–12, and the same table bridging its former colours: a
+ *    summary citing Climbing District, sent by Olivier on 2026-11-22).
  *  - REFERENCE_TABLE: LEBLOND's reference table (docs/grade-reference.csv),
- *    anchored on Arkose's sub-levels (Arkose, Climbing District colours, Block'Out).
+ *    anchored on Arkose's sub-levels (no longer used by default since the tables
+ *    above; kept as a source kind).
  *  - LEBLOND_ESTIMATE: no correspondence is published; a first estimate from the
  *    scale's order, its number of levels and the gym's stated span. Low confidence,
  *    meant to be refined by the climber.
  */
 
-export const CONVERSION_SOURCES = ["FONT_NATIVE", "PROBLEM_ESTIMATE", "GYM_PUBLISHED", "REFERENCE_TABLE", "LEBLOND_ESTIMATE", "USER_SETTING"] as const;
+export const CONVERSION_SOURCES = [
+  "FONT_NATIVE", "PROBLEM_ESTIMATE", "GYM_PUBLISHED", "OBSERVED", "REFERENCE_TABLE", "SHARED_ESTIMATE", "LEBLOND_ESTIMATE", "USER_SETTING",
+] as const;
 export type ConversionSource = (typeof CONVERSION_SOURCES)[number];
 
 /** Confidence given to each kind of table line (a per-problem estimate keeps its own). */
@@ -39,7 +48,9 @@ export const SOURCE_CONFIDENCE: Record<Exclude<ConversionSource, "PROBLEM_ESTIMA
   FONT_NATIVE: 1,
   GYM_PUBLISHED: 0.8,
   USER_SETTING: 0.7,
+  OBSERVED: 0.6,
   REFERENCE_TABLE: 0.6,
+  SHARED_ESTIMATE: 0.45,
   LEBLOND_ESTIMATE: 0.35,
 };
 
@@ -50,8 +61,9 @@ export type TableLine = FontSpan & { source: Exclude<ConversionSource, "FONT_NAT
 export type TableSource = { source: TableLine["source"]; url?: string };
 
 const span = (from: FontGrade, to: FontGrade, source: TableLine["source"]): TableLine => ({ from, to, source });
-const estimate = (lines: Record<string, [FontGrade, FontGrade]>): Record<string, TableLine> =>
-  Object.fromEntries(Object.entries(lines).map(([g, [from, to]]) => [g, span(from, to, "LEBLOND_ESTIMATE")]));
+const lines = (source: TableLine["source"], list: Record<string, [FontGrade, FontGrade]>): Record<string, TableLine> =>
+  Object.fromEntries(Object.entries(list).map(([g, [from, to]]) => [g, span(from, to, source)]));
+const estimate = (list: Record<string, [FontGrade, FontGrade]>) => lines("LEBLOND_ESTIMATE", list);
 
 /**
  * The default correspondence, per boulder scale and grade. Ranges already
@@ -59,21 +71,33 @@ const estimate = (lines: Record<string, [FontGrade, FontGrade]>): Record<string,
  * first estimates (see the module comment).
  */
 export const DEFAULT_BOULDER_TABLE: Partial<Record<GradeSystem, Record<string, TableLine>>> = {
-  ARKOSE_COLOR: fromRanges("ARKOSE_COLOR", "REFERENCE_TABLE"),
-  VERTICAL_ART_COLOR: fromRanges("VERTICAL_ART_COLOR", "GYM_PUBLISHED"),
-  BLOCKOUT_LEVEL: fromRanges("BLOCKOUT_LEVEL", "REFERENCE_TABLE"),
-  CLIMBING_DISTRICT_COLOR: {
-    ...estimate({ WHITE: ["3a", "3c"], ORANGE: ["4c", "5a"] }),
-    ...fromRanges("CLIMBING_DISTRICT_COLOR", "REFERENCE_TABLE"),
-  },
-  // Climbing District's current levels: the network states a 4a–8a+ span over its circuits; 12 levels spread over it.
-  CLIMBING_DISTRICT_LEVEL: estimate({
-    "1": ["3a", "3c"], "2": ["4a", "4b"], "3": ["4c", "5a"], "4": ["5a", "5b"], "5": ["5b", "5c"], "6": ["5c", "6A"],
-    "7": ["6A", "6A+"], "8": ["6A+", "6B"], "9": ["6B+", "6C"], "10": ["6C", "6C+"], "11": ["7A", "7A+"], "12": ["7B", "8A"],
+  // Kaskad, observed: Jaune 4 à 4+, Vert 5A à 5B, Bleu 6A, Rouge 6B à 6B+, Noir 6C+ à 7A, Violet 7B à 7C.
+  // Its white (3) and the in-between colours (vert/bleu 5C, bleu/rouge 6A+, rouge/noir 6C, noir/violet 7A+)
+  // are not grades of the Arkose scale in LEBLOND, so they have no line.
+  ARKOSE_COLOR: lines("OBSERVED", {
+    YELLOW: ["4a", "4c"], GREEN: ["5a", "5b"], BLUE: ["6A", "6A"], RED: ["6B", "6B+"], BLACK: ["6C+", "7A"], PURPLE: ["7B", "7C"],
   }),
-  // Climb World: seven named levels, Débutant → Élite; no span published.
+  VERTICAL_ART_COLOR: fromRanges("VERTICAL_ART_COLOR", "GYM_PUBLISHED"),
+  // Kaskad, observed: B0 4, B1 4+, B2 5A, B3 5B à 5C, then one Font step per level up to B15 7C+.
+  BLOCKOUT_LEVEL: lines("OBSERVED", {
+    B0: ["4a", "4b"], B1: ["4c", "4c"], B2: ["5a", "5a"], B3: ["5b", "5c"], B4: ["6A", "6A"], B5: ["6A+", "6A+"], B6: ["6B", "6B"],
+    B7: ["6B+", "6B+"], B8: ["6C", "6C"], B9: ["6C+", "6C+"], B10: ["7A", "7A"], B11: ["7A+", "7A+"], B12: ["7B", "7B"], B13: ["7B+", "7B+"],
+    B14: ["7C", "7C"], B15: ["7C+", "7C+"],
+  }),
+  // The shared summary: 1–2 4a–4c (was white/yellow), 3–4 5a–5b (orange), 5–6 5c–6a+ (green), 7–8 6b–6b+ (blue),
+  // 9–10 6c–7a (red), 11 7a+–7b+ (black), 12 7c–8a+ (violet). Each pair split in two, keeping the pair's range.
+  CLIMBING_DISTRICT_LEVEL: lines("SHARED_ESTIMATE", {
+    "1": ["4a", "4b"], "2": ["4b", "4c"], "3": ["5a", "5a"], "4": ["5b", "5b"], "5": ["5c", "6A"], "6": ["6A", "6A+"],
+    "7": ["6B", "6B"], "8": ["6B+", "6B+"], "9": ["6C", "6C+"], "10": ["6C+", "7A"], "11": ["7A+", "7B+"], "12": ["7C", "8A+"],
+  }),
+  // The same summary bridges the former colours, so old entries read like the levels that replaced them.
+  CLIMBING_DISTRICT_COLOR: lines("SHARED_ESTIMATE", {
+    WHITE: ["4a", "4c"], YELLOW: ["4a", "4c"], ORANGE: ["5a", "5b"], GREEN: ["5c", "6A+"], BLUE: ["6B", "6B+"], RED: ["6C", "7A"],
+    BLACK: ["7A+", "7B+"], PURPLE: ["7C", "8A+"],
+  }),
+  // Climb World: seven levels, 1 Facile → 7 Équipe de France (wall sign; "Débutants" below level 1). No Font on the sign.
   CLIMB_WORLD_LEVEL: estimate({
-    "1": ["3a", "3c"], "2": ["4a", "4c"], "3": ["5a", "5c"], "4": ["5c", "6B"], "5": ["6B+", "6C+"], "6": ["7A", "7B"], "7": ["7B+", "8A"],
+    "1": ["4a", "4c"], "2": ["5a", "5b"], "3": ["5c", "6A+"], "4": ["6B", "6B+"], "5": ["6C", "7A"], "6": ["7A+", "7B"], "7": ["7B+", "8A"],
   }),
   // Climb Up: seven colours in the network's own order (white above red).
   CLIMB_UP_COLOR: estimate({
@@ -91,11 +115,11 @@ export const DEFAULT_BOULDER_TABLE: Partial<Record<GradeSystem, Record<string, T
 };
 
 export const TABLE_SOURCES: Partial<Record<GradeSystem, TableSource>> = {
-  ARKOSE_COLOR: { source: "REFERENCE_TABLE" },
+  ARKOSE_COLOR: { source: "OBSERVED", url: "https://kaskadcoaching.com" },
   VERTICAL_ART_COLOR: { source: "GYM_PUBLISHED", url: "https://www.vertical-art.fr/faq/" },
-  BLOCKOUT_LEVEL: { source: "REFERENCE_TABLE" },
-  CLIMBING_DISTRICT_COLOR: { source: "REFERENCE_TABLE" },
-  CLIMBING_DISTRICT_LEVEL: { source: "LEBLOND_ESTIMATE" },
+  BLOCKOUT_LEVEL: { source: "OBSERVED", url: "https://kaskadcoaching.com" },
+  CLIMBING_DISTRICT_COLOR: { source: "SHARED_ESTIMATE" },
+  CLIMBING_DISTRICT_LEVEL: { source: "SHARED_ESTIMATE" },
   CLIMB_WORLD_LEVEL: { source: "LEBLOND_ESTIMATE" },
   CLIMB_UP_COLOR: { source: "LEBLOND_ESTIMATE" },
   MROC_COLOR: { source: "LEBLOND_ESTIMATE" },
