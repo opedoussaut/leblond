@@ -6,18 +6,19 @@ import { MobilityTests } from "@/components/charts/mobility-tests";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { PageHeader } from "@/components/ui/card";
 import { AREA_ICONS, FOLLOW_UP_SECTION_ICONS as SECTION } from "@/components/layout/nav-icons";
-import { computeSnapshot } from "@/lib/analytics";
+import { attemptsInLastDays, computeSnapshot } from "@/lib/analytics";
+import { conversionSummary, fontTarget } from "@/lib/analytics/font-view";
+import { loadFontView } from "@/lib/data/font-view";
+import { FontNote } from "@/components/climbing/font-note";
 import { gradePyramid, isMobilityWork, mainSystem, topLevelRates, weeklyHardest, weeklyTotals, type TopLevelSeries, type WeekTotal } from "@/lib/analytics/charts";
 import { OverviewTiles } from "@/components/charts/overview-tiles";
 import { Sparkline } from "@/components/charts/sparkline";
 import { TopLevelRates } from "@/components/charts/top-level-rates";
 import { calculateWeeklyActivity } from "@/lib/analytics/progress";
 import { requireViewer } from "@/lib/auth/viewer";
-import { GRADE_SYSTEMS } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { listTrainingSessions, loadExerciseMethods } from "@/lib/data/training-sessions";
 import { loadRouteAscents } from "@/lib/data/routes";
-import { isOrderedSystem } from "@/lib/grading/systems";
 import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
 import { formatDate, formatCounts, formatPercent } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
@@ -133,6 +134,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     loadMobility(viewer.supabase),
     viewer.supabase.from("favourite_gyms").select("gym_id").eq("user_id", viewer.userId),
   ]);
+  // Every boulder on Font (the climber's own lines, then the default table); native grades stay stored as logged.
+  const fv = await loadFontView(viewer.supabase, dataset);
+  const fd = fv.dataset;
   // Coach sessions carry no method of their own: their exercises say whether they are mobility work.
   const methodless = (training ?? []).filter((s) => !s.methodId).map((s) => s.id);
   const exerciseMethods = await loadExerciseMethods(viewer.supabase, methodless);
@@ -145,21 +149,20 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const mobOverview = mobilityOverview(mobility.records, mobility.assessments, mobility.today);
   const mobSince28 = localDate_(new Date(now.getTime() - 27 * 86_400_000));
   const mobSessions28 = mobOverview.sessionsLast28 + otherMobility.filter((s) => sessionDate(s) >= mobSince28).length;
-  const snap = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, now, days);
+  const snap = computeSnapshot(fd, fontTarget({ grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, fv.table), now, days);
   const today = localDate_(now);
   const since = localDate_(new Date(now.getTime() - days * 86_400_000));
   const recent = (training ?? []).filter((s) => (s.scheduledDate ?? s.createdAt.slice(0, 10)) >= since && !isMobility(s));
   const adh = adherence(recent, today);
   const working = snap.workingGrade;
 
-  // Diagrams on the grade system most of the period's boulders were tried on (native grades only).
-  const sinceMs = now.getTime() - days * 86_400_000;
-  const chartSystem = mainSystem(dataset.problems, dataset.attempts.filter((x) => x.createdAt.getTime() >= sinceMs),
-    GRADE_SYSTEMS.filter(isOrderedSystem));
+  // Diagrams on Font: every gym grade converted (an estimate), the rest counted apart in the note.
+  const periodAttempts = attemptsInLastDays(dataset.attempts, days, now);
+  const chartSystem = mainSystem(fd.problems, periodAttempts, ["FONT"]);
+  const fontSummary = conversionSummary(fv, periodAttempts);
   const climbWeeks = calculateWeeklyActivity(dataset.sessions, dataset.attempts, now, weeks);
-  // Send rate at the top two grades, one series per native scale (the Grimpe tab and the overview's level tile).
-  const topLevels = tab === "climbing" || tab === "overview"
-    ? topLevelRates(dataset.problems, dataset.attempts, GRADE_SYSTEMS.filter(isOrderedSystem), now, weeks) : [];
+  // Send rate at the top two Font grades, every gym together (the Grimpe tab and the overview's level tile).
+  const topLevels = tab === "climbing" || tab === "overview" ? topLevelRates(fd.problems, fd.attempts, ["FONT"], now, weeks) : [];
   const done = (training ?? []).filter((x) => x.status === "COMPLETED" && !isMobility(x));
   const trainItems = done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes }));
   const mobItems = [
@@ -189,7 +192,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const buildSeries = (id: SeriesId): CurveSeries => {
     const title = n.series[id];
     if (id === "boulder") {
-      const points = chartSystem ? weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days).flatMap((p) => {
+      const points = chartSystem ? weeklyHardest(fd.problems, fd.attempts, chartSystem, now, days).flatMap((p) => {
         const w = weekIndex(p.weekStart, today, weeks);
         return w === null ? [] : [{ week: w, value: p.score, label: gradeLabel(t, chartSystem, p.grade) }];
       }) : [];
@@ -286,7 +289,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
         { href: followUpHref("compare", weeks), title: pa.compareCard, value: "",
           detail: fmt(pa.compareValue, { a: n.series[seriesA], b: n.series[seriesB] }), ...SECTION.compare },
       ]} />
-      <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(dataset.problems, dataset.gyms, (favourites ?? []).map((f) => f.gym_id)), dataset.attempts)} route={routes ? routeBest(routes) : null}
+      <NotebookRecords t={t} locale={locale} boulders={boulderBests(recordProblems(fd.problems, fd.gyms, (favourites ?? []).map((f) => f.gym_id)), fd.attempts)} route={routes ? routeBest(routes) : null}
         boards={boardBests(boardFacts)} hang={hangBest(hangSets)} hips={latestHipLevels(mobility.assessments)}
         gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
     </> : null}
@@ -314,14 +317,15 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
             ]} />
           <div className="border-t border-line pt-4">
             <TopLevelRates t={t} locale={locale} series={topLevels} />
+            <FontNote t={t} locale={locale} summary={fontSummary} className="mt-3" />
           </div>
           {chartSystem ? <div className="border-t border-line pt-4">
             <GradePyramid plain t={t} locale={locale} system={chartSystem}
-              rows={gradePyramid(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+              rows={gradePyramid(fd.problems, fd.attempts, chartSystem, now, days)} />
           </div> : null}
           {chartSystem ? <Fold title={c.levelFold} hint={c.levelFoldHint}>
             <LevelCurve plain t={t} locale={locale} system={chartSystem} now={now}
-              points={weeklyHardest(dataset.problems, dataset.attempts, chartSystem, now, days)} />
+              points={weeklyHardest(fd.problems, fd.attempts, chartSystem, now, days)} />
           </Fold> : null}
           <Fold title={c.climbTops} hint={pa.weeklyHint}>
             <WeeklyBars weeks={climbWeeks} locale={locale}

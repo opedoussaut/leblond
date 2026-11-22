@@ -1,4 +1,6 @@
 import type { AttemptResult, GradeSystem, GymBrand, StyleTag, WallAngle } from "@/lib/climbing/types";
+import type { ConversionSource, FontSpan } from "@/lib/grading/harmonise";
+import type { FontGrade } from "@/lib/grading/systems";
 
 /**
  * Input facts for the analytics engine. These are plain data, decoupled from
@@ -23,7 +25,20 @@ export interface ProblemFact {
   normalizationSource?: string | null;
   wallAngle: WallAngle;
   tags: StyleTag[];
+  /** Set on the Font view (font-view.ts): the grade as logged and how it became Font; null when nothing converts it. */
+  conversion?: ProblemConversion | null;
 }
+
+/** How one boulder reads on Font (lib/analytics/font-view.ts). An estimate unless the source is FONT_NATIVE. */
+export type ProblemConversion = {
+  native: { system: GradeSystem; grade: string };
+  /** The one Font grade the boulder counts at. */
+  grade: FontGrade;
+  /** The span it came from (a single grade for Font and per-problem estimates). */
+  span: FontSpan;
+  source: ConversionSource;
+  confidence: number;
+};
 
 export interface AttemptFact {
   id: string;

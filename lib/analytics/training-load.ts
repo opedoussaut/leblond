@@ -604,15 +604,11 @@ export type TrainingLoadInput = {
   training: readonly TrainingLoadFact[];
   mobility: readonly MobilityRecordFact[];
   perf: readonly PerfSeries[];
-  /** Series shown for detail only, never in the verdict (boulders per native scale, when `perf` has them converted). */
-  detailPerf?: readonly PerfSeries[];
 };
 
 export type TrainingLoadReport = {
   loads: SessionLoad[]; model: LoadDay[]; ratios: RatioDay[]; projection: ReturnType<typeof projectLoad>;
   guide: WeeklyGuide | null; monotony: number | null; trends: PerfTrend[]; verdict: VerdictResult;
-  /** Trends of `detailPerf` (per native scale), outside the verdict. */
-  detailTrends: PerfTrend[];
   /** What went into the converted boulder series, and the best entries of each two-scale card (set by the loader). */
   harmonised?: {
     bySystem: Array<{ system: GradeSystem; sends: number }>; unconverted: number;
@@ -638,7 +634,6 @@ export function trainingLoadReport(input: TrainingLoadInput): TrainingLoadReport
   const recent = loads.filter((l) => l.date >= since && l.date <= input.today);
   return {
     loads, model, ratios, projection: projectLoad(model), guide: weeklyGuide(ratios, loads, input.today), monotony: mono, trends,
-    detailTrends: performanceTrends(input.detailPerf ?? [], input.today),
     verdict: progressVerdict(trends, ratios, { monotony: mono, recentPain: recentPainCount(input.training, input.today) }),
     bySource: loadBySource(loads, input.today),
     estimated: recent.length ? {

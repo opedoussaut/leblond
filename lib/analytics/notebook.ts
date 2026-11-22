@@ -22,6 +22,8 @@ export type BoulderBest = {
   system: GradeSystem; grade: string; date: string; flash: boolean; sends: number;
   /** Where the record was climbed, and every gym where that scale was sent. */
   gymId: string; gymIds: string[];
+  /** On the Font view: the record's grade as logged at the gym, and how it became Font. */
+  conversion?: ProblemFact["conversion"];
 };
 
 /**
@@ -57,7 +59,7 @@ export function boulderBests(problems: readonly ProblemFact[], attempts: readonl
     gyms.set(p.nativeGradeSystem, (gyms.get(p.nativeGradeSystem) ?? new Set()).add(p.gymId));
     const cur = bySystem.get(p.nativeGradeSystem);
     if (!cur || score > cur.score) {
-      bySystem.set(p.nativeGradeSystem, { score, best: { system: p.nativeGradeSystem, grade: p.nativeGrade, date: day(a.createdAt), flash: a.result === "FLASH", sends: 0, gymId: p.gymId, gymIds: [] } });
+      bySystem.set(p.nativeGradeSystem, { score, best: { system: p.nativeGradeSystem, grade: p.nativeGrade, date: day(a.createdAt), flash: a.result === "FLASH", sends: 0, gymId: p.gymId, gymIds: [], ...(p.conversion ? { conversion: p.conversion } : {}) } });
     }
   }
   return [...bySystem.values()].map(({ best }) => ({ ...best, sends: counts.get(best.system) ?? 0, gymIds: [...(gyms.get(best.system) ?? [])] }))

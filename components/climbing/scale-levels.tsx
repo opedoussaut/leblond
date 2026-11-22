@@ -27,7 +27,8 @@ function TrendPill({ t, trend }: { t: Dictionary; trend: ScaleRow["trend"] }) {
  */
 export function ScaleLevels({ t, rows, font }: {
   t: Dictionary; rows: ScaleRow[];
-  font: { level: string | null; trend: ScaleRow["trend"] };
+  /** The Font estimate's row; left out when the rows are already on Font (Progrès converts every boulder). */
+  font?: { level: string | null; trend: ScaleRow["trend"] };
 }) {
   const p = t.progress;
   const cell = (label: string, grade: string | null, system: ScaleRow["system"]) => (
@@ -68,7 +69,7 @@ export function ScaleLevels({ t, rows, font }: {
         </details> : null}
       </li>)}
     </ul>
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+    {font ? <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
       <p className="text-sm">
         <span className="text-ink-2">{t.home.workingGradeFont} : </span>
         {font.level
@@ -76,7 +77,7 @@ export function ScaleLevels({ t, rows, font }: {
           : <span className="text-ink-3">{p.notEnoughShort}</span>}
       </p>
       <TrendPill t={t} trend={font.trend} />
-    </div>
+    </div> : null}
     <Explain summary={t.common.howCalculated}>{p.workingRule} {p.trendExplain}</Explain>
   </Card>;
 }

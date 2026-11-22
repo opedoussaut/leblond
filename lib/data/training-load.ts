@@ -5,7 +5,7 @@ import { isMobilityWork } from "@/lib/analytics/charts";
 import { mainEdge, type HangSet } from "@/lib/analytics/notebook";
 import type { RouteAscentFact } from "@/lib/analytics/routes";
 import {
-  boardPerf, boardScaledAttempts, boulderPerf, boulderScaledAttempts, hangPerf, routePerf, routeScaledAttempts, trainingLoadReport,
+  boardPerf, boardScaledAttempts, boulderScaledAttempts, hangPerf, routePerf, routeScaledAttempts, trainingLoadReport,
   type ClimbSessionFact, type TrainingLoadReport,
 } from "@/lib/analytics/training-load";
 import type { ClimbingDataset } from "@/lib/analytics/types";
@@ -56,7 +56,7 @@ export async function loadTrainingLoadReport(supabase: ServerSupabase, input: {
     input.hangSets ? Promise.resolve(input.hangSets) : loadHangSets(supabase),
     loadCorrespondenceOverrides(supabase),
   ]);
-  // Boulders of every scale on Font (converted, estimated) for the verdict; each native scale stays in the detail.
+  // Boulders of every scale on Font (converted, estimated): the only boulder results Progrès shows.
   const boulders = harmonisedBoulderPerf(input.dataset.problems, input.dataset.attempts, conversionTable(overrides));
   const list = (training ?? []).filter((s) => s.methodId !== HIP_METHOD_ID);
   const methods = await loadExerciseMethods(supabase, list.filter((s) => !s.methodId).map((s) => s.id));
@@ -71,7 +71,6 @@ export async function loadTrainingLoadReport(supabase: ServerSupabase, input: {
     mobility: input.mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes, rpe: r.rpe })),
     perf: [...(boulders.series ? [boulders.series] : []), ...routePerf(input.routes), ...boardPerf(input.boardFacts),
       ...hangPerf(hangSets, mainEdge(hangSets))],
-    detailPerf: boulderPerf(input.dataset.problems, input.dataset.attempts),
   });
   return { ...report, harmonised: harmonisedSummary(report.trends, boulders, input.today) };
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PerfPoint, PerfTrend, TrainingLoadReport } from "@/lib/analytics/training-load";
+import type { PerfTrend, TrainingLoadReport } from "@/lib/analytics/training-load";
 import { HARMONISED_BOULDER_KEY } from "@/lib/analytics/harmonised";
 import { BOARD_SHORT } from "@/lib/climbing/boards";
 import type { GradeSystem } from "@/lib/climbing/types";
@@ -9,7 +9,6 @@ import { fmt, type Dictionary, type Locale } from "@/lib/i18n";
 import { gradeHarmoniseDictionary } from "@/lib/i18n/grade-harmonise";
 import { trainingLoadDictionary } from "@/lib/i18n/training-load";
 import { cn } from "@/components/ui/cn";
-import { Fold } from "@/components/ui/fold";
 
 const VERDICT_TONE = {
   progressing: "bg-ok/15 text-ok",
@@ -24,7 +23,7 @@ const DIRECTION_MARK = { up: "↗", flat: "→", down: "↘", insufficient: "·"
  * Progrès › Charge › results: boulders on Font (every gym scale converted
  * through the correspondence table, labelled as an estimate) and routes on the
  * French scale, each best entry with its grade as logged; board and hangs as
- * before; the per-native-scale cards folded away below. Figures come from
+ * before. No per-gym-scale card: every boulder reads on Font. Figures come from
  * lib/analytics (training-load, harmonised).
  */
 export function HarmonisedResults({ t, locale, report }: { t: Dictionary; locale: Locale; report: TrainingLoadReport }) {
@@ -36,7 +35,6 @@ export function HarmonisedResults({ t, locale, report }: { t: Dictionary; locale
   const boulder = report.trends.find((tr) => tr.key === HARMONISED_BOULDER_KEY && tr.recentCount + tr.previousCount > 0);
   const route = report.trends.find((tr) => tr.kind === "route" && tr.recentCount + tr.previousCount > 0);
   const others = shown(report.trends.filter((tr) => tr.kind === "board" || tr.kind === "hang"));
-  const detail = shown(report.detailTrends);
   const extra = report.harmonised;
   const native = (system: GradeSystem, grade: string) => `${gradeLabel(t, system, grade)}, ${scaleName[system] ?? system}`;
 
@@ -48,7 +46,6 @@ export function HarmonisedResults({ t, locale, report }: { t: Dictionary; locale
     return d.perfRoute;
   };
   const bestOf = (tr: PerfTrend) => tr.recentBest ?? tr.previousBest;
-  const nativeBest = (tr: PerfTrend, p: PerfPoint) => (tr.series.kind === "boulder" && tr.series.system ? gradeLabel(t, tr.series.system, p.display) : p.display);
 
   const direction = (tr: PerfTrend) => <span className={cn("rounded-full px-2 py-0.5 text-xs font-bold",
     tr.direction === "up" ? "bg-ok/15 text-ok" : tr.direction === "down" ? "bg-danger/15 text-danger" : "bg-surface text-ink-2")}>
@@ -128,18 +125,5 @@ export function HarmonisedResults({ t, locale, report }: { t: Dictionary; locale
         </li>)}
       </ul>}
 
-    {detail.length ? <Fold title={h.detailTitle} hint={h.detailHint} className="mt-3" testId="results-detail">
-      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {detail.map((tr) => <li key={tr.key} className="rounded-2xl bg-surface-2 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-bold">{otherName(tr)}</span>
-            {direction(tr)}
-          </div>
-          <p className="mt-1 text-xs text-ink-2">
-            {bestOf(tr) ? <>{fmt(d.perfBest, { grade: nativeBest(tr, bestOf(tr)!) })}{" · "}</> : null}{counts(tr)}
-          </p>
-        </li>)}
-      </ul>
-    </Fold> : null}
   </div>;
 }
