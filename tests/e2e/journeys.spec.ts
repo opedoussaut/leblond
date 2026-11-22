@@ -1052,6 +1052,11 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
       "/training-assessment", "/rival", "/rival/settings", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
+      if (p === "/follow-up?tab=load") {
+        // The load headline speaks in zones and hours, never a raw ratio such as "4,00".
+        const headline = page.getByTestId("load-today");
+        if (await headline.count()) await expect(headline).not.toContainText(/\d,\d\d/);
+      }
       const look = await page.evaluate(() => ({
         bg: getComputedStyle(document.body).backgroundColor,
         // clientWidth, not innerWidth: a phone zooms out to fit a page that is too wide, which hides the overflow from innerWidth.

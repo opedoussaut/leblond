@@ -48,7 +48,9 @@ import { notebookDictionary } from "@/lib/i18n/notebook";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { routePyramid, routeWeeklyActivity, routeWeeklyHardest } from "@/lib/analytics/routes";
 import { TrainingLoad } from "@/components/charts/training-load";
-import { LOAD_THRESHOLDS, loadChartPoints, weeklyLoadRows, weeklyRatioRows, zoneRatio } from "@/lib/analytics/training-load";
+import { loadChartPoints, weeklyLoadRows } from "@/lib/analytics/training-load";
+import { hoursReport, roundMinutes5 } from "@/lib/analytics/weekly-load";
+import { formatDuration } from "@/lib/duration";
 import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { SectionTabs } from "@/components/layout/section-tabs";
 import { Fold } from "@/components/ui/fold";
@@ -182,7 +184,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const loadReport = tab !== "overview" && tab !== "load" ? null : await loadTrainingLoadReport(viewer.supabase, { today, now, dataset, routes: routes ?? [], boardFacts, mobility, training, hangSets });
   const rd = routeDictionary(locale);
   const firstWeek = new Date(startOfIsoWeekUtc(new Date(today + "T12:00:00Z")).getTime() - (weeks - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
-  const ratioDays = loadReport ? loadReport.ratios.filter((d) => d.date >= firstWeek) : [];
+  const hours = loadReport ? hoursReport(loadReport.loads, today, firstWeek) : null;
   const totals = (list: WeekTotal[], unit: string): WeeklyPoint[] => list.map((w, i) => ({ week: i, value: w.minutes, label: `${w.minutes} ${unit}` }));
   const buildSeries = (id: SeriesId): CurveSeries => {
     const title = n.series[id];
@@ -231,10 +233,9 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const ld = trainingLoadDictionary(locale);
   const routesInPeriod = routes ? routeAscentsInLastDays(routes, days, now).length : 0;
   // The overview's markers: today's load zone, the main scale's top-grade send rate.
-  const loadVerdict = loadReport && loadReport.model.length ? loadReport.verdict : null;
+  const hasLoad = !!loadReport?.model.length;
   const mainLevel = topLevels[0] as TopLevelSeries | undefined;
   const topGrade = mainLevel?.grades[0];
-  const ratioFormat = new Intl.NumberFormat(intlLocale(locale), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const percentFormat = new Intl.NumberFormat(intlLocale(locale), { style: "percent", maximumFractionDigits: 0 });
 
   return <div className="space-y-8">
@@ -257,13 +258,13 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
     {tab === "overview" ? <>
       <OverviewTiles title={pa.tilesTitle} hint={pa.tilesHint} tiles={[
         { href: followUpHref("load", weeks), section: pa.tabs.load, ...SECTION.load,
-          title: loadVerdict?.ratioBasis === "global" ? pa.tileLoadGlobal : pa.tileLoad,
-          value: loadVerdict && loadVerdict.zone !== "calibrating" && loadVerdict.ratio !== null ? ratioFormat.format(loadVerdict.ratio) : "—",
-          muted: !loadVerdict || loadVerdict.zone === "calibrating",
-          caption: !loadVerdict ? pa.loadNone : loadVerdict.zone === "calibrating" ? pa.tileLoadCalibrating
-            : fmt(pa.tileLoadCaption, { zone: ld.zone[loadVerdict.zone] }),
-          spark: <Sparkline values={ratioDays.map((d) => zoneRatio(d).ratio)} min={0}
-            band={{ low: LOAD_THRESHOLDS.low, high: LOAD_THRESHOLDS.high }} tone={SECTION.load.tone} /> },
+          title: pa.tileLoad,
+          value: hours && hasLoad ? formatDuration(roundMinutes5(hours.status.last7)) : "—",
+          muted: !hours?.status.zone,
+          caption: !hours || !hasLoad ? pa.loadNone : hours.status.zone && hours.status.habit
+            ? fmt(pa.tileLoadCaption, { zone: ld.hours.zone[hours.status.zone], habit: formatDuration(roundMinutes5(hours.status.habit.minutes)) })
+            : pa.tileLoadCalibrating,
+          spark: <Sparkline kind="bars" values={(hours?.weeks ?? []).map((w) => w.total)} tone={SECTION.load.tone} /> },
         { href: followUpHref("climbing", weeks), section: pa.tabs.climbing, ...SECTION.climbing,
           title: topGrade ? fmt(pa.tileLevel, { grade: gradeLabel(t, mainLevel!.system, topGrade.grade) }) : pa.tileLevelEmpty,
           value: topGrade && topGrade.recent.rate !== null ? percentFormat.format(topGrade.recent.rate) : "—",
@@ -290,8 +291,7 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
         gymNames={Object.fromEntries(dataset.gyms.map((g) => [g.id, g.name]))} favouritesOnly={(favourites ?? []).length > 0} />
     </> : null}
 
-    {tab === "load" && loadReport ? <TrainingLoad t={t} locale={locale} report={loadReport} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
-      ratioDays={ratioDays} ratioWeeks={weeklyRatioRows(ratioDays)}
+    {tab === "load" && loadReport && hours ? <TrainingLoad t={t} locale={locale} report={loadReport} hours={hours} weeks={weeklyLoadRows(loadReport.model.filter((d) => d.date >= firstWeek))}
       points={loadChartPoints(loadReport.model, loadReport.projection.points, firstWeek)} /> : null}
 
     {tab === "climbing" ? <>
