@@ -3,6 +3,7 @@ import { METHODS_FOR_PLANS, type Localized } from "./catalogue";
 import type { Block, ExerciseSnapshot, Modality } from "./session-templates";
 import { SIDES, WARNING_FLAGS, type Side, type WarningFlag } from "./hip-mobility/assessment";
 import { VARIANTS, type Variant } from "./hip-mobility/prescription";
+import { AWAY_SESSION_BY_KEY } from "./away/sessions";
 
 /** Pure domain model for executable training sessions (no I/O here). */
 
@@ -75,6 +76,13 @@ export const createTrainingSessionSchema = z.discriminatedUnion("source", [
     length: z.enum(["SHORT", "STANDARD"]),
     /** Exercises whose offered increase the climber accepted for this session. */
     accept: z.array(z.string().max(60)).max(10),
+    date: localDate, time: localTime,
+    startNow: z.boolean(),
+  }).strict(),
+  /** An Away Training séance (lib/training/away): permanent, the same for everyone, adapted to the hip test. */
+  z.object({
+    source: z.literal("away"),
+    awayKey: z.string().max(40).refine((k) => AWAY_SESSION_BY_KEY.has(k), "Unknown away séance"),
     date: localDate, time: localTime,
     startNow: z.boolean(),
   }).strict(),

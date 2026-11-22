@@ -51,6 +51,7 @@ export const fr = {
     calendar: "Agenda",
     projects: "Projets",
     myProgrammes: "Mes programmes",
+    away: "En déplacement",
     library: "Bibliothèque",
     rivalDuel: "Duel",
     rivalSettings: "Réglages du rival",
@@ -639,6 +640,7 @@ export const fr = {
       rival: "Comment battre mon rival cette semaine ?",
       fatigue: "Suis-je en forme pour forcer ?",
       mobility: "Où en est ma mobilité ?",
+      away: "Quelle séance faire en déplacement ?",
     },
   },
   profile: {

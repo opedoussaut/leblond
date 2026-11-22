@@ -17,6 +17,8 @@ import { areasDictionary } from "@/lib/i18n/areas";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
+import { AWAY_SESSION_BY_KEY } from "@/lib/training/away/sessions";
+import { awayDictionary } from "@/lib/i18n/away";
 import { localDate_ } from "@/lib/training/sessions";
 import { StartSession } from "./start-session";
 import { FitImportButton } from "@/components/wearables/fit-import-button";
@@ -34,7 +36,7 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   const sp = await searchParams;
   const { t: common, locale } = await getI18n(viewer.profile.preferred_language);
   const a = areasDictionary(locale).newSession;
-  const kind = sp.kind === "train" || typeof sp.coach === "string" || typeof sp.method === "string" ? "train" : "climb";
+  const kind = sp.kind === "train" || typeof sp.coach === "string" || typeof sp.method === "string" || typeof sp.away === "string" ? "train" : "climb";
 
   const fitImport = (
     <section aria-label={fitImportDictionary(locale).button} className="mb-5 space-y-1">
@@ -95,7 +97,8 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
   const today = localDate_(new Date());
   const [sessions, coachSessions] = await Promise.all([listTrainingSessions(viewer.supabase, 100), listCoachSessions(viewer.supabase)]);
   const presetMethod = typeof sp.coach === "string" && coachSessions.some((s) => s.id === sp.coach) ? "coach:" + sp.coach
-    : typeof sp.method === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.method) ? sp.method : "";
+    : typeof sp.method === "string" && METHODS_FOR_PLANS.some((m) => m.id === sp.method) ? sp.method
+    : typeof sp.away === "string" && AWAY_SESSION_BY_KEY.has(sp.away) ? "away:" + sp.away : "";
   const live = (sessions ?? []).filter((s) => s.status === "IN_PROGRESS" || s.status === "INTERRUPTED");
   const fromProgramme = (sessions ?? []).filter((s) => s.status === "PLANNED" && s.planId && (s.scheduledDate ?? today) >= today)
     .sort((x, y) => (x.scheduledDate ?? "").localeCompare(y.scheduledDate ?? "") || (x.scheduledTime ?? "").localeCompare(y.scheduledTime ?? ""))
@@ -148,6 +151,14 @@ export default async function NewSessionPage({ searchParams }: PageProps<"/sessi
           coachSessions={coachSessions.map((s) => ({ id: s.id, title: s.title, objective: s.objective, minutes: s.minutes,
             exercises: s.exercises.length, family: s.family }))} /></div>
         <p className="mt-4 text-sm"><Link href="/atlas?tab=templates" className={linkClass}>{a.templates} <IconNext /></Link></p>
+      </section>
+
+      <section aria-labelledby="away-link" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 id="away-link" className="flex items-center gap-2 text-base font-bold"><PAGE_ICONS.away aria-hidden="true" className="size-5 text-accent" />{awayDictionary(locale).entry}</h2>
+          <p className="mt-1 text-sm text-ink-2">{awayDictionary(locale).entryHint}</p>
+        </div>
+        <Link href="/train/away" className={buttonClass("secondary", "md", "shrink-0")}>{awayDictionary(locale).entry} <IconNext /></Link>
       </section>
 
       <section aria-labelledby="past-training" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">

@@ -9,6 +9,8 @@ import {
 import { fmt, type Locale } from "@/lib/i18n";
 import { trainingSessionDictionary } from "@/lib/i18n/training-session";
 import { coachSessionsDictionary } from "@/lib/i18n/coach-sessions";
+import { awayDictionary } from "@/lib/i18n/away";
+import { AWAY_SESSION_BY_KEY } from "@/lib/training/away/sessions";
 import { formatDuration } from "@/lib/duration";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { PickerSession } from "@/lib/training/session-picker";
@@ -21,7 +23,7 @@ import { SessionPicker } from "./session-picker";
 
 type LiveError = { liveId?: string };
 
-function LiveNotice({ locale, liveId }: { locale: Locale; liveId?: string }) {
+export function LiveNotice({ locale, liveId }: { locale: Locale; liveId?: string }) {
   const t = trainingSessionDictionary(locale);
   return <p role="alert" className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
     {t.liveElsewhere}{liveId ? <> <Link className={linkClass} href={"/train/sessions/" + liveId}>{t.goLive}</Link></> : null}
@@ -83,9 +85,11 @@ export function QuickSessionForm({ locale, today, presetMethod = "", coachSessio
 }) {
   const t = trainingSessionDictionary(locale);
   const c = coachSessionsDictionary(locale);
+  const a = awayDictionary(locale);
   const router = useRouter();
   const [methodId, setMethodId] = useState(presetMethod);
   const coach = methodId.startsWith("coach:") ? coachSessions.find((s) => "coach:" + s.id === methodId) ?? null : null;
+  const away = methodId.startsWith("away:") ? AWAY_SESSION_BY_KEY.get(methodId.slice("away:".length)) ?? null : null;
   const [title, setTitle] = useState("");
   const [minutes, setMinutes] = useState(60);
   const [date, setDate] = useState(today);
@@ -98,6 +102,7 @@ export function QuickSessionForm({ locale, today, presetMethod = "", coachSessio
       const when = { date: startNow ? today : date, time: startNow ? "" : time, startNow };
       const r = await createTrainingSession(coach
         ? { source: "coach", coachSessionId: coach.id, ...when }
+        : away ? { source: "away", awayKey: away.key, ...when }
         : { source: "quick", methodId: methodId || null, title, minutes, ...when });
       if (!r.ok) { setError({ msg: r.error === "live" ? "live" : t.error, liveId: r.liveId }); return; }
       router.push("/train/sessions/" + r.data.id);
@@ -105,12 +110,14 @@ export function QuickSessionForm({ locale, today, presetMethod = "", coachSessio
   }
   return <form onSubmit={(e) => { e.preventDefault(); create(true); }} className="space-y-4" aria-label={t.newSession}>
     <SessionPicker locale={locale} sessions={coachSessions} value={methodId} onChange={setMethodId} />
-    {coach ? <p className="text-sm text-ink-2">{fmt(c.durationFromCoach, { d: formatDuration(coach.minutes) })}</p> :
+    {away ? <p className="text-sm text-ink-2">{fmt(a.pickerHint, { d: formatDuration(away.minutes) })}{" "}
+      <Link href={"/train/away#" + away.key} className={linkClass}>{a.seeFull}</Link></p> :
+      coach ? <p className="text-sm text-ink-2">{fmt(c.durationFromCoach, { d: formatDuration(coach.minutes) })}</p> :
       <label className="block text-sm font-semibold">{t.sessionTitle}
         <input className={field} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {coach ? null : <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
+      {coach || away ? null : <DurationField className="col-span-2 sm:col-span-1" label={t.minutes} value={minutes}
         onChange={(v) => setMinutes(v ?? 0)} min={10} max={240} />}
       <label className="text-sm font-semibold">{t.date}
         <input className={field} type="date" min="2020-01-01" max="2100-12-31" value={date} onChange={(e) => setDate(e.target.value)} />

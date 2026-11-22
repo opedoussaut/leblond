@@ -100,7 +100,7 @@ export const coachSourceSchema = z.object({
 }).strict();
 
 /** What a session trains, for the search filters (coach families and Atlas methods share them). */
-export const SESSION_CATEGORIES = ["MOBILITY", "STRENGTH", "FINGERS", "POWER", "ENDURANCE", "TECHNIQUE", "PREP", "PLANNING"] as const;
+export const SESSION_CATEGORIES = ["MOBILITY", "STRENGTH", "AWAY", "FINGERS", "POWER", "ENDURANCE", "TECHNIQUE", "PREP", "PLANNING"] as const;
 export type SessionCategory = (typeof SESSION_CATEGORIES)[number];
 
 /** What the level of a family measures: how stiff the climber is, how hard the session is, or how hard tomorrow's climbing is. */

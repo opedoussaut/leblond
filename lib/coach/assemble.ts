@@ -17,6 +17,9 @@ import { BOARD_NAMES, type Board } from "@/lib/climbing/boards";
 import { loadBoardAscents, toBoardFact } from "@/lib/data/boards";
 import { loadTrainingLoadReport } from "@/lib/data/training-load";
 import { buildCoachContext, type QuickAction, type RecentSessionInput } from "./context";
+import { lastDoneByKey, loadAwayHistory, loadRecentWork } from "@/lib/data/away";
+import { levelView } from "@/lib/training/hip-mobility/levels";
+import { AWAY_SESSIONS, recoveryAdvice, suggestAway } from "@/lib/training/away";
 
 /**
  * Loads the climber's data (RLS-scoped to the viewer), runs the analytics
@@ -216,6 +219,12 @@ export async function assembleCoachContext(
   const [programme, mobility] = await Promise.all([loadProgramme(viewer.supabase, today), loadMobility(viewer.supabase, today)]);
   const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobility.records.length > 0;
   const trainingLoad = await loadTrainingLoadReport(viewer.supabase, { today, now, dataset: data, routes, boardFacts, mobility });
+  // Away Training: LEBLOND's own suggestion from recent strain, the hip test and what was done when.
+  const awayHistory = await loadAwayHistory(viewer.supabase);
+  const recent = await loadRecentWork(viewer.supabase, today, awayHistory);
+  const hipStage = mobility.assessments[0] ? levelView(mobility.assessments[0].results).stage : null;
+  const lastDone = lastDoneByKey(awayHistory);
+  const hard = AWAY_SESSIONS.find((s) => s.load === "HARD")!;
 
   return buildCoachContext({
     climber: {
@@ -247,6 +256,10 @@ export async function assembleCoachContext(
       enrollment: mobility.enrollment, assessments: mobility.assessments, records: mobility.records,
       plan: currentPlan(mobility), today,
     } : null,
+    away: {
+      suggestion: suggestAway({ recent, today, hipStage, lastDone }), hipStage,
+      recovery: recoveryAdvice(hard, recent, today).reason, lastDone,
+    },
     trainingLoad,
     now,
   });

@@ -150,7 +150,8 @@ export function AreaSubNav() {
                 pages.length >= 4 ? "text-xs tracking-tight" : "text-sm",
                 active ? "bg-surface text-ink shadow-[0_1px_2px_rgb(19_36_56/0.12)]" : "text-ink-2 hover:text-ink",
               )}>
-              <span className="max-w-full truncate">{t.nav[child.key]}</span>
+              {/* Two short lines rather than a cut word ("Mes programmes", "En déplacement"). */}
+              <span className="line-clamp-2 max-w-full break-words">{t.nav[child.key]}</span>
             </Link>
           </li>;
         })}

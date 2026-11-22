@@ -14,7 +14,7 @@ describe("six areas (structure v2, Rival on its own)", () => {
     expect(pages).toEqual({
       today: [],
       sessions: ["/session", "/calendar", "/projects"],
-      programmes: ["/programmes", "/atlas"],
+      programmes: ["/programmes", "/train/away", "/atlas"],
       rival: ["/rival", "/rival/settings"],
       progress: ["/progress", "/follow-up/training", "/follow-up/mobility", "/training-assessment"],
       patrick: [],
@@ -92,6 +92,7 @@ describe("one current page", () => {
     expect(activeSubPage("/train/alter-ego")?.href).toBe("/rival");
     expect(activeSubPage("/train/mobility")?.href).toBe("/programmes");
     expect(activeSubPage("/train/assess")?.href).toBe("/programmes");
+    expect(activeSubPage("/train/away")?.href).toBe("/train/away");
     expect(activeSubPage("/training-plans")?.href).toBe("/programmes");
     expect(activeSubPage("/atlas/max-hangs")?.href).toBe("/atlas");
     expect(activeSubPage("/training")?.href).toBe("/atlas");

@@ -23,6 +23,7 @@ import { summarizePerformance, type MobilitySessionRecord, type SessionPlan } fr
 import type { DayOutcome, ProgrammeView } from "@/lib/training/programme";
 import type { TrainingLoadReport } from "@/lib/analytics/training-load";
 import { hoursStatus, nextWeek } from "@/lib/analytics/weekly-load";
+import { AWAY_SESSIONS, AWAY_SESSION_BY_KEY, type AwaySuggestion, type RecoveryAdvice } from "@/lib/training/away";
 
 /**
  * The real grade scales for the systems this climber uses, easiest first, so
@@ -62,6 +63,7 @@ export const QUICK_ACTIONS = [
   "rival",
   "fatigue",
   "mobility",
+  "away",
 ] as const;
 export type QuickAction = (typeof QUICK_ACTIONS)[number];
 
@@ -214,6 +216,35 @@ export function trainingContext(input: CoachTrainingInput | null | undefined) {
 }
 
 /** The hip-mobility programme as loaded by lib/data/mobility (records and plan are already computed). */
+/** Away Training (lib/training/away), with LEBLOND's own suggestion: Patrick reads it, never computes it. */
+export interface CoachAwayInput {
+  suggestion: AwaySuggestion;
+  /** Stage of the latest hip test, null when never tested. */
+  hipStage: number | null;
+  /** Why hard séances should wait (a hard day yesterday or today), or null. */
+  recovery: RecoveryAdvice["reason"];
+  /** Last date each away séance was done. */
+  lastDone: Record<string, string>;
+}
+
+export const AWAY_NOTE =
+  "Away Training (En déplacement): 8 permanent séances of about 60 or 90 min (rests included) with bodyweight, long and mini resistance bands, the floor, a wall and, when available, a stable chair or step (every exercise needing them has a version without). Never a climbing wall, hangboard, bar, weights or gym equipment; bands are held by the hands and feet, never tied to furniture. Bands do not replace finger training. load LIGHT/MODERATE/HARD: never two HARD days in a row. Demanding hip movements come in an easier version below the hip-test stage they need (untested = easier). suggestion is computed by LEBLOND from recent strain (FATIGUE), the hip test (HIPS) and the 90-min séance done least recently (LONGER). Started or scheduled from the En déplacement page or Nouvelle séance > Entraînement; results go into the normal training history.";
+
+/** The away catalogue in the climber's language, bounded (8 short lines). */
+function awayContext(input: CoachAwayInput | null | undefined, language: "fr" | "en") {
+  if (!input) return null;
+  const s = AWAY_SESSION_BY_KEY.get(input.suggestion.key);
+  return {
+    catalogue: AWAY_SESSIONS.map((x) => ({
+      key: x.key, title: x.title[language], minutes: x.minutes, objective: x.objective, load: x.load,
+      focus: x.focus.map((f) => f[language]) as string[] | undefined, lastDone: input.lastDone[x.key] ?? null,
+    })),
+    suggestion: { key: input.suggestion.key, title: s?.title[language] ?? null, reason: input.suggestion.reason },
+    hipStage: input.hipStage,
+    recovery: input.recovery,
+  };
+}
+
 export interface CoachMobilityInput {
   enrollment: { startedOn: string; workingLevel: number; sessionLength: "SHORT" | "STANDARD"; sessionsPerWeek: number; status: "ACTIVE" | "PAUSED" } | null;
   assessments: readonly AssessmentPoint[];
@@ -337,6 +368,7 @@ export interface CoachContextInput {
   boards?: ReturnType<typeof boardCoachSummary> | null;
   training?: CoachTrainingInput | null;
   mobility?: CoachMobilityInput | null;
+  away?: CoachAwayInput | null;
   /** Training load, already computed by lib/analytics/training-load (Patrick reads it, never computes it). */
   trainingLoad?: TrainingLoadReport | null;
   now: Date;
@@ -499,6 +531,7 @@ export function buildCoachContext(input: CoachContextInput) {
       mobility: "Hip Mobility programme. Stages 0–4 are LEBLOND's internal training stages, NOT a clinical assessment. Assessment performance levels are described levels (0–4) per test and side; 'measured' values are tape-measure cm or counts taken by the climber; tests are named by letter (see 'tests'); discomfort is self-reported 0–10. Changes are only meaningful when 'comparable' is true. Versions: EASIER < STANDARD < HARDER. 'offeredIncrease' is the only progression the records support; null means stay or step back.",
       dailyCheck: "Daily check-in (self-reported): sleep 1 = poor … 3 = good; fatigue 1 = fresh … 3 = very tired; soreness 0 = none … 2 = marked. outcome is what LEBLOND recommended for that day: AS_PLANNED, REDUCED, TECHNIQUE, MOBILITY or REST.",
       ...(input.trainingLoad?.model.length ? { trainingLoad: TRAINING_LOAD_NOTE } : {}),
+      ...(input.away ? { away: AWAY_NOTE } : {}),
     },
     last30Days: period(s30),
     last90Days: period(s90),
@@ -595,6 +628,7 @@ export function buildCoachContext(input: CoachContextInput) {
     boards: input.boards && input.boards.sessions > 0 ? input.boards : null,
     training: trainingContext(input.training),
     mobility: mobilityContext(input.mobility),
+    away: awayContext(input.away, input.climber.language),
     trainingLoad: trainingLoadContext(input.trainingLoad),
   };
   return enforceBudget(ctx);
@@ -628,6 +662,10 @@ function enforceBudget<T extends Record<string, unknown>>(ctx: T): T {
     mob.leftRight = mob.leftRight?.slice(0, 2);
     mob.discomfortReports = mob.discomfortReports?.slice(0, 3);
   }
+  json = JSON.stringify(ctx);
+  // Away Training: the catalogue loses its focus words before anything else of it.
+  const away = ctx.away as { catalogue?: Array<{ focus?: unknown }> } | null | undefined;
+  if (json.length > CONTEXT_CHAR_BUDGET && away?.catalogue) for (const c of away.catalogue) delete c.focus;
   return ctx;
 }
 

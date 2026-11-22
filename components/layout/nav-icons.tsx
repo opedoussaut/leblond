@@ -8,7 +8,7 @@
  */
 import {
   Activity, ArrowUpToLine, Award, GitCompareArrows, BrickWall, Grid3x3, MapPin, MountainSnow, Sparkles, Trees,
-  BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
+  BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, Luggage, MessageCircle,
   Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, SlidersHorizontal, Sun, Swords, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +34,7 @@ export const PAGE_ICONS: Record<SubPageKey | "dayCheck" | "newSession" | "traini
   calendar: CalendarDays,
   projects: Target,
   myProgrammes: Layers,
+  away: Luggage,
   library: BookOpen,
   rivalDuel: Swords,
   rivalSettings: SlidersHorizontal,

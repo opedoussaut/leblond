@@ -15,6 +15,7 @@ const fr = {
   categories: {
     MOBILITY: "Mobilité et souplesse",
     STRENGTH: "Renforcement",
+    AWAY: "En déplacement",
     FINGERS: "Doigts",
     POWER: "Puissance",
     ENDURANCE: "Endurance",
@@ -55,6 +56,7 @@ const en: typeof fr = {
   categories: {
     MOBILITY: "Mobility and flexibility",
     STRENGTH: "Strength",
+    AWAY: "Away Training",
     FINGERS: "Fingers",
     POWER: "Power",
     ENDURANCE: "Endurance",
