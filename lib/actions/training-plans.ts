@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
 import { setFollowedPlan } from "@/lib/data/programme";
+import { getI18n } from "@/lib/i18n/server";
+import { catalogueProgramme, cataloguePlan } from "@/lib/training/programme-catalogue";
 import { planRow, trainingPlanSchema } from "@/lib/training/plans";
 
 type PlanResult = { ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "unknown" };
@@ -61,4 +63,29 @@ export async function followTrainingPlan(planId: string | null, today: string): 
   revalidatePath("/programmes");
   revalidatePath("/home");
   return { ok };
+}
+
+/**
+ * Follows a programme of the catalogue from today: it is copied into the climber's own
+ * programmes (in their language), or the copy made earlier is reused, then followed.
+ */
+export async function followCatalogueProgramme(catalogueId: string, today: string): Promise<{ ok: true; id: string } | { ok: false; error: "invalid" | "limit" | "unknown" }> {
+  const viewer = await requireViewer();
+  const entry = catalogueProgramme(catalogueId);
+  if (!entry || !z.iso.date().safeParse(today).success) return { ok: false, error: "invalid" };
+  const { locale } = await getI18n(viewer.profile.preferred_language);
+  const plan = cataloguePlan(entry, locale);
+  const { data: existing, error: findError } = await viewer.supabase.from("training_plans").select("id")
+    .eq("user_id", viewer.userId).eq("name", plan.name).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  if (findError) return { ok: false, error: "unknown" };
+  let id = existing?.id;
+  if (!id) {
+    const saved = await saveTrainingPlan(plan);
+    if (!saved.ok) return saved;
+    id = saved.id;
+  }
+  const ok = await setFollowedPlan(viewer.supabase, viewer.userId, id, today);
+  revalidatePath("/programmes");
+  revalidatePath("/home");
+  return ok ? { ok: true, id } : { ok: false, error: "unknown" };
 }
