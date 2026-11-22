@@ -19,6 +19,10 @@ const fr = {
   addedAfter: "Ajoutée après coup",
   nativeColour: "Couleur de la salle", frenchEquivalent: "Équivalent en cotation française",
   frenchHint: "La salle cote ses voies en couleurs : indique la cotation française correspondante. LEBLOND retient ton choix pour cette couleur.",
+  placeTitle: "Lieu et discipline", placeSave: "Enregistrer le lieu",
+  placeLocked: "Cette séance contient déjà des blocs ou des voies : retire-les d’abord pour changer de lieu ou de discipline.",
+  placeFromWatch: "Lieu deviné à l’import : corrige-le si besoin.",
+  placeInvalid: "Ce lieu ne propose pas cette discipline.",
 };
 type Dict = typeof fr;
 
@@ -41,6 +45,10 @@ const en: Dict = {
   addedAfter: "Added afterwards",
   nativeColour: "Gym colour", frenchEquivalent: "French grade equivalent",
   frenchHint: "This gym grades routes by colour: pick the matching French grade. LEBLOND remembers your choice for that colour.",
+  placeTitle: "Place and discipline", placeSave: "Save place",
+  placeLocked: "This session already has problems or routes: remove them first to change its place or discipline.",
+  placeFromWatch: "Place guessed at import: correct it if needed.",
+  placeInvalid: "This place does not offer that discipline.",
 };
 
 export const sessionEditDictionary = (locale: Locale): Dict => (locale === "en" ? en : fr);

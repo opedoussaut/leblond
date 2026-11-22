@@ -348,6 +348,35 @@ export async function updateSessionTitle(sessionId: string, title: string): Prom
   return { ok: true };
 }
 
+const placeSchema = z.object({ sessionId: id, gymId: id, discipline: z.enum(["BOULDER", "ROUTE"]) }).strict();
+
+/**
+ * Correct where a finished séance happened and its discipline (a FIT import
+ * guesses both). Only while nothing is logged in it: its problems and routes
+ * belong to the venue, so they are removed first. Board séances keep their board.
+ */
+export async function updateSessionPlace(input: unknown): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = placeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const { data: session } = await viewer.supabase.from("sessions").select("id, discipline, ended_at").eq("id", v.sessionId).maybeSingle();
+  if (!session || !session.ended_at || session.discipline === "BOARD") return { ok: false, error: "invalid" };
+  const { data: gym } = await viewer.supabase.from("gyms").select("has_bouldering, has_routes").eq("id", v.gymId).maybeSingle();
+  if (!gym || (v.discipline === "BOULDER" ? !gym.has_bouldering : !gym.has_routes)) return { ok: false, error: "placeInvalid" };
+  const [{ count: attempts }, { count: ascents }] = await Promise.all([
+    viewer.supabase.from("attempts").select("id", { count: "exact", head: true }).eq("session_id", v.sessionId),
+    viewer.supabase.from("route_ascents").select("id", { count: "exact", head: true }).eq("session_id", v.sessionId),
+  ]);
+  if (attempts === null || ascents === null) return { ok: false, error: "unknownError" };
+  if (attempts + ascents > 0) return { ok: false, error: "placeLocked" };
+  // The database picks the new venue's boulder scale (sessions_grade_system trigger).
+  const { error } = await viewer.supabase.from("sessions").update({ gym_id: v.gymId, discipline: v.discipline }).eq("id", v.sessionId);
+  if (error) return { ok: false, error: "unknownError" };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 /* ───────────── Attempts ───────────── */
 
 const logSchema = z.object({ sessionId: id, problemId: id, result: z.enum(ATTEMPT_RESULTS) });
