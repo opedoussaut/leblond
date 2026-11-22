@@ -119,11 +119,12 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
   await expect(page.getByRole("heading", { name: "Suivi de la mobilité", exact: true })).toBeVisible();
   // First screen: where I am, what I aim for, what I have done.
   const fuWhere = page.getByRole("region", { name: "Où j’en suis" });
-  await expect(fuWhere.getByText("Niveau 0", { exact: true })).toBeVisible();
+  await expect(fuWhere.getByTestId("mobility-where-level")).toHaveText(/^0\s*\/\s*4$/);
+  await expect(fuWhere.getByText("Très limité, beaucoup d’appui", { exact: true })).toBeVisible();
   await expect(fuWhere.getByText("Auto-déclaré", { exact: true })).toBeVisible();
   await expect(fuWhere.getByText("D’après ton bilan auto-déclaré du", { exact: false })).toBeVisible();
   const fuGoal = page.getByRole("region", { name: "Mon objectif" });
-  await expect(fuGoal.getByText("Niveau 1", { exact: true })).toBeVisible();
+  await expect(fuGoal.getByTestId("mobility-goal-level")).toHaveText(/^1\s*\/\s*4$/);
   await expect(fuGoal.getByText("2 test(s) sur 3 déjà au niveau demandé")).toBeVisible();
   const fuDone = page.getByRole("region", { name: "Ce que j’ai fait" });
   await expect(fuDone.getByRole("definition").nth(1)).toHaveText("1"); // in total

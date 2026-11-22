@@ -5,7 +5,12 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { rebuildDictionary } from "@/lib/i18n/mobility-rebuild";
 import { clinicalPending, reassessments, type RebuildStatus } from "@/lib/training/mobility-rebuild/engine";
 import type { RebuildSessionView } from "@/lib/training/mobility-rebuild/state";
+import { ChevronRight, Repeat } from "lucide-react";
+import { mobilityFollowUpDictionary } from "@/lib/i18n/mobility-follow-up";
+import { localDate_ } from "@/lib/training/sessions";
 import { buttonClass, chipClass } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
+import { ToneIcon } from "@/components/ui/hero-figure";
 import { IconNext } from "@/components/ui/icons";
 
 const TONE: Record<RebuildStatus, "neutral" | "accent" | "ok" | "warn" | "danger"> = {
@@ -49,13 +54,50 @@ export function RebuildTrack({ locale, state }: { locale: Locale; state: Rebuild
   const done = view.sessions.filter((s) => s.status === "COMPLETED" || s.status === "INTERRUPTED")
     .sort((a, b) => (b.doneOn ?? "").localeCompare(a.doneOn ?? "") || b.slot - a.slot);
   const shortDate = (d: string | null) => (d ? formatDate(d + "T12:00:00", locale, { day: "numeric", month: "short" }) : "–");
-  return <section aria-labelledby="rebuild-track" className="leblond-premium-surface space-y-4 p-5 sm:p-6" data-testid="rebuild-track">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 id="rebuild-track" className="text-lg font-bold">{r.trackTitle}</h2>
-      <span className={chipClass("neutral")}>{r.selfReported}</span>
-    </div>
-    <RebuildClinicalBadge locale={locale} reviewOn={state.enrollment.clinicalReviewOn} />
-    <p className="text-sm font-semibold">{fmt(r.adherence, view.adherence)}</p>
+  const t = mobilityFollowUpDictionary(locale);
+  const today = localDate_(new Date());
+  const total = view.sessions.length;
+  const share = total ? Math.round((done.length / total) * 100) : 0;
+  return <section aria-labelledby="rebuild-track" className="leblond-premium-surface overflow-hidden" data-testid="rebuild-track">
+    <div className="space-y-5 p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <ToneIcon icon={Repeat} tone="teal" />
+          <div className="min-w-0 space-y-2">
+            <h2 id="rebuild-track" className="text-lg font-bold leading-tight">{r.trackTitle}</h2>
+            <RebuildClinicalBadge locale={locale} reviewOn={state.enrollment.clinicalReviewOn} />
+          </div>
+        </div>
+        <span className={chipClass("neutral")}>{r.selfReported}</span>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
+        <div>
+          <p className="flex items-baseline gap-2">
+            <span className="leblond-number text-5xl leading-none">{done.length}</span>
+            <span className="text-base font-semibold text-ink-3">/ {total}</span>
+          </p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
+            <div className="h-full rounded-full bg-teal-500" style={{ width: `${share}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-ink-3">{fmt(t.rebuildProgress, { done: done.length, total })}</p>
+          <p className="mt-1 text-sm font-semibold">{fmt(r.adherence, view.adherence)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-3">{r.baseline}</p>
+          <ol className="mt-3 grid grid-cols-3 gap-2">
+            {reassessments(state.enrollment.startedOn).map((x) => {
+              const open = x.from <= today;
+              return <li key={x.key} className={cn("rounded-xl px-3 py-2.5 ring-1", open ? "bg-teal-50 ring-teal-200 dark:bg-teal-950/40 dark:ring-teal-800" : "bg-surface-2 ring-line")}>
+                <span className="block font-display text-base font-extrabold">{x.key}</span>
+                <span className="mt-0.5 block text-xs text-ink-2">{fmt(t.fromDate, { date: shortDate(x.from) })}</span>
+                {open ? <span className="mt-1 block text-[11px] font-bold text-teal-700 dark:text-teal-300">{t.reassessOpen}</span> : null}
+              </li>;
+            })}
+          </ol>
+        </div>
+      </div>
+
     {done.length === 0 ? <p className="text-sm text-ink-2">{r.trackEmpty}</p> : <div className="overflow-x-auto">
       <table className="w-full min-w-[32rem] text-left text-sm">
         <thead className="text-xs text-ink-3"><tr>
@@ -75,12 +117,13 @@ export function RebuildTrack({ locale, state }: { locale: Locale; state: Rebuild
       <p className="mt-1 text-xs text-ink-3">{r.trackColumns.before} : {r.backPain} / {r.legRadiation}</p>
     </div>}
     <p className="text-xs text-ink-3">{r.noScore}</p>
-    <div className="space-y-1">
-      <h3 className="text-base font-bold">{r.baseline}</h3>
-      <ul className="text-sm text-ink-2">{reassessments(state.enrollment.startedOn).map((x) => <li key={x.key}>
-        {fmt(r.reassessFrom, { key: x.key, date: shortDate(x.from) })}</li>)}</ul>
-      <p className="text-xs text-ink-3">{r.baselineHint}</p>
-      <Link href="/follow-up/mobility/battery" className={buttonClass("secondary", "sm")}>{r.baselineOpen} <IconNext /></Link>
     </div>
+    <Link href="/follow-up/mobility/battery" className="group flex min-h-14 items-center gap-3 border-t border-line px-5 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent sm:px-6">
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-accent">{r.baselineOpen}</span>
+        <span className="mt-0.5 block text-xs text-ink-3">{r.baselineHint}</span>
+      </span>
+      <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" strokeWidth={2.25} />
+    </Link>
   </section>;
 }
