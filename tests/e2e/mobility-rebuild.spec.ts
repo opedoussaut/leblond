@@ -185,6 +185,10 @@ test("R — mobility rebuild: key assignment, idempotence, symptom gates, guided
   await expect(track.getByRole("row")).toHaveCount(2);
   if (db) await expect(track.getByRole("cell", { name: "Pareil" })).toBeVisible();
   await expect(track.getByText("Pas de score global", { exact: false })).toBeVisible();
+  // The Rebuild séance counts among the mobility séances done, with the next checkpoint.
+  await expect(page.getByRole("region", { name: "Ce que j’ai fait" }).getByRole("definition").nth(1)).toHaveText("1");
+  await expect(page.getByRole("region", { name: "Séances faites" }).getByRole("link", { name: /Reconquête mobilité/ })).toHaveCount(1);
+  await expect(page.getByTestId("mobility-checkpoint")).toContainText("S4");
 
   // Recording a clinical review changes the status (self-reported).
   await page.goto("/train/mobility/rebuild");
