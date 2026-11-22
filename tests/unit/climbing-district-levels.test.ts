@@ -64,8 +64,8 @@ describe("Climbing District levels 1–12", () => {
     expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "BLUE")).not.toBeNull();
   });
 
-  it("has no colour ↔ level or level → Font equivalence", () => {
-    for (const l of LEVELS) expect(fontRangeFor("CLIMBING_DISTRICT_LEVEL", l)).toBeNull();
+  it("shows the shared estimate next to levels, and never compares a level with a colour", () => {
+    for (const l of LEVELS) expect(fontRangeFor("CLIMBING_DISTRICT_LEVEL", l)?.source).toBe("SHARED_ESTIMATE");
     // A level is not a colour grade and a colour is not a level: never comparable.
     expect(gradeToScore("CLIMBING_DISTRICT_LEVEL", "BLUE")).toBeNull();
     expect(gradeToScore("CLIMBING_DISTRICT_COLOR", "7")).toBeNull();

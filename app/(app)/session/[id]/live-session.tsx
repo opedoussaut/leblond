@@ -9,7 +9,8 @@ import { ScaleSwitch } from "./scale-switch";
 import { useBoulderLog, type Rejection } from "./use-boulder-log";
 import { ResultBadge, ResultIcon, boulderTone, toneButtonStyle, RESULT_TONES } from "@/components/climbing/result-badge";
 import { loggingDictionary } from "@/lib/i18n/logging";
-import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
+import { formatFontRange } from "@/lib/grading/conversions";
+import { useFontRange } from "@/components/climbing/grade-ranges";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { MediaUploader } from "@/components/climbing/media-uploader";
 import {
@@ -965,6 +966,7 @@ function GradeGrid({
   pending: boolean;
 }) {
   const { t } = useI18n();
+  const fontRangeFor = useFontRange();
   const grades = listGrades(system);
   // Gym levels (Climbing District 1–12, Climb World 1–7): big numerals (other scales keep their layout).
   const levels = isBareLevelSystem(system);

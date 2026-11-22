@@ -330,12 +330,12 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
     await expect(place.getByRole("status")).toHaveText("Enregistré.");
   }
   await expect(place).toContainText("Bloc");
-  await expect(page.getByText("≈ 6A+–6C+").first()).toBeVisible();
+  await expect(page.getByText("≈ 6B–6B+").first()).toBeVisible();
   await logGrade(page, "Rouge", ["Essai", "Top"]);
   await logGrade(page, "Bleu", ["Flash"]);
   await page.getByRole("link", { name: /Terminer les modifications/ }).first().click();
   await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
-  await expect(page.locator("dl").getByText("≈ 6A+–6C+")).toBeVisible();
+  await expect(page.locator("dl").getByText("≈ 6B–6B+")).toBeVisible();
 
   // Edit date/time from the summary; the session keeps its attempts.
   await page.getByRole("link", { name: /Modifier/ }).click();
@@ -407,7 +407,7 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
   expect(names).toEqual(sorted);
 
   const yesterday = parisDate(new Date(Date.now() - 86_400_000));
-  for (const [gym, grade, range] of [["Block'Out Paris", "B5", "≈ 6A–6A+"], ["Vertical'Art Rungis", "Bleu", "≈ 6A–6B"]] as const) {
+  for (const [gym, grade, range] of [["Block'Out Paris", "B5", "≈ 6A+"], ["Vertical'Art Rungis", "Bleu", "≈ 6A–6B"]] as const) {
     await page.goto("/session/new?where=past");
     await chooseGym(page, gym);
     const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
@@ -416,7 +416,7 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
     await expect(page).toHaveURL(/\/edit$/);
     await expect(page.getByRole("button", { name: new RegExp("^" + grade) })).toContainText(range);
   }
-  // Climb Up: its own seven colours, white above red, and no invented Font range.
+  // Climb Up: its own seven colours, white above red, with the first estimate Progrès uses.
   await page.goto("/session/new?where=past");
   await chooseGym(page, "Climb Up Aubervilliers");
   const form = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
@@ -424,7 +424,7 @@ test("A5 — real gym scales and an alphabetical gym directory", async ({ page }
   await form.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/edit$/);
   await expect(page.getByRole("button", { name: /^Violet/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Blanc/ })).not.toContainText("≈");
+  await expect(page.getByRole("button", { name: /^Blanc/ })).toContainText("≈ 6C+–7A");
 });
 
 /** A minimal watch activity: one session summary starting at `start`, `minutes` long. */
@@ -1528,6 +1528,14 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.goto("/follow-up?tab=load");
   await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
+  // The "≈ range" next to the colour follows the climber's line too: the red of journey A's séance.
+  // (A board séance from journey I is still open, so no new séance is started here.)
+  await page.goto("/session");
+  await page.locator('a[href^="/session/"]').filter({ hasText: "Demo Arkose" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
+  await expect(page.getByText("≈ 6B+", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("≈ 6B+", { exact: true }).first()).toHaveAttribute("title", /Ton réglage/);
+  await expect(page.getByText("≈ 6B–6B+", { exact: true })).toHaveCount(0);
 
   // Back to the default table.
   await page.goto("/settings");

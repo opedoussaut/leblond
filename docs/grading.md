@@ -82,16 +82,18 @@ Since 3 October 2026 the Font scale uses Fontainebleau's lettered grades below 6
 
 Indoor tickets that only say "4" or "5+" are logged with the nearest letter. Rows saved before this change were moved by migration `20261003000000_fontainebleau_boolder.sql` to the lowest matching letter: `3 → 3a`, `4 → 4a`, `4+ → 4c`, `5 → 5a`, `5+ → 5c` (a convention, chosen because the old notation does not say which letter was meant).
 
-## Indicative Font ranges for gym colours
+## Indicative Font ranges next to gym grades
 
-Next to each Arkose or Climbing District colour, LEBLOND shows an indicative Fontainebleau range
-(e.g. Arkose red "≈ 6A+–6C+"). The ranges come from the LEBLOND reference table
-[`grade-reference.csv`](./grade-reference.csv) and are implemented in `lib/grading/conversions.ts`.
-They are labelled as estimates, never replace the native grade, and do not feed the normalised analytics
-(those still use per-problem estimates with their own confidence). Colours absent from the table
-(Climbing District white/orange, pink mystery, independent gyms' custom colours) show no range,
-and neither do Climbing District's levels 1–12. The harmonised results (above) reuse these ranges and add
-first estimates for the other scales, only in Progrès and with their source.
+While logging, LEBLOND shows an indicative Fontainebleau range next to each gym grade that has a line
+in the default correspondence (e.g. Arkose red "≈ 6B–6B+", Vertical'Art violet "≥ 7B+").
+`lib/grading/conversions.ts` reads the same table as the harmonised results
+(`DEFAULT_BOULDER_TABLE` in `lib/grading/harmonise.ts`), so a grade shows the same span while logging and in
+Progrès. The chip's tooltip names the line's source (published by the gym, observed by Kaskad, shared estimate,
+LEBLOND first estimate). The ranges are estimates, never replace the native grade, and do not feed the
+per-problem estimates. Grades with no line (the mystery pink, independent gyms' custom colours) show nothing.
+The climber's own lines from Réglages win there too: the app shell loads them once
+(`GradeRangesProvider` in `components/climbing/grade-ranges.tsx`) and every chip and logging picker reads them;
+saving a line revalidates the shell.
 
 ## Routes at colour-graded gyms
 
