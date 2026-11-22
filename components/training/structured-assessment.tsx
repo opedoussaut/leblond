@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Activity, Calculator, CircleDashed, MessageCircle, Ruler, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { addCalendarEntry } from "@/lib/actions/calendar";
 import { createTrainingAssessment } from "@/lib/actions/training-assessments";
@@ -24,11 +25,18 @@ import { cn } from "@/components/ui/cn";
 const HORIZONS = [4, 6, 8, 12, 16, 24];
 const FINGER_METHODS = new Set(["max-hangs", "repeaters", "campus"]);
 
+/** One icon per kind of evidence, always with its word: measured, observed, self-reported, estimated. */
+const EVIDENCE_ICONS: Record<EvidenceLevel, LucideIcon> = {
+  measured: Ruler, observed: Activity, self: MessageCircle, estimated: Calculator, insufficient: CircleDashed,
+};
+
 export function EvidenceBadge({ level, locale }: { level: EvidenceLevel; locale: Locale }) {
   const tone = level === "measured" ? "bg-accent text-accent-ink" : level === "observed" ? "bg-accent-soft text-accent"
+    : level === "estimated" ? "bg-tone-violet-soft text-tone-violet"
     : level === "insufficient" ? "border border-dashed border-line text-ink-3" : "bg-surface-2 text-ink-2";
-  return <span title={EVIDENCE_LABELS[level].hint[locale]} className={"inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold " + tone}>
-    {EVIDENCE_LABELS[level][locale]}
+  const Icon = EVIDENCE_ICONS[level];
+  return <span title={EVIDENCE_LABELS[level].hint[locale]} className={"inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold " + tone}>
+    <Icon aria-hidden="true" className="size-3 shrink-0" strokeWidth={2.5} />{EVIDENCE_LABELS[level][locale]}
   </span>;
 }
 

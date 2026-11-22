@@ -7,54 +7,88 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { trainingDictionary } from "@/lib/i18n/training";
 import type { TestDefinition } from "@/lib/training/assessment-protocol";
+import { Gauge } from "lucide-react";
+import { cn } from "@/components/ui/cn";
+import { ToneIcon } from "@/components/ui/hero-figure";
 import { EvidenceBadge } from "./structured-assessment";
+import { TREND_SYMBOLS } from "./assessment-overview";
+import { trendFromDirection, type Trend } from "@/lib/training/assessment-overview";
 
-export type CurrentLevels = {
-  boulder: { declared: string | null; observed: string | null; sample: number; target: string | null };
-  route: { declared: string | null; observed: string | null; sample: number; target: string | null };
-};
+/** `regular`: at the observed boulder level, problems sent out of those tried in the window. */
+type LevelRow = { declared: string | null; observed: string | null; sample: number; target: string | null; regular?: { sends: number; tried: number } | null };
+export type CurrentLevels = { boulder: LevelRow; route: LevelRow };
 
 const shortDate = (date: string, locale: Locale) =>
   formatDate(date + "T12:00:00", locale, { day: "numeric", month: "short" });
 const longDate = (date: string, locale: Locale) =>
   formatDate(date + "T12:00:00", locale, { day: "numeric", month: "long" });
 
-/** Where the climber stands, declared and observed side by side. Boulder and route grades are never converted. */
+/**
+ * Where the climber stands: per discipline, the observed level as the big
+ * figure (boulders on Font, routes on the French scale), with the declared
+ * level and the goal beside it. Boulder and route grades are never converted
+ * into each other.
+ */
 export function CurrentLevelPanel({ locale, levels, cadence }: {
   locale: Locale; levels: CurrentLevels; cadence: AssessmentCadence | null;
 }) {
   const a = assessmentDictionary(locale);
   const rows = [
-    { key: "boulder", label: a.levelBoulder, ...levels.boulder },
-    { key: "route", label: a.levelRoute, ...levels.route },
+    { key: "boulder", label: a.levelBoulder, scale: a.levelScaleBoulder, ...levels.boulder },
+    { key: "route", label: a.levelRoute, scale: a.levelScaleRoute, ...levels.route },
   ].filter((r) => r.declared || r.observed || r.target);
-  return <section aria-labelledby="level-heading" className="leblond-premium-surface p-5">
-    <h2 id="level-heading" className="text-lg font-bold">{a.levelTitle}</h2>
-    {rows.length ? <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {rows.map((r) => <dl key={r.key} className="rounded-xl bg-surface-2 p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{r.label}</p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <dt className="text-sm text-ink-2">{a.levelDeclared}</dt>
-          <dd className="text-lg font-black tabular-nums">{r.declared ?? "—"}</dd>
+  return <section aria-labelledby="level-heading" className="leblond-premium-surface leblond-elevated p-5 sm:p-6">
+    <div className="flex items-start gap-3">
+      <ToneIcon icon={Gauge} tone="blue" />
+      <div className="min-w-0">
+        <h2 id="level-heading" className="text-lg font-bold">{a.levelTitle}</h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-ink-3">{a.levelSubtitle}</p>
+      </div>
+    </div>
+    {rows.length ? <div className={cn("mt-5 grid grid-cols-1 gap-3", rows.length > 1 && "sm:grid-cols-2")}>
+      {rows.map((r) => <article key={r.key} data-testid={`level-${r.key}`} aria-label={r.label}
+        className="rounded-2xl bg-surface-2 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-3">{r.label} · {r.scale}</p>
+          <EvidenceBadge level={r.observed ? "observed" : "insufficient"} locale={locale} />
         </div>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <dt className="text-sm text-ink-2">{a.levelObserved}</dt>
-          <dd className="text-right text-sm font-bold">{r.observed ? `${r.observed} · ${fmt(a.levelSample, { n: r.sample })}` : a.levelNotEnough}</dd>
-        </div>
-        {r.target ? <div className="mt-2 flex items-center justify-between gap-3">
-          <dt className="text-sm text-ink-2">{a.levelGoal}</dt>
-          <dd className="text-sm font-bold tabular-nums">{r.target}</dd>
-        </div> : null}
-      </dl>)}
-    </div> : <p className="mt-2 text-sm text-ink-2">{a.levelNone}</p>}
-    <details className="mt-2 text-xs leading-relaxed text-ink-3">
+        <dl className={cn(rows.length === 1 && "sm:flex sm:items-end sm:justify-between sm:gap-8")}>
+          <div className="mt-3">
+            <dt className="sr-only">{a.levelObserved}</dt>
+            <dd className="leblond-number text-5xl leading-none text-ink">{r.observed ?? "—"}</dd>
+            <dd className="mt-2 text-xs leading-relaxed text-ink-2">{!r.observed ? a.levelNotEnough
+              : r.key === "boulder" && r.regular ? fmt(a.levelRegularBoulder, { sends: r.regular.sends, tried: r.regular.tried })
+              : r.key === "route" ? a.levelRegularRoute : fmt(a.levelSample, { n: r.sample })}</dd>
+          </div>
+          <div className={cn("mt-4 grid grid-cols-2 gap-3 border-t border-line pt-3",
+            rows.length === 1 && "sm:min-w-[16rem] sm:gap-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0")}>
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-ink-3">{a.levelDeclared}</dt>
+              <dd className="leblond-number mt-1 text-xl leading-none text-ink">{r.declared ?? "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-ink-3">{a.levelGoal}</dt>
+              <dd className="leblond-number mt-1 text-xl leading-none text-accent">{r.target ?? "—"}</dd>
+            </div>
+          </div>
+        </dl>
+      </article>)}
+    </div> : <p className="mt-4 text-sm text-ink-2">{a.levelNone}</p>}
+    <details className="mt-3 text-xs leading-relaxed text-ink-3">
       <summary className="flex min-h-11 cursor-pointer items-center font-bold text-accent">{a.levelHow}</summary>
       {a.levelHint}
     </details>
-    {cadence ? <p className={"mt-2 rounded-xl px-4 py-3 text-sm font-semibold " + (cadence.due ? "bg-accent-soft text-ink" : "bg-surface-2 text-ink-2")}>
+    {cadence ? <p className={"mt-1 rounded-xl px-4 py-3 text-sm font-semibold " + (cadence.due ? "bg-accent-soft text-ink" : "bg-surface-2 text-ink-2")}>
       {fmt(cadence.due ? a.cadenceDue : a.cadenceNext, { last: longDate(cadence.last, locale), next: longDate(cadence.next, locale) })}
     </p> : null}
   </section>;
+}
+
+/** The trend's symbol beside its words (the words carry the meaning). */
+function TrendIcon({ trend }: { trend: Trend }) {
+  const Icon = TREND_SYMBOLS[trend].icon;
+  return <Icon aria-hidden="true" strokeWidth={2.5}
+    className={"size-3.5 shrink-0 " + (trend === "improving" ? "text-tone-green" : trend === "declining" ? "text-tone-amber" : "text-ink-3")} />;
 }
 
 const W = 320, H = 140, SIDE = 10, PLOT_TOP = 24, PLOT_BOTTOM = 96, AXIS = 118, ABOVE = -9, BELOW = 17;
@@ -149,7 +183,7 @@ export function FitnessCharts({ locale, measured, selfRated }: {
             <EvidenceBadge level="measured" locale={locale} />
           </div>
           <p className="mt-1 leblond-number text-2xl">{s.latest.value} <span className="text-sm font-semibold text-ink-2">{unit}</span></p>
-          <p className="text-xs text-ink-2">{changeLine(s, locale, unit)}</p>
+          <p className="flex items-center gap-1.5 text-xs text-ink-2">{s.change ? <TrendIcon trend={trendFromDirection(s.change.direction)} /> : null}{changeLine(s, locale, unit)}</p>
           {s.points.length > 1 ? <MiniLine points={s.points} domain={measuredDomain(s.test, s.points.map((p) => p.value))} locale={locale}
             label={s.test.name[locale]} valueText={(v) => `${v} ${unit}`} /> : null}
         </li>;

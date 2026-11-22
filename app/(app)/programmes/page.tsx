@@ -12,7 +12,6 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { redirect } from "next/navigation";
 import { loadProgramme } from "@/lib/data/programme";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
-import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { areasDictionary } from "@/lib/i18n/areas";
 import { planLabel } from "@/lib/training/plan-label";
@@ -23,7 +22,10 @@ import { trainingDictionary } from "@/lib/i18n/training";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { PROGRAMME_TABS, parseProgrammeTab, programmeHref } from "@/lib/navigation/programme-tabs";
 import { parseContext } from "@/lib/training/assessment-protocol";
-import { assessmentStatus } from "@/lib/training/assessment";
+import { assessmentOverview } from "@/lib/training/assessment-overview";
+import { assessmentDictionary } from "@/lib/i18n/assessment";
+import { AssessmentHero, heroButton } from "@/components/training/assessment-overview";
+import { HeadingMark, ToneIcon } from "@/components/ui/hero-figure";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import { healthFromContext } from "@/lib/training/health";
 import { HIP_PROGRAMME, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
@@ -72,8 +74,9 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
   const { data: currentCheckins } = current
     ? await viewer.supabase.from("training_checkins").select("week").eq("assessment_id", current.id).limit(100)
     : { data: [] };
-  const status = current ? assessmentStatus({ createdAt: current.created_at, horizonWeeks: current.horizon_weeks },
-    (currentCheckins ?? []).map((c) => c.week), new Date()) : null;
+  const overview = current ? assessmentOverview({ createdAt: current.created_at, horizonWeeks: current.horizon_weeks },
+    (currentCheckins ?? []).map((c) => c.week), new Date(), today) : null;
+  const ov = assessmentDictionary(locale).overview;
   // Kept apart so the page still works before the followed-programme migration.
   const { data: followedRow } = await viewer.supabase.from("training_plans").select("id, followed_since")
     .not("followed_since", "is", null).limit(1).maybeSingle();
@@ -84,7 +87,6 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
     return parsed ? [{ ...parsed, id: row.id, updatedAt: row.updated_at }] : [];
   });
   const view = programme.view;
-  const dateLabel = (date: string) => formatDate(date + "T12:00:00", locale, { day: "numeric", month: "long" });
   const methodTitle = view ? METHODS_FOR_PLANS.find((m) => m.id === view.methodId)?.title ?? view.methodId : "";
 
   const steps = [
@@ -135,55 +137,71 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
       </section>
     </> : null}
 
-    {tab === "checks" ? <div className="space-y-4">
-      <p className="text-sm text-ink-2">{a.checksIntro}</p>
-      {/* The full assessment builds or re-adjusts a programme. */}
-      <section aria-labelledby="assessment-heading" className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
-        <div>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="assessment-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.assessment aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{h.fullTitle}</h2>
-            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{h.fullBadge}</span>
+    {tab === "checks" ? <div className="space-y-8">
+      {/* The current full assessment first: its status, its week and the one thing to do now. */}
+      {current && overview ? <AssessmentHero locale={locale} overview={overview} testId="assessment-status"
+        method={METHODS_FOR_PLANS.find((m) => m.id === current.method_id)?.title ?? current.method_id}
+        actions={<>
+          {overview.next.kind === "reassess"
+            ? <Link href="/train/assess?new=1" className={heroButton(true)}>{h.fullAgain} <IconNext /></Link>
+            : overview.next.kind === "checkin"
+              ? <Link href="/train/assess#checkin" className={heroButton(true)}>{fmt(ov.checkinCta, { week: overview.next.week })} <IconNext /></Link>
+              : null}
+          <Link href="/train/assess" className={heroButton(overview.next.kind === "wait" || overview.next.kind === "done")}>{ov.resultsCta} <IconNext /></Link>
+        </>} />
+        : <section aria-labelledby="assessment-heading" className="leblond-hero-panel relative isolate p-5 sm:p-7">
+          <PAGE_ICONS.assessment aria-hidden="true" strokeWidth={1.25}
+            className="pointer-events-none absolute -right-6 -top-8 -z-10 size-44 text-white/[0.07] sm:size-56" />
+          <p className="leblond-eyebrow text-blue-200">{h.fullTitle} · {h.fullBadge}</p>
+          <h2 id="assessment-heading" className="mt-3 text-2xl font-bold text-white sm:text-3xl">{ov.emptyTitle}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-blue-100">{ov.emptyText}</p>
+          <div className="leblond-actions mt-5">
+            <Link href="/train/assess?new=1" className={heroButton(true)}>{h.fullCta} <IconNext /></Link>
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-2">{h.fullText}</p>
-          {current && status ? <div className="mt-4 rounded-xl bg-surface-2 p-4" data-testid="assessment-status">
-            <p className="text-sm font-bold text-ink">{fmt(h.fullCurrent, { date: formatDate(current.created_at, locale, { day: "numeric", month: "long", year: "numeric" }) })}</p>
-            <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <div><dt className="text-xs text-ink-3">{h.fullMethod}</dt>
-                <dd className="font-semibold">{METHODS_FOR_PLANS.find((m) => m.id === current.method_id)?.title ?? current.method_id}</dd></div>
-              <div><dt className="text-xs text-ink-3">{h.fullPeriod}</dt>
-                <dd className="font-semibold">{status.finished ? fmt(h.fullFinished, { total: status.horizon }) : fmt(h.fullWeek, { week: status.week, total: status.horizon })}</dd></div>
-              <div><dt className="text-xs text-ink-3">{h.fullPerWeek}</dt><dd className="font-semibold">{current.sessions_per_week}</dd></div>
-              <div><dt className="text-xs text-ink-3">{h.fullCheckins}</dt>
-                <dd className="font-semibold">{status.lastCheckin ? fmt(h.fullCheckinsDone, { n: status.checkins, week: status.lastCheckin }) : h.fullCheckinsNone}</dd></div>
-              {current.goal ? <div className="sm:col-span-2"><dt className="text-xs text-ink-3">{h.fullGoal}</dt><dd>{current.goal}</dd></div> : null}
-            </dl>
-            {status.dueCheckin ? <p className="mt-3 text-sm font-bold text-warn">{fmt(h.fullCheckinDue, { week: status.dueCheckin })}</p> : null}
-          </div> : null}
-          {view ? <p className={"mt-3 text-sm font-bold " + (view.reassessmentDue ? "text-warn" : "text-ink")}>
-            {fmt(view.reassessmentDue ? h.fullDue : h.fullNext, { date: dateLabel(view.nextReassessment) })}
-          </p> : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {current ? <Link href="/train/assess" className={buttonClass("primary", "md")}>{h.fullOpen} <IconNext /></Link> : null}
-          <Link href="/train/assess?new=1" className={buttonClass(current && !view?.reassessmentDue ? "secondary" : "primary", "md")}>
-            {current ? h.fullAgain : h.fullCta} <IconNext />
-          </Link>
-        </div>
+        </section>}
+
+      <section aria-labelledby="checks-list-heading" className="space-y-3">
+        <h2 id="checks-list-heading" className="flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-3">
+          <HeadingMark />{a.tabs.checks}
+        </h2>
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {current ? <li>
+            <section aria-labelledby="assessment-heading" className="leblond-premium-surface leblond-elevated flex h-full flex-col gap-4 p-5">
+              <div className="flex items-start gap-3">
+                <ToneIcon icon={PAGE_ICONS.assessment} tone="blue" />
+                <div className="min-w-0 flex-1">
+                  <h3 id="assessment-heading" className="text-base font-bold text-ink">{h.fullTitle}</h3>
+                  <p className="mt-0.5 text-xs font-semibold text-ink-3">{h.fullBadge}</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-ink-2">{h.fullText}</p>
+              <div className="mt-auto flex flex-wrap gap-2">
+                <Link href="/train/assess" className={buttonClass("secondary", "md")}>{h.fullOpen} <IconNext /></Link>
+                {overview?.next.kind !== "reassess" ? <Link href="/train/assess?new=1" className={buttonClass("ghost", "md")}>{h.fullAgain}</Link> : null}
+              </div>
+            </section>
+          </li> : null}
+          <li>
+            <section aria-labelledby="mobility-heading" className="leblond-premium-surface leblond-elevated flex h-full flex-col gap-4 p-5">
+              <div className="flex items-start gap-3">
+                <ToneIcon icon={PAGE_ICONS.mobility} tone="teal" />
+                <div className="min-w-0 flex-1">
+                  <h3 id="mobility-heading" className="text-base font-bold text-ink">{mob.hubTitle}</h3>
+                  <p className="mt-0.5 text-xs font-semibold text-ink-3">{mob.hubBadge}</p>
+                </div>
+</div>
+              <p className="text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
+              {mobility ? <p className="text-sm font-bold text-ink">
+                {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
+              </p> : null}
+              <div className="mt-auto">
+                <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
+              </div>
+            </section>
+          </li>
+        </ul>
+        {rebuild ? <RebuildEntryCard locale={locale} state={rebuild} /> : null}
       </section>
-      <section aria-labelledby="mobility-heading" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 id="mobility-heading" className="flex items-center gap-2 text-lg font-bold text-ink"><PAGE_ICONS.mobility aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" />{mob.hubTitle}</h2>
-            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-2">{mob.hubBadge}</span>
-          </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-2">{mob.hubText}</p>
-          {mobility ? <p className="mt-2 text-sm font-bold text-ink">
-            {fmt(mob.hubLevel, { level: LEVEL_LABELS[contentLevel(mobility.working_level)].name[locale] })}{mobility.status === "PAUSED" ? " · " + mob.paused : ""}
-          </p> : null}
-        </div>
-        <Link href="/train/mobility" className={buttonClass(mobility ? "primary" : "secondary", "md", "shrink-0")}>{mobility ? mob.hubOpen : mob.hubCta} <IconNext /></Link>
-      </section>
-      {rebuild ? <RebuildEntryCard locale={locale} state={rebuild} /> : null}
     </div> : null}
 
     {tab === "guide" ? <>

@@ -844,7 +844,8 @@ test("B — guided climber: assess, plan, schedule, execute, review, reassess", 
   await expect(page.getByRole("img", { name: "Suspension 20 mm au poids du corps" })).toBeVisible();
   await expect(page.getByText("+6 s depuis le premier résultat · en progrès")).toBeVisible();
 
-  // Reset asks twice, keeps nothing and leaves the journal alone.
+  // Reset sits in a fold, asks twice, keeps nothing and leaves the journal alone.
+  await page.getByText("Repartir de zéro", { exact: true }).click();
   await page.getByRole("button", { name: "Réinitialiser mes évaluations" }).click();
   await page.getByRole("button", { name: "Les garder" }).click();
   await expect(page.getByRole("heading", { name: "L’évolution de ma forme" })).toBeVisible();
