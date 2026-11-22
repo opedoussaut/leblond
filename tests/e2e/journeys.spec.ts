@@ -1034,7 +1034,7 @@ test("E — approved light identity, intact artwork and no overflow (desktop + m
     await page.setViewportSize(size);
     for (const p of ["/home", "/session", "/session?type=training", "/session/new", "/session/new?kind=train", "/projects", "/programmes", "/train/today", "/train/assess", "/train/mobility",
       "/calendar", "/atlas", "/atlas?tab=templates", "/atlas?tab=methods", "/atlas?tab=compare", "/follow-up", "/follow-up?tab=load", "/follow-up?tab=climbing", "/follow-up?tab=training", "/follow-up?tab=compare",
-      "/follow-up/training", "/progress", "/progress?tab=gyms", "/progress?tab=styles", "/profile", "/settings", "/atlas/max-hangs",
+      "/follow-up/training", "/progress", "/progress?tab=gyms", "/progress?tab=styles", "/profile", "/settings", "/settings/grades", "/atlas/max-hangs",
       "/training-assessment", "/rival", "/rival/settings", guidedSessionUrl]) {
       await page.goto(p);
       await expect(page.locator("#app-main h1")).toBeVisible();
@@ -1470,4 +1470,39 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   await expect(page.getByRole("button", { name: "À ta portée" })).toHaveAttribute("aria-pressed", "true");
   // The climber manages load and pain: no safety footnote under the feed.
   await expect(page.getByText(/La douleur arrête la course/)).toHaveCount(0);
+});
+
+test("K — results on two scales: boulders on Font (converted, estimated), and the climber's own correspondence", async ({ page }) => {
+  // The free climber of journey A topped a red and flashed a blue at Demo Arkose.
+  await signInWithPassword(page, "free@leblond.local");
+  await page.goto("/follow-up?tab=load");
+  const boulder = page.getByTestId("harmonised-boulder");
+  await expect(boulder.getByText("Bloc · Font")).toBeVisible();
+  await expect(boulder.getByText("converti, estimé")).toBeVisible();
+  // Each entry keeps the grade as logged next to the converted one.
+  await expect(boulder.getByText("← Rouge, Couleurs Arkose")).toBeVisible();
+  await expect(boulder.getByText("6B–6B+", { exact: true })).toBeVisible();
+  await expect(boulder.getByText(/Converti depuis : Couleurs Arkose 2/)).toBeVisible();
+
+  // Réglages › correspondence: the climber moves red up; Progrès follows, the native grade stays.
+  await boulder.getByRole("link", { name: "Affiner la correspondance" }).click();
+  await expect(page).toHaveURL(/\/settings\/grades$/);
+  await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
+  const red = page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" });
+  await red.getByLabel("De").selectOption("6B+");
+  await expect(red.getByText("Enregistré")).toBeVisible();
+  await page.reload();
+  await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
+  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B+");
+  await page.goto("/follow-up?tab=load");
+  await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
+
+  // Back to the default table.
+  await page.goto("/settings");
+  await page.getByTestId("settings-grades-link").click();
+  await page.getByTestId("scale-ARKOSE_COLOR").locator("summary").click();
+  await page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" })
+    .getByRole("button", { name: "Revenir au défaut" }).click();
+  await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B");
 });

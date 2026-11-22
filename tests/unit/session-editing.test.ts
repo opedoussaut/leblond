@@ -63,11 +63,12 @@ describe("real gym scales (official sources)", () => {
     expect(fontRangeFor("VERTICAL_ART_COLOR", "BLUE")).toMatchObject({ from: "6A", to: "6B", official: true });
     expect(formatFontRange(fontRangeFor("VERTICAL_ART_COLOR", "PURPLE")!)).toBe("≥ 7B+");
   });
-  it("Block'Out grades are levels B1 → B14 with estimates from the reference table", async () => {
+  it("Block'Out grades are levels B0 → B15 with estimates from the reference table", async () => {
     const { isValidGrade, listGrades } = await import("@/lib/grading");
-    expect(listGrades("BLOCKOUT_LEVEL")).toHaveLength(14);
-    expect(isValidGrade("BLOCKOUT_LEVEL", "B14")).toBe(true);
-    expect(isValidGrade("BLOCKOUT_LEVEL", "B15")).toBe(false);
+    expect(listGrades("BLOCKOUT_LEVEL")).toHaveLength(16);
+    expect(listGrades("BLOCKOUT_LEVEL")[0].id).toBe("B0");
+    expect(isValidGrade("BLOCKOUT_LEVEL", "B15")).toBe(true);
+    expect(isValidGrade("BLOCKOUT_LEVEL", "B16")).toBe(false);
     expect(formatFontRange(fontRangeFor("BLOCKOUT_LEVEL", "B5")!)).toBe("≈ 6A–6A+");
     expect(isColourSystem("BLOCKOUT_LEVEL")).toBe(false);
   });

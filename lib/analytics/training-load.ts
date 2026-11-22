@@ -2,6 +2,7 @@ import type { GradeSystem } from "@/lib/climbing/types";
 import { gradeRank, isBoardSend, type Board, type BoardScale } from "@/lib/climbing/boards";
 import { isClean, routeGradeIndex } from "@/lib/climbing/routes";
 import { gradeToScore } from "@/lib/grading/ordering";
+import type { ConversionSource } from "@/lib/grading/harmonise";
 import type { BoardAscentFact } from "./boards";
 import type { HangSet } from "./notebook";
 import type { RouteAscentFact } from "./routes";
@@ -409,10 +410,17 @@ export function monotony(model: readonly LoadDay[]): number | null {
 // ── Performance in each native scale ───────────────────────────────────────
 
 export type PerfKind = "boulder" | "route" | "board" | "hang";
-export type PerfPoint = { date: string; score: number; display: string };
+export type PerfPoint = {
+  date: string; score: number; display: string;
+  /** Harmonised series only: the grade as logged, how it was converted, and how sure that is. */
+  native?: { system: GradeSystem; grade: string } | null;
+  confidence?: number; source?: ConversionSource;
+};
 export type PerfSeries = {
   key: string; kind: PerfKind;
   system?: GradeSystem; board?: Board; scale?: BoardScale; edgeMm?: number | null;
+  /** Boulders of every scale read on Font through the conversion table (an estimate). */
+  converted?: boolean;
   /** Change in the top-3 average needed to call it a real move (grade steps, or kg). */
   threshold: number;
   points: PerfPoint[];
@@ -436,10 +444,12 @@ export function boulderPerf(problems: readonly ProblemFact[], attempts: readonly
   return [...bySystem].map(([system, points]) => ({ key: `boulder:${system}`, kind: "boulder" as const, system, threshold: 0.5, points }));
 }
 
-/** Clean route ascents on the French scale. */
+/** Clean route ascents on the French scale, with the gym's colour when one was logged next to it. */
 export function routePerf(ascents: readonly RouteAscentFact[]): PerfSeries[] {
-  const points = ascents.filter((a) => isClean(a.result) && routeGradeIndex(a.grade) >= 0)
-    .map((a) => ({ date: a.createdAt.toISOString().slice(0, 10), score: routeGradeIndex(a.grade), display: a.grade }));
+  const points = ascents.filter((a) => isClean(a.result) && routeGradeIndex(a.grade) >= 0).map((a): PerfPoint => ({
+    date: a.createdAt.toISOString().slice(0, 10), score: routeGradeIndex(a.grade), display: a.grade,
+    native: a.nativeGrade && a.nativeGradeSystem ? { system: a.nativeGradeSystem, grade: a.nativeGrade } : null,
+  }));
   return points.length ? [{ key: "route", kind: "route", threshold: 1, points }] : [];
 }
 
@@ -594,11 +604,20 @@ export type TrainingLoadInput = {
   training: readonly TrainingLoadFact[];
   mobility: readonly MobilityRecordFact[];
   perf: readonly PerfSeries[];
+  /** Series shown for detail only, never in the verdict (boulders per native scale, when `perf` has them converted). */
+  detailPerf?: readonly PerfSeries[];
 };
 
 export type TrainingLoadReport = {
   loads: SessionLoad[]; model: LoadDay[]; ratios: RatioDay[]; projection: ReturnType<typeof projectLoad>;
   guide: WeeklyGuide | null; monotony: number | null; trends: PerfTrend[]; verdict: VerdictResult;
+  /** Trends of `detailPerf` (per native scale), outside the verdict. */
+  detailTrends: PerfTrend[];
+  /** What went into the converted boulder series, and the best entries of each two-scale card (set by the loader). */
+  harmonised?: {
+    bySystem: Array<{ system: GradeSystem; sends: number }>; unconverted: number;
+    boulderEntries: PerfPoint[]; routeEntries: PerfPoint[]; weakestConfidence: number | null;
+  };
   bySource: ReturnType<typeof loadBySource>;
   /** Share of the last 28 days' sessions whose minutes / intensity were estimated (0–1), null without sessions. */
   estimated: { minutes: number; intensity: number } | null;
@@ -619,6 +638,7 @@ export function trainingLoadReport(input: TrainingLoadInput): TrainingLoadReport
   const recent = loads.filter((l) => l.date >= since && l.date <= input.today);
   return {
     loads, model, ratios, projection: projectLoad(model), guide: weeklyGuide(ratios, loads, input.today), monotony: mono, trends,
+    detailTrends: performanceTrends(input.detailPerf ?? [], input.today),
     verdict: progressVerdict(trends, ratios, { monotony: mono, recentPain: recentPainCount(input.training, input.today) }),
     bySource: loadBySource(loads, input.today),
     estimated: recent.length ? {

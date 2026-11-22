@@ -26,7 +26,7 @@ import { boulderGrade } from "./display";
  */
 export type FontRange = { from: FontGrade; to: FontGrade; openEnded?: boolean; official?: boolean };
 
-const RANGES: Partial<Record<GradeSystem, Record<string, FontRange>>> = {
+export const RANGES: Partial<Record<GradeSystem, Record<string, FontRange>>> = {
   ARKOSE_COLOR: {
     YELLOW: { from: "3a", to: "4c" },
     GREEN: { from: "5a", to: "5c" },

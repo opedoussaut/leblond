@@ -10,6 +10,9 @@ import {
 } from "@/lib/analytics/training-load";
 import type { ClimbingDataset } from "@/lib/analytics/types";
 import { loadHangSets } from "@/lib/data/notebook";
+import { loadCorrespondenceOverrides } from "@/lib/data/grade-correspondences";
+import { harmonisedBoulderPerf, harmonisedSummary } from "@/lib/analytics/harmonised";
+import { conversionTable } from "@/lib/grading/harmonise";
 import { listTrainingSessions, loadExerciseMethods } from "@/lib/data/training-sessions";
 import type { MobilityState } from "@/lib/data/mobility";
 import { HIP_METHOD_ID } from "@/lib/training/hip-mobility/content";
@@ -47,14 +50,17 @@ export async function loadTrainingLoadReport(supabase: ServerSupabase, input: {
   training?: TrainingSession[] | null; hangSets?: HangSet[];
 }): Promise<TrainingLoadReport> {
   const since = new Date(input.now.getTime() - LOAD_HISTORY_DAYS * 86_400_000).toISOString().slice(0, 10);
-  const [climbs, training, hangSets] = await Promise.all([
+  const [climbs, training, hangSets, overrides] = await Promise.all([
     loadClimbSessionsForLoad(supabase, since),
     input.training !== undefined ? Promise.resolve(input.training) : listTrainingSessions(supabase, 400),
     input.hangSets ? Promise.resolve(input.hangSets) : loadHangSets(supabase),
+    loadCorrespondenceOverrides(supabase),
   ]);
+  // Boulders of every scale on Font (converted, estimated) for the verdict; each native scale stays in the detail.
+  const boulders = harmonisedBoulderPerf(input.dataset.problems, input.dataset.attempts, conversionTable(overrides));
   const list = (training ?? []).filter((s) => s.methodId !== HIP_METHOD_ID);
   const methods = await loadExerciseMethods(supabase, list.filter((s) => !s.methodId).map((s) => s.id));
-  return trainingLoadReport({
+  const report = trainingLoadReport({
     today: input.today,
     climbs,
     scaledAttempts: [...boulderScaledAttempts(input.dataset.problems, input.dataset.attempts), ...routeScaledAttempts(input.routes), ...boardScaledAttempts(input.boardFacts)],
@@ -63,7 +69,9 @@ export async function loadTrainingLoadReport(supabase: ServerSupabase, input: {
       rpe: s.rpe, pain: s.pain, mobility: isMobilityWork(s.methodId, methods.get(s.id) ?? []), climbingSessionId: s.climbingSessionId,
     })),
     mobility: input.mobility.records.filter((r) => r.status === "COMPLETED").map((r) => ({ date: r.date, minutes: r.minutes, rpe: r.rpe })),
-    perf: [...boulderPerf(input.dataset.problems, input.dataset.attempts), ...routePerf(input.routes), ...boardPerf(input.boardFacts),
+    perf: [...(boulders.series ? [boulders.series] : []), ...routePerf(input.routes), ...boardPerf(input.boardFacts),
       ...hangPerf(hangSets, mainEdge(hangSets))],
+    detailPerf: boulderPerf(input.dataset.problems, input.dataset.attempts),
   });
+  return { ...report, harmonised: harmonisedSummary(report.trends, boulders, input.today) };
 }

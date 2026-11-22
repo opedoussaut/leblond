@@ -19,8 +19,8 @@ const fr = {
     declining: "Tu régresses",
     insufficient: "Pas encore assez de recul",
   } satisfies Record<Verdict, string>,
-  basisPerformance: "D’après tes résultats des 6 dernières semaines comparés aux 6 précédentes, dans chaque échelle.",
-  basisNone: "Il faut au moins 5 croix dans chaque période de 6 semaines, sur une même échelle, pour dire si tu progresses. Plus de charge n’est pas un progrès.",
+  basisPerformance: "D’après tes résultats des 6 dernières semaines comparés aux 6 précédentes : bloc en Font (converti, estimé), voie en cotation française.",
+  basisNone: "Il faut au moins 5 croix dans chaque période de 6 semaines, en bloc ou en voie, pour dire si tu progresses. Plus de charge n’est pas un progrès.",
 
   zoneLabel: "Zone de charge",
   zone: {
@@ -87,8 +87,8 @@ const fr = {
   weekLoad: "Charge",
   formCol: "Fraîcheur",
 
-  perfTitle: "Tes résultats, échelle par échelle",
-  perfHint: "Moyenne de tes 3 meilleures croix des 6 dernières semaines contre les 6 précédentes. Aucune cotation n’est convertie d’une échelle à l’autre.",
+  perfTitle: "Tes résultats, bloc et voie",
+  perfHint: "Moyenne de tes 3 meilleures croix. En bloc, les couleurs et niveaux de salle sont convertis en Font : c’est une estimation, ta cotation d’origine reste affichée à côté.",
   perfEmpty: "Pas encore de résultats sur 12 semaines.",
   perfDirection: {
     up: "en hausse",
@@ -122,7 +122,7 @@ const fr = {
     "Durée de grimpe : celle enregistrée, sinon le temps entre début et fin, sinon 4 minutes par essai noté (estimé).",
     "Ratio = charge des 7 derniers jours ÷ (charge des 28 derniers jours ÷ 4) : des sommes glissantes, comme Hulin 2016. Il ne part pas de zéro et oublie au bout de 4 semaines une période sans séance.",
     "Doigts et haut du corps : bloc, voie, board et entraînement. Global : tout, mobilité comprise. La zone lit le ratio des doigts dès qu’il y en a un.",
-    "Le verdict compare la moyenne de tes 3 meilleures croix des 6 dernières semaines aux 6 précédentes, échelle par échelle, avec au moins 5 croix de chaque côté.",
+    "Le verdict compare la moyenne de tes 3 meilleures croix des 6 dernières semaines aux 6 précédentes, avec au moins 5 croix de chaque côté : tous tes blocs ensemble en Font (convertis avec la table de correspondance, que tu peux affiner dans Réglages), tes voies en cotation française.",
     "Forme de fond = moyenne exponentielle sur 42 jours, fatigue = sur 7 jours, fraîcheur = forme − fatigue (modèle forme–fatigue de Banister), dans les détails.",
   ],
   estimatedShare: "Estimé sur 28 jours : durée de {minutes} des séances, intensité de {intensity}.",
@@ -133,7 +133,7 @@ const fr = {
     "Le rapport aigu/chronique est contesté : des chercheurs (Impellizzeri 2020–2021, Lolli 2019) montrent qu’il prédit mal les blessures et que son calcul crée des artefacts. Prends-le comme un repère d’équilibre, pas comme un risque de blessure chiffré.",
     "En escalade, les revues récentes (Quarmby 2023) ne trouvent pas de lien clair entre volume et blessure ; les facteurs retrouvés sont une intensité élevée, le bloc, l’arqué et une blessure antérieure. La charge ne voit pas une prise traumatisante.",
     "L’intensité de grimpe est estimée, et l’effort perçu reflète moins bien la physiologie chez les grimpeurs non experts (Gajdošík, Baláš & Draper 2020). Note ta fatigue avant et après la séance pour affiner.",
-    "Le verdict compare tes cotations dans chaque échelle séparément ; une période en dalle ou dans une nouvelle salle peut le faire bouger sans que ton niveau change.",
+    "En bloc, le verdict lit des cotations converties : une table de correspondance approximative, ou une période dans une salle qui cote plus dur, peut le faire bouger sans que ton niveau change. Le détail par échelle d’origine reste disponible.",
     "Toutes les séances d’entraînement comptent pour les doigts et le haut du corps, même une séance de jambes : l’app ne les distingue pas encore.",
   ],
   sourcesListTitle: "Sources",
@@ -169,8 +169,8 @@ const en: Dict = {
     declining: "You are getting weaker",
     insufficient: "Too early to tell",
   },
-  basisPerformance: "From your results over the last 6 weeks against the 6 before, in each scale.",
-  basisNone: "It takes at least 5 sends in each 6-week window, on the same scale, to tell whether you are progressing. More load is not progress.",
+  basisPerformance: "From your results over the last 6 weeks against the 6 before: boulders on Font (converted, estimated), routes on the French scale.",
+  basisNone: "It takes at least 5 sends in each 6-week window, in bouldering or on routes, to tell whether you are progressing. More load is not progress.",
 
   zoneLabel: "Load zone",
   zone: {
@@ -237,8 +237,8 @@ const en: Dict = {
   weekLoad: "Load",
   formCol: "Freshness",
 
-  perfTitle: "Your results, scale by scale",
-  perfHint: "Average of your 3 best sends in the last 6 weeks against the 6 before. No grade is converted between scales.",
+  perfTitle: "Your results, boulders and routes",
+  perfHint: "Average of your 3 best sends. For boulders, gym colours and levels are converted to Font: an estimate, with your original grade shown next to it.",
   perfEmpty: "No results over 12 weeks yet.",
   perfDirection: {
     up: "up",
@@ -272,7 +272,7 @@ const en: Dict = {
     "Climbing duration: the recorded one, else the time from start to end, else 4 minutes per logged attempt (estimated).",
     "Ratio = load of the last 7 days ÷ (load of the last 28 days ÷ 4): rolling sums, as in Hulin 2016. It does not start from zero and forgets a break after 4 weeks.",
     "Fingers and upper body: boulder, routes, board and training. Overall: everything, mobility included. The zone reads the fingers ratio whenever there is one.",
-    "The verdict compares the average of your 3 best sends of the last 6 weeks with the 6 before, scale by scale, with at least 5 sends on each side.",
+    "The verdict compares the average of your 3 best sends of the last 6 weeks with the 6 before, with at least 5 sends on each side: all your boulders together on Font (converted with the correspondence table, which you can refine in Settings), your routes on the French scale.",
     "Fitness = 42-day exponential average, fatigue = 7-day, freshness = fitness − fatigue (Banister's fitness–fatigue model), in the details.",
   ],
   estimatedShare: "Estimated over 28 days: duration for {minutes} of sessions, intensity for {intensity}.",
@@ -283,7 +283,7 @@ const en: Dict = {
     "The acute:chronic ratio is debated: researchers (Impellizzeri 2020–2021, Lolli 2019) show it predicts injuries poorly and that the way it is computed creates artefacts. Read it as a balance marker, not as an injury risk figure.",
     "In climbing, recent reviews (Quarmby 2023) find no clear link between volume and injury; the factors found are high intensity, bouldering, crimping and a previous injury. Load cannot see one bad move.",
     "Climbing intensity is estimated, and perceived effort reflects physiology less well in non-expert climbers (Gajdošík, Baláš & Draper 2020). Note your fatigue before and after a session to sharpen it.",
-    "The verdict compares your grades in each scale separately; a slab phase or a new gym can move it without your level changing.",
+    "For boulders the verdict reads converted grades: a rough correspondence, or a phase in a gym that grades harder, can move it without your level changing. The detail per original scale is still there.",
     "Every training session counts for fingers and upper body, even a leg session: the app cannot tell them apart yet.",
   ],
   sourcesListTitle: "Sources",

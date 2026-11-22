@@ -14,7 +14,8 @@ import type { GradeSystem } from "@/lib/climbing/types";
  *   network's former bouldering scale) and its numbered levels 1 → 12 (the
  *   current scale). No official colour ↔ level table is published: none is
  *   encoded here, and no transition date is recorded until one is verified.
- * - Block'Out: https://blockout.fr/tours/la-grimpe (B1 → B14, "sans se limiter à la seule couleur des prises")
+ * - Block'Out: https://blockout.fr/tours/la-grimpe (B1 → B14, "sans se limiter à la seule couleur des prises");
+ *   B0 and B15 added 2026-11-22 from Kaskad's observed table (kaskadcoaching.com), which runs B0 → B15
  * - Climb Up: https://www.climb-up.fr/faq/ (7 niveaux : jaune, vert, bleu, violet, rouge, blanc, noir)
  * - Vertical'Art: https://www.vertical-art.fr/faq/ (blanc → violet, référence cotation Bleau)
  * - Le Labo (Grenoble), MROC Laennec (Lyon): colour order as listed on their statistics pages (hosted by Arkose)
@@ -27,7 +28,7 @@ export type GradeKind = "ORDERED" | "MYSTERY" | "UNORDERED";
 /**
  * What a system's grades ARE, independently of the gym using it:
  *  - COLOUR: hold colours (Arkose, Climbing District colours, custom colours…);
- *  - NUMERIC: numbered gym levels (Block'Out B1–B14, Climbing District 1–12, Climb World 1–7) —
+ *  - NUMERIC: numbered gym levels (Block'Out B0–B15, Climbing District 1–12, Climb World 1–7) —
  *    gym levels, NOT Font or French grades even when they look like numbers;
  *  - CONVENTIONAL: a recognised climbing scale (Font for boulders).
  * French route grades are a separate scale (lib/grading/route-grades.ts).
@@ -175,9 +176,9 @@ export const CUSTOM_COLOR_GRADES: GradeDefinition[] = (
   swatchText,
 }));
 
-/** Block'Out: numbered levels B1 (easiest) → B14, shown on a sign at the top of each problem. */
-export const BLOCKOUT_GRADES: GradeDefinition[] = Array.from({ length: 14 }, (_, i) => ({
-  id: "B" + (i + 1),
+/** Block'Out: numbered levels B0 (easiest) → B15, shown on a sign at the top of each problem. */
+export const BLOCKOUT_GRADES: GradeDefinition[] = Array.from({ length: 16 }, (_, i) => ({
+  id: "B" + i,
   system: "BLOCKOUT_LEVEL" as const,
   kind: "ORDERED" as const,
   ordinal: i,

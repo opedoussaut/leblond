@@ -7,12 +7,13 @@ export async function loadRouteAscents(supabase: ServerSupabase): Promise<RouteA
   const out: RouteAscentFact[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from("route_ascents")
-      .select("id, session_id, grade, style, result, falls, created_at, sessions(gyms(brand))")
+      .select("id, session_id, grade, style, result, falls, created_at, native_grade, native_grade_system, sessions(gyms(brand))")
       .order("created_at").range(from, from + 999);
     if (error) return null;
     out.push(...data.map((a) => ({
       id: a.id, sessionId: a.session_id, grade: a.grade, style: a.style, result: a.result,
       falls: a.falls, createdAt: new Date(a.created_at), outdoor: a.sessions?.gyms?.brand === "OUTDOOR",
+      nativeGrade: a.native_grade, nativeGradeSystem: a.native_grade_system,
     })));
     if (data.length < 1000) return out;
   }
