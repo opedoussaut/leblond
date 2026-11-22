@@ -6,6 +6,9 @@ import { PageHeader } from "@/components/ui/card";
 import { computeSnapshot, routeWorkingGrade } from "@/lib/analytics";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadClimbingDataset } from "@/lib/data/climbing";
+import { loadFontView } from "@/lib/data/font-view";
+import { fontTarget } from "@/lib/analytics/font-view";
+import { boulderGrade } from "@/lib/grading/display";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { getI18n } from "@/lib/i18n/server";
 import { assessmentDictionary } from "@/lib/i18n/assessment";
@@ -65,28 +68,32 @@ export async function TrainingAssessmentView({ backHref, startInForm = false }: 
     }];
   });
 
-  const snapshot = computeSnapshot(dataset, {
-    grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system,
-  }, new Date(), 60);
-  const working = snapshot.roadToTarget.workingLevel;
-  const recent = computeSnapshot(dataset, { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, new Date(), 28);
+  // Boulders are read on Font, as everywhere in Progrès (#217): gym colours and
+  // levels are converted, so the observed level and its history are one grade.
+  const fv = await loadFontView(viewer.supabase, dataset);
+  const fd = fv.dataset;
+  const target = fontTarget({ grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, fv.table);
+  const snapshot = computeSnapshot(fd, target, new Date(), 60);
+  const recent = computeSnapshot(fd, target, new Date(), 28);
   const observed = observedEvidence({
     sessions28d: recent.counts.sessions, problems28d: recent.counts.problems,
     sends28d: recent.counts.tops, flashes28d: recent.counts.flashes,
-    workingGrade: snapshot.workingGrade.level, workingSample: snapshot.workingGrade.sampleSize,
+    workingGrade: snapshot.workingGrade.level ? boulderGrade(snapshot.workingGrade.level) : null, workingSample: snapshot.workingGrade.sampleSize,
   });
   const routeWorking = routeWorkingGrade(routes ?? [], new Date());
-  const boulderObserved = working.level
-    ? { level: working.level + " · " + working.system, sample: working.sampleSize }
-    : snapshot.workingGrade.level
-      ? { level: snapshot.workingGrade.level + " · " + a.levelFontEstimate, sample: snapshot.workingGrade.sampleSize }
-      : { level: null, sample: 0 };
+  // The observed level is a level sent regularly (lib/analytics/working-grade.ts), never one good day.
+  const atLevel = snapshot.workingGrade.levels.find((l) => l.grade === snapshot.workingGrade.level);
+  const boulderObserved = snapshot.workingGrade.level
+    ? { level: boulderGrade(snapshot.workingGrade.level), sample: snapshot.workingGrade.sampleSize,
+      regular: atLevel ? { sends: atLevel.sends, tried: atLevel.problems } : null }
+    : { level: null, sample: 0, regular: null };
   // Boulder and route levels stay side by side: one is never converted into the other.
   const discipline = viewer.profile.target_discipline;
   const levels = {
     boulder: {
-      declared: viewer.profile.self_reported_level, observed: boulderObserved.level, sample: boulderObserved.sample,
-      target: discipline === "ROUTE" ? null : viewer.profile.target_grade,
+      declared: viewer.profile.self_reported_level ? boulderGrade(viewer.profile.self_reported_level) : null,
+      observed: boulderObserved.level, sample: boulderObserved.sample, regular: boulderObserved.regular,
+      target: discipline === "ROUTE" ? null : boulderGrade(target.grade),
     },
     route: {
       declared: viewer.profile.self_reported_route_grade, observed: routeWorking.grade, sample: routeWorking.sampleSize,
@@ -95,9 +102,9 @@ export async function TrainingAssessmentView({ backHref, startInForm = false }: 
   };
 
   const history = Object.fromEntries(saved.map(item => [item.id,
-    workingGradeHistory(dataset, viewer.profile.target_grade_system, item.createdAt, item.horizonWeeks, new Date()),
+    workingGradeHistory(fd, target.system, item.createdAt, item.horizonWeeks, new Date()),
   ]));
-  const targetOrdinal = gradeToScore(viewer.profile.target_grade_system, viewer.profile.target_grade);
+  const targetOrdinal = gradeToScore(target.system, target.grade);
 
   return (
     <div className="pb-12">
@@ -122,12 +129,12 @@ export async function TrainingAssessmentView({ backHref, startInForm = false }: 
       {assessmentError || checkinsError
         ? <p role="alert" className="mt-6 rounded-xl border border-warn p-4 text-sm">{a.savedAccess} — database migration may be missing.</p>
         : <AssessmentWorkspace locale={locale} startInForm={startInForm} initialAssessments={saved} initialCheckins={entries}
-          levels={levels} gradeHistory={history} gradeSystem={viewer.profile.target_grade_system}
+          levels={levels} gradeHistory={history} gradeSystem={target.system}
           today={localDate_(new Date())} observedEvidence={observed}
           defaults={{ discipline: viewer.profile.target_discipline === "ROUTE" || viewer.profile.target_discipline === "BOTH" ? viewer.profile.target_discipline : "BOULDER",
             sessionsPerWeekNow: Math.round(recent.counts.sessions / 4) }}
           gradeTarget={viewer.profile.target_discipline === "ROUTE" || targetOrdinal === null
-            ? null : { grade: viewer.profile.target_grade, ordinal: targetOrdinal }}/>}
+            ? null : { grade: boulderGrade(target.grade), ordinal: targetOrdinal }}/>}
     </div>
   );
 }

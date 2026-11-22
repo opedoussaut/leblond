@@ -2,6 +2,7 @@
 
 import type { Locale } from "@/lib/i18n";
 import type { ObservedWorkingGrade } from "@/lib/training/grade-history";
+import { boulderGrade } from "@/lib/grading/display";
 
 export function WorkingGradeChart({ locale, points, target, horizonWeeks, system }: {
   locale: Locale;
@@ -15,7 +16,7 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
   const caption=fr
     ?"La cotation de travail est recalculée sur les 60 jours précédant chaque point. Le trait en pointillés montre ton objectif personnel, pas une prévision. Les semaines sans données fiables sont volontairement absentes."
     :"The working grade is recalculated from the preceding 60 days at each point. The dashed line is your personal goal, not a forecast. Weeks without reliable data are deliberately absent.";
-  if(points.length===0) return <section className="rounded-2xl border border-line bg-surface p-4">
+  if(points.length===0) return <section className="leblond-premium-surface p-5">
     <h3 className="font-bold">{heading}</h3>
     <p className="mt-3 text-sm text-ink-2">{fr?"Aucune cotation de travail fiable pour cette période.":"No reliable working grade in this period."}</p>
     <p className="mt-2 text-xs text-ink-3">{caption}</p>
@@ -34,9 +35,9 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
     if(previous && previous[previous.length-1].week===point.week-1)previous.push(point);
     else groups.push([point]);
   }
-  return <section className="rounded-2xl border border-line bg-surface p-4">
+  return <section className="leblond-premium-surface p-5">
     <h3 className="font-bold">{heading}</h3>
-    <p className="mt-1 text-xs text-ink-3">{system}</p>
+    <p className="mt-1 text-xs text-ink-3">{system==="FONT" ? (fr?"Bloc · Font":"Bouldering · Font") : system}</p>
     <svg viewBox={"0 0 "+width+" "+height} className="mt-4 w-full" role="img" aria-label={heading}>
       {Array.from(new Set([0,Math.round(horizonWeeks/4),Math.round(horizonWeeks/2),Math.round(horizonWeeks*3/4),horizonWeeks])).map(week=><text key={week}
         x={px(week)} y={height-16} textAnchor="middle" fontSize="12" fill="currentColor">
@@ -53,10 +54,10 @@ export function WorkingGradeChart({ locale, points, target, horizonWeeks, system
         points={group.map(p=>px(p.week)+","+py(p.ordinal)).join(" ")}/>:null)}
       {points.map(p=><g key={p.week}>
         <circle cx={px(p.week)} cy={py(p.ordinal)} r="5" fill="#247ca0">
-          <title>{fr?"Sem.":"Week"} {p.week}: {p.grade} ({p.sampleSize} {fr?"blocs":"problems"})</title>
+          <title>{fr?"Sem.":"Week"} {p.week}: {boulderGrade(p.grade)} ({p.sampleSize} {fr?"blocs":"problems"})</title>
         </circle>
         <text x={px(p.week)} y={py(p.ordinal)-11} textAnchor="middle" fontSize="12" fontWeight="650"
-          fill="currentColor">{p.grade}</text>
+          fill="currentColor">{boulderGrade(p.grade)}</text>
       </g>)}
     </svg>
     <p className="mt-3 text-xs leading-relaxed text-ink-3">{caption}</p>

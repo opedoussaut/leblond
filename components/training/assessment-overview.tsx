@@ -120,17 +120,23 @@ export function AssessmentHero({ locale, overview, method, actions, testId }: {
     </div>
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div className="min-w-0">
-        <p className="leblond-number text-5xl leading-none text-white sm:text-6xl">
-          {fmt(o.week, { week: status.week })}<span className="ml-2 text-2xl font-bold text-blue-200 sm:text-3xl">{fmt(o.ofTotal, { total: status.horizon })}</span>
+        <p aria-hidden="true" className="text-xs font-bold uppercase tracking-[0.12em] text-blue-200">{o.weekLabel}</p>
+        <p className="mt-1 flex items-baseline gap-2 whitespace-nowrap leading-none">
+          <span aria-hidden="true" className="leblond-number text-6xl text-white sm:text-7xl">{status.week}</span>
+          <span aria-hidden="true" className="leblond-number text-2xl text-blue-200 sm:text-3xl">/ {status.horizon}</span>
+          <span className="sr-only">{fmt(o.week, { week: status.week })} {fmt(o.ofTotal, { total: status.horizon })}</span>
         </p>
-        <p className="mt-2 truncate text-sm font-semibold text-blue-100">{method}</p>
+        <p className="mt-3 truncate text-sm font-semibold text-blue-100">{method}</p>
         <p className="mt-0.5 text-xs text-blue-200">{fmt(o.doneOn, { date: formatDate(overview.createdOn + "T12:00:00", locale, { day: "numeric", month: "long", year: "numeric" }) })}</p>
       </div>
-      <dl className="grid grid-cols-3 gap-4 border-t border-white/15 pt-4 sm:min-w-[22rem] sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-        {stats.map((s) => { const Icon = s.icon; return <div key={s.label} className="min-w-0">
-          <Icon aria-hidden="true" className="mb-2 size-4 text-sky-200" strokeWidth={2} />
-          <dt className="text-xs font-semibold text-blue-200">{s.label}</dt>
-          <dd className="leblond-number mt-1 text-xl leading-none text-white sm:text-2xl">{s.value}</dd>
+      {/* Phones: one row per figure, label left and value right; wider: three columns. */}
+      <dl className="grid grid-cols-1 divide-y divide-white/10 border-t border-white/15 sm:min-w-[22rem] sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:border-l sm:border-t-0 sm:pl-5">
+        {stats.map((s) => { const Icon = s.icon; return <div key={s.label}
+          className="flex min-w-0 items-center justify-between gap-3 py-2.5 sm:block sm:py-0">
+          <dt className="flex items-center gap-2 text-xs font-semibold text-blue-200 sm:block">
+            <Icon aria-hidden="true" className="size-4 shrink-0 text-sky-200 sm:mb-2 sm:block" strokeWidth={2} />{s.label}
+          </dt>
+          <dd className="leblond-number text-lg leading-none text-white sm:mt-1 sm:text-2xl">{s.value}</dd>
         </div>; })}
       </dl>
     </div>

@@ -12,7 +12,6 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { redirect } from "next/navigation";
 import { loadProgramme } from "@/lib/data/programme";
 import { listTrainingSessions } from "@/lib/data/training-sessions";
-import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { areasDictionary } from "@/lib/i18n/areas";
 import { planLabel } from "@/lib/training/plan-label";

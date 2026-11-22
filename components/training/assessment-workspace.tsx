@@ -16,7 +16,7 @@ import { OBSERVED_LABELS, PROTOCOL_TESTS, compareMeasurements, parseContext, par
 import { EvidenceBadge, StructuredAssessment } from "./structured-assessment";
 import { buttonClass, dangerLinkClass } from "@/components/ui/button";
 import { IconNext, LiveDot } from "@/components/ui/icons";
-import { Calculator, ChevronDown, ChevronRight, CircleCheck, CircleDashed, ClipboardCheck, History, ListChecks, MessageCircle, Ruler } from "lucide-react";
+import { Calculator, ChevronDown, ChevronRight, CircleCheck, CircleDashed, ClipboardCheck, History, ListChecks, MessageCircle, RotateCcw, Ruler } from "lucide-react";
 import { HeadingMark, ToneIcon } from "@/components/ui/hero-figure";
 import { assessmentOverview, historyFacts, ratingTrend, trendFromDirection } from "@/lib/training/assessment-overview";
 import { AssessmentHero, CHECKIN_SYMBOLS, StatusPill, TREND_SYMBOLS, TrendPill, heroButton } from "./assessment-overview";
@@ -66,12 +66,15 @@ export function ProfileRadar({ locale, baseline, expected, actual }: {
   );
 }
 
-export function SkillSliders({ locale, ratings, onChange }: {
+export function SkillSliders({ locale, ratings, onChange, columns = false }: {
   locale: Locale; ratings: SkillRatings; onChange: (ratings: SkillRatings) => void;
+  /** Two columns from tablet width up, for the weekly check-in. */
+  columns?: boolean;
 }) {
   const t = trainingDictionary(locale);
   const a = assessmentDictionary(locale);
   return <div className="space-y-4">
+    <div className={columns ? "grid grid-cols-1 gap-3 md:grid-cols-2" : "space-y-4"}>
     {TRAINING_AXES.map((axis) => <label key={axis} className="block rounded-xl border border-line bg-surface px-4 py-3">
       <span className="flex items-center justify-between gap-3">
         <strong className="text-sm">{t.axis[axis]}</strong>
@@ -86,6 +89,7 @@ export function SkillSliders({ locale, ratings, onChange }: {
         <span>{RATING_ANCHORS[locale][4]}</span>
       </span>
     </label>)}
+    </div>
     <p className="text-xs leading-relaxed text-ink-3">{a.anchoring}</p>
   </div>;
 }
@@ -271,11 +275,13 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
         setWorking({...record.ratings});setWeek(1);setNotes("");setNotice(info.planSaved ? a.savedWithProgramme : a.programmeLimit);router.refresh();
       }}/> : null}
 
-    {/* 2 · Results: measured first, then observed and self-reported, never one score. */}
+    {/* 2 · Where I stand: observed level per discipline, beside declared and goal. */}
+    <CurrentLevelPanel locale={locale} levels={levels} cadence={showingCurrent ? null : assessmentCadence(assessments, today)}/>
+
+    {/* 3 · Results: measured first, then observed and self-reported, never one score. */}
     <section aria-labelledby="results-heading" className="space-y-4">
       <SectionTitle id="results-heading" title={o.results} hint={!formMode && chosen ? o.resultsHint : undefined}/>
       {!formMode && chosen ? <EvidencePanel locale={locale} record={chosen} baseline={assessments[assessments.length-1]}/> : null}
-      <CurrentLevelPanel locale={locale} levels={levels} cadence={showingCurrent ? null : assessmentCadence(assessments, today)}/>
       {!formMode && assessments.length ? <FitnessCharts locale={locale} measured={measuredHistory(assessments)}
         selfRated={selfRatedHistory(assessments, checkins)}/> : null}
       {!formMode && chosen ? <WorkingGradeChart locale={locale} points={gradeHistory[chosen.id] ?? []}
@@ -370,7 +376,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
               return <option key={n} value={n}>{a.wk} {n}{state ? " · "+o.checkinStates[state] : ""}</option>; })}
           </select>
         </label>
-        <div className="mt-5"><SkillSliders locale={locale} ratings={working} onChange={setWorking}/></div>
+        <div className="mt-5"><SkillSliders locale={locale} ratings={working} onChange={setWorking} columns/></div>
         <label className="mt-4 block text-sm font-bold">{a.notes}
           <textarea rows={3} maxLength={800} value={notes} onChange={e=>setNotes(e.target.value)}
             className="mt-2 block w-full rounded-xl border border-line bg-surface p-3"/>
@@ -387,7 +393,7 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
     </section> : null}
     {notice ? <p role="status" className="text-sm font-bold text-ink-2">{notice}</p> : null}
 
-    {/* 3 · History: every assessment, newest first, by kind of evidence. */}
+    {/* 4 · History: every assessment, newest first, by kind of evidence. */}
     {assessments.length ? <section aria-labelledby="history-heading" className="space-y-3">
       <SectionTitle id="history-heading" title={o.history}/>
       <ul aria-label={a.history} className="leblond-premium-surface divide-y divide-line overflow-hidden">
@@ -413,20 +419,29 @@ export function AssessmentWorkspace({ locale, initialAssessments, initialCheckin
           </li>; })}
       </ul>
       {!formMode && chosen ? <button type="button" disabled={pending} onClick={remove}
-        className={dangerLinkClass}>{a.deleteLabel}</button> : null}
+        className={dangerLinkClass}>{a.delete}</button> : null}
     </section> : null}
 
-    {assessments.length ? <section aria-labelledby="reset-heading" className="rounded-2xl border border-line bg-surface p-4">
-      <h2 id="reset-heading" className="text-lg font-bold">{a.resetTitle}</h2>
-      <p className="mt-1 text-sm leading-relaxed text-ink-2">{a.resetHint}</p>
-      {confirmingReset ? <>
-        <p role="alert" className="mt-3 text-sm font-bold">{fmt(a.resetConfirm,{count:assessments.length})}</p>
-        <div className="leblond-actions mt-3">
-          <button type="button" disabled={pending} onClick={reset} className={buttonClass("danger", "md")}>{a.resetYes}</button>
-          <button type="button" disabled={pending} onClick={()=>setConfirmingReset(false)} className={buttonClass("secondary", "md")}>{a.resetNo}</button>
-        </div>
-      </> : <button type="button" onClick={()=>setConfirmingReset(true)} className={buttonClass("danger", "md", "mt-3")}>{a.resetLabel}</button>}
-    </section> : null}
+    {assessments.length ? <details className="group rounded-2xl border border-line bg-surface">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 sm:px-5">
+        <ToneIcon icon={RotateCcw} tone="rose" size="sm"/>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold text-ink">{a.resetTitle}</span>
+          <span className="block text-xs text-ink-3">{a.resetSummary}</span>
+        </span>
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-ink-3 transition-transform group-open:rotate-180"/>
+      </summary>
+      <div className="border-t border-line px-4 pb-4 pt-3 sm:px-5">
+        <p className="text-sm leading-relaxed text-ink-2">{a.resetHint}</p>
+        {confirmingReset ? <>
+          <p role="alert" className="mt-3 text-sm font-bold">{fmt(a.resetConfirm,{count:assessments.length})}</p>
+          <div className="leblond-actions mt-3">
+            <button type="button" disabled={pending} onClick={reset} className={buttonClass("danger", "md")}>{a.resetYes}</button>
+            <button type="button" disabled={pending} onClick={()=>setConfirmingReset(false)} className={buttonClass("secondary", "md")}>{a.resetNo}</button>
+          </div>
+        </> : <button type="button" onClick={()=>setConfirmingReset(true)} className={buttonClass("danger", "md", "mt-3")}>{a.resetLabel}</button>}
+      </div>
+    </details> : null}
   </div>;
 }
 
