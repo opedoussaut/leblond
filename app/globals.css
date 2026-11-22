@@ -24,6 +24,27 @@
   --warn: #936100;
   --danger: #b22e38;
   --focus: #2579d7;
+  /*
+   * Section tones: one quiet colour per kind of figure (bloc, voie, board…),
+   * for icons on a tinted tile. Never used for grades, which keep their own
+   * colours in lib/grading.
+   */
+  --tone-blue: #1769b9;
+  --tone-blue-soft: #e5f1ff;
+  --tone-green: #1f7a52;
+  --tone-green-soft: #e1f3e9;
+  --tone-violet: #6847c2;
+  --tone-violet-soft: #efeafd;
+  --tone-teal: #0d7c84;
+  --tone-teal-soft: #ddf3f3;
+  --tone-amber: #a85a05;
+  --tone-amber-soft: #fdefd9;
+  --tone-sky: #0a6fa3;
+  --tone-sky-soft: #e1f3fc;
+  --tone-rose: #b8325a;
+  --tone-rose-soft: #fde7ee;
+  --tone-gold: #8f6c0c;
+  --tone-gold-soft: #faf1d4;
   color-scheme: light;
 }
 
@@ -46,6 +67,22 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-tone-blue: var(--tone-blue);
+  --color-tone-blue-soft: var(--tone-blue-soft);
+  --color-tone-green: var(--tone-green);
+  --color-tone-green-soft: var(--tone-green-soft);
+  --color-tone-violet: var(--tone-violet);
+  --color-tone-violet-soft: var(--tone-violet-soft);
+  --color-tone-teal: var(--tone-teal);
+  --color-tone-teal-soft: var(--tone-teal-soft);
+  --color-tone-amber: var(--tone-amber);
+  --color-tone-amber-soft: var(--tone-amber-soft);
+  --color-tone-sky: var(--tone-sky);
+  --color-tone-sky-soft: var(--tone-sky-soft);
+  --color-tone-rose: var(--tone-rose);
+  --color-tone-rose-soft: var(--tone-rose-soft);
+  --color-tone-gold: var(--tone-gold);
+  --color-tone-gold-soft: var(--tone-gold-soft);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   /* Titles, grades and numbers. */
@@ -203,6 +240,10 @@ select {
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 1.25rem;
+}
+
+.leblond-elevated {
+  box-shadow: 0 1px 2px rgba(19, 36, 56, 0.04), 0 14px 34px -22px rgba(19, 60, 112, 0.28);
 }
 
 .leblond-hero-panel {
