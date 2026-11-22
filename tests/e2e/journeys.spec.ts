@@ -319,6 +319,17 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   await expect(page).toHaveURL(/\/session\/[0-9a-f-]{36}\/edit$/);
   const editUrl = page.url();
   await expect(page.getByRole("heading", { level: 1, name: "Modifier la séance" })).toBeVisible();
+  // An empty séance can move to another venue and discipline (a FIT import guesses them), and back.
+  const place = page.getByRole("region", { name: "Lieu et discipline" });
+  await expect(place).toContainText("Demo Arkose");
+  for (const venue of ["Climbing District Sèvres-Lecourbe", "Demo Arkose"]) {
+    await place.getByRole("button", { name: "Changer" }).click();
+    await chooseGym(page, venue);
+    await expect(place.getByText(venue).first()).toBeVisible();
+    await place.getByRole("button", { name: "Enregistrer le lieu" }).click();
+    await expect(place.getByRole("status")).toHaveText("Enregistré.");
+  }
+  await expect(place).toContainText("Bloc");
   await expect(page.getByText("≈ 6A+–6C+").first()).toBeVisible();
   await logGrade(page, "Rouge", ["Essai", "Top"]);
   await logGrade(page, "Bleu", ["Flash"]);
@@ -329,6 +340,9 @@ test("A4 — past sessions: add after the fact, edit, Font ranges, route styles,
   // Edit date/time from the summary; the session keeps its attempts.
   await page.getByRole("link", { name: /Modifier/ }).click();
   await expect(page).toHaveURL(editUrl);
+  // Once climbs are logged the venue is locked (they belong to it).
+  await expect(page.getByRole("region", { name: "Lieu et discipline" })).toContainText("retire-les d’abord");
+  await expect(page.getByRole("region", { name: "Lieu et discipline" }).getByRole("button", { name: "Changer" })).toHaveCount(0);
   const when = page.getByRole("form", { name: "Date, heure et durée" });
   await when.getByLabel("Heure de début").fill("10:15");
   await when.getByRole("button", { name: "Enregistrer" }).click();
