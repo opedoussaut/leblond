@@ -1,20 +1,12 @@
-import type { LoadChartPoint, PerfTrend, RatioDay, TrainingLoadReport, WeeklyLoadRow, WeeklyRatioRow } from "@/lib/analytics/training-load";
-import { BOARD_SHORT } from "@/lib/climbing/boards";
-import { gradeLabel } from "@/lib/grading/labels";
+import type { LoadChartPoint, RatioDay, TrainingLoadReport, WeeklyLoadRow, WeeklyRatioRow } from "@/lib/analytics/training-load";
 import { fmt, intlLocale, type Dictionary, type Locale } from "@/lib/i18n";
 import { trainingLoadDictionary } from "@/lib/i18n/training-load";
 import { cn } from "@/components/ui/cn";
 import { Fold } from "@/components/ui/fold";
 import { LoadChart } from "./load-chart";
 import { RatioChart } from "./ratio-chart";
+import { HarmonisedResults } from "./harmonised-results";
 
-const VERDICT_TONE = {
-  progressing: "bg-ok/15 text-ok",
-  stagnating: "bg-warn/15 text-warn",
-  declining: "bg-danger/15 text-danger",
-  insufficient: "bg-surface-2 text-ink-2",
-} as const;
-const VERDICT_MARK = { progressing: "↗", stagnating: "→", declining: "↘", insufficient: "…" } as const;
 const ZONE_TONE = {
   calibrating: "text-ink-2", under: "text-ink-2", optimal: "text-ok", high: "text-warn", danger: "text-danger",
 } as const;
@@ -22,12 +14,11 @@ const ZONE_SURFACE = {
   calibrating: "border-line bg-surface-2", under: "border-line bg-surface-2", optimal: "border-ok/40 bg-ok/10",
   high: "border-warn/40 bg-warn/10", danger: "border-danger/40 bg-danger/10",
 } as const;
-const DIRECTION_MARK = { up: "↗", flat: "→", down: "↘", insufficient: "·" } as const;
 
 /**
  * Progrès › Charge: today's ratio and zone, the ratio day by day (fingers and
- * upper body, and everything) on a fixed band, the week ahead, results per
- * native scale with the verdict, then the fitness–fatigue model folded away.
+ * upper body, and everything) on a fixed band, the week ahead, results on two
+ * scales (boulders on Font, converted; routes on the French scale) with the verdict, then the fitness–fatigue model folded away.
  * Figures come from lib/analytics/training-load.
  */
 export function TrainingLoad({ t, locale, report, ratioDays, ratioWeeks, points, weeks }: {
@@ -45,16 +36,6 @@ export function TrainingLoad({ t, locale, report, ratioDays, ratioWeeks, points,
   const ratio = (v: number | null) => (v === null ? "—" : dec.format(v));
   const { verdict, guide } = report;
   const today = report.ratios.at(-1);
-  const judged = report.trends.filter((tr) => tr.recentCount + tr.previousCount > 0);
-
-  const scaleName = (tr: PerfTrend) => {
-    const s = tr.series;
-    if (s.kind === "boulder") return fmt(d.perfBoulder, { system: (t.grades.scaleShort as Record<string, string>)[s.system!] ?? s.system! });
-    if (s.kind === "route") return d.perfRoute;
-    if (s.kind === "board") return fmt(d.perfBoard, { board: BOARD_SHORT[s.board!], scale: s.scale === "V" ? "V" : "Font" });
-    return fmt(d.perfHang, { mm: s.edgeMm ?? "—" });
-  };
-  const gradeName = (tr: PerfTrend, display: string) => (tr.series.kind === "boulder" ? gradeLabel(t, tr.series.system!, display) : display);
 
   if (!report.model.length) {
     return <section aria-labelledby="load-heading" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
@@ -109,30 +90,7 @@ export function TrainingLoad({ t, locale, report, ratioDays, ratioWeeks, points,
       <p className="mt-1 text-sm text-ink-2">{fmt(d.weekDone, { done: load(guide.last7), danger: load(guide.dangerLoad) })}</p>
     </div> : null}
 
-    <div className="border-t border-line pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-bold">{d.perfTitle}</h3>
-        <span className={cn("rounded-full px-3 py-1 text-sm font-bold", VERDICT_TONE[verdict.verdict])} data-testid="load-verdict">
-          <span aria-hidden="true">{VERDICT_MARK[verdict.verdict]} </span>{d.verdict[verdict.verdict]}
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-ink-2">{verdict.basis === "performance" ? d.basisPerformance : d.basisNone}</p>
-      {judged.length === 0 ? <p className="mt-3 text-sm text-ink-3">{d.perfEmpty}</p>
-        : <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {judged.map((tr) => <li key={tr.key} className="rounded-2xl bg-surface-2 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-bold">{scaleName(tr)}</span>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs font-bold",
-                tr.direction === "up" ? "bg-ok/15 text-ok" : tr.direction === "down" ? "bg-danger/15 text-danger" : "bg-surface text-ink-2")}>
-                <span aria-hidden="true">{DIRECTION_MARK[tr.direction]} </span>{d.perfDirection[tr.direction]}</span>
-            </div>
-            <p className="mt-1 text-xs text-ink-2">
-              {tr.recentBest ? fmt(d.perfBest, { grade: gradeName(tr, tr.recentBest.display) }) : tr.previousBest ? fmt(d.perfBest, { grade: gradeName(tr, tr.previousBest.display) }) : null}
-              {" · "}{fmt(d.perfCounts, { recent: tr.recentCount, previous: tr.previousCount })}
-            </p>
-          </li>)}
-        </ul>}
-    </div>
+    <HarmonisedResults t={t} locale={locale} report={report} />
 
     <Fold title={d.detailsTitle} hint={d.detailsHint}>
       <div className="space-y-5">

@@ -6,6 +6,8 @@ import { CoachKeys } from "@/components/settings/coach-keys";
 import { listCoachKeys } from "@/lib/data/coach-sessions";
 import { ProfilePhotoEditor } from "@/components/settings/profile-photo-editor";
 import { viewerPicture } from "@/lib/data/profile-picture";
+import Link from "next/link";
+import { gradeHarmoniseDictionary } from "@/lib/i18n/grade-harmonise";
 import { ProfileForm } from "./profile-form";
 
 export const metadata = { title: "Réglages" };
@@ -36,6 +38,14 @@ export default async function SettingsPage() {
           bio: p.bio ?? "",
         }}
       />
+      <Link href="/settings/grades" data-testid="settings-grades-link"
+        className="leblond-premium-surface mt-4 flex min-h-12 items-center justify-between gap-3 px-5 py-4 hover:border-accent">
+        <span className="min-w-0">
+          <span className="block text-lg font-bold">{gradeHarmoniseDictionary(locale).settings.cardTitle}</span>
+          <span className="mt-0.5 block text-sm text-ink-2">{gradeHarmoniseDictionary(locale).settings.cardHint}</span>
+        </span>
+        <span aria-hidden="true" className="text-ink-3">→</span>
+      </Link>
       <CoachKeys locale={locale} keys={coachKeys} />
     </div>
   );

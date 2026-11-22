@@ -7,11 +7,15 @@
  * sidebar, mobile bottom bar and chips, page headers and hub cards.
  */
 import {
+  Activity, ArrowUpToLine, Award, GitCompareArrows, BrickWall, Grid3x3, MapPin, MountainSnow, Sparkles, Trees,
   BookOpen, CalendarDays, ClipboardCheck, Dumbbell, HeartPulse, Layers, List, LogOut, MessageCircle,
   Mountain, PersonStanding, Plus, Plug, Settings, ShieldCheck, SlidersHorizontal, Sun, Swords, Target, TrendingUp, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionId, SubPageKey } from "@/lib/navigation/sections";
+import type { ProgressTab } from "@/lib/navigation/progress-tabs";
+import type { FollowUpTab } from "@/lib/navigation/follow-up-tabs";
+import type { Tone } from "@/components/ui/hero-figure";
 
 export type { LucideIcon };
 
@@ -49,3 +53,26 @@ export const PAGE_ICONS: Record<SubPageKey | "dayCheck" | "newSession" | "traini
 
 export const AdminIcon = ShieldCheck;
 export const SignOutIcon = LogOut;
+
+/**
+ * Progrès › Grimpe sections: one icon and one tone each, shared by the
+ * summary's rows and its hero figures, so a section keeps its colour.
+ */
+export const PROGRESS_SECTION_ICONS: Record<Exclude<ProgressTab, "overview">, { icon: LucideIcon; tone: Tone }> = {
+  "boulder-indoor": { icon: BrickWall, tone: "blue" },
+  "boulder-outdoor": { icon: Trees, tone: "green" },
+  "route-indoor": { icon: ArrowUpToLine, tone: "violet" },
+  "route-outdoor": { icon: MountainSnow, tone: "teal" },
+  boards: { icon: Grid3x3, tone: "amber" },
+  gyms: { icon: MapPin, tone: "sky" },
+  styles: { icon: Sparkles, tone: "rose" },
+  avatar: { icon: Award, tone: "gold" },
+};
+
+/** Progrès › Aperçu: one icon and tone per section its tiles open. */
+export const FOLLOW_UP_SECTION_ICONS: Record<Exclude<FollowUpTab, "overview">, { icon: LucideIcon; tone: Tone }> = {
+  load: { icon: Activity, tone: "amber" },
+  climbing: { icon: Mountain, tone: "blue" },
+  training: { icon: Dumbbell, tone: "sky" },
+  compare: { icon: GitCompareArrows, tone: "violet" },
+};

@@ -13,7 +13,7 @@ import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
 import { AvatarCard } from "@/components/training/avatar-card";
 import { loadAvatar } from "@/lib/data/avatar";
-import { PAGE_ICONS } from "@/components/layout/nav-icons";
+import { PAGE_ICONS, PROGRESS_SECTION_ICONS as SECTION } from "@/components/layout/nav-icons";
 import { linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { IconBack } from "@/components/ui/icons";
 import { cn } from "@/components/ui/cn";
@@ -115,7 +115,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
         href: progressHref(id, keepPeriod), title: sections.tabs[id],
         value: lead?.value ?? (snap.counts.attempts ? snap.counts.tops : "—"),
         detail: lead ? fmt(pa.rowLevel, { scale: lead.scale }) : snap.counts.attempts ? fmt(pa.rowSends, { n: snap.counts.tops }) : pa.rowEmpty,
-        muted: snap.counts.attempts === 0,
+        muted: snap.counts.attempts === 0, ...SECTION[id],
       };
     };
     const routeRow = (place: Place): SectionRow => {
@@ -127,7 +127,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
         href: progressHref(id, keepPeriod), title: sections.tabs[id],
         value: working.grade ?? (recent.length || "—"),
         detail: working.grade ? fmt(pa.rowRouteLevel, { n: recent.length }) : recent.length ? fmt(pa.rowRoutes, { n: recent.length }) : pa.rowEmpty,
-        muted: recent.length === 0 && !working.grade,
+        muted: recent.length === 0 && !working.grade, ...SECTION[id],
       };
     };
     const best = all.focus.styles.strongest;
@@ -138,35 +138,39 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
       {
         href: progressHref("boards", keepPeriod), title: sections.tabs.boards, value: boardClimbs || "—",
         detail: boardClimbs ? fmt(pa.rowBoards, { n: boardClimbs, b: new Set(pyramids.map((p) => p.board)).size }) : pa.rowEmpty,
-        muted: boardClimbs === 0,
+        muted: boardClimbs === 0, ...SECTION.boards,
       },
       {
         href: progressHref("gyms", keepPeriod), title: sections.tabs.gyms, value: all.gymBreakdown.length || "—",
         detail: all.gymBreakdown.length ? pa.rowGymsDetail : pa.rowEmpty, muted: all.gymBreakdown.length === 0,
+        ...SECTION.gyms,
       },
       {
         href: progressHref("styles", keepPeriod), title: sections.tabs.styles,
         value: best ? t.styles[best.key] : angle ? t.wallAngles[angle.key] : "—",
         detail: best ? pa.rowStyle : angle ? pa.rowAngle : pa.stylesNone, muted: !best && !angle,
+        ...SECTION.styles,
       },
       ...(avatar ? [{
         href: progressHref("avatar", keepPeriod), title: sections.tabs.avatar,
         value: av.colour[avatar.colour], detail: fmt(pa.rowAvatar, { n: avatar.level + 1 }),
+        ...SECTION.avatar,
       }] : []),
     ];
     return <div className="space-y-8">
       {header}
       {periodNav}
-      <section aria-label={t.progress.summaryTitle} className="px-1">
-        <HeroFigure size="page" eyebrow={fmt(pa.summaryEyebrow, { period: periodLabel })} value={all.counts.tops}
+      <section aria-label={t.progress.summaryTitle}>
+        <HeroFigure size="page" variant="panel" art={PAGE_ICONS.climbingProgress}
+          eyebrow={fmt(pa.summaryEyebrow, { period: periodLabel })} value={all.counts.tops}
           label={all.counts.tops ? pa.summaryLabel : pa.summaryNone}
           stats={[
-            { label: pa.statBoulderSessions, value: all.counts.sessions },
-            { label: pa.statRoutesClean, value: summarizeRoutes(inPeriod(routesIn(null))).clean },
-            { label: pa.statBoardClimbs, value: boardClimbs },
+            { label: pa.statBoulderSessions, value: all.counts.sessions, ...SECTION["boulder-indoor"] },
+            { label: pa.statRoutesClean, value: summarizeRoutes(inPeriod(routesIn(null))).clean, ...SECTION["route-indoor"] },
+            { label: pa.statBoardClimbs, value: boardClimbs, ...SECTION.boards },
           ]} />
       </section>
-      <SectionRows label={pa.sectionsTitle} rows={rows} />
+      <SectionRows label={pa.sectionsTitle} title={pa.sectionsTitle} rows={rows} />
     </div>;
   }
 

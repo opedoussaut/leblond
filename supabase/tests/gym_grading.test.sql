@@ -7,14 +7,14 @@ begin
 end $$;
 
 select pg_temp.expect((select bool_and(grading_system = 'BLOCKOUT_LEVEL') from public.gyms where brand = 'BLOCKOUT' and external_provider is null),
-  'Block''Out gyms grade boulders B1–B14');
+  'Block''Out gyms grade boulders B0–B15');
 select pg_temp.expect((select bool_and(grading_system = 'CLIMB_UP_COLOR') from public.gyms where brand = 'CLIMB_UP' and external_provider is null),
   'Climb Up gyms use their own colours');
 select pg_temp.expect((select bool_and(grading_system = 'VERTICAL_ART_COLOR') from public.gyms where brand = 'VERTICAL_ART' and external_provider is null),
   'Vertical''Art gyms use their own colours');
 select pg_temp.expect((select bool_and(route_grading = 'FRENCH') from public.gyms where has_routes),
   'every catalogue route gym grades routes in French grades');
-select pg_temp.expect(public.is_valid_native_grade('BLOCKOUT_LEVEL', 'B14') and not public.is_valid_native_grade('BLOCKOUT_LEVEL', 'B15'),
+select pg_temp.expect(public.is_valid_native_grade('BLOCKOUT_LEVEL', 'B0') and public.is_valid_native_grade('BLOCKOUT_LEVEL', 'B15') and not public.is_valid_native_grade('BLOCKOUT_LEVEL', 'B16'),
   'B-levels validated');
 select pg_temp.expect(public.is_valid_native_grade('CLIMB_UP_COLOR', 'WHITE') and not public.is_valid_native_grade('CLIMB_UP_COLOR', 'ORANGE'),
   'Climb Up colours validated');

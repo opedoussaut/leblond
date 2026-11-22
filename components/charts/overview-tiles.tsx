@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/components/ui/cn";
+import { HeadingMark, ToneIcon, type Tone } from "@/components/ui/hero-figure";
 
 export type OverviewTile = {
   href: string;
@@ -13,6 +14,8 @@ export type OverviewTile = {
   /** A small trend over the chosen period (decorative: the caption says it in words). */
   spark: ReactNode;
   muted?: boolean;
+  /** The section's icon, on a tile in its tone. */
+  icon?: LucideIcon; tone?: Tone;
 };
 
 /**
@@ -22,14 +25,17 @@ export type OverviewTile = {
 export function OverviewTiles({ title, hint, tiles }: { title: string; hint: string; tiles: readonly OverviewTile[] }) {
   return <nav aria-labelledby="overview-tiles-heading" className="space-y-3">
     <div className="px-1">
-      <h2 id="overview-tiles-heading" className="text-lg font-bold">{title}</h2>
+      <h2 id="overview-tiles-heading" className="flex items-center gap-2 text-lg font-bold"><HeadingMark />{title}</h2>
       <p className="mt-0.5 text-sm text-ink-2">{hint}</p>
     </div>
     <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {tiles.map((tile) => <li key={tile.title} className="leblond-premium-surface overflow-hidden">
+      {tiles.map((tile) => <li key={tile.title} className="leblond-premium-surface leblond-elevated overflow-hidden">
         <Link href={tile.href} className="group flex h-full flex-col gap-3 p-4 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
           <div className="flex items-center justify-between gap-2">
-            <span className="leblond-eyebrow text-ink-3">{tile.section}</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              {tile.icon && tile.tone ? <ToneIcon icon={tile.icon} tone={tile.tone} size="sm" /> : null}
+              <span className="leblond-eyebrow truncate text-ink-3">{tile.section}</span>
+            </span>
             <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" strokeWidth={2.25} />
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-end gap-3">
