@@ -180,6 +180,10 @@ describe("Patrick training-load context", () => {
     expect(facts.fingersRatio).toBeGreaterThan(0.8);
     expect(facts.fingersRatio).toBeLessThan(1.3);
     expect(facts.zone).toBe("optimal");
+    // The page's own figures: hours against the usual week, in the zone at a steady rhythm.
+    expect(facts.shownToClimber.zone).toBe("zone");
+    expect(facts.shownToClimber.usualWeekMinutes).toBeGreaterThan(0);
+    expect(facts.shownToClimber.next7DaysSessions?.typicalSessionMinutes).toBe(90);
     expect(JSON.stringify(facts)).not.toContain("2026-06-0");
     expect(trainingLoadContext(null)).toBeNull();
 

@@ -22,6 +22,7 @@ import { EXERCISE_BY_ID, LEVEL_LABELS } from "@/lib/training/hip-mobility/conten
 import { summarizePerformance, type MobilitySessionRecord, type SessionPlan } from "@/lib/training/hip-mobility/prescription";
 import type { DayOutcome, ProgrammeView } from "@/lib/training/programme";
 import type { TrainingLoadReport } from "@/lib/analytics/training-load";
+import { hoursStatus, nextWeek } from "@/lib/analytics/weekly-load";
 
 /**
  * The real grade scales for the systems this climber uses, easiest first, so
@@ -407,7 +408,15 @@ export function trainingLoadContext(report: TrainingLoadReport | null | undefine
   if (!report || !report.model.length) return null;
   const last = report.model.at(-1)!;
   const g = report.guide;
+  // What the climber sees on the page: hours over 7 days against the 4 weeks before (climbing + training), and the next 7 days in séances.
+  const hours = hoursStatus(report.loads, last.date);
+  const next = nextWeek(report.loads, last.date);
   return {
+    shownToClimber: {
+      zone: hours.zone ?? "not enough history",
+      last7DaysMinutes: hours.last7, usualWeekMinutes: hours.habit?.minutes ?? null, mobilityLast7DaysMinutes: hours.mobility7,
+      next7DaysSessions: next ? { min: next.minSessions, max: next.maxSessions, typicalSessionMinutes: next.typicalMinutes } : null,
+    },
     verdict: report.verdict.verdict,
     basis: report.verdict.basis,
     zone: report.verdict.zone,
