@@ -60,7 +60,6 @@ const fr = {
     mobilityTitle: "Mobilité et gainage doux",
     mobilityNotes: "Épaules, hanches, poignets et gainage léger, 20 à 30 minutes.",
     mobilityNotesInjury: "Épaules, hanches, poignets et gainage léger, 20 à 30 minutes. Entretiens la zone sensible sans jamais dépasser le seuil de douleur.",
-    planName: "Programme du {date}",
   },
   planEditor: {
     outsideAtlas: "Mobilité ou séance hors Atlas",
@@ -306,7 +305,6 @@ const en: JourneyDictionary = {
     mobilityTitle: "Mobility and gentle core",
     mobilityNotes: "Shoulders, hips, wrists and light core, 20 to 30 minutes.",
     mobilityNotesInjury: "Shoulders, hips, wrists and light core, 20 to 30 minutes. Look after the sensitive area without ever going past the pain threshold.",
-    planName: "Programme of {date}",
   },
   planEditor: {
     outsideAtlas: "Mobility or session outside the Atlas",

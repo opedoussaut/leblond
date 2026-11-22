@@ -105,6 +105,12 @@ test("R — mobility rebuild: key assignment, idempotence, symptom gates, guided
   await page.goto("/follow-up/mobility/battery");
   await expect(page.getByRole("link", { name: /Arrêté/ })).toHaveCount(1);
 
+  // Aujourd'hui: the programme is listed among those in progress.
+  await page.goto("/home");
+  const followedCard = page.getByTestId("followed-programmes").locator('[data-kind="REBUILD"]');
+  await expect(followedCard).toContainText("Reconquête mobilité | 12 semaines");
+  await expect(followedCard).toContainText("0 séance faite sur 36");
+
   // Entraînement: assigned with no selection, clinical review still to document.
   await page.goto("/train/mobility");
   const entry = page.getByRole("region", { name: "Reconquête mobilité | 12 semaines" });
