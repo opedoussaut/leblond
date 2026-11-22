@@ -48,6 +48,7 @@ export const en: Dictionary = {
     calendar: "Calendar",
     projects: "Projects",
     myProgrammes: "My programmes",
+    away: "Away Training",
     library: "Library",
     rivalDuel: "Duel",
     rivalSettings: "Rival settings",
@@ -634,6 +635,7 @@ export const en: Dictionary = {
       rival: "How do I beat my rival this week?",
       fatigue: "Am I fresh enough to push hard?",
       mobility: "How is my mobility going?",
+      away: "Which séance should I do while away?",
     },
   },
   profile: {

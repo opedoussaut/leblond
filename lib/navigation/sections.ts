@@ -4,7 +4,7 @@
  * Three words organise the app (structure v2): Séance, Programme, Agenda.
  *   Aujourd'hui — what to do now (live séance, daily form, today's plan)
  *   Séances     — what you do: one journal of grimpe and entraînement, the Agenda, projects
- *   Programmes  — what you follow: programmes, hip mobility, the library of methods and templates
+ *   Programmes  — what you follow: programmes, hip mobility, Away Training, the library of methods and templates
  *   Rival       — the duel with the fictional rival who follows the plan, and its settings
  *   Progrès     — what happened, evaluation results included
  *   Patrick     — the coach
@@ -21,7 +21,7 @@ export type NavContext = SectionId | "account";
 /** i18n keys under `t.nav` used for sub-pages and account pages. */
 export type SubPageKey =
   | "journal" | "calendar" | "projects"
-  | "myProgrammes" | "library"
+  | "myProgrammes" | "away" | "library"
   | "rivalDuel" | "rivalSettings"
   | "climbingProgress" | "trainingHistory" | "mobility" | "assessment"
   | "profile" | "connections" | "settings";
@@ -49,6 +49,7 @@ export const AREAS: readonly Area[] = [
     id: "programmes", href: "/programmes",
     children: [
       { href: "/programmes", key: "myProgrammes" },
+      { href: "/train/away", key: "away" },
       { href: "/atlas", key: "library" },
     ],
   },
@@ -111,6 +112,7 @@ const ALIASES: ReadonlyArray<readonly [string, string]> = [
   ["/training/evaluate", "/training-assessment"],
   ["/training-plans", "/programmes"],
   ["/train/alter-ego", "/rival"],    // the old rival address
+  ["/train/away", "/train/away"],    // En déplacement is listed itself
   ["/train", "/programmes"],         // assessment wizard, hip mobility
   ["/training", "/atlas"],           // the public methods page = the library
 ];

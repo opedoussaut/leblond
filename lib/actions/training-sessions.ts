@@ -19,6 +19,8 @@ import { mobilityExerciseRows, sessionTitle } from "@/lib/training/hip-mobility/
 import { scheduleMobilitySchema } from "@/lib/training/sessions";
 import { zonedToUtc } from "@/lib/time";
 import { REBUILD_METHOD_ID } from "@/lib/training/mobility-rebuild/engine";
+import { AWAY_SESSION_BY_KEY, awayExerciseRows, awayTitle } from "@/lib/training/away";
+import { loadHipStage } from "@/lib/data/away";
 
 /** A Mobility Rebuild séance only starts after a symptom check that allowed it, in the last 12 hours. */
 async function rebuildCheckAllows(viewer: Viewer, sessionId: string): Promise<boolean> {
@@ -65,7 +67,7 @@ type NewSession = {
   planId?: string | null; planSessionIndex?: number | null; calendarEntryId?: string | null;
   date: string | null; time: string | null; minutes: number | null; startNow: boolean;
   /** Exercises of their own (coach sessions); otherwise the Atlas template of `methodId`. */
-  exercises?: ReturnType<typeof coachExerciseRows> | ReturnType<typeof mobilityExerciseRows>;
+  exercises?: ReturnType<typeof coachExerciseRows> | ReturnType<typeof mobilityExerciseRows> | ReturnType<typeof awayExerciseRows>;
   /** Hip-mobility options: session length and accepted increases. */
   mobility?: { length?: SessionLength; accept?: readonly string[] };
 };
@@ -153,6 +155,15 @@ export async function createTrainingSession(input: unknown): Promise<Result<{ id
     result = await insertSession(viewer, {
       title: sessionTitle(plan, fr ? "fr" : "en"), objective: "", methodId: HIP_METHOD_ID,
       date: v.date, time: v.time, minutes: plan.minutes, startNow: v.startNow, exercises: rows,
+    });
+  } else if (v.source === "away") {
+    const away = AWAY_SESSION_BY_KEY.get(v.awayKey);
+    if (!away) return { ok: false, error: "not_found" };
+    const locale = fr ? "fr" : "en";
+    result = await insertSession(viewer, {
+      title: awayTitle(away, locale), objective: away.summary[locale], methodId: away.method,
+      date: v.date, time: v.time, minutes: away.minutes, startNow: v.startNow,
+      exercises: awayExerciseRows(away, { locale, hipStage: await loadHipStage(viewer.supabase) }),
     });
   } else if (v.source === "plan") {
     const { data: plan } = await viewer.supabase.from("training_plans").select(PLAN_COLUMNS)

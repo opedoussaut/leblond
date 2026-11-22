@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import {
-  Brain, CalendarRange, Dumbbell, Hand, Layers, Moon, PencilLine, PersonStanding, Repeat, Search, X, Zap, type LucideIcon,
+  Brain, CalendarRange, Dumbbell, Hand, Layers, Luggage, Moon, PencilLine, PersonStanding, Repeat, Search, X, Zap, type LucideIcon,
 } from "lucide-react";
 import { formatDuration } from "@/lib/duration";
 import { fmt, type Locale } from "@/lib/i18n";
@@ -17,7 +17,7 @@ import { cn } from "@/components/ui/cn";
 import { fieldClass } from "@/components/ui/field";
 
 export const CATEGORY_ICONS: Record<SessionCategory, LucideIcon> = {
-  MOBILITY: PersonStanding, STRENGTH: Dumbbell, FINGERS: Hand, POWER: Zap, ENDURANCE: Repeat,
+  MOBILITY: PersonStanding, STRENGTH: Dumbbell, AWAY: Luggage, FINGERS: Hand, POWER: Zap, ENDURANCE: Repeat,
   TECHNIQUE: Brain, PREP: Moon, PLANNING: CalendarRange,
 };
 
@@ -78,13 +78,13 @@ function familyMeta(locale: Locale, f: PickerFamily) {
 
 /**
  * The séance picker of the one-off session form. `value` is "" (free session),
- * "coach:<id>" or an Atlas method id.
+ * "coach:<id>", "away:<key>" (Away Training) or an Atlas method id.
  */
 export function SessionPicker({ locale, sessions, value, onChange }: {
   locale: Locale; sessions: PickerSession[]; value: string; onChange: (value: string) => void;
 }) {
   const p = sessionPickerDictionary(locale);
-  const entries = useMemo(() => buildPickerEntries(sessions, locale, p.categories), [sessions, locale, p.categories]);
+  const entries = useMemo(() => buildPickerEntries(sessions, locale, p.categories, { away: true }), [sessions, locale, p.categories]);
   const categories = useMemo(() => pickerCategories(entries), [entries]);
   const durations = useMemo(() => pickerDurations(entries), [entries]);
   const [query, setQuery] = useState("");
@@ -133,6 +133,18 @@ export function SessionPicker({ locale, sessions, value, onChange }: {
       </li>;
     }
     const on = selected?.entry === e;
+    if (e.kind === "away") {
+      return <li key={e.value}><button type="button" aria-pressed={on} onClick={() => onChange(e.value)}
+        className={cn(card, cardState(on), "flex min-h-11 items-start gap-3 p-4")}>
+        <Luggage aria-hidden="true" className={icon} />
+        <span className="min-w-0 flex-1">
+          <strong className="block">{e.title}</strong>
+          <span className="mt-0.5 line-clamp-2 block text-sm text-ink-2">{e.summary}</span>
+          <span className="mt-1 block text-xs font-semibold text-ink-3">{formatDuration(e.minutes)} · {fmt(p.exercises, { n: e.exercises })}</span>
+        </span>
+        <span className="hidden shrink-0 sm:block"><span className={chipClass("neutral")}>{p.categories.AWAY}</span></span>
+      </button></li>;
+    }
     if (e.kind === "coach") {
       return <li key={e.value}><button type="button" aria-pressed={on} onClick={() => onChange(e.value)}
         className={cn(card, cardState(on), "flex min-h-11 items-start gap-3 p-4")}>

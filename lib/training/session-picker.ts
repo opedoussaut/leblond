@@ -1,6 +1,7 @@
 import { methodName } from "@/lib/i18n/method-titles";
 import { METHODS_FOR_PLANS } from "./catalogue";
 import { SESSION_CATEGORIES, type CoachFamily, type FamilyAxis, type SessionCategory } from "./coach-sessions";
+import { AWAY_SESSIONS, sessionItems } from "./away";
 
 /**
  * The séance picker: coach sessions grouped into families (one card, then a
@@ -22,7 +23,12 @@ export type PickerSingle = {
   kind: "coach"; value: string; title: string; summary: string; minutes: number; exercises: number; haystack: string;
 };
 export type PickerMethod = { kind: "atlas"; value: string; title: string; summary: string; category: SessionCategory; haystack: string };
-export type PickerEntry = PickerFamily | PickerSingle | PickerMethod;
+/** An Away Training séance (lib/training/away): value "away:<key>". */
+export type PickerAway = {
+  kind: "away"; value: string; key: string; title: string; summary: string; minutes: number; exercises: number;
+  category: "AWAY"; haystack: string;
+};
+export type PickerEntry = PickerFamily | PickerSingle | PickerAway | PickerMethod;
 
 /** Category and extra search words of each Atlas method (their titles are English only). */
 export const ATLAS_PICKER: Record<string, { category: SessionCategory; keywords: string }> = {
@@ -50,13 +56,15 @@ const haystack = (...parts: string[]) => normalizeSearch(parts.join(" "));
 
 /**
  * Picker entries: families first (in category order, then by title), then the
- * coach sessions without a family (in the order given), then the Atlas methods.
+ * Away Training séances (with `away`), then the coach sessions without a
+ * family (in the order given), then the Atlas methods.
  * `sessions` comes most recent first: when two sessions share a family, level
  * and duration, the most recent wins. `categoryLabels` makes "souplesse" find
  * everything filed under "Mobilité et souplesse".
  */
 export function buildPickerEntries(
   sessions: readonly PickerSession[], locale: "fr" | "en", categoryLabels: Record<SessionCategory, string>,
+  options: { away?: boolean } = {},
 ): PickerEntry[] {
   const groups = new Map<string, PickerSession[]>();
   const singles: PickerSingle[] = [];
@@ -104,7 +112,14 @@ export function buildPickerEntries(
       haystack: haystack(methodName(m, locale), m.title, summary, extra.keywords, categoryLabels[extra.category]) };
   });
 
-  return [...families, ...singles, ...methods];
+  const away: PickerAway[] = options.away ? AWAY_SESSIONS.map((s) => ({
+    kind: "away", value: "away:" + s.key, key: s.key, title: s.title[locale], summary: s.summary[locale], minutes: s.minutes,
+    exercises: sessionItems(s).length, category: "AWAY",
+    haystack: haystack(s.title[locale], s.summary[locale], categoryLabels.AWAY, ...s.focus.map((f) => f[locale]),
+      "voyage hotel vacances deplacement travel hotel elastique band"),
+  })) : [];
+
+  return [...families, ...away, ...singles, ...methods];
 }
 
 export type PickerFilter = { query: string; category: SessionCategory | "ALL"; minutes: number | null };
@@ -120,7 +135,7 @@ export function filterPickerEntries(entries: readonly PickerEntry[], f: PickerFi
     if (f.category !== "ALL" && (e.kind === "coach" || e.category !== f.category)) return false;
     if (f.minutes !== null) {
       if (e.kind === "family" && !e.minutes.includes(f.minutes)) return false;
-      if (e.kind === "coach" && Math.abs(e.minutes - f.minutes) > 10) return false;
+      if ((e.kind === "coach" || e.kind === "away") && Math.abs(e.minutes - f.minutes) > 10) return false;
     }
     return words.every((w) => e.haystack.includes(w));
   });
@@ -132,9 +147,9 @@ export function pickerCategories(entries: readonly PickerEntry[]): SessionCatego
   return SESSION_CATEGORIES.filter((c) => present.has(c));
 }
 
-/** The durations offered as filters: those of the families. */
+/** The durations offered as filters: those of the families and the away séances. */
 export function pickerDurations(entries: readonly PickerEntry[]): number[] {
-  return [...new Set(entries.flatMap((e) => (e.kind === "family" ? e.minutes : [])))].sort((a, b) => a - b);
+  return [...new Set(entries.flatMap((e) => (e.kind === "family" ? e.minutes : e.kind === "away" ? [e.minutes] : [])))].sort((a, b) => a - b);
 }
 
 /** The variant of a level closest to the wanted duration (the shorter one on a tie). */
@@ -148,10 +163,10 @@ export function defaultVariant(family: PickerFamily, minutes: number | null = nu
   return { level, variant: variantFor(level, minutes ?? 60) };
 }
 
-/** Where a form value ("coach:<id>" or an Atlas id) sits in the entries. */
+/** Where a form value ("coach:<id>", "away:<key>" or an Atlas id) sits in the entries. */
 export function locateValue(entries: readonly PickerEntry[], value: string):
   | { entry: PickerFamily; level: PickerLevel; variant: PickerVariant }
-  | { entry: PickerSingle | PickerMethod }
+  | { entry: PickerSingle | PickerAway | PickerMethod }
   | null {
   if (!value) return null;
   for (const e of entries) {
