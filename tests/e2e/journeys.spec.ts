@@ -1532,7 +1532,8 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.goto("/follow-up?tab=climbing");
   const topLevel = page.getByTestId("top-level-scale");
   await expect(topLevel).toHaveCount(1);
-  await expect(topLevel.getByText("Cotation Font (bloc)")).toBeVisible();
+  // The scale name also sits in the card's screen-reader table caption: check the visible heading line.
+  await expect(topLevel.locator("p").filter({ hasText: "Cotation Font (bloc)" })).toBeVisible();
   await expect(topLevel.getByText("converti, estimé")).toBeVisible();
   await expect(topLevel.getByText("6B+", { exact: true })).toBeVisible();
   await expect(topLevel.getByText("6A", { exact: true })).toBeVisible();
