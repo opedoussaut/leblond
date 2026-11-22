@@ -116,8 +116,22 @@ test("I — hip mobility: join from Training, run a session, assess, follow up",
 
   // Follow-up: the session, the left/right record and the warning sign, kept apart from measurements.
   await page.goto("/follow-up/mobility");
-  await expect(page.getByRole("heading", { name: "Suivi de la mobilité des hanches" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Suivi de la mobilité", exact: true })).toBeVisible();
+  // First screen: where I am, what I aim for, what I have done.
+  const fuWhere = page.getByRole("region", { name: "Où j’en suis" });
+  await expect(fuWhere.getByText("Niveau 0", { exact: true })).toBeVisible();
+  await expect(fuWhere.getByText("Auto-déclaré", { exact: true })).toBeVisible();
+  await expect(fuWhere.getByText("D’après ton bilan auto-déclaré du", { exact: false })).toBeVisible();
+  const fuGoal = page.getByRole("region", { name: "Mon objectif" });
+  await expect(fuGoal.getByText("Niveau 1", { exact: true })).toBeVisible();
+  await expect(fuGoal.getByText("2 test(s) sur 3 déjà au niveau demandé")).toBeVisible();
+  const fuDone = page.getByRole("region", { name: "Ce que j’ai fait" });
+  await expect(fuDone.getByRole("definition").nth(1)).toHaveText("1"); // in total
   await expect(page.getByText("1 sur les 28 derniers jours", { exact: false })).toBeVisible();
+  // The séance done is listed and opens.
+  const fuSessions = page.getByRole("region", { name: "Séances faites" });
+  await expect(fuSessions.getByRole("link", { name: /Programme hanches/ })).toHaveCount(1);
+  await expect(fuSessions.getByRole("link", { name: /Programme hanches/ })).toHaveAttribute("href", /\/train\/sessions\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("region", { name: "Gêne et signes d’alerte" }).getByText("Accrochage")).toBeVisible();
   await expect(page.getByRole("region", { name: "Bilans" }).getByText("Niveau 0 · Très limité, beaucoup d’appui")).toBeVisible();
   // Phone layout (the CI project): the area's pages are in the sub-navigation.

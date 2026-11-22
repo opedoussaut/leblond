@@ -54,8 +54,8 @@ const fr = {
   bannerWeek: "Semaine {week} sur {total}",
   bannerScore: "Toi {you} – {rival} {name}, en séances",
   tlTitle: "Ta réussite en haut de ton niveau",
-  tlHint: "Sur chaque échelle, la part des blocs réussis à tes deux cotations les plus dures enchaînées sur la période. Elle monte souvent avant que ta cotation max ne change. Rien n’est converti entre échelles.",
-  tlEmpty: "Aucun bloc enchaîné sur une échelle classée pendant la période.",
+  tlHint: "En Font, toutes salles confondues : la part des blocs réussis à tes deux cotations les plus dures enchaînées sur la période. Elle monte souvent avant que ta cotation max ne change. Les cotations de salle sont converties en Font (une estimation).",
+  tlEmpty: "Aucun bloc enchaîné avec une cotation Font (notée ou convertie) pendant la période.",
   tlRecentWindow: "Sur les 4 dernières semaines",
   tlBefore: "avant : {rate} ({sent} / {tried})",
   tlBeforeNone: "avant : aucun bloc essayé",
@@ -71,7 +71,7 @@ const fr = {
   tlTriedCol: "Essayés",
   tlSentCol: "Réussis",
   levelFold: "Ta cotation max, semaine par semaine",
-  levelFoldHint: "Le bloc le plus dur enchaîné chaque semaine, sur ton échelle principale.",
+  levelFoldHint: "Le bloc le plus dur enchaîné chaque semaine, en Font.",
 };
 
 const en: typeof fr = {
@@ -127,8 +127,8 @@ const en: typeof fr = {
   bannerWeek: "Week {week} of {total}",
   bannerScore: "You {you} – {rival} {name}, in séances",
   tlTitle: "Your send rate at the top of your level",
-  tlHint: "On each scale, the share of boulders sent at the two hardest grades you sent in the period. It often rises before your hardest grade changes. Nothing is converted between scales.",
-  tlEmpty: "No boulder sent on a ranked scale in the period.",
+  tlHint: "On Font, every gym together: the share of boulders sent at the two hardest grades you sent in the period. It often rises before your hardest grade changes. Gym grades are converted to Font (an estimate).",
+  tlEmpty: "No boulder sent with a Font grade (logged or converted) in the period.",
   tlRecentWindow: "Over the last 4 weeks",
   tlBefore: "before: {rate} ({sent} / {tried})",
   tlBeforeNone: "before: no boulder tried",
@@ -144,7 +144,7 @@ const en: typeof fr = {
   tlTriedCol: "Tried",
   tlSentCol: "Sent",
   levelFold: "Your hardest grade, week by week",
-  levelFoldHint: "The hardest boulder sent each week, on your main scale.",
+  levelFoldHint: "The hardest boulder sent each week, on Font.",
 };
 
 export function chartsDictionary(locale: Locale) {

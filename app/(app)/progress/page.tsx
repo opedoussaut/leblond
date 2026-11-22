@@ -6,8 +6,6 @@ import { RatioBars } from "@/components/charts/ratio-bars";
 import { GradePyramid } from "@/components/charts/grade-pyramid";
 import { LevelCurve } from "@/components/charts/level-curve";
 import { gradePyramid, mainSystem, weeklyHardest } from "@/lib/analytics/charts";
-import { GRADE_SYSTEMS } from "@/lib/climbing/types";
-import { isOrderedSystem } from "@/lib/grading/systems";
 import { WeeklyBars } from "@/components/charts/weekly-bars";
 import { GradeChip } from "@/components/climbing/grade-chip";
 import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
@@ -23,18 +21,20 @@ import { progressAreaDictionary } from "@/lib/i18n/progress-area";
 import { avatarDictionary } from "@/lib/i18n/avatar";
 import { routeDictionary } from "@/lib/i18n/routes";
 import { routeAscentsInLastDays, routePyramid, routeWeeklyHardest, routeWorkingGrade, summarizeRoutes, type RouteAscentFact } from "@/lib/analytics/routes";
-import { computeSnapshot, MIN_RELIABLE_FOR_NORMALIZED_VIEW } from "@/lib/analytics";
+import { attemptsInLastDays, computeSnapshot } from "@/lib/analytics";
+import { conversionSummary, fontTarget, gradedOnly } from "@/lib/analytics/font-view";
+import { loadFontView } from "@/lib/data/font-view";
+import { FontNote } from "@/components/climbing/font-note";
 import { requireViewer } from "@/lib/auth/viewer";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { loadClimbingDataset } from "@/lib/data/climbing";
 import { loadRouteAscents } from "@/lib/data/routes";
 import { RouteStats } from "@/components/climbing/route-stats";
 import { ScaleLevels } from "@/components/climbing/scale-levels";
-import { fontTrend, headlineRow, scaleRows } from "@/lib/analytics/scale-rows";
+import { headlineRow, scaleRows } from "@/lib/analytics/scale-rows";
 import { formatDate, formatNumber, formatCounts, formatPercent, formatRatio } from "@/lib/format";
 import { fmt, plural, type Dictionary } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
-import { boulderGrade } from "@/lib/grading/display";
 import { gradeLabel } from "@/lib/grading/labels";
 import { FRENCH_ROUTE_GRADES } from "@/lib/grading/route-grades";
 import { datasetAt, routeAscentsAt, type Place } from "@/lib/analytics/place";
@@ -66,18 +66,21 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const [dataset, allRoutes, boardRows] = await Promise.all([
     loadClimbingDataset(viewer.supabase), loadRouteAscents(viewer.supabase), loadBoardAscents(viewer.supabase),
   ]);
+  // Every boulder on Font (the climber's own lines, then the default table); native grades stay stored as logged.
+  const fv = await loadFontView(viewer.supabase, dataset);
   const now = new Date();
   const days = PERIODS[periodKey];
   const since = days === null ? 0 : now.getTime() - days * 86_400_000;
   const periodLabel = periodKey === "30" ? t.progress.last30 : periodKey === "90" ? t.progress.last90 : t.progress.all;
-  const target = { grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system };
+  const target = fontTarget({ grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, fv.table);
   const snapOf = (d: ClimbingDataset) => computeSnapshot(d, target, now, days);
+  const fontData = fv.dataset;
   const routesIn = (place: Place | null) => (allRoutes ? (place ? routeAscentsAt(allRoutes, place) : allRoutes) : []);
   const inPeriod = (list: RouteAscentFact[]) => (days === null ? list : routeAscentsInLastDays(list, days, now));
   const pyramids = boardPyramids(boardRows.map(toBoardFact).filter((f) => f.climbedAt.getTime() >= since));
   const boardClimbs = pyramids.reduce((n, p) => n + p.climbs, 0);
   const avatar = !scope || scope.view === "avatar" ? await loadAvatar(viewer.supabase, { dataset, boardRows }) : null;
-  // The level a set of boulders leads with: the working grade on its main scale.
+  // The level a set of boulders leads with: the working grade on Font.
   const boulderLead = (snap: ReturnType<typeof snapOf>) => {
     const row = headlineRow(scaleRows(snap));
     return row ? { value: gradeLabel(t, row.system, row.working!), scale: t.grades.systems[row.system], system: row.system } : null;
@@ -106,9 +109,9 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
 
   // ── Summary: one hero figure, then the sections, one figure each. ──
   if (!scope) {
-    const all = snapOf(dataset);
+    const all = snapOf(fontData);
     const boulderRow = (place: Place): SectionRow => {
-      const snap = snapOf(datasetAt(dataset, place));
+      const snap = snapOf(datasetAt(fontData, place));
       const lead = boulderLead(snap);
       const id = place === "indoor" ? "boulder-indoor" : "boulder-outdoor";
       return {
@@ -227,11 +230,12 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   }
 
   // ── Boulders: one kind of place (bloc sections), or every place (gyms, styles). ──
-  const data = scope.place ? datasetAt(dataset, scope.place) : dataset;
+  const data = scope.place ? datasetAt(fontData, scope.place) : fontData;
   const snap = snapOf(data);
+  const fontSummary = conversionSummary(fv, days === null ? data.attempts : attemptsInLastDays(data.attempts, days, now));
   if (snap.counts.attempts === 0) return <div className="space-y-8">{header}{periodNav}<EmptyState body={sections.emptySection} /></div>;
   const gymName = new Map(data.gyms.map((g) => [g.id, g.name]));
-  const chartSystem = mainSystem(data.problems, data.attempts.filter((x) => x.createdAt.getTime() >= since), GRADE_SYSTEMS.filter(isOrderedSystem));
+  const chartSystem = mainSystem(data.problems, data.attempts.filter((x) => x.createdAt.getTime() >= since), ["FONT"]);
   const lead = boulderLead(snap);
   // The styles section leads with the best-sent style, or the best-sent wall angle when no style is tagged.
   const bestStyle = snap.focus.styles.strongest;
@@ -258,8 +262,9 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
           <Fold variant="card" title={pa.detailFold} hint={pa.detailHint}>
             {chartSystem ? <GradePyramid t={t} locale={locale} system={chartSystem}
               rows={gradePyramid(data.problems, data.attempts, chartSystem, now, days)} /> : null}
-            <ScaleLevels t={t} rows={scaleRows(snap)} font={{ level: snap.workingGrade.level, trend: fontTrend(snap) }} />
+            <ScaleLevels t={t} rows={scaleRows(snap)} />
           </Fold>
+          <FontNote t={t} locale={locale} summary={fontSummary} className="px-1" />
           <Fold variant="card" title={pa.weeklyFold} hint={pa.weeklyHint}>
             <Card className="space-y-4">
               <p className="text-sm text-ink-2 tabular-nums">
@@ -293,10 +298,8 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
               {snap.crossGym.native.map((n) => (
                 <div key={n.brand}>
                   <p className="mb-2 text-sm font-semibold">{t.brands[n.brand]}</p>
-                  {n.distributions.map((d) => (
+                  {gradedOnly(n.distributions).map((d) => (
                     <div key={d.system}>
-                      {/* A network with two scales (Climbing District colours / levels): one block each, never merged. */}
-                      {n.distributions.length > 1 ? <p className="mb-1 mt-2 text-xs text-ink-3">{t.grades.systems[d.system]}</p> : null}
                       <RatioBars
                         rows={d.buckets.map((b) => ({
                           key: `${d.system}-${b.grade}`,
@@ -310,29 +313,7 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                 </div>
               ))}
             </div>
-            <h3 className="mt-5 font-bold">{t.progress.normalizedView}</h3>
-            <p className="text-xs text-ink-3">
-              {fmt(t.progress.normalizedHelp, snap.crossGym.normalized.coverage)}
-            </p>
-            <div className="mt-3">
-              {snap.crossGym.normalized.sufficient ? (
-                <RatioBars
-                  rows={snap.crossGym.normalized.buckets.map((b) => ({
-                    key: b.grade,
-                    label: `${boulderGrade(b.grade)} (${t.common.estimate})`,
-                    sent: b.sent,
-                    attempted: b.attempted,
-                  }))}
-                />
-              ) : (
-                <p className="text-sm text-ink-2">
-                  {fmt(t.progress.normalizedInsufficient, {
-                    reliable: snap.crossGym.normalized.coverage.reliable,
-                    min: MIN_RELIABLE_FOR_NORMALIZED_VIEW,
-                  })}
-                </p>
-              )}
-            </div>
+            <FontNote t={t} locale={locale} summary={fontSummary} className="mt-4" />
           </Card>
 
           <Fold variant="card" title={pa.byGymFold} hint={pa.byGymHint}>
@@ -350,12 +331,11 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                       {" · "}
                       {t.progress.sendRate} {formatRatio(g.sendRate)}
                     </p>
-                    {g.distributions.map((d) => (
+                    {gradedOnly(g.distributions).map((d) => (
                       <GradeCounts
                         key={d.system}
                         t={t}
                         system={d.system}
-                        label={g.distributions.length > 1 ? t.grades.systems[d.system] : undefined}
                         rows={d.buckets.map((b) => ({ grade: b.grade, sent: b.sent, attempted: b.attempted }))}
                       />
                     ))}

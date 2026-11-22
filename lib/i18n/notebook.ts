@@ -4,7 +4,7 @@ import type { Limiter } from "@/lib/analytics/notebook";
 /** Strings for the Progress notebook: best performances, paired curves and limiters. */
 const fr = {
   bestTitle: "Tes records",
-  bestHint: "Ta meilleure performance enregistrée dans chaque domaine, avec sa date. Les cotations restent celles que tu as notées.",
+  bestHint: "Ta meilleure performance enregistrée dans chaque domaine, avec sa date. Bloc en Font (cotation de salle convertie, estimée), voie en cotation française.",
   bestEmpty: "Tes records apparaîtront ici dès ta première croix ou ta première suspension enregistrée.",
   boulder: "Bloc",
   route: "Voie",
@@ -26,7 +26,7 @@ const fr = {
   on: "le {date}",
 
   relateTitle: "Mettre en relation",
-  relateHint: "Deux courbes l'une au-dessus de l'autre, sur les mêmes semaines, chacune avec sa propre échelle. Rien n'est converti : tu vois si elles montent ensemble.",
+  relateHint: "Deux courbes l'une au-dessus de l'autre, sur les mêmes semaines, chacune avec sa propre unité : bloc en Font (converti, estimé), voie en cotation française. Tu vois si elles montent ensemble.",
   seriesA: "Courbe du haut",
   seriesB: "Courbe du bas",
   noData: "Pas de donnée sur cette période.",
@@ -54,8 +54,9 @@ const fr = {
   limitEmpty: "Coche ce qui t'a limité dans le bilan de tes prochaines séances : le décompte apparaîtra ici.",
   limitOf: "{n} séance(s) renseignée(s)",
   limitAsk: "Ce qui t'a limité",
-  otherGyms: "même échelle dans {n} autre(s) salle(s)",
-  scalesNote: "Chaque salle a sa propre échelle : un record par échelle, jamais converti d'une salle à l'autre.",
+  otherGyms: "blocs réussis dans {n} autre(s) salle(s)",
+  convertedFrom: "noté {grade} · {scale}, Font estimé ({source})",
+  scalesNote: "Ton record en bloc est lu en Font : la cotation notée dans la salle est indiquée à côté.",
   favouritesNote: "Blocs en salle : seules tes salles favorites comptent (le plein air aussi). Les autres restent dans ton historique.",
   limitAskHint: "Coche ce qui t'a freiné aujourd'hui, autant que tu veux.",
   limiters: {
@@ -72,7 +73,7 @@ const fr = {
 
 const en: typeof fr = {
   bestTitle: "Your records",
-  bestHint: "Your best recorded performance in each area, with its date. Grades stay as you logged them.",
+  bestHint: "Your best recorded performance in each area, with its date. Boulders on Font (gym grade converted, estimated), routes on the French scale.",
   bestEmpty: "Your records will show here after your first logged send or hang.",
   boulder: "Boulder",
   route: "Route",
@@ -94,7 +95,7 @@ const en: typeof fr = {
   on: "on {date}",
 
   relateTitle: "Side by side",
-  relateHint: "Two curves one above the other, on the same weeks, each on its own scale. Nothing is converted: you see whether they rise together.",
+  relateHint: "Two curves one above the other, on the same weeks, each in its own unit: boulders on Font (converted, estimated), routes on the French scale. You see whether they rise together.",
   seriesA: "Top curve",
   seriesB: "Bottom curve",
   noData: "No data in this period.",
@@ -122,8 +123,9 @@ const en: typeof fr = {
   limitEmpty: "Tick what held you back in your next session summaries: the count will show here.",
   limitOf: "{n} session(s) with an answer",
   limitAsk: "What held you back",
-  otherGyms: "same scale in {n} other gym(s)",
-  scalesNote: "Each gym has its own scale: one record per scale, never converted from one gym to another.",
+  otherGyms: "sends in {n} other gym(s)",
+  convertedFrom: "logged {grade} · {scale}, Font estimated ({source})",
+  scalesNote: "Your boulder record reads on Font: the grade logged at the gym is shown next to it.",
   favouritesNote: "Indoor boulders: only your favourite gyms count (outdoor too). The others stay in your history.",
   limitAskHint: "Tick what slowed you down today, as many as you like.",
   limiters: {
