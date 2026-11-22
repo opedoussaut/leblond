@@ -1523,19 +1523,14 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.goto("/follow-up?tab=load");
   await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
-  // The "≈ range" next to the colour while logging follows the climber's line too.
-  await page.goto("/session/new?where=past");
-  const past = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
-  await expect(page.getByRole("heading", { name: "Ajouter une séance déjà faite" })).toBeVisible();
-  // This climber already has a gym, so it comes preselected: change it explicitly.
-  if (await past.isVisible()) await past.getByRole("button", { name: "Changer", exact: true }).click();
-  await chooseGym(page, "Demo Arkose");
-  await expect(past).toContainText("Demo Arkose");
-  await past.getByLabel("Date").fill(parisDate(new Date(Date.now() - 86_400_000)));
-  await past.getByRole("button", { name: /Créer la séance/ }).click();
-  await expect(page).toHaveURL(/\/edit$/);
-  await expect(page.getByRole("button", { name: /^Rouge/ })).toContainText("≈ 6B+");
-  await expect(page.getByRole("button", { name: /^Rouge/ })).not.toContainText("6B–6B+");
+  // The "≈ range" next to the colour follows the climber's line too: the red of journey A's séance.
+  // (A board séance from journey I is still open, so no new séance is started here.)
+  await page.goto("/session");
+  await page.locator('a[href^="/session/"]').filter({ hasText: "Demo Arkose" }).last().click();
+  await expect(page.getByText("SÉANCE TERMINÉE", { exact: true })).toBeVisible();
+  await expect(page.getByText("≈ 6B+", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("≈ 6B+", { exact: true }).first()).toHaveAttribute("title", /Ton réglage/);
+  await expect(page.getByText("≈ 6B–6B+", { exact: true })).toHaveCount(0);
 
   // Back to the default table.
   await page.goto("/settings");
