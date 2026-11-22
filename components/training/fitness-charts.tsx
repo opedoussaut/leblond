@@ -8,6 +8,8 @@ import { assessmentDictionary } from "@/lib/i18n/assessment";
 import { trainingDictionary } from "@/lib/i18n/training";
 import type { TestDefinition } from "@/lib/training/assessment-protocol";
 import { EvidenceBadge } from "./structured-assessment";
+import { TREND_SYMBOLS } from "./assessment-overview";
+import { trendFromDirection, type Trend } from "@/lib/training/assessment-overview";
 
 export type CurrentLevels = {
   boulder: { declared: string | null; observed: string | null; sample: number; target: string | null };
@@ -55,6 +57,13 @@ export function CurrentLevelPanel({ locale, levels, cadence }: {
       {fmt(cadence.due ? a.cadenceDue : a.cadenceNext, { last: longDate(cadence.last, locale), next: longDate(cadence.next, locale) })}
     </p> : null}
   </section>;
+}
+
+/** The trend's symbol beside its words (the words carry the meaning). */
+function TrendIcon({ trend }: { trend: Trend }) {
+  const Icon = TREND_SYMBOLS[trend].icon;
+  return <Icon aria-hidden="true" strokeWidth={2.5}
+    className={"size-3.5 shrink-0 " + (trend === "improving" ? "text-tone-green" : trend === "declining" ? "text-tone-amber" : "text-ink-3")} />;
 }
 
 const W = 320, H = 140, SIDE = 10, PLOT_TOP = 24, PLOT_BOTTOM = 96, AXIS = 118, ABOVE = -9, BELOW = 17;
@@ -149,7 +158,7 @@ export function FitnessCharts({ locale, measured, selfRated }: {
             <EvidenceBadge level="measured" locale={locale} />
           </div>
           <p className="mt-1 leblond-number text-2xl">{s.latest.value} <span className="text-sm font-semibold text-ink-2">{unit}</span></p>
-          <p className="text-xs text-ink-2">{changeLine(s, locale, unit)}</p>
+          <p className="flex items-center gap-1.5 text-xs text-ink-2">{s.change ? <TrendIcon trend={trendFromDirection(s.change.direction)} /> : null}{changeLine(s, locale, unit)}</p>
           {s.points.length > 1 ? <MiniLine points={s.points} domain={measuredDomain(s.test, s.points.map((p) => p.value))} locale={locale}
             label={s.test.name[locale]} valueText={(v) => `${v} ${unit}`} /> : null}
         </li>;

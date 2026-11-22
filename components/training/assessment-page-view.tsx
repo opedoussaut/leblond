@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Info } from "lucide-react";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import { AssessmentWorkspace } from "@/components/training/assessment-workspace";
 import { PageHeader } from "@/components/ui/card";
@@ -111,7 +112,8 @@ export async function TrainingAssessmentView({ backHref, startInForm = false }: 
       </div>
       {doing ? <Link href="/train/today" className={cn(linkClass, "mt-2 text-sm")}>{j.hub.dayTitle} · {j.hub.dayBadge} <IconNext /></Link> : null}
       {viewer.profile.target_discipline !== "BOULDER" ? (
-        <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink-2">
+        <p className="mt-4 flex items-start gap-2 rounded-xl bg-surface-2 px-4 py-3 text-xs leading-relaxed text-ink-2">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={2.25} />
           {viewer.profile.target_discipline === "BOTH"
             ? a.routeTargetNoteBoth
             : a.routeTargetNote}
