@@ -56,6 +56,19 @@ const fr = {
   details: "Détails",
   detailsHint: "Valeurs brutes des bilans, programme hanches exercice par exercice, gêne et historique.",
   notClinical: "Niveaux internes à LEBLOND pour orienter l’entraînement : ni bilan médical, ni diagnostic.",
+  // Premium layout
+  levelWord: "Niveau",
+  scaleLabel: "Échelle des niveaux, de 0 à {max} : tu es au niveau {level}",
+  toWorkLabel: "À faire progresser",
+  weeksLabel: "8 dernières semaines",
+  weekBar: "Semaine du {date} : {n} séance(s)",
+  more: "Aller plus loin",
+  hipsDetail: "Le programme hanches, ses séances et le test",
+  patrickDetail: "Une lecture de tes séances et de tes bilans",
+  rebuildProgress: "{done} sur {total} séances du programme",
+  reassessOpen: "ouverte",
+  fromDate: "à partir du {date}",
+  noDiscomfort: "Rien à signaler",
 };
 
 export type MobilityFollowUpDictionary = typeof fr;
@@ -110,6 +123,18 @@ const en: MobilityFollowUpDictionary = {
   details: "Details",
   detailsHint: "Raw assessment values, the hip programme exercise by exercise, discomfort and history.",
   notClinical: "LEBLOND internal levels to guide training: not a medical assessment, not a diagnosis.",
+  levelWord: "Level",
+  scaleLabel: "Level scale, 0 to {max}: you are at level {level}",
+  toWorkLabel: "To improve",
+  weeksLabel: "Last 8 weeks",
+  weekBar: "Week of {date}: {n} session(s)",
+  more: "Go further",
+  hipsDetail: "The hip programme, its sessions and the test",
+  patrickDetail: "A reading of your sessions and assessments",
+  rebuildProgress: "{done} of {total} programme sessions",
+  reassessOpen: "open",
+  fromDate: "from {date}",
+  noDiscomfort: "Nothing to report",
 };
 
 const dictionaries: Record<Locale, MobilityFollowUpDictionary> = { fr, en };

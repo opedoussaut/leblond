@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { buttonClass, linkClass } from "@/components/ui/button";
+import { CircleCheck, ClipboardCheck, ClipboardList, HeartPulse, MessageCircle, PersonStanding, type LucideIcon } from "lucide-react";
+import { linkClass } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import {
@@ -16,12 +17,12 @@ import { MOBILITY_TESTS } from "@/lib/training/hip-mobility/assessment";
 import { EXERCISE_BY_ID, LEVEL_LABELS, NOT_CLINICAL } from "@/lib/training/hip-mobility/content";
 import { VARIANT_NAMES } from "@/lib/training/hip-mobility/prescription";
 import { pick } from "@/lib/training/sessions";
-import { IconBack, IconNext } from "@/components/ui/icons";
+import { IconBack } from "@/components/ui/icons";
 import { loadRebuild } from "@/lib/data/mobility-rebuild";
 import { RebuildTrack } from "@/components/training/rebuild-view";
 import { MobilityCompassPanel, MobilitySessionsDone } from "@/components/training/mobility-compass";
 import { Fold } from "@/components/ui/fold";
-import { HeadingMark } from "@/components/ui/hero-figure";
+import { HeadingMark, SectionRows, ToneIcon, type Tone } from "@/components/ui/hero-figure";
 import { doneMobilitySessions, mobilityActivity, mobilityCompass, nextMobilitySession } from "@/lib/analytics/mobility-follow-up";
 import { loadBilanDates, loadMobilitySessionFacts } from "@/lib/data/mobility-follow-up";
 import { levelView } from "@/lib/training/hip-mobility/levels";
@@ -31,6 +32,14 @@ export const metadata = { title: "LEBLOND — Mobility follow-up" };
 
 function Evidence({ label }: { label: string }) {
   return <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-bold text-ink-2">{label}</span>;
+}
+
+/** A details card's head: its icon on a tone tile, the title, and where the figures come from. */
+function SectionHead({ id, title, icon, tone, evidence }: { id: string; title: string; icon: LucideIcon; tone: Tone; evidence: string }) {
+  return <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
+    <h2 id={id} className="flex items-center gap-3 text-lg font-bold"><ToneIcon icon={icon} tone={tone} />{title}</h2>
+    <Evidence label={evidence} />
+  </div>;
 }
 
 export default async function MobilityFollowUpPage() {
@@ -79,10 +88,11 @@ export default async function MobilityFollowUpPage() {
 
     {rebuild ? <RebuildTrack locale={locale} state={rebuild} /> : null}
 
-    <h2 className="flex items-center gap-2 px-1 pt-2 text-xs font-bold uppercase tracking-[0.12em] text-ink-3"><HeadingMark />{t.details}</h2>
-    <p className="-mt-4 px-1 text-sm text-ink-2">{t.detailsHint}</p>
-
     {empty ? null : <>
+      <div className="px-1 pt-2">
+        <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-ink-3"><HeadingMark />{t.details}</h2>
+        <p className="mt-1.5 text-sm text-ink-2">{t.detailsHint}</p>
+      </div>
       {exerciseIds.length || sides.length ? <Fold variant="card" title={m.fuExercises} hint={hardest ? fmt(m.fuHardest, { name: EXERCISE_BY_ID.get(hardest.exerciseId)!.name[locale] }) : m.fuExerciseHint}>
       {exerciseIds.length ? <section aria-labelledby="fu-exercises" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -152,17 +162,15 @@ export default async function MobilityFollowUpPage() {
       </section> : null}
       </Fold> : null}
 
-      <section aria-labelledby="fu-assess" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-assess" className="text-lg font-bold">{m.fuAssessments}</h2>
-          <Evidence label={m.fuMeasured} />
-        </div>
-        {assessments.length ? <ul className="space-y-1 text-sm">
-          {assessments.slice(0, 6).map((a) => <li key={a.id} className="flex flex-wrap justify-between gap-2">
-            <span>{formatDate(a.date + "T12:00:00", locale, { day: "numeric", month: "long", year: "numeric" })}</span>
-            <span className="text-ink-2">{m.fuStageLabel} : <strong className="text-ink">{pick(LEVEL_LABELS[a.stage].name, locale)}</strong></span>
+      <section aria-labelledby="fu-assess" className="leblond-premium-surface overflow-hidden">
+        <SectionHead id="fu-assess" title={m.fuAssessments} icon={ClipboardList} tone="violet" evidence={m.fuMeasured} />
+        {assessments.length ? <ul className="divide-y divide-line border-t border-line">
+          {assessments.slice(0, 6).map((a) => <li key={a.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3.5 sm:px-6">
+            <span className="text-sm font-semibold tabular-nums">{formatDate(a.date + "T12:00:00", locale, { day: "numeric", month: "long", year: "numeric" })}</span>
+            <span className="text-sm text-ink-3">{m.fuStageLabel} · <strong className="font-semibold text-ink">{pick(LEVEL_LABELS[a.stage].name, locale)}</strong></span>
           </li>)}
-        </ul> : <p className="text-sm text-ink-2">{m.stageNone}</p>}
+        </ul> : <p className="border-t border-line px-5 py-4 text-sm text-ink-2 sm:px-6">{m.stageNone}</p>}
+        <div className="space-y-4 border-t border-line bg-surface-2/40 p-5 sm:p-6">
         <p className="text-xs text-ink-3">{pick(NOT_CLINICAL, locale)}</p>
         {changes.length ? <div className="overflow-x-auto">
           <table className="w-full min-w-[34rem] text-sm">
@@ -185,39 +193,40 @@ export default async function MobilityFollowUpPage() {
             </tbody>
           </table>
         </div> : null}
-        <h3 className="pt-2 text-sm font-bold">{m.fuFunctional}</h3>
-        {functional.length ? <ul className="space-y-1 text-sm">
-          {functional.map(({ a, r }) => <li key={a.id + r.side}>
-            {shortDate(a.date)} · {m.sides[r.side]} : {r.done ? `${m.level.replace("{n}", String(r.level ?? "—"))}${r.value !== null ? ` · ${r.value}` : ""}` : m.skipReasons[r.skipReason ?? "NOT_POSSIBLE"]}
-            {a.conditions?.wall ? <span className="text-ink-3"> ({m.wallKinds[a.conditions.wall.kind]}, {a.conditions.wall.angleDeg}°, {a.conditions.wall.spacingCm} cm)</span> : null}
-          </li>)}
-        </ul> : <p className="text-sm text-ink-2">{m.fuFunctionalNone}</p>}
+        <div>
+          <h3 className="text-sm font-bold">{m.fuFunctional}</h3>
+          {functional.length ? <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line">
+            {functional.map(({ a, r }) => <li key={a.id + r.side} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-4 py-2.5 text-sm">
+              <span className="w-14 shrink-0 font-semibold tabular-nums text-ink-2">{shortDate(a.date)}</span>
+              <span className="min-w-0 flex-1"><strong className="font-semibold">{m.sides[r.side]}</strong> · {r.done ? `${m.level.replace("{n}", String(r.level ?? "—"))}${r.value !== null ? ` · ${r.value}` : ""}` : m.skipReasons[r.skipReason ?? "NOT_POSSIBLE"]}</span>
+              {a.conditions?.wall ? <span className="text-xs text-ink-3">{m.wallKinds[a.conditions.wall.kind]}, {a.conditions.wall.angleDeg}°, {a.conditions.wall.spacingCm} cm</span> : null}
+            </li>)}
+          </ul> : <p className="mt-1 text-sm text-ink-2">{m.fuFunctionalNone}</p>}
+        </div>
+        </div>
       </section>
 
-      <section aria-labelledby="fu-discomfort" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-discomfort" className="text-lg font-bold">{m.fuDiscomfort}</h2>
-          <Evidence label={m.fuSelfReported} />
-        </div>
-        {reports.length ? <ul className="space-y-1 text-sm">
-          {reports.map((d, i) => <li key={d.sessionId + i}>
-            {shortDate(d.date)} · {d.exerciseId ? EXERCISE_BY_ID.get(d.exerciseId)?.name[locale] ?? d.exerciseId : m.fuWholeSession}
-            {d.side && d.side !== "BOTH" ? ` · ${m.sides[d.side]}` : ""} : <strong>{d.discomfort}/10</strong>
-            {d.flags.length ? <span className="text-danger"> · {d.flags.map((f) => m.flagNames[f]).join(", ")}</span> : null}
+      <section aria-labelledby="fu-discomfort" className="leblond-premium-surface overflow-hidden">
+        <SectionHead id="fu-discomfort" title={m.fuDiscomfort} icon={HeartPulse} tone="rose" evidence={m.fuSelfReported} />
+        {reports.length ? <ul className="divide-y divide-line border-t border-line">
+          {reports.map((d, i) => <li key={d.sessionId + i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-sm sm:px-6">
+            <span className="w-14 shrink-0 font-semibold tabular-nums text-ink-2">{shortDate(d.date)}</span>
+            <span className="min-w-0 flex-1">{d.exerciseId ? EXERCISE_BY_ID.get(d.exerciseId)?.name[locale] ?? d.exerciseId : m.fuWholeSession}
+              {d.side && d.side !== "BOTH" ? ` · ${m.sides[d.side]}` : ""}
+              {d.flags.length ? <span className="block text-xs font-semibold text-danger">{d.flags.map((f) => m.flagNames[f]).join(", ")}</span> : null}</span>
+            <strong className="font-display text-base font-extrabold tabular-nums">{d.discomfort}/10</strong>
           </li>)}
-        </ul> : <p className="text-sm text-ink-2">{m.fuDiscomfortNone}</p>}
+        </ul> : <div className="flex items-center gap-3 border-t border-line px-5 py-4 sm:px-6">
+          <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-ok" strokeWidth={2.25} />
+          <div><p className="text-sm font-semibold">{t.noDiscomfort}</p><p className="text-xs text-ink-3">{m.fuDiscomfortNone}</p></div>
+        </div>}
       </section>
     </>}
 
-    <section aria-labelledby="battery-follow" className="rounded-2xl border border-line bg-surface p-5">
-      <h2 id="battery-follow" className="text-lg font-bold">{b.followTitle}</h2>
-      <p className="text-sm text-ink-2">{b.followText}</p>
-      <Link href="/follow-up/mobility/battery" className={buttonClass("secondary", "md", "mt-3")}>{b.followCta} <IconNext /></Link>
-    </section>
-
-    <div className="flex flex-wrap gap-3">
-      <Link href="/train/mobility" className={buttonClass("secondary", "md")}>{m.title} <IconNext /></Link>
-      <Link href="/patrick?q=mobility" className={buttonClass("secondary", "md")}>{m.patrick} <IconNext /></Link>
-    </div>
+    <SectionRows label={t.more} title={t.more} rows={[
+      { href: "/follow-up/mobility/battery", title: b.followTitle, detail: b.followText, value: "", icon: ClipboardCheck, tone: "teal" },
+      { href: "/train/mobility", title: m.title, detail: t.hipsDetail, value: "", icon: PersonStanding, tone: "sky" },
+      { href: "/patrick?q=mobility", title: m.patrick, detail: t.patrickDetail, value: "", icon: MessageCircle, tone: "violet" },
+    ]} />
   </div>;
 }
