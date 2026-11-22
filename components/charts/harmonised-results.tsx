@@ -38,7 +38,7 @@ export function HarmonisedResults({ t, locale, report }: { t: Dictionary; locale
   const others = shown(report.trends.filter((tr) => tr.kind === "board" || tr.kind === "hang"));
   const detail = shown(report.detailTrends);
   const extra = report.harmonised;
-  const native = (system: GradeSystem, grade: string) => `${gradeLabel(t, system, grade)} (${scaleName[system] ?? system})`;
+  const native = (system: GradeSystem, grade: string) => `${gradeLabel(t, system, grade)}, ${scaleName[system] ?? system}`;
 
   const otherName = (tr: PerfTrend) => {
     const s = tr.series;

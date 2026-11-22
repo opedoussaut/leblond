@@ -28,8 +28,9 @@ comment on table public.grade_correspondences is
 
 alter table public.grade_correspondences enable row level security;
 revoke all on public.grade_correspondences from anon, authenticated;
-grant select, insert, delete on public.grade_correspondences to authenticated;
-grant update (font_from, font_to, updated_at) on public.grade_correspondences to authenticated;
+-- Saved by upsert (insert … on conflict do update sets every column sent), so update covers the
+-- whole row; the policies keep it the caller's own and the checks keep it valid.
+grant select, insert, update, delete on public.grade_correspondences to authenticated;
 
 create policy grade_correspondences_select on public.grade_correspondences for select to authenticated
   using (user_id = auth.uid() and public.is_active_beta_user());

@@ -72,15 +72,17 @@ export function GradeCorrespondenceEditor({ locale, system, rows }: { locale: Lo
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor={`${id}-from`} className="text-sm text-ink-2">{h.from}</label>
-            <Select id={`${id}-from`} value={line.from} disabled={pending} className="min-h-11 w-24"
+            <div className="w-28">
+            <Select id={`${id}-from`} value={line.from} disabled={pending}
               onChange={(e) => save(r.grade, e.target.value as FontGrade, line.to)}>
               {OPTIONS.map((g) => <option key={g} value={g}>{boulderGrade(g)}</option>)}
-            </Select>
+            </Select></div>
             <label htmlFor={`${id}-to`} className="text-sm text-ink-2">{h.to}</label>
-            <Select id={`${id}-to`} value={line.to} disabled={pending} className="min-h-11 w-24"
+            <div className="w-28">
+            <Select id={`${id}-to`} value={line.to} disabled={pending}
               onChange={(e) => save(r.grade, line.from, e.target.value as FontGrade)}>
               {OPTIONS.map((g) => <option key={g} value={g}>{boulderGrade(g)}</option>)}
-            </Select>
+            </Select></div>
             {custom ? <button type="button" disabled={pending} onClick={() => save(r.grade, r.defaultFrom, r.defaultTo)}
               className="min-h-11 px-2 text-sm font-bold text-accent underline underline-offset-2">{h.reset}</button> : null}
             <span aria-live="polite" className="text-xs font-semibold text-ink-3">

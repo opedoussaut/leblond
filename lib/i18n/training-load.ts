@@ -88,7 +88,7 @@ const fr = {
   formCol: "Fraîcheur",
 
   perfTitle: "Tes résultats, bloc et voie",
-  perfHint: "Moyenne de tes 3 meilleures croix des 6 dernières semaines contre les 6 précédentes. Bloc en Font : les couleurs et niveaux de salle sont convertis, c’est une estimation et ta cotation d’origine reste affichée. Voie en cotation française, telle que tu l’as notée.",
+  perfHint: "Moyenne de tes 3 meilleures croix. En bloc, les couleurs et niveaux de salle sont convertis en Font : c’est une estimation, ta cotation d’origine reste affichée à côté.",
   perfEmpty: "Pas encore de résultats sur 12 semaines.",
   perfDirection: {
     up: "en hausse",
@@ -238,7 +238,7 @@ const en: Dict = {
   formCol: "Freshness",
 
   perfTitle: "Your results, boulders and routes",
-  perfHint: "Average of your 3 best sends in the last 6 weeks against the 6 before. Boulders on Font: gym colours and levels are converted, an estimate, and your original grade stays shown. Routes on the French scale, as you logged them.",
+  perfHint: "Average of your 3 best sends. For boulders, gym colours and levels are converted to Font: an estimate, with your original grade shown next to it.",
   perfEmpty: "No results over 12 weeks yet.",
   perfDirection: {
     up: "up",

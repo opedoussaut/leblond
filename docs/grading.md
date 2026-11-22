@@ -46,6 +46,23 @@ Climbing District colours and levels are two scales and are never compared or me
 whenever a network or a session has figures in both. Boulders record first-try sends as `FLASH`; an onsight is
 not recorded separately for boulders (routes record it).
 
+## Results on two common scales (`lib/grading/harmonise.ts`)
+
+Asked by the product owner on 2026-11-22: Progrès › Charge reads results on two scales so gyms can be compared.
+
+- **Boulders on Font.** Every first send is converted through a correspondence table (`DEFAULT_BOULDER_TABLE`)
+  to a Font span, scored at its middle, and combined into one series (`lib/analytics/harmonised.ts`). Each point
+  keeps its native grade, its source and its confidence: `GYM_PUBLISHED` (Vertical'Art FAQ, 0.8), `USER_SETTING`
+  (0.7), `REFERENCE_TABLE` (the CSV above: Arkose, Climbing District colours, Block'Out, 0.6), `LEBLOND_ESTIMATE`
+  (first estimates for Climbing District levels 1–12, Climb World 1–7, Climb Up, MROC, Le Labo and Climbing
+  District white/orange, 0.35). A confident per-problem estimate (≥ 0.5) wins over the table. Custom colours,
+  the mystery pink and unknown grades are not converted and are counted apart.
+- **Routes on the French scale**, as logged (`route_ascents.grade`), with the gym's colour shown next to it.
+- The verdict reads these two series (plus board and hangs). The per-native-scale results stay in a fold below.
+- **Per climber:** Réglages › Correspondance des cotations (`/settings/grades`) stores a climber's own span for
+  any grade in `grade_correspondences` (RLS by `auth.uid()`). Defaults stay in code.
+- Nothing is written over `problems.native_grade`; the conversion is computed when the page is built.
+
 ## Utilities (`lib/grading/ordering.ts`)
 
 `gradeToScore`, `scoreToGrade`, `compareGrades` (same system only, `null` if not comparable), `nextGrade`, `previousGrade`, `maxGrade`, `isMysteryGrade`. The database mirrors validity with `public.is_valid_native_grade()` — keep both in sync.
@@ -72,7 +89,8 @@ Next to each Arkose or Climbing District colour, LEBLOND shows an indicative Fon
 They are labelled as estimates, never replace the native grade, and do not feed the normalised analytics
 (those still use per-problem estimates with their own confidence). Colours absent from the table
 (Climbing District white/orange, pink mystery, independent gyms' custom colours) show no range,
-and neither do Climbing District's levels 1–12.
+and neither do Climbing District's levels 1–12. The harmonised results (above) reuse these ranges and add
+first estimates for the other scales, only in Progrès and with their source.
 
 ## Routes at colour-graded gyms
 

@@ -116,7 +116,7 @@ describe("harmonisedBoulderPerf", () => {
     problem("f1", "FONT", "6A"), problem("c1", "CUSTOM_COLOR", "GREEN"),
   ];
   const attempts = [
-    send("a1", "2026-11-01", "FALL"), send("a1", "2026-11-02", "TOP", 2), send("a1", "2026-11-03", "TOP", 3),
+    send("a1", "2026-11-01", "ATTEMPT"), send("a1", "2026-11-02", "TOP", 2), send("a1", "2026-11-03", "TOP", 3),
     send("a2", "2026-11-04", "FLASH"), send("w1", "2026-11-05"), send("b1", "2026-11-06"), send("f1", "2026-11-07"), send("c1", "2026-11-08"),
   ];
   const out = harmonisedBoulderPerf(problems, attempts, conversionTable());

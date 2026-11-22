@@ -33,6 +33,15 @@ select pg_temp.expect((select user_id = '6c0a0000-0000-0000-0000-00000000000a' f
   'user_id defaults to the caller');
 update public.grade_correspondences set font_from = '5c', font_to = '6A' where grade_system = 'CLIMB_WORLD_LEVEL' and native_grade = '4';
 select pg_temp.expect((select font_from = '5c' from public.grade_correspondences where native_grade = '4'), 'the owner changes a line');
+-- The app saves by upsert (PostgREST: on conflict do update of every column sent).
+insert into public.grade_correspondences (user_id, grade_system, native_grade, font_from, font_to, updated_at)
+values ('6c0a0000-0000-0000-0000-00000000000a', 'ARKOSE_COLOR', 'RED', '6B', '6C', now())
+on conflict (user_id, grade_system, native_grade) do update set
+  user_id = excluded.user_id, grade_system = excluded.grade_system, native_grade = excluded.native_grade,
+  font_from = excluded.font_from, font_to = excluded.font_to, updated_at = excluded.updated_at;
+select pg_temp.expect((select font_from = '6B' and font_to = '6C' from public.grade_correspondences where native_grade = 'RED'), 'an upsert replaces the line');
+select pg_temp.expect_error($$update public.grade_correspondences set user_id = '6c0a0000-0000-0000-0000-00000000000b' where native_grade = 'RED'$$,
+  'a line cannot be handed to someone else');
 
 -- 2. Validation: real native grade, real Font grades, from <= to, no line for Font or custom colours.
 select pg_temp.expect_error($$insert into public.grade_correspondences (grade_system, native_grade, font_from, font_to)
