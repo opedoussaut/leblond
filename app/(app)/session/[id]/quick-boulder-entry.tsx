@@ -9,7 +9,8 @@ import { cn } from "@/components/ui/cn";
 import type { GradeSystem } from "@/lib/climbing/types";
 import { listGrades, isColorSystem } from "@/lib/grading";
 import { isBareLevelSystem } from "@/lib/grading/systems";
-import { fontRangeFor, formatFontRange } from "@/lib/grading/conversions";
+import { formatFontRange } from "@/lib/grading/conversions";
+import { useFontRange } from "@/components/climbing/grade-ranges";
 import { gradeLabel, gradeSpokenLabel } from "@/lib/grading/labels";
 import { fmt } from "@/lib/i18n";
 import { loggingDictionary } from "@/lib/i18n/logging";
@@ -28,6 +29,7 @@ export function QuickBoulderEntry({ system, onSubmit, onClose }: {
   onClose: () => void;
 }) {
   const { t, locale } = useI18n();
+  const fontRangeFor = useFontRange();
   const L = loggingDictionary(locale);
   const [grade, setGrade] = useState<string | null>(null);
   const [count, setCount] = useState(1);

@@ -1,5 +1,4 @@
 import type { GradeSystem } from "@/lib/climbing/types";
-import { RANGES as GYM_RANGES } from "./conversions";
 import { boulderGrade } from "./display";
 import { gradeToScore, isFontGrade } from "./ordering";
 import { FONT_SCALE, GRADES_BY_SYSTEM, type FontGrade } from "./systems";
@@ -55,7 +54,11 @@ export const SOURCE_CONFIDENCE: Record<Exclude<ConversionSource, "PROBLEM_ESTIMA
 };
 
 export type FontSpan = { from: FontGrade; to: FontGrade };
-export type TableLine = FontSpan & { source: Exclude<ConversionSource, "FONT_NATIVE" | "PROBLEM_ESTIMATE" | "USER_SETTING"> };
+export type TableLine = FontSpan & {
+  source: Exclude<ConversionSource, "FONT_NATIVE" | "PROBLEM_ESTIMATE" | "USER_SETTING">;
+  /** The top grade of a scale whose span has no ceiling ("7B+ et au-delà"); shown as "≥ from" next to the colour. */
+  openEnded?: boolean;
+};
 
 /** Per-system note on where the default lines come from (shown in Réglages). */
 export type TableSource = { source: TableLine["source"]; url?: string };
@@ -66,9 +69,9 @@ const lines = (source: TableLine["source"], list: Record<string, [FontGrade, Fon
 const estimate = (list: Record<string, [FontGrade, FontGrade]>) => lines("LEBLOND_ESTIMATE", list);
 
 /**
- * The default correspondence, per boulder scale and grade. Ranges already
- * shown next to colours (conversions.ts) are reused as they are; the rest are
- * first estimates (see the module comment).
+ * The default correspondence, per boulder scale and grade. The single source
+ * for both Progrès and the "≈ range" shown next to a grade while logging
+ * (conversions.ts reads it); the climber's own lines apply in Progrès.
  */
 export const DEFAULT_BOULDER_TABLE: Partial<Record<GradeSystem, Record<string, TableLine>>> = {
   // Kaskad, observed: Jaune 4 à 4+, Vert 5A à 5B, Bleu 6A, Rouge 6B à 6B+, Noir 6C+ à 7A, Violet 7B à 7C.
@@ -77,7 +80,13 @@ export const DEFAULT_BOULDER_TABLE: Partial<Record<GradeSystem, Record<string, T
   ARKOSE_COLOR: lines("OBSERVED", {
     YELLOW: ["4a", "4c"], GREEN: ["5a", "5b"], BLUE: ["6A", "6A"], RED: ["6B", "6B+"], BLACK: ["6C+", "7A"], PURPLE: ["7B", "7C"],
   }),
-  VERTICAL_ART_COLOR: fromRanges("VERTICAL_ART_COLOR", "GYM_PUBLISHED"),
+  // Vertical'Art FAQ (vertical-art.fr/faq): blanc 3a/3c, orange 4a/4c, vert 5a/5c, bleu 6a/6b, rouge 6c/7a, noir 7a/7b, violet 7b+ et au-delà.
+  VERTICAL_ART_COLOR: {
+    ...lines("GYM_PUBLISHED", {
+      WHITE: ["3a", "3c"], ORANGE: ["4a", "4c"], GREEN: ["5a", "5c"], BLUE: ["6A", "6B"], RED: ["6C", "7A"], BLACK: ["7A", "7B"],
+    }),
+    PURPLE: { from: "7B+", to: "7B+", source: "GYM_PUBLISHED", openEnded: true },
+  },
   // Kaskad, observed: B0 4, B1 4+, B2 5A, B3 5B à 5C, then one Font step per level up to B15 7C+.
   BLOCKOUT_LEVEL: lines("OBSERVED", {
     B0: ["4a", "4b"], B1: ["4c", "4c"], B2: ["5a", "5a"], B3: ["5b", "5c"], B4: ["6A", "6A"], B5: ["6A+", "6A+"], B6: ["6B", "6B"],
@@ -125,10 +134,6 @@ export const TABLE_SOURCES: Partial<Record<GradeSystem, TableSource>> = {
   MROC_COLOR: { source: "LEBLOND_ESTIMATE" },
   LELABO_COLOR: { source: "LEBLOND_ESTIMATE" },
 };
-
-function fromRanges(system: GradeSystem, source: TableLine["source"]): Record<string, TableLine> {
-  return Object.fromEntries(Object.entries(GYM_RANGES[system] ?? {}).map(([g, r]) => [g, span(r.from, r.to, source)]));
-}
 
 /** Scales the climber can tune, in the order Réglages lists them. */
 export function convertibleSystems(): GradeSystem[] {

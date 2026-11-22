@@ -5,14 +5,17 @@ import { ViewerPicture } from "@/components/layout/viewer-picture";
 import { AppNav, AreaSubNav } from "@/components/layout/app-nav";
 import { RouteFocus } from "@/components/layout/route-focus";
 import { PendingSync } from "@/components/offline/pending-sync";
+import { GradeRangesProvider } from "@/components/climbing/grade-ranges";
 import { requireViewer } from "@/lib/auth/viewer";
+import { loadCorrespondenceOverrides } from "@/lib/data/grade-correspondences";
 
 /** Authenticated shell. Onboarding has its own layout without navigation. */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
-  const [{ count }, { count: training }] = await Promise.all([
+  const [{ count }, { count: training }, gradeOverrides] = await Promise.all([
     viewer.supabase.from("sessions").select("id", { count: "exact", head: true }).is("ended_at", null),
     viewer.supabase.from("training_sessions").select("id", { count: "exact", head: true }).eq("status", "IN_PROGRESS"),
+    loadCorrespondenceOverrides(viewer.supabase),
   ]);
   const displayName = viewer.profile.display_name || viewer.email.split("@")[0];
   const isAdmin = viewer.role === "admin";
@@ -33,7 +36,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main id="app-main" className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:px-10 md:pb-16 md:pt-9 lg:px-12">
         <RouteFocus />
         <AreaSubNav />
-        {children}
+        {/* The climber's own grade correspondence, for the "≈ range" next to every grade. */}
+        <GradeRangesProvider overrides={gradeOverrides}>{children}</GradeRangesProvider>
       </main>
       <PendingSync userId={viewer.userId} />
       <AppNav hasLiveSession={(count ?? 0) > 0} hasLiveTraining={(training ?? 0) > 0}

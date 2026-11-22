@@ -31,7 +31,8 @@ describe("Climb World levels 1–7", () => {
     expect(gradeMeaning(fr, "CLIMB_WORLD_LEVEL", "5")).toBe("très difficile");
     expect(gradeMeaning(fr, "CLIMB_WORLD_LEVEL", "7")).toBe("élite");
     expect(gradeMeaning(en, "CLIMB_WORLD_LEVEL", "6")).toBe("extreme");
-    expect(fontRangeFor("CLIMB_WORLD_LEVEL", "7")).toBeNull();
+    // The ≈ range is the low-confidence first estimate Progrès uses, never the level itself.
+    expect(fontRangeFor("CLIMB_WORLD_LEVEL", "7")).toEqual({ from: "7B+", to: "8A", source: "LEBLOND_ESTIMATE" });
   });
 
   it("gives Patrick the scale and the rule never to compare it", () => {

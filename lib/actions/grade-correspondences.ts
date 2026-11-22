@@ -33,8 +33,8 @@ export async function saveGradeCorrespondence(input: z.input<typeof lineSchema>)
     : await table.upsert({ user_id: viewer.userId, grade_system: system, native_grade: grade, font_from: from, font_to: to, updated_at: new Date().toISOString() },
       { onConflict: "user_id,grade_system,native_grade" });
   if (error) return { ok: false, error: "unknown" };
-  revalidatePath("/settings/grades");
-  revalidatePath("/follow-up");
+  // The app shell carries the climber's lines to every grade chip.
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -45,7 +45,7 @@ export async function resetGradeCorrespondences(system: string): Promise<ActionR
   const viewer = await requireViewer();
   const { error } = await viewer.supabase.from("grade_correspondences").delete().eq("grade_system", v.data);
   if (error) return { ok: false, error: "unknown" };
-  revalidatePath("/settings/grades");
-  revalidatePath("/follow-up");
+  // The app shell carries the climber's lines to every grade chip.
+  revalidatePath("/", "layout");
   return { ok: true };
 }
