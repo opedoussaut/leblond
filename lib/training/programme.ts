@@ -183,6 +183,20 @@ export function availabilityOf(a: Pick<ProgrammeAssessment, "sessionsPerWeek" | 
   return a.context?.availability ?? { climbingPerWeek: Math.min(6, a.sessionsPerWeek), offWallPerWeek: 0, homeEquipment: [] };
 }
 
+/**
+ * What a weekly template asks, for a programme followed without an assessment (a programme
+ * of the catalogue, one made by hand): sessions at home or off-wall methods count off the
+ * wall, optional ones are left out; the discipline follows the gyms it uses.
+ */
+export function templateProfile(sessions: readonly Pick<PlanSession, "methodId" | "place" | "optional">[]): { availability: Availability; discipline: Discipline } {
+  const regular = sessions.filter((s) => !s.optional);
+  const offWall = regular.filter((s) => s.place === "HOME" || (!s.place && !!s.methodId && OFF_WALL_METHODS.has(s.methodId))).length;
+  const places = new Set(regular.map((s) => s.place));
+  const discipline: Discipline = places.has("ROUTE_GYM") && !places.has("BOULDER_GYM") ? "ROUTE"
+    : places.has("ROUTE_GYM") ? "BOTH" : "BOULDER";
+  return { availability: { climbingPerWeek: regular.length - offWall, offWallPerWeek: offWall, homeEquipment: [] }, discipline };
+}
+
 export function sessionTitle(s: Pick<PlanSession, "methodId" | "title">): string {
   return s.title ?? title(s.methodId);
 }
@@ -215,12 +229,13 @@ export function programmeView(input: {
     ? { date: scheduled.date, title: scheduled.title, methodId: scheduled.methodId, minutes: scheduled.minutes, place: null, source: "scheduled", sessionId: scheduled.id }
     : fromTemplate;
 
+  const fromTemplateOnly = !a.id && !a.context && plan ? templateProfile(plan.sessions) : null;
   return {
-    assessmentId: a.id, methodId: a.methodId, goal: a.goal, discipline: a.context?.discipline ?? "BOULDER",
+    assessmentId: a.id, methodId: a.methodId, goal: a.goal, discipline: a.context?.discipline ?? fromTemplateOnly?.discipline ?? "BOULDER",
     startDate: a.startDate, horizonWeeks: a.horizonWeeks,
     week: Math.min(a.horizonWeeks, Math.floor(elapsed / 7) + 1), finished,
     nextReassessment, reassessmentDue: today >= nextReassessment,
-    availability: availabilityOf(a), health: healthFromContext(a.context), plan, next,
+    availability: fromTemplateOnly?.availability ?? availabilityOf(a), health: healthFromContext(a.context), plan, next,
   };
 }
 

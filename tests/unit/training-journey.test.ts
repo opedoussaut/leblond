@@ -222,3 +222,20 @@ describe("re-adjust the plan", () => {
     expect(replanSignal([check("2026-11-09", "REST", ["acute:shoulder"], [{ area: "shoulder", level: "ACUTE" }])], "2026-11-09")).toMatchObject({ suggested: true, acute: true });
   });
 });
+
+describe("programme followed without an assessment", () => {
+  it("takes its week counts and discipline from the weekly template", () => {
+    const view = programmeView({
+      assessment: { id: null, methodId: "max-hangs", horizonWeeks: 8, sessionsPerWeek: 4, goal: "", startDate: "2026-11-02", context: null },
+      plan: { id: "p", name: "P", sessions: [
+        { day: 0, methodId: "max-hangs", minutes: 30, notes: "", place: "HOME" },
+        { day: 1, methodId: "technique", minutes: 90, notes: "", place: "ROUTE_GYM" },
+        { day: 5, methodId: "easy-volume", minutes: 90, notes: "", place: "ROUTE_GYM" },
+        { day: 6, methodId: "mobility", minutes: 30, notes: "", place: "HOME", optional: true },
+      ] satisfies PlanSession[] },
+      scheduled: [], today: "2026-11-12",
+    });
+    expect(view.availability).toEqual({ climbingPerWeek: 2, offWallPerWeek: 1, homeEquipment: [] });
+    expect(view.discipline).toBe("ROUTE");
+  });
+});
