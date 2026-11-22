@@ -122,3 +122,17 @@ describe("provider error helpers", () => {
     expect(providerHeaders("not a url", null)).toEqual({});
   });
 });
+
+describe("reasoning effort and empty answers", () => {
+  it("sends reasoning the OpenRouter way to OpenRouter, reasoning_effort elsewhere", async () => {
+    const { reasoningParams } = await import("@/lib/coach/errors");
+    expect(reasoningParams("https://openrouter.ai/api/v1", "high")).toEqual({ reasoning: { effort: "high" } });
+    expect(reasoningParams("http://localhost:11434/v1", "low")).toEqual({ reasoning_effort: "low" });
+    expect(reasoningParams("https://openrouter.ai/api/v1", null)).toEqual({});
+  });
+
+  it("tells an empty answer apart from an unreachable coach", () => {
+    expect(classifyProviderError(new CoachProviderError("empty_answer"))).toBe("empty_answer");
+    expect(classifyProviderError(new CoachProviderError("stream_error"))).toBe("coach_unavailable");
+  });
+});

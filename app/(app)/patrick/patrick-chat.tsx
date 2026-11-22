@@ -141,6 +141,8 @@ export function PatrickChat({
               ? t.patrick.busy
               : err.error === "provider_quota"
               ? t.patrick.quota
+              : err.error === "empty_answer"
+              ? t.patrick.emptyAnswer
               : err.error === "rate_limited"
               ? fmt(t.patrick.rateLimited, { limit: err.limit ?? dailyLimit })
               : t.patrick.error,

@@ -5,7 +5,7 @@ import OpenAI from "openai";
  * directly, so the provider can be swapped without touching routes or UI.
  */
 import type { CoachConfig } from "./config";
-import { CoachProviderError, providerHeaders, streamChunkError } from "./errors";
+import { CoachProviderError, providerHeaders, reasoningParams, streamChunkError } from "./errors";
 import type { CoachChatInput, CoachGenerationOptions, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
 export type { CoachMessage, CoachProvider, CoachStream, CoachUsage } from "./provider-types";
 
@@ -140,8 +140,10 @@ export class ChatCompletionsCoach implements CoachProvider {
       defaultHeaders: providerHeaders(options.baseURL, options.appUrl ?? null),
     });
     this.generation = options.generation ?? NO_LIMITS;
+    this.reasoning = reasoningParams(options.baseURL, this.generation.reasoningEffort);
   }
   private generation: CoachGenerationOptions;
+  private reasoning: Record<string, unknown>;
 
   async chat({ instructions, context, messages, signal }: CoachChatInput): Promise<CoachStream> {
     const stream = await this.client.chat.completions.create(
@@ -154,7 +156,7 @@ export class ChatCompletionsCoach implements CoachProvider {
         stream: true,
         stream_options: { include_usage: true },
         ...(this.generation.maxOutputTokens ? { max_tokens: this.generation.maxOutputTokens } : {}),
-        ...(this.generation.reasoningEffort ? { reasoning_effort: this.generation.reasoningEffort } : {}),
+        ...this.reasoning,
       },
       { signal },
     );
