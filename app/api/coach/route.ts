@@ -132,14 +132,27 @@ export async function POST(request: Request) {
     return json(failure === "coach_unavailable" ? 502 : 503, { error: failure });
   }
 
+  // Wait for the first piece of the answer before replying: a failure before any
+  // text (an empty answer, an error chunk) then gets its own message instead of a cut stream.
+  const deltas = stream.text[Symbol.asyncIterator]();
+  let first: IteratorResult<string>;
+  try {
+    first = await deltas.next();
+  } catch (e) {
+    await recordUsage({ inputTokens: null, outputTokens: null }, false);
+    const failure = classifyProviderError(e);
+    console.error("coach stream failed before any text", { code: (e as { code?: string }).code ?? null, failure });
+    return json(failure === "coach_unavailable" ? 502 : 503, { error: failure });
+  }
+
   const encoder = new TextEncoder();
   const body$ = new ReadableStream<Uint8Array>({
     async start(controller) {
       let answer = "";
       try {
-        for await (const delta of stream.text) {
-          answer += delta;
-          controller.enqueue(encoder.encode(delta));
+        for (let r = first; !r.done; r = await deltas.next()) {
+          answer += r.value;
+          controller.enqueue(encoder.encode(r.value));
         }
         const usage = await stream.done;
         await supabase.from("coach_messages").insert({

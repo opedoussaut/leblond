@@ -616,6 +616,7 @@ export const en: Dictionary = {
     error: "Patrick couldn't answer. Try again in a moment.",
     busy: "Patrick is very busy right now. Try again in a minute.",
     quota: "Patrick is unavailable: the model provider's credit or quota has run out. Tell the administrator.",
+    emptyAnswer: "Patrick thought without writing an answer (his answer budget is too short). Try again or ask a shorter question; if it keeps happening, tell the administrator.",
     disclaimer: "Patrick is not a doctor. If you're in pain or injured, stop and see a healthcare professional.",
     quickActions: "Quick questions",
     contextNote: "Context sent: statistics computed by LEBLOND, no raw data.",

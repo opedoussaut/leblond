@@ -621,6 +621,7 @@ export const fr = {
     error: "Patrick n’a pas pu répondre. Réessaie dans un instant.",
     busy: "Patrick est très sollicité en ce moment. Réessaie dans une minute.",
     quota: "Patrick est indisponible : le crédit ou le quota du fournisseur du modèle est épuisé. Préviens l’administrateur.",
+    emptyAnswer: "Patrick a réfléchi sans écrire de réponse (son budget de réponse est trop court). Réessaie, ou pose une question plus courte ; si ça se répète, préviens l’administrateur.",
     disclaimer: "Patrick n’est pas médecin. En cas de douleur ou de blessure, arrête et consulte un professionnel de santé.",
     quickActions: "Questions rapides",
     contextNote: "Contexte transmis : statistiques calculées par LEBLOND, pas de données brutes.",
