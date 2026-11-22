@@ -23,12 +23,13 @@ import { MAX_ASSESSMENTS } from "@/lib/training/assessment";
 import { formatDate, formatCounts, formatPercent } from "@/lib/format";
 import { getI18n } from "@/lib/i18n/server";
 import { adherence, localDate_ } from "@/lib/training/sessions";
-import { mobilityOverview } from "@/lib/analytics/mobility";
+import { doneMobilitySessions, mobilityActivity, mobilitySource } from "@/lib/analytics/mobility-follow-up";
+import { loadMobilitySessionFacts } from "@/lib/data/mobility-follow-up";
 import { loadMobility } from "@/lib/data/mobility";
 import { fmt, intlLocale, type Locale } from "@/lib/i18n";
 import { chartsDictionary } from "@/lib/i18n/charts";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
-import { HIP_METHOD_ID, LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
+import { LEVEL_LABELS, contentLevel } from "@/lib/training/hip-mobility/content";
 import { IconNext } from "@/components/ui/icons";
 import { linkClass, segmentClass, segmentGroupClass } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -126,12 +127,13 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const days = weeks * 7;
   const now = new Date();
   const mob = mobilityDictionary(locale);
-  const [dataset, routes, training, { data: assessments }, mobility, { data: favourites }] = await Promise.all([
+  const [dataset, routes, training, { data: assessments }, mobility, mobilityFacts, { data: favourites }] = await Promise.all([
     loadClimbingDataset(viewer.supabase),
     loadRouteAscents(viewer.supabase),
     listTrainingSessions(viewer.supabase, 400),
     viewer.supabase.from("training_assessments").select("id, kind, created_at").order("created_at", { ascending: false }).limit(MAX_ASSESSMENTS),
     loadMobility(viewer.supabase),
+    loadMobilitySessionFacts(viewer.supabase),
     viewer.supabase.from("favourite_gyms").select("gym_id").eq("user_id", viewer.userId),
   ]);
   // Every boulder on Font (the climber's own lines, then the default table); native grades stay stored as logged.
@@ -143,14 +145,12 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const isMobility = (s: { id: string; methodId: string | null }) => isMobilityWork(s.methodId, exerciseMethods.get(s.id) ?? []);
   const sessionDate = (s: { scheduledDate: string | null; completedAt: string | null; createdAt: string }) =>
     s.scheduledDate ?? (s.completedAt ?? s.createdAt).slice(0, 10);
-  // Mobility done outside the hip programme (the programme's own sessions are in mobility.records).
-  const otherMobility = (training ?? []).filter((s) => s.status === "COMPLETED" && s.methodId !== HIP_METHOD_ID && isMobility(s));
-  const mobilityUsed = !!mobility.enrollment || mobility.records.length > 0 || mobility.assessments.length > 0 || otherMobility.length > 0;
-  const mobOverview = mobilityOverview(mobility.records, mobility.assessments, mobility.today);
-  const mobSince28 = localDate_(new Date(now.getTime() - 27 * 86_400_000));
-  const mobSessions28 = mobOverview.sessionsLast28 + otherMobility.filter((s) => sessionDate(s) >= mobSince28).length;
   const snap = computeSnapshot(fd, fontTarget({ grade: viewer.profile.target_grade, system: viewer.profile.target_grade_system }, fv.table), now, days);
   const today = localDate_(now);
+  // Every mobility séance (hip programme, Rebuild, coach and Atlas séances), read exactly as Suivi › Mobilité reads it, so both pages agree.
+  const mobDone = doneMobilitySessions(mobilityFacts, today);
+  const mobilityUsed = !!mobility.enrollment || mobility.assessments.length > 0 || mobilityFacts.some((f) => mobilitySource(f) !== null);
+  const mobSessions28 = mobilityActivity(mobDone, today).last28;
   const since = localDate_(new Date(now.getTime() - days * 86_400_000));
   const recent = (training ?? []).filter((s) => (s.scheduledDate ?? s.createdAt.slice(0, 10)) >= since && !isMobility(s));
   const adh = adherence(recent, today);
@@ -165,10 +165,8 @@ export default async function FollowUpHome({ searchParams }: PageProps<"/follow-
   const topLevels = tab === "climbing" || tab === "overview" ? topLevelRates(fd.problems, fd.attempts, ["FONT"], now, weeks) : [];
   const done = (training ?? []).filter((x) => x.status === "COMPLETED" && !isMobility(x));
   const trainItems = done.map((x) => ({ date: sessionDate(x), minutes: x.actualMinutes }));
-  const mobItems = [
-    ...mobility.records.filter((r) => r.status === "COMPLETED").map((m) => ({ date: m.date, minutes: m.minutes })),
-    ...otherMobility.map((s) => ({ date: sessionDate(s), minutes: s.actualMinutes })),
-  ];
+  // Recorded minutes only: a séance without them still counts as a séance, never as its planned time.
+  const mobItems = mobDone.map((s) => ({ date: s.date, minutes: s.minutesPlanned ? null : s.minutes }));
   const trainWeeks = weeklyTotals(trainItems, today, weeks);
   const mobWeeks = weeklyTotals(mobItems, today, weeks);
   // Training and mobility minutes together, for the overview's tile.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gradePyramid, isMobilityWork, mainSystem, topLevelRates, weeklyHardest, weeklyTotals } from "@/lib/analytics/charts";
+import { REBUILD_METHOD_ID } from "@/lib/training/mobility-rebuild/engine";
 import type { AttemptFact, ProblemFact } from "@/lib/analytics/types";
 
 const problem = (id: string, grade: string, system: ProblemFact["nativeGradeSystem"] = "FONT"): ProblemFact =>
@@ -107,6 +108,10 @@ describe("isMobilityWork", () => {
     expect(isMobilityWork("hip-mobility", [])).toBe(true);
     expect(isMobilityWork("mobility", [])).toBe(true);
     expect(isMobilityWork("max-hangs", ["mobility", "mobility"])).toBe(false);
+  });
+  it("counts the 12-week Rebuild programme's séances as mobility, never as training", () => {
+    expect(isMobilityWork(REBUILD_METHOD_ID, [])).toBe(true);
+    expect(isMobilityWork(null, [REBUILD_METHOD_ID, "mobility", null])).toBe(true);
   });
   it("classifies a coach session by its exercises", () => {
     expect(isMobilityWork(null, ["mobility", "mobility", null])).toBe(true);
