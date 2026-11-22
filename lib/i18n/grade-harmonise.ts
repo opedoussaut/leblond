@@ -20,9 +20,22 @@ const fr = {
     low: "confiance faible",
   } satisfies Record<ConfidenceBand, string>,
   weakest: "Au plus bas : {band}",
-  detailTitle: "Détail par échelle d’origine",
-  detailHint: "Tes résultats dans chaque échelle de salle, sans conversion.",
   otherTitle: "Board et suspension",
+
+  note: {
+    title: "Tout en Font",
+    label: "Bloc · Font, estimé",
+    allFont: "Tous ces blocs sont notés en Font : rien n’est converti.",
+    converted: "{n} blocs de salle convertis en Font, une estimation : {list}.",
+    convertedItem: "{scale} {n} ({source})",
+    alreadyFont: "{n} déjà en Font.",
+    unconverted: "Sans correspondance, comptés à part et jamais devinés : {list}.",
+    unconvertedItem: "{grade} · {scale} ×{n}",
+    rule: "Une plage (rouge Arkose = 6B–6B+) compte à son milieu, arrondi à la cotation du dessous.",
+    weakest: "Confiance la plus basse : {band}.",
+    refine: "Affiner la correspondance",
+    tooltip: "{converted} ← {native} · {source}",
+  },
 
   settings: {
     title: "Correspondance des cotations",
@@ -73,9 +86,22 @@ const en: Dict = {
     low: "low confidence",
   },
   weakest: "Lowest: {band}",
-  detailTitle: "Detail per original scale",
-  detailHint: "Your results in each gym scale, unconverted.",
   otherTitle: "Board and hangs",
+
+  note: {
+    title: "All on Font",
+    label: "Boulders · Font, estimated",
+    allFont: "All these boulders are graded on Font: nothing is converted.",
+    converted: "{n} gym boulders converted to Font, an estimate: {list}.",
+    convertedItem: "{scale} {n} ({source})",
+    alreadyFont: "{n} already on Font.",
+    unconverted: "No correspondence, counted apart and never guessed: {list}.",
+    unconvertedItem: "{grade} · {scale} ×{n}",
+    rule: "A span (Arkose red = 6B–6B+) counts at its middle, rounded down to the grade below.",
+    weakest: "Lowest confidence: {band}.",
+    refine: "Refine the correspondence",
+    tooltip: "{converted} ← {native} · {source}",
+  },
 
   settings: {
     title: "Grade correspondence",

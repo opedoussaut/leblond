@@ -1528,6 +1528,17 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.goto("/follow-up?tab=load");
   await expect(page.getByTestId("harmonised-boulder").getByText("6B+", { exact: true })).toBeVisible();
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
+  // The same line drives every Progrès section: one Font card for the top-grade send rate, none per gym scale.
+  await page.goto("/follow-up?tab=climbing");
+  const topLevel = page.getByTestId("top-level-scale");
+  await expect(topLevel).toHaveCount(1);
+  await expect(topLevel.getByText("Cotation Font (bloc)")).toBeVisible();
+  await expect(topLevel.getByText("converti, estimé")).toBeVisible();
+  await expect(topLevel.getByText("6B+", { exact: true })).toBeVisible();
+  await expect(topLevel.getByText("6A", { exact: true })).toBeVisible();
+  await expect(page.getByText("Couleurs Arkose", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("font-note")).toContainText("Couleurs Arkose 1 (ton réglage)");
+  await expect(page.getByTestId("font-note")).toContainText("Couleurs Arkose 1 (observée par Kaskad, non officielle)");
   // The "≈ range" next to the colour follows the climber's line too: the red of journey A's séance.
   // (A board séance from journey I is still open, so no new séance is started here.)
   await page.goto("/session");
@@ -1544,4 +1555,14 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" })
     .getByRole("button", { name: "Revenir au défaut" }).click();
   await expect(page.getByTestId("correspondence-ARKOSE_COLOR").getByRole("listitem").filter({ hasText: "Rouge" }).getByLabel("De")).toHaveValue("6B");
+
+  // Default table again: the red's span 6B–6B+ counts at 6B (middle, rounded down), on every Progrès page.
+  await page.goto("/follow-up?tab=climbing");
+  await expect(page.getByTestId("top-level-scale").getByText("6B", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("font-note")).toContainText("Couleurs Arkose 2 (observée par Kaskad, non officielle)");
+  await page.goto("/follow-up");
+  await expect(page.getByText("Réussite en 6B", { exact: true })).toBeVisible();
+  await page.goto("/progress?tab=boulder-indoor");
+  await expect(page.getByTestId("font-note")).toContainText("Couleurs Arkose 2 (observée par Kaskad, non officielle)");
+  await expect(page.getByText(/Niveau de travail · Couleurs Arkose/)).toHaveCount(0);
 });

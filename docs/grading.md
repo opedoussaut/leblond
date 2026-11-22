@@ -4,7 +4,7 @@
 
 1. The **native** grade is always stored as the climber sees it on the wall.
 2. A **normalised Font estimate** is optional, separate, and always carries `normalization_confidence` (0–1) and `normalization_source` (`FONT_NATIVE`, `USER_ESTIMATE`, `GYM_PUBLISHED`).
-3. LEBLOND **never** derives Font from a colour automatically and never equates two colour systems.
+3. Progrès reads every boulder on Font through a correspondence table (the climber's own lines, then the defaults). That reading is an estimate with its source, computed when a page is built, never stored over the native grade. Two colour systems are never equated directly: each goes through Font. Grades with no line are never guessed.
 
 ## Systems (`lib/grading/systems.ts`)
 
@@ -22,7 +22,7 @@ Each system has a kind (`GRADE_SYSTEM_KIND`): `COLOUR`, `NUMERIC` (gym levels) o
 
 ## Scales over time
 
-A gym's scale can change (Climbing District moved from colours to levels 1–12). Nothing is ever converted:
+A gym's scale can change (Climbing District moved from colours to levels 1–12). Stored grades are never rewritten:
 
 - `gyms.grading_system` is the **current** bouldering scale, the default for new sessions;
   `gyms.former_grading_systems` lists earlier scales, still valid at that gym;
@@ -40,11 +40,43 @@ The database enforces the same rules (`gym_accepts_grade_system`, trigger `sessi
 
 ## Progression across scales
 
-Analytics group every figure by native system: highest send, highest flash, highest tried-but-not-sent
-(projects and failed tries, never counted as sends), working level, trend, distributions and objectives.
-Climbing District colours and levels are two scales and are never compared or merged; the UI names the scale
-whenever a network or a session has figures in both. Boulders record first-try sends as `FLASH`; an onsight is
-not recorded separately for boulders (routes record it).
+Asked by the product owner on 2026-11-22 ("only two grades, boulder Font and route FFME"): **Progrès and its
+sub-pages show boulders on Font and routes on the French scale, nothing else.** No section breaks results down
+per gym scale any more. The analytics underneath still work per `nativeGradeSystem`; Progrès feeds them a
+Font view of the dataset (below), so every figure lands on the single scale `FONT`. Boulders record first-try
+sends as `FLASH`; an onsight is not recorded separately for boulders (routes record it).
+
+Pages outside Progrès (a séance's summary, a boulder's page, projects, the rival, Patrick's context) still show
+the grade as logged.
+
+### One Font grade per boulder (`lib/analytics/font-view.ts`)
+
+`fontView(dataset, table)` copies the climbing dataset with every boulder on Font. For each boulder, in order:
+
+1. a native Font problem is its own grade (`FONT_NATIVE`);
+2. the climber's per-problem Font estimate wins when its confidence is ≥ 0.5 (`PROBLEM_ESTIMATE`);
+3. the climber's own line from Réglages › Correspondance des cotations (`USER_SETTING`, table
+   `grade_correspondences`);
+4. the default table `DEFAULT_BOULDER_TABLE` (`lib/grading/harmonise.ts`).
+
+A table line is a **span** (Arkose red = 6B–6B+). The boulder counts at **the middle of the span, rounded down
+to a whole grade** when the middle falls between two grades (`singleFontGrade`): 6B–6B+ → 6B, 6C+–7A → 6C+,
+5c–6A+ → 6A, 7B–7C → 7B+. Rounding down never credits a send with more than its line says. This is the same
+middle harmonise.ts scores spans at for Progrès › Charge; Charge keeps the half step on its curve, the other
+sections need a whole grade to count a pyramid row or a send rate.
+
+Grades with no line (Climbing District's mystery pink, independent gyms' custom colours, unknown grades) are
+**never guessed**: their boulders move to the unordered `UNKNOWN` scale, so they leave every graded figure but
+still count in séances, sends, attempts and styles. `conversionSummary` names them, per grade, under each Font
+figure ("Sans correspondance, comptés à part : Rose · Couleurs Climbing District ×2").
+
+Every converted grade is an estimate: each boulder keeps `conversion` (native grade, span, source, confidence),
+records show the grade as logged next to the Font one, and each section carries a note listing how many
+boulders came from which scale and source, the rounding rule, the lowest confidence and a link to Réglages.
+The climber's target grade goes through the same table (`fontTarget`).
+
+Routes need no conversion: `route_ascents.grade` is already French; at colour-graded route gyms it is the French
+grade the climber chose for that colour (see "Routes at colour-graded gyms").
 
 ## Results on two common scales (`lib/grading/harmonise.ts`)
 
@@ -59,7 +91,7 @@ Asked by the product owner on 2026-11-22: Progrès › Charge reads results on t
   per-problem estimate (≥ 0.5) wins over the table. Custom colours,
   the mystery pink and unknown grades are not converted and are counted apart.
 - **Routes on the French scale**, as logged (`route_ascents.grade`), with the gym's colour shown next to it.
-- The verdict reads these two series (plus board and hangs). The per-native-scale results stay in a fold below.
+- The verdict reads these two series (plus board and hangs). There is no per-native-scale fold any more.
 - **Per climber:** Réglages › Correspondance des cotations (`/settings/grades`) stores a climber's own span for
   any grade in `grade_correspondences` (RLS by `auth.uid()`). Defaults stay in code.
 - Nothing is written over `problems.native_grade`; the conversion is computed when the page is built.

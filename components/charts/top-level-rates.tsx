@@ -2,6 +2,7 @@ import { TOP_LEVEL_MIN, type TopLevelSeries, type TopLevelWindow } from "@/lib/a
 import { gradeLabel } from "@/lib/grading/labels";
 import { fmt, intlLocale, type Dictionary, type Locale } from "@/lib/i18n";
 import { chartsDictionary } from "@/lib/i18n/charts";
+import { gradeHarmoniseDictionary } from "@/lib/i18n/grade-harmonise";
 import { cn } from "@/components/ui/cn";
 
 const DIRECTION_TONE = {
@@ -10,14 +11,15 @@ const DIRECTION_TONE = {
 const DIRECTION_MARK = { up: "↗", flat: "→", down: "↘", insufficient: "…" } as const;
 
 /**
- * The send rate at the climber's two hardest grades, one small card per native
- * scale (never merged, never converted): the last four weeks against the four
- * before, a direction only when both windows hold enough boulders, and the
+ * The send rate at the climber's two hardest Font grades, every gym together
+ * (gym grades converted to Font, an estimate: the page puts the FontNote with
+ * its sources under it): the last four weeks against the four before, a direction only when both windows hold enough boulders, and the
  * weeks as bars (sent, then tried but not sent). Figures come from
  * topLevelRates in lib/analytics/charts; this only draws them.
  */
 export function TopLevelRates({ t, locale, series }: { t: Dictionary; locale: Locale; series: readonly TopLevelSeries[] }) {
   const c = chartsDictionary(locale);
+  const h = gradeHarmoniseDictionary(locale);
   const pct = new Intl.NumberFormat(intlLocale(locale), { style: "percent", maximumFractionDigits: 0 });
   const short = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "UTC", day: "numeric", month: "short" });
   const full = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" });
@@ -40,7 +42,8 @@ export function TopLevelRates({ t, locale, series }: { t: Dictionary; locale: Lo
           const every = Math.max(1, Math.ceil(n / 4));
           return <li key={s.system} className="rounded-2xl bg-surface-2 p-4" data-testid="top-level-scale">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-bold">{systemName(s)}</p>
+              <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold">{systemName(s)}
+                {s.system === "FONT" ? <span className="rounded-full border border-warn/40 px-2 py-0.5 text-xs font-bold text-ink-2">{h.converted}</span> : null}</p>
               <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-bold", DIRECTION_TONE[s.direction])}>
                 <span aria-hidden="true">{DIRECTION_MARK[s.direction]} </span>{c.tlDirection[s.direction]}
               </span>

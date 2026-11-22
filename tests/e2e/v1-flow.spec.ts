@@ -210,14 +210,22 @@ test("problem enrichment: Font estimate kept separate + photo upload", async ({ 
   await expect(page.locator('img[alt="Photo du bloc"]')).toBeVisible({ timeout: 15_000 });
 });
 
-test("progress: native Arkose / Climbing District comparison", async ({ page }) => {
+test("progress: Arkose / Climbing District compared on Font, the mystery pink counted apart", async ({ page }) => {
   await signIn(page, ALEX);
   await page.goto("/progress?tab=gyms&period=30");
-  await expect(page.getByText("Vue native")).toBeVisible();
+  await expect(page.getByText("Par réseau, en Font")).toBeVisible();
   const cross = page.locator("section").filter({ hasText: "Comparaison entre salles" });
   await expect(cross.getByText("Arkose", { exact: true })).toBeVisible();
   await expect(cross.getByText("Climbing District", { exact: true })).toBeVisible();
-  await expect(cross.getByText(/Pas encore assez d’estimations fiables/)).toBeVisible();
+  // One scale: no block per gym scale, no separate "normalised" view.
+  await expect(cross.getByText("Couleurs Climbing District (ancienne échelle)", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Vue native")).toHaveCount(0);
+  await expect(page.getByText(/Vue normalisée/)).toHaveCount(0);
+  // Converted grades are labelled as estimates, with their source; the pink has no line and is named, never guessed.
+  const note = cross.getByTestId("font-note");
+  await expect(note.getByText("Bloc · Font, estimé")).toBeVisible();
+  await expect(note).toContainText("Couleurs Climbing District (ancienne échelle) 1 (estimation transmise, non officielle)");
+  await expect(note.getByTestId("font-note-unconverted")).toContainText("Rose · Couleurs Climbing District (ancienne échelle) ×1");
 });
 
 function fitOverlapping(start: Date): Buffer {

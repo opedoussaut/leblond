@@ -4,6 +4,7 @@ import { boulderGrade } from "@/lib/grading/display";
 import { gradeLabel } from "@/lib/grading/labels";
 import { fmt, intlLocale, type Dictionary, type Locale } from "@/lib/i18n";
 import { notebookDictionary } from "@/lib/i18n/notebook";
+import { gradeHarmoniseDictionary } from "@/lib/i18n/grade-harmonise";
 import { PAGE_ICONS, PROGRESS_SECTION_ICONS } from "@/components/layout/nav-icons";
 import { HeadingMark, ToneIcon, type Tone } from "@/components/ui/hero-figure";
 import type { LucideIcon } from "lucide-react";
@@ -29,6 +30,12 @@ export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips
   boulders: BoulderBest[]; route: RouteBest | null; boards: BoardBest[]; hang: HangBest | null; hips: HipLevels | null;
 }) {
   const n = notebookDictionary(locale);
+  const h = gradeHarmoniseDictionary(locale);
+  const converted = (b: BoulderBest) => b.conversion && b.conversion.source !== "FONT_NATIVE" ? fmt(n.convertedFrom, {
+    grade: gradeLabel(t, b.conversion.native.system, b.conversion.native.grade),
+    scale: (t.grades.systems as Record<string, string>)[b.conversion.native.system] ?? b.conversion.native.system,
+    source: h.source[b.conversion.source],
+  }) : null;
   const short = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
   const on = (date: string) => fmt(n.on, { date: short.format(new Date(date + "T12:00:00Z")) });
   const join = (...parts: Array<string | null | false>) => parts.filter(Boolean).join(" · ");
@@ -38,7 +45,7 @@ export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips
     ...boulders.slice(0, 3).map((b) => ({
       key: `b-${b.system}`, eyebrow: join(n.boulder, gymNames[b.gymId] ?? null, (t.grades.scaleShort as Record<string, string>)[b.system] ?? b.system),
       value: gradeLabel(t, b.system, b.grade), mark: MARKS.boulder,
-      detail: join(b.flash && n.flashed, fmt(n.sends, { n: b.sends }), on(b.date),
+      detail: join(converted(b), b.flash && n.flashed, fmt(n.sends, { n: b.sends }), on(b.date),
         b.gymIds.length > 1 && fmt(n.otherGyms, { n: b.gymIds.length - 1 })),
     })),
     ...(route ? [{
@@ -65,7 +72,7 @@ export function NotebookRecords({ t, locale, boulders, route, boards, hang, hips
     <div>
       <h2 id="records-heading" className="flex items-center gap-2 text-lg font-bold"><HeadingMark />{n.bestTitle}</h2>
       <p className="mt-1 text-sm text-ink-2">{tiles.length ? n.bestHint : n.bestEmpty}</p>
-      {boulders.length > 1 ? <p className="mt-1 text-xs text-ink-3">{n.scalesNote}</p> : null}
+      {boulders.some((b) => converted(b)) ? <p className="mt-1 text-xs text-ink-3">{n.scalesNote}</p> : null}
       {favouritesOnly ? <p className="mt-1 text-xs text-ink-3">{n.favouritesNote}</p> : null}
     </div>
     {tiles.length ? <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
