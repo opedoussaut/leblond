@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { fontRangeFor, formatFontRange, isColourSystem } from "@/lib/grading/conversions";
 import { FONT_SCALE } from "@/lib/grading/systems";
+import { DEFAULT_BOULDER_TABLE } from "@/lib/grading/harmonise";
+import type { GradeSystem } from "@/lib/climbing/types";
 import { logRouteAscentSchema } from "@/lib/climbing/routes";
 import { utcToZoned, zonedToUtc } from "@/lib/time";
 
@@ -19,11 +21,11 @@ describe("Paris local time for past sessions", () => {
   });
 });
 
-describe("indicative Font ranges from the LEBLOND reference table", () => {
-  it("gives Arkose and Climbing District colours a range in Font order", () => {
-    expect(fontRangeFor("ARKOSE_COLOR", "RED")).toEqual({ from: "6A+", to: "6C+" });
-    expect(formatFontRange(fontRangeFor("ARKOSE_COLOR", "BLACK")!)).toBe("≈ 7A–7A+");
-    expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "BLUE")).toEqual({ from: "5b", to: "6A" });
+describe("indicative Font ranges next to grades (same default table as Progrès)", () => {
+  it("gives Arkose and Climbing District colours the default table's range, in Font order", () => {
+    expect(fontRangeFor("ARKOSE_COLOR", "RED")).toEqual({ from: "6B", to: "6B+", source: "OBSERVED" });
+    expect(formatFontRange(fontRangeFor("ARKOSE_COLOR", "BLACK")!)).toBe("≈ 6C+–7A");
+    expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "BLUE")).toEqual({ from: "6B", to: "6B+", source: "SHARED_ESTIMATE" });
     for (const system of ["ARKOSE_COLOR", "CLIMBING_DISTRICT_COLOR"] as const) {
       for (const colour of ["YELLOW", "GREEN", "BLUE", "RED", "BLACK", "PURPLE"]) {
         const r = fontRangeFor(system, colour)!;
@@ -31,9 +33,15 @@ describe("indicative Font ranges from the LEBLOND reference table", () => {
       }
     }
   });
-  it("never invents a range for colours absent from the table", () => {
+  it("matches every line of the default correspondence, and nothing else", () => {
+    for (const [system, lines] of Object.entries(DEFAULT_BOULDER_TABLE)) {
+      for (const [grade, line] of Object.entries(lines!)) {
+        expect(fontRangeFor(system as GradeSystem, grade)).toMatchObject({ from: line.from, to: line.to, source: line.source });
+      }
+    }
+  });
+  it("never invents a range for grades absent from the table", () => {
     expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "PINK")).toBeNull();
-    expect(fontRangeFor("CLIMBING_DISTRICT_COLOR", "WHITE")).toBeNull();
     expect(fontRangeFor("CUSTOM_COLOR", "RED")).toBeNull();
     expect(fontRangeFor("FONT", "6A")).toBeNull();
   });
@@ -57,7 +65,8 @@ describe("real gym scales (official sources)", () => {
   it("Climb Up keeps its own order: white sits above red", async () => {
     const { listGrades } = await import("@/lib/grading");
     expect(listGrades("CLIMB_UP_COLOR").map((g) => g.id)).toEqual(["YELLOW", "GREEN", "BLUE", "PURPLE", "RED", "WHITE", "BLACK"]);
-    expect(fontRangeFor("CLIMB_UP_COLOR", "RED")).toBeNull(); // no published equivalence
+    // No published equivalence: a first LEBLOND estimate, the same as in Progrès.
+    expect(fontRangeFor("CLIMB_UP_COLOR", "RED")).toEqual({ from: "6B+", to: "6C", source: "LEBLOND_ESTIMATE" });
   });
   it("Vertical'Art uses its published Bleau ranges", () => {
     expect(fontRangeFor("VERTICAL_ART_COLOR", "BLUE")).toMatchObject({ from: "6A", to: "6B", official: true });
@@ -69,7 +78,8 @@ describe("real gym scales (official sources)", () => {
     expect(listGrades("BLOCKOUT_LEVEL")[0].id).toBe("B0");
     expect(isValidGrade("BLOCKOUT_LEVEL", "B15")).toBe(true);
     expect(isValidGrade("BLOCKOUT_LEVEL", "B16")).toBe(false);
-    expect(formatFontRange(fontRangeFor("BLOCKOUT_LEVEL", "B5")!)).toBe("≈ 6A–6A+");
+    expect(formatFontRange(fontRangeFor("BLOCKOUT_LEVEL", "B5")!)).toBe("≈ 6A+");
+    expect(formatFontRange(fontRangeFor("BLOCKOUT_LEVEL", "B0")!)).toBe("≈ 4A–4B");
     expect(isColourSystem("BLOCKOUT_LEVEL")).toBe(false);
   });
 });

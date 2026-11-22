@@ -166,8 +166,13 @@ export const fr = {
     goHome: "Aller à l’accueil",
   },
   grades: {
-    rangeOfficial: "Équivalence publiée par la salle",
-    rangeHint: "Estimation indicative (table de correspondance LEBLOND)",
+    rangeSource: {
+      GYM_PUBLISHED: "Équivalence publiée par la salle",
+      OBSERVED: "Estimation observée par Kaskad, non officielle",
+      SHARED_ESTIMATE: "Estimation transmise, non officielle",
+      REFERENCE_TABLE: "Estimation indicative (table de référence LEBLOND)",
+      LEBLOND_ESTIMATE: "Première estimation LEBLOND, à affiner dans Réglages",
+    },
     systems: {
       ARKOSE_COLOR: "Couleurs Arkose",
       CLIMBING_DISTRICT_COLOR: "Couleurs Climbing District (ancienne échelle)",

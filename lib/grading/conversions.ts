@@ -1,69 +1,33 @@
 import type { GradeSystem } from "@/lib/climbing/types";
 import { FONT_SCALE, gradeSystemKind, type FontGrade } from "./systems";
 import { boulderGrade } from "./display";
+import { DEFAULT_BOULDER_TABLE, type TableLine } from "./harmonise";
 
 /**
- * Indicative Fontainebleau ranges for gym colour circuits.
+ * The "≈ range" shown next to a native grade while logging (grade chips, the
+ * live-session and quick-entry pickers).
  *
- * SOURCES
- *  - Vertical'Art: OFFICIAL, from the gym's FAQ (https://www.vertical-art.fr/faq/):
- *    blanc 3a/3c, orange 4a/4c, vert 5a/5c, bleu 6a/6b, rouge 6c/7a, noir 7a/7b, violet 7b+ et au-delà.
- *  - Arkose, Climbing District, Block'Out: the LEBLOND reference table
- *    (docs/grade-reference.csv), which maps each Arkose sub-level to a Bleau
- *    anchor and to the equivalent level of other Paris gyms:
- *      Arkose = the Bleau anchors of the colour's five sub-levels;
- *      Climbing District = every row whose CD anchor names that colour;
- *      Block'Out = every row whose Block'Out anchor names that level.
- *  - Climb Up publishes no equivalence and its colour order differs from the
- *    table's anchors, so no range is shown for Climb Up.
+ * It reads the same default correspondence as Progrès (harmonise.ts
+ * DEFAULT_BOULDER_TABLE), so a colour shows the same Font span in both places.
+ * Sources and confidences live there: Vertical'Art published by the gym, Kaskad
+ * observed for Arkose and Block'Out, a shared summary for Climbing District,
+ * first LEBLOND estimates for Climb World, Climb Up, MROC and Le Labo.
  *
  * These are ESTIMATES shown next to the native grade, never stored in place of
- * it, and never used as a measured grade. Colours with no row in the table
- * (Climbing District white/orange, the mystery pink, independent gyms' custom
- * colours) have no estimate. Climbing District's numbered levels (1–12) have
- * none either: no table is published for them, and the former colours' ranges
- * must not be carried over to them.
+ * it. Grades with no line (the mystery pink, independent gyms' custom colours,
+ * Font itself) show nothing.
  */
-export type FontRange = { from: FontGrade; to: FontGrade; openEnded?: boolean; official?: boolean };
-
-export const RANGES: Partial<Record<GradeSystem, Record<string, FontRange>>> = {
-  ARKOSE_COLOR: {
-    YELLOW: { from: "3a", to: "4c" },
-    GREEN: { from: "5a", to: "5c" },
-    BLUE: { from: "5c", to: "6A" },
-    RED: { from: "6A+", to: "6C+" },
-    BLACK: { from: "7A", to: "7A+" },
-    PURPLE: { from: "7B", to: "7C+" },
-  },
-  CLIMBING_DISTRICT_COLOR: {
-    YELLOW: { from: "3a", to: "4c" },
-    GREEN: { from: "5a", to: "5b" },
-    BLUE: { from: "5b", to: "6A" },
-    RED: { from: "6A", to: "6C" },
-    BLACK: { from: "6C", to: "7A+" },
-    PURPLE: { from: "7A+", to: "7C+" },
-  },
-  VERTICAL_ART_COLOR: {
-    WHITE: { from: "3a", to: "3c", official: true },
-    ORANGE: { from: "4a", to: "4c", official: true },
-    GREEN: { from: "5a", to: "5c", official: true },
-    BLUE: { from: "6A", to: "6B", official: true },
-    RED: { from: "6C", to: "7A", official: true },
-    BLACK: { from: "7A", to: "7B", official: true },
-    PURPLE: { from: "7B+", to: "7B+", openEnded: true, official: true },
-  },
-  BLOCKOUT_LEVEL: {
-    B1: { from: "4a", to: "4c" }, B2: { from: "5a", to: "5a" }, B3: { from: "5b", to: "5b" },
-    B4: { from: "5c", to: "5c" }, B5: { from: "6A", to: "6A+" }, B6: { from: "6A+", to: "6B" },
-    B7: { from: "6B+", to: "6B+" }, B8: { from: "6C", to: "6C" }, B9: { from: "6C+", to: "6C+" },
-    B10: { from: "7A", to: "7A" }, B11: { from: "7A+", to: "7A+" }, B12: { from: "7B", to: "7B" },
-    B13: { from: "7B+", to: "7B+" }, B14: { from: "7C", to: "7C+" },
-  },
-};
+export type FontRange = { from: FontGrade; to: FontGrade; source: TableLine["source"]; openEnded?: boolean; official?: boolean };
 
 /** Indicative Font range for a native boulder grade, or null when the table has none. */
 export function fontRangeFor(system: GradeSystem, grade: string): FontRange | null {
-  return RANGES[system]?.[grade] ?? null;
+  const line = DEFAULT_BOULDER_TABLE[system]?.[grade];
+  if (!line) return null;
+  return {
+    from: line.from, to: line.to, source: line.source,
+    ...(line.openEnded ? { openEnded: true } : {}),
+    ...(line.source === "GYM_PUBLISHED" ? { official: true } : {}),
+  };
 }
 
 export function formatFontRange(range: FontRange): string {

@@ -22,7 +22,7 @@ export function GradeChip({
   grade: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
-  /** Also show the indicative Font range from the LEBLOND reference table (colour grades only). */
+  /** Also show the indicative Font range (the default correspondence Progrès uses). */
   showFont?: boolean;
 }) {
   const range = showFont ? fontRangeFor(system, grade) : null;
@@ -54,7 +54,7 @@ export function GradeChip({
       ) : null}
       <span>{label}</span>
       {mystery ? <span className="font-medium normal-case text-ink-3">({t.grades.mystery})</span> : null}
-      {range ? <span className="font-medium normal-case text-ink-3" title={range.official ? t.grades.rangeOfficial : t.grades.rangeHint}>{formatFontRange(range)}</span> : null}
+      {range ? <span className="font-medium normal-case text-ink-3" title={t.grades.rangeSource[range.source]}>{formatFontRange(range)}</span> : null}
     </span>
   );
 }
