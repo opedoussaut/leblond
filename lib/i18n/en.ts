@@ -625,13 +625,15 @@ export const en: Dictionary = {
     quick: {
       climbToday: "What should I climb today?",
       lastSession: "Analyse my last session",
+      weekReview: "Review my week",
       holdingBack: "What is holding me back?",
       targetDistance: "How close am I to my target?",
       project: "Analyse one of my projects",
       nextSession: "Build my next session",
-      compareGyms: "Compare my Arkose and Climbing District performance",
-      fatigue: "What do my recent sessions say about my fatigue?",
-      mobility: "How is my hip mobility going?",
+      programme: "Does my programme suit me?",
+      rival: "How do I beat my rival this week?",
+      fatigue: "Am I fresh enough to push hard?",
+      mobility: "How is my mobility going?",
     },
   },
   profile: {

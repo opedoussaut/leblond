@@ -53,11 +53,13 @@ export function gradeScalesFor(systems: Iterable<GradeSystem>) {
 export const QUICK_ACTIONS = [
   "climbToday",
   "lastSession",
+  "weekReview",
   "holdingBack",
   "targetDistance",
   "project",
   "nextSession",
-  "compareGyms",
+  "programme",
+  "rival",
   "fatigue",
   "mobility",
 ] as const;
