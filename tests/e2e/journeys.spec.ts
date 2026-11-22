@@ -1424,12 +1424,24 @@ test("J — any programme can be the one in progress, and the rival has a face, 
   expect(options.length).toBeGreaterThan(1);
   // Choose a programme other than the one followed now.
   const current = await pick.inputValue();
-  const other = await pick.locator("option").evaluateAll((els, cur) => els.map((e) => (e as HTMLOptionElement).value).find((v) => v !== cur), current);
+  // Own programmes are "plan:<id>"; the suggested ones ("catalogue:<id>") are checked below.
+  const other = await pick.locator("option").evaluateAll((els, cur) => els.map((e) => (e as HTMLOptionElement).value).find((v) => v.startsWith("plan:") && v !== cur), current);
   await pick.selectOption(other!);
   await follow.getByRole("button", { name: "Suivre ce programme" }).click();
   await expect(follow.getByTestId("followed-since")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("region", { name: "Programme suivi" }).getByLabel("Choisir le programme")).toHaveValue(other!);
+
+  // Suggested programmes: each shows its length, days a week, level and source, and can be followed.
+  const again = page.getByRole("region", { name: "Programme suivi" });
+  await again.getByLabel("Choisir le programme").selectOption("catalogue:horst-321-6w-3d");
+  await expect(again.getByTestId("catalogue-facts")).toHaveText("6 semaines · 3 jours par semaine · intermédiaire à confirmé · bloc");
+  await expect(again.getByTestId("catalogue-detail").getByRole("link", { name: /Hörst/ })).toHaveAttribute("href", /trainingforclimbing\.com/);
+  await again.getByRole("button", { name: "Suivre ce programme" }).click();
+  await expect(again.getByLabel("Choisir le programme")).toHaveValue(/^plan:/);
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Programme suivi" }).getByLabel("Choisir le programme")).toHaveValue(/^plan:/);
+  await expect(page.getByText("Cycle 3-2-1 bloc — 3 jours").first()).toBeVisible();
 
   // A new pact: the rival shows its portrait, its "fictif" label, its feed and its settings.
   await page.goto("/rival");
