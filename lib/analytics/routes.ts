@@ -1,3 +1,4 @@
+import type { GradeSystem } from "@/lib/climbing/types";
 import { ROUTE_RESULTS, isClean, isTopped, routeGradeIndex, type RouteResult, type RouteStyle } from "@/lib/climbing/routes";
 import { DAY_MS, ratio, type Ratio } from "./types";
 import type { LevelPoint, PyramidRow } from "./charts";
@@ -17,6 +18,9 @@ export interface RouteAscentFact {
   createdAt: Date;
   /** Climbed at a crag (the séance's site is an outdoor one). Absent: indoors. */
   outdoor?: boolean;
+  /** The gym's colour logged next to the French grade (colour-graded gyms only). */
+  nativeGrade?: string | null;
+  nativeGradeSystem?: GradeSystem | null;
 }
 
 export interface RouteSummary {

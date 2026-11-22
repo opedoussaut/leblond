@@ -1516,6 +1516,33 @@ export type Database = {
           },
         ];
       };
+      grade_correspondences: {
+        Row: {
+          user_id: string;
+          grade_system: Database["public"]["Enums"]["grade_system"];
+          native_grade: string;
+          font_from: string;
+          font_to: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          grade_system: Database["public"]["Enums"]["grade_system"];
+          native_grade: string;
+          font_from: string;
+          font_to: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          grade_system?: Database["public"]["Enums"]["grade_system"];
+          native_grade?: string;
+          font_from?: string;
+          font_to?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       gyms: {
         Row: {
           active: boolean;
