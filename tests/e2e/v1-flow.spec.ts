@@ -434,11 +434,13 @@ test("Climbing District levels: logged natively, kept apart from the colour sess
   await expect(page.getByRole("button", { name: "Rose Mystère", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Niveau 4", exact: true })).toHaveCount(0);
 
-  // Progress: Climbing District colours and levels side by side, each named, never merged.
+  // Progress: boulders read on Font, and the note's converted line names each Climbing District scale as its own source.
+  // (The unconverted line also names the colour scale, for the mystery pink: check the converted line only.)
   await page.goto("/progress?tab=gyms&period=30");
   const cross = page.locator("section").filter({ hasText: "Comparaison entre salles" });
-  await expect(cross.getByText("Couleurs Climbing District (ancienne échelle)")).toBeVisible();
-  await expect(cross.getByText("Niveaux Climbing District (1–12)")).toBeVisible();
+  const converted = cross.getByTestId("font-note").locator("p").filter({ hasText: "Bloc · Font, estimé" });
+  await expect(converted).toContainText("Couleurs Climbing District (ancienne échelle)");
+  await expect(converted).toContainText("Niveaux Climbing District (1–12)");
 });
 
 // Runs last: the new-session page then opens on the outdoor tab for Alex.
