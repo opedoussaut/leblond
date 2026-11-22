@@ -8,6 +8,8 @@ import { fmt, type Locale } from "@/lib/i18n";
 import { trainingDictionary } from "@/lib/i18n/training";
 import { journeyDictionary } from "@/lib/i18n/training-journey";
 import { planModesDictionary } from "@/lib/i18n/training-plans";
+import { areasDictionary } from "@/lib/i18n/areas";
+import { planLabel } from "@/lib/training/plan-label";
 import { METHODS_FOR_PLANS } from "@/lib/training/catalogue";
 import type { Health } from "@/lib/training/health";
 import { planHints, type PlanHint } from "@/lib/training/plan-hints";
@@ -59,6 +61,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
   const t = trainingDictionary(locale);
   const j = journeyDictionary(locale);
   const m = planModesDictionary(locale);
+  const labelTexts = { withGoal: areasDictionary(locale).programmes.planWithGoal, plain: areasDictionary(locale).programmes.planPlain };
   const phaseName = (n: number) => fmt(m.newPhaseName, { n });
   const router = useRouter();
   const [plans, setPlans] = useState(initialPlans);
@@ -182,7 +185,7 @@ export function PlanEditor({ initialPlans, locale, addMethod = "", today, monday
         <button type="button" key={plan.id} onClick={() => selectPlan(plan.id)}
           aria-pressed={!choosing && !patrickForm && draft.id === plan.id}
           className={toggleClass(!choosing && !patrickForm && draft.id === plan.id)}
-        >{plan.name}</button>
+        >{planLabel(plan, labelTexts)}</button>
       ))}
     </div>
   );

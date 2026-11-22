@@ -65,6 +65,24 @@ select public.coach_key_rebuild_status(:'key_a') as status \gset
 select pg_temp.expect((:'status'::jsonb ->> 'sessions')::int = 4 and (:'status'::jsonb ->> 'slots')::int = 4
   and (:'status'::jsonb ->> 'exercises')::int = 5 and :'status'::jsonb ->> 'started_on' = :'d1'
   and (:'status'::jsonb -> 'by_status' ->> 'PLANNED')::int = 4, 'status counts the assignment');
+-- Re-assigning with renamed séances: titles of séances not started follow, nothing else changes.
+reset role;
+update public.training_sessions set status = 'IN_PROGRESS', started_at = now() where programme_slot = 3 and enrollment_id is not null;
+set role anon;
+select set_config('request.jwt.claims', '', false);
+select public.coach_key_assign_rebuild(:'key_a', '{2,4,7}', '{"version":1,"templates":[]}',
+  (select jsonb_agg(jsonb_set(body, '{title}', to_jsonb('Renamed ' || n)) order by n) from s)) as renamed \gset
+select pg_temp.expect((:'renamed'::jsonb ->> 'created')::int = 0 and (:'renamed'::jsonb ->> 'existing')::int = 4
+  and (:'renamed'::jsonb ->> 'sessions')::int = 4, 'renaming creates nothing');
+reset role;
+select pg_temp.expect((select string_agg(title, '|' order by programme_slot) = 'Renamed 1|Renamed 2|C · Grimpe|Renamed 4'
+  from public.training_sessions where enrollment_id is not null), 'titles refreshed, except the séance already started');
+select pg_temp.expect((select count(*) = 5 from public.training_session_exercises e join public.training_sessions t on t.id = e.session_id
+  where t.enrollment_id is not null), 'no exercise added by a re-run');
+select pg_temp.expect((select bool_and(scheduled_date = original_date) from public.training_sessions where enrollment_id is not null), 'dates untouched');
+update public.training_sessions set status = 'PLANNED', started_at = null where programme_slot = 3 and enrollment_id is not null;
+set role anon;
+select set_config('request.jwt.claims', '', false);
 -- Importing a bilan done outside the app (synthetic values)
 \set rows '[{"card_id":"M01","card_version":1,"side":"BOTH","item":1,"trial":1,"status":"DONE","value":2,"unit":"SCORE","details":{},"note":""},{"card_id":"M05","card_version":1,"side":"LEFT","item":1,"trial":1,"status":"DONE","value":4,"unit":"CM","details":{},"note":""}]'
 select pg_temp.expect_error(format($$select public.coach_key_import_battery(%L, 1::smallint, (%L::date + 1), 'COMPLETED', null, false, '{}', '', %L)$$, :'key_a', :'today', :'rows'), 'a bilan in the future is refused');

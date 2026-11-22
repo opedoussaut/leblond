@@ -15,8 +15,9 @@ export const runtime = "nodejs";
  * service-role key.
  *
  *   GET                  the programme's state: enrolment id, start, counts by status
- *   POST {programme}     assign Mobility Rebuild | 12 Weeks (idempotent: a re-run refreshes
- *                        the content and only adds the séances still missing, never in the past)
+ *   POST {programme}     assign Mobility Rebuild | 12 Weeks (idempotent: a re-run refreshes the
+ *                        content and the titles of séances not started, and only adds the séances
+ *                        still missing, never in the past)
  */
 
 type Status = { enrollment_id: string; started_on: string; days: number[] | null; slots: number } | null;
@@ -74,14 +75,14 @@ export async function POST(request: Request) {
   const status = current as Status;
   const today = localDate_(new Date());
   let sessions: ReturnType<typeof plannedSessions> = [];
-  if (!status || status.slots < TOTAL_SESSIONS) {
-    // Already started: same days and start, so the missing slots get the dates they always had.
-    const days = status?.days ?? programme.days;
-    try {
-      sessions = plannedSessions({ days, templates: programme.templates }, today, status?.started_on);
-    } catch {
-      return json(409, { error: "schedule_changed" });
-    }
+  // Already started: same days and start, so missing slots get the dates they always had. The séances
+  // that exist keep their date and entries; the database only refreshes the title of those not started.
+  const days = status?.days ?? programme.days;
+  try {
+    sessions = plannedSessions({ days, templates: programme.templates }, today, status?.started_on);
+  } catch {
+    // All slots there: the content is still refreshed. Some missing: their dates can't be rebuilt.
+    if (!status || status.slots < TOTAL_SESSIONS) return json(409, { error: "schedule_changed" });
   }
   const { data, error } = await p.db.rpc("coach_key_assign_rebuild", {
     p_key: p.key, p_days: status?.days ?? programme.days, p_content: contentOf(programme),

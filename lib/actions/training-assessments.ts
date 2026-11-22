@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/viewer";
-import { formatDate } from "@/lib/format";
-import { fmt } from "@/lib/i18n";
-import { journeyDictionary } from "@/lib/i18n/training-journey";
+import { areasDictionary } from "@/lib/i18n/areas";
+import { describePlan } from "@/lib/training/plan-label";
 import { MAX_ASSESSMENTS, assessmentInputSchema, checkinInputSchema, elapsedWeeks } from "@/lib/training/assessment";
 import { PROTOCOL_VERSION, parseContext } from "@/lib/training/assessment-protocol";
 import { healthFromContext } from "@/lib/training/health";
@@ -26,7 +25,9 @@ async function insertProgrammePlan(viewer: Viewer, assessmentId: string, goal: s
   const { count, error: countError } = await viewer.supabase.from("training_plans").select("id", { count: "exact", head: true });
   if (countError || (count ?? 0) >= MAX_PLANS) return null;
   const locale = viewer.profile.preferred_language === "en" ? "en" : "fr";
-  const name = fmt(journeyDictionary(locale).programme.planName, { date: formatDate(new Date(), locale, { day: "numeric", month: "long", year: "numeric" }) });
+  // Named after what it is (goal and length), not only its date.
+  const a = areasDictionary(locale).programmes;
+  const name = describePlan({ goal, weeks: Math.min(52, weeks), sessions }, { withGoal: a.planWithGoal, plain: a.planPlain }).slice(0, 100);
   const { data, error } = await viewer.supabase.from("training_plans")
     .insert({ user_id: viewer.userId, name, goal, weeks: Math.min(52, weeks), sessions, assessment_id: assessmentId })
     .select("id").single();

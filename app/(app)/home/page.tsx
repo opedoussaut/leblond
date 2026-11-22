@@ -21,6 +21,14 @@ import { loadClimberWork, loadOpenRival, rivalPhotoUrl } from "@/lib/data/alter-
 import { boardsDictionary } from "@/lib/i18n/boards";
 import { DayFormCard } from "@/components/training/day-form-card";
 import { injuriesSchema } from "@/lib/training/health";
+import { FollowedProgrammes } from "@/components/home/followed-programmes";
+import { followedProgrammes } from "@/lib/analytics/followed-programmes";
+import { loadProgramme } from "@/lib/data/programme";
+import { loadRebuild } from "@/lib/data/mobility-rebuild";
+import { rebuildDictionary } from "@/lib/i18n/mobility-rebuild";
+import { TOTAL_SESSIONS } from "@/lib/training/mobility-rebuild/engine";
+import { HIP_METHOD_ID, HIP_PROGRAMME } from "@/lib/training/hip-mobility/content";
+import { planLabel, shortGoal } from "@/lib/training/plan-label";
 
 /**
  * Aujourd'hui: what to do now. A live séance first, then one button to start
@@ -60,6 +68,30 @@ export default async function HomePage() {
       breakdown: climberBreakdown(work, rival.pact.startDate),
       week: pactWeek(rival.pact, pactClock(rival.pact, today)) + 1 };
   })() : null;
+  // The programmes in progress: the training programme, Reconquête mobilité, hip mobility.
+  const [programme, rebuild, { data: hipEnrollment }, { data: hipNext }] = await Promise.all([
+    loadProgramme(viewer.supabase, today), loadRebuild(viewer.supabase),
+    viewer.supabase.from("mobility_enrollments").select("working_level, status").eq("programme", HIP_PROGRAMME).maybeSingle(),
+    viewer.supabase.from("training_sessions").select("scheduled_date").eq("method_id", HIP_METHOD_ID).eq("status", "PLANNED")
+      .gte("scheduled_date", today).order("scheduled_date").limit(1).maybeSingle(),
+  ]);
+  const programmesText = areasDictionary(locale).programmes;
+  const pv = programme.view;
+  const followed = followedProgrammes({
+    plan: pv ? {
+      title: pv.plan ? planLabel({ name: pv.plan.name, goal: pv.goal, weeks: pv.horizonWeeks, sessions: pv.plan.sessions },
+        { withGoal: programmesText.planWithGoal, plain: programmesText.planPlain }) : shortGoal(pv.goal) || programmesText.followTitle,
+      week: pv.week, horizonWeeks: pv.horizonWeeks, finished: pv.finished, next: pv.next?.date ?? null,
+    } : null,
+    rebuild: rebuild && rebuild.enrollment.status === "ACTIVE" ? {
+      title: rebuildDictionary(locale).title, total: TOTAL_SESSIONS,
+      done: rebuild.view.sessions.filter((s) => s.status === "COMPLETED").length,
+      next: rebuild.view.next?.scheduledDate ?? null,
+    } : null,
+    hip: hipEnrollment && hipEnrollment.status === "ACTIVE" ? {
+      title: fr ? "Mobilité des hanches" : "Hip mobility", level: hipEnrollment.working_level, next: hipNext?.scheduled_date ?? null,
+    } : null,
+  });
   const outcome = dayCheck?.outcome;
   const dayPain = injuriesSchema.safeParse(dayCheck?.pain ?? []);
   const dayAnswers = dayCheck ? {
@@ -133,6 +165,8 @@ export default async function HomePage() {
         </div>
       </div>
     </section>
+
+    <FollowedProgrammes locale={locale} programmes={followed} />
 
     <section aria-labelledby="week-heading" className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -15,6 +15,7 @@ import { listTrainingSessions } from "@/lib/data/training-sessions";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { areasDictionary } from "@/lib/i18n/areas";
+import { planLabel } from "@/lib/training/plan-label";
 import { mobilityDictionary } from "@/lib/i18n/mobility";
 import { getI18n } from "@/lib/i18n/server";
 import { trainingDictionary } from "@/lib/i18n/training";
@@ -115,7 +116,7 @@ export default async function ProgrammesPage({ searchParams }: PageProps<"/progr
 
     {tab === "overview" ? <>
       <ProgrammeCard locale={locale} view={view} today={today} />
-      <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: p.name }))} followed={followed} today={today} />
+      <FollowProgramme locale={locale} plans={plans.map((p) => ({ id: p.id, name: planLabel(p, { withGoal: a.planWithGoal, plain: a.planPlain }) }))} followed={followed} today={today} />
       <p className="text-sm"><Link href="/atlas" className={cn(linkClass)}>{a.library} <IconNext /></Link></p>
     </> : null}
 
