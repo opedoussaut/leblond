@@ -3,7 +3,7 @@ import { buttonClass, linkClass } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { PAGE_ICONS } from "@/components/layout/nav-icons";
 import {
-  changesSinceBaseline, discomfortReports, exerciseProgress, hardestMovement, mobilityOverview, mobilityPeriods, sideComparison,
+  changesSinceBaseline, discomfortReports, exerciseProgress, hardestMovement, sideComparison,
 } from "@/lib/analytics/mobility";
 import { requireViewer } from "@/lib/auth/viewer";
 import { loadMobility } from "@/lib/data/mobility";
@@ -19,26 +19,18 @@ import { pick } from "@/lib/training/sessions";
 import { IconBack, IconNext } from "@/components/ui/icons";
 import { loadRebuild } from "@/lib/data/mobility-rebuild";
 import { RebuildTrack } from "@/components/training/rebuild-view";
+import { MobilityCompassPanel, MobilitySessionsDone } from "@/components/training/mobility-compass";
+import { Fold } from "@/components/ui/fold";
+import { HeadingMark } from "@/components/ui/hero-figure";
+import { doneMobilitySessions, mobilityActivity, mobilityCompass, nextMobilitySession } from "@/lib/analytics/mobility-follow-up";
+import { loadBilanDates, loadMobilitySessionFacts } from "@/lib/data/mobility-follow-up";
+import { levelView } from "@/lib/training/hip-mobility/levels";
+import { mobilityFollowUpDictionary } from "@/lib/i18n/mobility-follow-up";
 
-export const metadata = { title: "LEBLOND — Hip mobility follow-up" };
+export const metadata = { title: "LEBLOND — Mobility follow-up" };
 
 function Evidence({ label }: { label: string }) {
   return <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-bold text-ink-2">{label}</span>;
-}
-
-function Bars({ items, label }: { items: { key: string; label: string; value: number }[]; label: string }) {
-  const max = Math.max(1, ...items.map((i) => i.value));
-  return <figure>
-    <figcaption className="text-sm font-semibold">{label}</figcaption>
-    <ol className="mt-2 flex h-28 items-end gap-1.5" aria-label={label}>
-      {items.map((i) => <li key={i.key} className="flex flex-1 flex-col items-center justify-end gap-1">
-        <span className="text-xs font-bold tabular-nums">{i.value || ""}</span>
-        <span className="w-full rounded-t-md bg-accent" style={{ height: `${Math.max(2, (i.value / max) * 80)}px` }} aria-hidden="true" />
-        <span className="text-[10px] text-ink-3">{i.label}</span>
-        <span className="sr-only">{i.label}: {i.value}</span>
-      </li>)}
-    </ol>
-  </figure>;
 }
 
 export default async function MobilityFollowUpPage() {
@@ -46,13 +38,22 @@ export default async function MobilityFollowUpPage() {
   const { locale } = await getI18n(viewer.profile.preferred_language);
   const m = mobilityDictionary(locale);
   const b = batteryDictionary(locale);
-  const state = await loadMobility(viewer.supabase);
-  const rebuild = await loadRebuild(viewer.supabase);
+  const t = mobilityFollowUpDictionary(locale);
+  const [state, rebuild, facts, bilans] = await Promise.all([
+    loadMobility(viewer.supabase), loadRebuild(viewer.supabase), loadMobilitySessionFacts(viewer.supabase), loadBilanDates(viewer.supabase),
+  ]);
   const { records, assessments, today } = state;
   const empty = records.length === 0 && assessments.length === 0;
-  const overview = mobilityOverview(records, assessments, today);
-  const weeks = mobilityPeriods(records, today, "week", 8);
-  const months = mobilityPeriods(records, today, "month", 6);
+  // Every mobility séance (hip programme, Rebuild, coach and Atlas séances), not only the hip programme's.
+  const done = doneMobilitySessions(facts, today);
+  const activity = mobilityActivity(done, today);
+  const next = nextMobilitySession(facts, today);
+  const latest = assessments[0] ?? null;
+  const view = levelView(latest ? latest.results : null);
+  const compass = mobilityCompass({
+    latestAssessment: latest ? { stage: latest.stage, date: latest.date } : null, view,
+    bilans, rebuildStartedOn: rebuild?.enrollment.startedOn ?? null, today,
+  });
   const changes = changesSinceBaseline(assessments);
   const sides = sideComparison(records);
   const reports = discomfortReports(records, 3, 12);
@@ -69,27 +70,20 @@ export default async function MobilityFollowUpPage() {
 
   return <div className="space-y-6">
     <p className="text-sm"><Link href="/follow-up" className={linkClass}><IconBack /> {locale === "fr" ? "Progrès" : "Progress"}</Link></p>
-    <PageHeader icon={<PAGE_ICONS.mobility />} title={m.fuTitle} subtitle={m.fuSubtitle} />
+    <PageHeader icon={<PAGE_ICONS.mobility />} title={t.title} subtitle={t.subtitle} />
+
+    <MobilityCompassPanel locale={locale} compass={compass} activity={activity} next={next}
+      testNames={(compass.goal?.blockers ?? []).map(testName)} />
+
+    <MobilitySessionsDone locale={locale} done={done} activity={activity} />
 
     {rebuild ? <RebuildTrack locale={locale} state={rebuild} /> : null}
 
-    {empty ? <div className="rounded-2xl border border-dashed border-line p-6 text-center">
-      <p className="text-sm text-ink-2">{m.fuEmpty}</p>
-      <Link href="/train/mobility" className={buttonClass("primary", "md", "mt-4")}>{m.fuStart} <IconNext /></Link>
-    </div> : <>
-      <section aria-labelledby="fu-sessions" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fu-sessions" className="text-lg font-bold">{m.fuSessions}</h2>
-          <Evidence label={m.fuRecorded} />
-        </div>
-        <p className="text-sm text-ink-2">{fmt(m.fuLast28, { n: overview.sessionsLast28 })} · {fmt(m.fuTotal, { n: overview.sessionsTotal })}</p>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Bars label={m.fuPerWeek} items={weeks.map((w) => ({ key: w.start, label: shortDate(w.start), value: w.sessions }))} />
-          <Bars label={m.fuPerMonth} items={months.map((p) => ({ key: p.start, label: formatDate(p.start + "T12:00:00", locale, { month: "short" }), value: p.sessions }))} />
-        </div>
-        {hardest ? <p className="text-sm font-semibold">{fmt(m.fuHardest, { name: EXERCISE_BY_ID.get(hardest.exerciseId)!.name[locale] })}</p> : null}
-      </section>
+    <h2 className="flex items-center gap-2 px-1 pt-2 text-xs font-bold uppercase tracking-[0.12em] text-ink-3"><HeadingMark />{t.details}</h2>
+    <p className="-mt-4 px-1 text-sm text-ink-2">{t.detailsHint}</p>
 
+    {empty ? null : <>
+      {exerciseIds.length || sides.length ? <Fold variant="card" title={m.fuExercises} hint={hardest ? fmt(m.fuHardest, { name: EXERCISE_BY_ID.get(hardest.exerciseId)!.name[locale] }) : m.fuExerciseHint}>
       {exerciseIds.length ? <section aria-labelledby="fu-exercises" className="leblond-premium-surface space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="fu-exercises" className="text-lg font-bold">{m.fuExercises}</h2>
@@ -156,6 +150,7 @@ export default async function MobilityFollowUpPage() {
           {sides.map((c) => <li key={c.exerciseId}>{EXERCISE_BY_ID.get(c.exerciseId)!.name[locale]} : {c.harderSide ? fmt(m.fuHarder, { side: m.sides[c.harderSide] }) : m.fuAlike}</li>)}
         </ul>
       </section> : null}
+      </Fold> : null}
 
       <section aria-labelledby="fu-assess" className="leblond-premium-surface space-y-3 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
