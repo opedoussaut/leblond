@@ -1525,8 +1525,12 @@ test("K — results on two scales: boulders on Font (converted, estimated), and 
   await expect(page.getByTestId("harmonised-boulder").getByText("ton réglage · confiance moyenne")).toBeVisible();
   // The "≈ range" next to the colour while logging follows the climber's line too.
   await page.goto("/session/new?where=past");
-  await chooseGym(page, "Demo Arkose");
   const past = page.getByRole("form", { name: "Ajouter une séance déjà faite" });
+  await expect(page.getByRole("heading", { name: "Ajouter une séance déjà faite" })).toBeVisible();
+  // This climber already has a gym, so it comes preselected: change it explicitly.
+  if (await past.isVisible()) await past.getByRole("button", { name: "Changer", exact: true }).click();
+  await chooseGym(page, "Demo Arkose");
+  await expect(past).toContainText("Demo Arkose");
   await past.getByLabel("Date").fill(parisDate(new Date(Date.now() - 86_400_000)));
   await past.getByRole("button", { name: /Créer la séance/ }).click();
   await expect(page).toHaveURL(/\/edit$/);
